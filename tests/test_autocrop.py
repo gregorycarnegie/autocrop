@@ -2,9 +2,11 @@
 
 from glob import glob
 import shutil
-import pytest  # noqa: F401
+
+import pytest
 import cv2
 import numpy as np
+from hypothesis import given, example, strategies as st
 
 from autocrop.autocrop import gamma, Cropper
 
@@ -76,6 +78,14 @@ def test_adjust_boundaries(values, expected_result):
     assert result == expected_result
 
 
+@given(*[st.integers(min_value=0, max_value=500)] * 4)
+@example(13, 280, 26, 33)
+def test_crop_positions(x, y, w, h):
+    c = Cropper()
+    result = c._crop_positions(500, 500, x, y, w, h)
+    assert all(pos >= 0 for pos in result)
+
+
 @pytest.mark.slow
 @pytest.mark.parametrize(
     "height, width",
@@ -118,4 +128,3 @@ def test_face_percent(face_percent):
     else:
         with pytest.raises(ValueError) as e:
             Cropper(face_percent=face_percent)
-            assert "argument must be between 0 and 1" in str(e)
