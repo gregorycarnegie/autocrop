@@ -49,7 +49,6 @@ def gamma(gam=1.0):
         return np.array([((i / 255.0) ** inv_gamma) * 255 for i in np.arange(0, 256)]).astype('uint8')
     else:
         return np.arange(0, 256).astype('uint8')
-    # return LUT(img, table)
 
 
 def open_file(input_filename):
@@ -75,12 +74,12 @@ def _determine_safe_zoom(img_h, img_w, x, y, w, h, percent_face):
 
     Parameters:
     -----------
-    img_h: int | Height (px) of the image to be cropped\\n
-    img_w: int | Width (px) of the image to be cropped\\n
-    x: int | Leftmost coordinates of the detected face\\n
-    y: int | Bottom-most coordinates of the detected face\\n
-    w: int | Width of the detected face\\n
-    h: int | Height of the detected face\\n
+    img_h: int | Height (px) of the image to be cropped
+    img_w: int | Width (px) of the image to be cropped
+    x: int | Leftmost coordinates of the detected face
+    y: int | Bottom-most coordinates of the detected face
+    w: int | Width of the detected face
+    h: int | Height of the detected face
     """
     """Find out what zoom factor to use given self.aspect_ratio"""
     corners = itertools.product((x, x + w), (y, y + h))
@@ -115,12 +114,12 @@ def _crop_positions(img_h, img_w, x, y, w, h, percent_face, wide, high):
 
     Parameters:
     -----------
-    img_h: int | Height (px) of the image to be cropped\\n
-    img_w: int | Width (px) of the image to be cropped\\n
-    x: int | Leftmost coordinates of the detected face\\n
-    y: int | Bottom-most coordinates of the detected face\\n
-    w: int | Width of the detected face\\n
-    h: int | Height of the detected face\\n
+    img_h: int | Height (px) of the image to be cropped
+    img_w: int | Width (px) of the image to be cropped
+    x: int | Leftmost coordinates of the detected face
+    y: int | Bottom-most coordinates of the detected face
+    w: int | Width of the detected face
+    h: int | Height of the detected face
     """
 
     """aspect: float | Aspect ratio"""
