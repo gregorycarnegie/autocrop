@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Generator: Adobe Illustrator 19.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+
+<svg
+   version="1.1"
+   id="Layer_1"
+   x="0px"
+   y="0px"
+   viewBox="0 0 512 512"
+   style="enable-background:new 0 0 512 512;"
+   xml:space="preserve"
+   sodipodi:docname="bmp.svg"
+   inkscape:version="1.1.2 (b8e25be833, 2022-02-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"><defs
+   id="defs53"><rect
+     x="80.467316"
+     y="157.37413"
+     width="322.58136"
+     height="101.11822"
+     id="rect2940" /></defs><sodipodi:namedview
+   id="namedview51"
+   pagecolor="#ffffff"
+   bordercolor="#666666"
+   borderopacity="1.0"
+   inkscape:pageshadow="2"
+   inkscape:pageopacity="0.0"
+   inkscape:pagecheckerboard="0"
+   showgrid="false"
+   inkscape:zoom="1.4042969"
+   inkscape:cx="150.25313"
+   inkscape:cy="255.64395"
+   inkscape:window-width="2333"
+   inkscape:window-height="1255"
+   inkscape:window-x="1359"
+   inkscape:window-y="600"
+   inkscape:window-maximized="0"
+   inkscape:current-layer="Layer_1" />
+<path
+   style="fill:#E2E5E7;"
+   d="M128,0c-17.6,0-32,14.4-32,32v448c0,17.6,14.4,32,32,32h320c17.6,0,32-14.4,32-32V128L352,0H128z"
+   id="path2" />
+<path
+   style="fill:#B0B7BD;"
+   d="M384,128h96L352,0v96C352,113.6,366.4,128,384,128z"
+   id="path4" />
+<polygon
+   style="fill:#CAD1D8;"
+   points="480,224 384,128 480,128 "
+   id="polygon6" />
+<path
+   style="fill:#84BD5A;"
+   d="M416,416c0,8.8-7.2,16-16,16H48c-8.8,0-16-7.2-16-16V256c0-8.8,7.2-16,16-16h352c8.8,0,16,7.2,16,16  V416z"
+   id="path8" />
+
+<path
+   style="fill:#CAD1D8;"
+   d="M400,432H96v16h304c8.8,0,16-7.2,16-16v-16C416,424.8,408.8,432,400,432z"
+   id="path18" />
+<g
+   id="g20">
+</g>
+<g
+   id="g22">
+</g>
+<g
+   id="g24">
+</g>
+<g
+   id="g26">
+</g>
+<g
+   id="g28">
+</g>
+<g
+   id="g30">
+</g>
+<g
+   id="g32">
+</g>
+<g
+   id="g34">
+</g>
+<g
+   id="g36">
+</g>
+<g
+   id="g38">
+</g>
+<g
+   id="g40">
+</g>
+<g
+   id="g42">
+</g>
+<g
+   id="g44">
+</g>
+<g
+   id="g46">
+</g>
+<g
+   id="g48">
+</g>
+<g
+   aria-label="BMP"
+   transform="matrix(2.5171682,0,0,3.3321571,-112.00872,-261.95348)"
+   id="text2938"
+   style="font-size:40px;line-height:1.25;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect2940);fill:#ffffff"><path
+     d="m 114.5868,181.38821 c 0.08,-0.4 0.12,-0.8 0.12,-1.16 0,-2.24 -1.64,-3.84 -3.88,-3.84 h -4.16 v -6.36 c 0,-1.32 -0.48,-2.48 -1.48,-3.48 -0.96,-1 -2.12,-1.48 -3.48,-1.48 H 82.986797 v 28.8 H 106.5068 c 1.4,0.04 2.72,-0.44 3.88,-1.4 1.2,-0.96 1.96,-2.12 2.32,-3.48 z m -25.760003,-5 v -5.4 H 101.3068 v 5.4 z m 18.160003,11.68 H 88.826797 v -5.68 H 108.4668 Z"
+     style="font-family:Galerian;-inkscape-font-specification:Galerian"
+     id="path844" /><path
+     d="m 150.70683,172.26821 c 0,-0.92 -0.36,-1.84 -1.12,-2.8 l -2.2,-2.84 c -0.6,-0.76 -1.08,-1.24 -1.36,-1.36 -0.28,-0.16 -0.92,-0.24 -1.92,-0.24 h -2.88 c -1.16,0 -1.92,0.08 -2.24,0.2 -0.4,0.2 -0.92,0.72 -1.56,1.6 l -2.92,4.08 -3.12,-4.2 c -0.6,-0.8 -1.04,-1.28 -1.36,-1.44 -0.28,-0.16 -0.96,-0.24 -2,-0.24 h -3.32 c -1,0 -1.64,0.08 -1.96,0.24 -0.28,0.12 -0.72,0.56 -1.32,1.28 l -2.72,3.6 c -0.44,0.56 -0.64,1.32 -0.64,2.32 v 21.4 h 5.84 v -19.24 c 0,-0.6 0.04,-1 0.12,-1.2 0.12,-0.2 0.36,-0.56 0.72,-1.04 l 1.76,-2.2 4.12,5.44 c 0.52,0.72 0.8,1.6 0.8,2.68 v 15.56 h 5.88 v -15.56 c 0,-0.68 0.04,-1.16 0.08,-1.36 0.08,-0.32 0.32,-0.72 0.68,-1.2 l 4.2,-5.44 1.8,2.16 c 0.76,0.84 0.76,1.08 0.76,2.32 v 19.08 h 5.88 z"
+     style="font-family:Galerian;-inkscape-font-specification:Galerian"
+     id="path846" /><path
+     d="m 183.9868,172.62821 c 0,-2.12 -0.72,-3.88 -2.2,-5.36 -1.48,-1.48 -3.24,-2.24 -5.36,-2.24 h -21.12 v 28.84 h 5.84 v -8.6 h 15.28 c 2.12,0 3.88,-0.72 5.36,-2.2 1.48,-1.48 2.2,-3.28 2.2,-5.4 z m -5.76,5.04 c 0,1.2 -0.6,1.8 -1.8,1.8 h -15.28 v -8.6 h 15.28 c 1.2,0 1.8,0.6 1.8,1.76 z"
+     style="font-family:Galerian;-inkscape-font-specification:Galerian"
+     id="path848" /></g></svg>
