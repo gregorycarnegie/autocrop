@@ -1,12 +1,14 @@
 import itertools
 import os
-import numpy as np
-
+from functools import wraps
 from pathlib import Path
+from time import perf_counter as pc
+
+import numpy as np
 from PIL import Image
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap, QImage
-from cv2 import cvtColor, dnn, imread, waitKey, COLOR_BGR2RGB, LUT
+from cv2 import cvtColor, dnn, imread, COLOR_BGR2RGB, LUT
 
 GAMMA, GAMMA_THRESHOLD = 0.90, 0.001
 CV2_FILETYPES, PILLOW_FILETYPES = (np.array(['.bmp', '.dib', '.jp2', '.jpe', '.jpeg', '.jpg', '.pbm', '.pgm', '.png',
@@ -19,6 +21,19 @@ file_type_list = f"All Files (*){''.join(f';;{_} Files (*{_})' for _ in np.sort(
 default_dir, proto_txt_path, caffe_model_path = (f'{Path.home()}\\Pictures', 'resources\\weights\\deploy.prototxt.txt',
                                                  'resources\\models\\res10_300x300_ssd_iter_140000.caffemodel')
 caffe_model = dnn.readNetFromCaffe(proto_txt_path, caffe_model_path)
+
+
+def func_speed(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        result = None
+        for i in range(10000):
+            start = pc()
+            result = func(*args, **kwargs)
+            print(pc() - start)
+        return result
+
+    return wrapper
 
 
 def intersect(v1, v2):
@@ -45,10 +60,10 @@ def distance(pt1, pt2):
 
 def gamma(gam=1.0):
     if gam != 1.0:
-        inv_gamma = 1.0 / gam
-        return np.array([((i / 255.0) ** inv_gamma) * 255 for i in np.arange(0, 256)]).astype('uint8')
+        result = np.power(np.arange(256) / 255, 1.0 / gam) * 255
+        return result.astype('uint8')
     else:
-        return np.arange(0, 256).astype('uint8')
+        return np.arange(256).astype('uint8')
 
 
 def open_file(input_filename):
@@ -82,25 +97,26 @@ def _determine_safe_zoom(img_h, img_w, x, y, w, h, percent_face):
     h: int | Height of the detected face
     """
     """Find out what zoom factor to use given self.aspect_ratio"""
-    corners = itertools.product((x, x + w), (y, y + h))
-    center = np.array([x + w * 0.5, y + h * 0.5]).astype(int)
-    """image_corners"""
-    im = np.array([(0, 0), (0, img_h), (img_w, img_h), (img_w, 0), (0, 0)])
-    image_sides = np.array([(im[n], im[n + 1]) for n in np.arange(0, 4)])
-    """Hopefully we use this one"""
+    corners = np.array(list(itertools.product((x, x + w), (y, y + h))))
+    center = np.array([x + w * 0.5, y + h * 0.5])
+    """Image corners"""
+    im = np.zeros((5, 2))
+    im[1:2, 1], im[2:3, 0] = img_h, img_w
+    image_sides = np.dstack([im[:-1], im[1:]])
     corner_ratios = [percent_face]
-    for c in corners:
-        corner_vector = np.array([center, c])
-        a = distance(*corner_vector)
-        intersects = np.array([intersect(corner_vector, side) for side in image_sides])
-        for pt in intersects:
+    corner_vectors = np.hstack([np.repeat(center, 4, axis=0).reshape((2, 4)).T, corners]).reshape((4, 2, 2))
+    a = np.array([distance(*vector) for vector in corner_vectors])
+    intersects = np.array([[intersect(vector, side) for side in image_sides] for vector in corner_vectors])
+
+    for i in range(corner_vectors.shape[0]):
+        for pt in intersects[i]:
             """if intersect within image"""
             if (pt >= 0).all() and (pt <= im[2]).all():
                 dist_to_pt = distance(center, pt)
                 if float(dist_to_pt) == 0.0:
-                    np.append(corner_ratios, 10000 * a)
+                    np.append(corner_ratios, 10000 * a[i])
                 else:
-                    np.append(corner_ratios, 100 * a / dist_to_pt)
+                    np.append(corner_ratios, 100 * a[i] / dist_to_pt)
     return np.amax(corner_ratios)
 
 
@@ -159,21 +175,14 @@ def box_detect(img_path, wide, high, conf, face_perc):
     """perform inference and get the result"""
     output = np.squeeze(caffe_model.forward())
     conf *= 0.01
-
-    for i in range(output.shape[0]):
-        """get the confidence"""
-        confidence = output[i, 2]
-        """if confidence is above 50%, then draw the surrounding box"""
-        if confidence > conf:
-            """get the surrounding box coordinates and upscale them to original image"""
-            box = output[i, 3:7] * np.array([width, height, width, height])
-            """convert to integers"""
-            startx, starty, endx, endy = box.astype(int)
-            pos = _crop_positions(height, width, startx, starty, endx - startx, endy - starty, face_perc, wide, high)
-            waitKey(0)
-            return np.array([pos[0], pos[1], pos[2], pos[3]])
-        else:
-            return None
+    """get the confidence"""
+    confidence_list = output[:, 2]
+    if np.max(confidence_list) < conf:
+        return None
+    """get the surrounding box coordinates and upscale them to original image"""
+    box = output[:, 3:7] * np.array([width, height, width, height])
+    startx, starty, endx, endy = box[np.argmax(confidence_list)]
+    return _crop_positions(height, width, startx, starty, endx - startx, endy - starty, face_perc, wide, high)
 
 
 def display_crop(img_path, wide, high, conf, face_perc, label, gam):
@@ -185,18 +194,21 @@ def display_crop(img_path, wide, high, conf, face_perc, label, gam):
         with Image.open(img_path) as img:
             pic = reorient_image(img)
         """crop picture"""
-        cropped_pic = pic.crop((bounding_box[2], bounding_box[0], bounding_box[3], bounding_box[1]))
-        cropped_pic = np.array(cropped_pic)
-        table = gamma(gam * GAMMA_THRESHOLD)
-        cropped_pic = LUT(cropped_pic, table)
+        try:
+            cropped_pic = pic.crop((bounding_box[2], bounding_box[0], bounding_box[3], bounding_box[1]))
+            cropped_pic = np.array(cropped_pic)
+            table = gamma(gam * GAMMA_THRESHOLD)
+            cropped_pic = LUT(cropped_pic, table)
 
-        pic_array = cvtColor(np.array(cropped_pic), COLOR_BGR2RGB)
-        height, width, channel = pic_array.shape
-        bytesPerLine = 3 * width
+            pic_array = cvtColor(np.array(cropped_pic), COLOR_BGR2RGB)
+            height, width, channel = pic_array.shape
+            bytesPerLine = 3 * width
 
-        qImg = QImage(pic_array.data, width, height, bytesPerLine, QImage.Format.Format_BGR888)
-        pixmap = QPixmap.fromImage(qImg)
-        label.setPixmap(pixmap.scaled(label.size(), Qt.AspectRatioMode.KeepAspectRatio))
+            qImg = QImage(pic_array.data, width, height, bytesPerLine, QImage.Format.Format_BGR888)
+            pixmap = QPixmap.fromImage(qImg)
+            label.setPixmap(pixmap.scaled(label.size(), Qt.AspectRatioMode.KeepAspectRatio))
+        except AttributeError:
+            pass
 
 
 def reorient_image(im):
