@@ -208,22 +208,22 @@ class MainWindow(QMainWindow):
         self.radio[n] = True
 
     def open_image(self):
-        fname = QFileDialog.getOpenFileName(self, 'Open File', default_dir, file_type_list)
-        self.lineEdit_1.setText(fname[0])
-        display_crop(fname[0], int(self.lineEdit_3.text()),
+        f_name = QFileDialog.getOpenFileName(self, 'Open File', default_dir, file_type_list)
+        self.lineEdit_1.setText(f_name[0])
+        display_crop(f_name[0], int(self.lineEdit_3.text()),
                      int(self.lineEdit_4.text()), float(self.horizontalSlider_4.value()),
                      float(self.horizontalSlider_3.value()), self.label, self.horizontalSlider_2.value())
 
     def open_folder(self, n):
-        fname = QFileDialog.getExistingDirectory(self, 'Select Directory', default_dir)
-        self.fileModel.setRootPath(fname)
+        f_name = QFileDialog.getExistingDirectory(self, 'Select Directory', default_dir)
+        self.fileModel.setRootPath(f_name)
         self.treeView.setModel(self.fileModel)
-        self.treeView.setRootIndex(self.fileModel.index(fname))
-        self.lines[n].setText(fname)
+        self.treeView.setRootIndex(self.fileModel.index(f_name))
+        self.lines[n].setText(f_name)
         if n == 2:
             try:
-                file = np.array([pic for pic in os.listdir(fname) if os.path.splitext(pic)[1] in COMBINED_FILETYPES])[0]
-                display_crop(f'{fname}\\{file}', int(self.lineEdit_3.text()),
+                file = np.array([pic for pic in os.listdir(f_name) if os.path.splitext(pic)[1] in COMBINED_FILETYPES])[0]
+                display_crop(f'{f_name}\\{file}', int(self.lineEdit_3.text()),
                              int(self.lineEdit_4.text()), float(self.horizontalSlider_4.value()),
                              float(self.horizontalSlider_3.value()), self.label_2, self.horizontalSlider_2.value())
             except (IndexError, FileNotFoundError):

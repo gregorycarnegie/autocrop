@@ -27,7 +27,7 @@ def func_speed(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         result = None
-        for i in range(10000):
+        for i in range(1000):
             start = pc()
             result = func(*args, **kwargs)
             print(pc() - start)
@@ -44,13 +44,12 @@ def intersect(v1, v2):
     dap = np.empty_like(da)
     dap[0], dap[1] = -da[1], da[0]
 
-    denominator = np.dot(dap, db).astype(float)
-    num = np.dot(dap, dp)
+    numerator, denominator = np.dot(dap, dp), np.dot(dap, db)
 
     if float(denominator) == 0.0:
-        return num / 0.01 * db + b1
+        return numerator * 100 * db + b1
     else:
-        return num / denominator * db + b1
+        return numerator / denominator * db + b1
 
 
 def distance(pt1, pt2):
@@ -60,10 +59,9 @@ def distance(pt1, pt2):
 
 def gamma(gam=1.0):
     if gam != 1.0:
-        result = np.power(np.arange(256) / 255, 1.0 / gam) * 255
-        return result.astype('uint8')
+        return np.power(np.arange(256) / 255, 1.0 / gam) * 255
     else:
-        return np.arange(256).astype('uint8')
+        return np.arange(256)
 
 
 def open_file(input_filename):
@@ -77,7 +75,7 @@ def open_file(input_filename):
     if extension in PILLOW_FILETYPES:
         """Try with PIL"""
         with Image.open(input_filename) as img_orig:
-            return np.asarray(img_orig)
+            return np.fromfile(img_orig)
     return None
 
 
@@ -97,27 +95,19 @@ def _determine_safe_zoom(img_h, img_w, x, y, w, h, percent_face):
     h: int | Height of the detected face
     """
     """Find out what zoom factor to use given self.aspect_ratio"""
-    corners = np.array(list(itertools.product((x, x + w), (y, y + h))))
     center = np.array([x + w * 0.5, y + h * 0.5])
     """Image corners"""
     im = np.zeros((5, 2))
     im[1:2, 1], im[2:3, 0] = img_h, img_w
     image_sides = np.dstack([im[:-1], im[1:]])
-    corner_ratios = [percent_face]
+    corners = np.array(list(itertools.product((x, x + w), (y, y + h))))
     corner_vectors = np.hstack([np.repeat(center, 4, axis=0).reshape((2, 4)).T, corners]).reshape((4, 2, 2))
-    a = np.array([distance(*vector) for vector in corner_vectors])
+    A = np.array([distance(*vector) for vector in corner_vectors])
     intersects = np.array([[intersect(vector, side) for side in image_sides] for vector in corner_vectors])
-
-    for i in range(corner_vectors.shape[0]):
-        for pt in intersects[i]:
-            """if intersect within image"""
-            if (pt >= 0).all() and (pt <= im[2]).all():
-                dist_to_pt = distance(center, pt)
-                if float(dist_to_pt) == 0.0:
-                    np.append(corner_ratios, 10000 * a[i])
-                else:
-                    np.append(corner_ratios, 100 * a[i] / dist_to_pt)
-    return np.amax(corner_ratios)
+    Z = (intersects >= 0) * (intersects <= im[2])
+    X = np.array([distance(center, inter) for inter in intersects])
+    result = np.append(percent_face, [1e4 * A if (X == 0)[i] and Z.all() else 1e2 * A / X[i] for i in range(len(X))])
+    return np.amax(result)
 
 
 def _crop_positions(img_h, img_w, x, y, w, h, percent_face, wide, high):
@@ -146,18 +136,15 @@ def _crop_positions(img_h, img_w, x, y, w, h, percent_face, wide, high):
     """Adjust output height based on percent"""
     if high >= wide:
         height_crop = h * 100.0 / zoom
-        width_crop = aspect * float(height_crop)
+        width_crop = aspect * height_crop
     else:
         width_crop = w * 100.0 / zoom
-        height_crop = float(width_crop) / aspect
+        height_crop = width_crop / aspect
 
     """Calculate padding by centering face"""
     x_pad, y_pad = (width_crop - w) * 0.5, (height_crop - h) * 0.5
-    """Calc. positions of crop"""
-    h1, h2 = x - x_pad, x + w + x_pad
-    v1, v2 = y - y_pad, y + h + y_pad
-
-    return np.array([v1, v2, h1, h2]).astype(int)
+    """Calc. positions of crop h1, h2, v1, v2"""
+    return np.array([y - y_pad, y + h + y_pad, x - x_pad, x + w + x_pad]).astype(int)
 
 
 def box_detect(img_path, wide, high, conf, face_perc):
@@ -181,8 +168,8 @@ def box_detect(img_path, wide, high, conf, face_perc):
         return None
     """get the surrounding box coordinates and upscale them to original image"""
     box = output[:, 3:7] * np.array([width, height, width, height])
-    startx, starty, endx, endy = box[np.argmax(confidence_list)]
-    return _crop_positions(height, width, startx, starty, endx - startx, endy - starty, face_perc, wide, high)
+    x0, y0, x1, y1 = box[np.argmax(confidence_list)]
+    return _crop_positions(height, width, x0, y0, x1 - x0, y1 - y0, face_perc, wide, high)
 
 
 def display_crop(img_path, wide, high, conf, face_perc, label, gam):
@@ -197,7 +184,7 @@ def display_crop(img_path, wide, high, conf, face_perc, label, gam):
         try:
             cropped_pic = pic.crop((bounding_box[2], bounding_box[0], bounding_box[3], bounding_box[1]))
             cropped_pic = np.array(cropped_pic)
-            table = gamma(gam * GAMMA_THRESHOLD)
+            table = gamma(gam * GAMMA_THRESHOLD).astype('uint8')
             cropped_pic = LUT(cropped_pic, table)
 
             pic_array = cvtColor(np.array(cropped_pic), COLOR_BGR2RGB)
@@ -213,7 +200,7 @@ def display_crop(img_path, wide, high, conf, face_perc, label, gam):
 
 def reorient_image(im):
     try:
-        image_exif = im._getexif()
+        image_exif = im.getexif()
         image_orientation = image_exif[274]
         if image_orientation in {2, '2'}:
             return im.transpose(Image.FLIP_LEFT_RIGHT)
