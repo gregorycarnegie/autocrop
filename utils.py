@@ -1,8 +1,6 @@
 import itertools
 import os
-from functools import wraps
 from pathlib import Path
-from time import perf_counter as pc
 
 import numpy as np
 from PIL import Image
@@ -11,29 +9,18 @@ from PyQt6.QtGui import QPixmap, QImage
 from cv2 import cvtColor, dnn, imread, COLOR_BGR2RGB, LUT
 
 GAMMA, GAMMA_THRESHOLD = 0.90, 0.001
-CV2_FILETYPES, PILLOW_FILETYPES = (np.array(['.bmp', '.dib', '.jp2', '.jpe', '.jpeg', '.jpg', '.pbm', '.pgm', '.png',
-                                             '.ppm', '.ras', '.sr', '.tif', '.tiff', '.webp']),
-                                   np.array(['.eps', '.icns', '.ico', '.im', '.msp', '.pcx', '.sgi', '.spi', '.xbm']))
+CV2_FILETYPES = np.array(['.bmp', '.dib', '.jp2', '.jpe', '.jpeg',
+                          '.jpg', '.pbm', '.pgm', '.png', '.ppm',
+                          '.ras', '.sr', '.tif', '.tiff', '.webp'])
+PILLOW_FILETYPES = np.array(['.eps', '.icns', '.ico', '.im', '.msp', '.pcx', '.sgi', '.spi', '.xbm'])
 COMBINED_FILETYPES = np.append(CV2_FILETYPES, PILLOW_FILETYPES)
-FILE_FILTER, INPUT_FILETYPES = (np.array([f'*{file}' for file in COMBINED_FILETYPES]),
-                                np.append(COMBINED_FILETYPES, [s.upper() for s in COMBINED_FILETYPES]))
+FILE_FILTER = np.array([f'*{file}' for file in COMBINED_FILETYPES])
+INPUT_FILETYPES = np.append(COMBINED_FILETYPES, [s.upper() for s in COMBINED_FILETYPES])
 file_type_list = f"All Files (*){''.join(f';;{_} Files (*{_})' for _ in np.sort(COMBINED_FILETYPES))}"
-default_dir, proto_txt_path, caffe_model_path = (f'{Path.home()}\\Pictures', 'resources\\weights\\deploy.prototxt.txt',
-                                                 'resources\\models\\res10_300x300_ssd_iter_140000.caffemodel')
+default_dir = f'{Path.home()}\\Pictures'
+proto_txt_path = 'resources\\weights\\deploy.prototxt.txt'
+caffe_model_path = 'resources\\models\\res10_300x300_ssd_iter_140000.caffemodel'
 caffe_model = dnn.readNetFromCaffe(proto_txt_path, caffe_model_path)
-
-
-def func_speed(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        result = None
-        for i in range(1000):
-            start = pc()
-            result = func(*args, **kwargs)
-            print(pc() - start)
-        return result
-
-    return wrapper
 
 
 def intersect(v1, v2):
@@ -45,7 +32,6 @@ def intersect(v1, v2):
     dap[0], dap[1] = -da[1], da[0]
 
     numerator, denominator = np.dot(dap, dp), np.dot(dap, db)
-
     if float(denominator) == 0.0:
         return numerator * 100 * db + b1
     else:
