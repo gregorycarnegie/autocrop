@@ -12,30 +12,27 @@ GAMMA, GAMMA_THRESHOLD = 0.90, 0.001
 CV2_FILETYPES = np.array(['.bmp', '.dib', '.jp2', '.jpe', '.jpeg',
                           '.jpg', '.pbm', '.pgm', '.png', '.ppm',
                           '.ras', '.sr', '.tif', '.tiff', '.webp'])
-PILLOW_FILETYPES = np.array(['.eps', '.icns', '.ico', '.im', '.msp', '.pcx', '.sgi', '.spi', '.xbm'])
+PILLOW_FILETYPES = np.array(['.eps', '.icns', '.ico',
+                             '.im', '.msp', '.pcx',
+                             '.sgi', '.spi', '.xbm'])
 COMBINED_FILETYPES = np.append(CV2_FILETYPES, PILLOW_FILETYPES)
 FILE_FILTER = np.array([f'*{file}' for file in COMBINED_FILETYPES])
 INPUT_FILETYPES = np.append(COMBINED_FILETYPES, [s.upper() for s in COMBINED_FILETYPES])
 file_type_list = f"All Files (*){''.join(f';;{_} Files (*{_})' for _ in np.sort(COMBINED_FILETYPES))}"
 default_dir = f'{Path.home()}\\Pictures'
-proto_txt_path = 'resources\\weights\\deploy.prototxt.txt'
-caffe_model_path = 'resources\\models\\res10_300x300_ssd_iter_140000.caffemodel'
+proto_txt_path = f'{Path.cwd()}\\resources\\weights\\deploy.prototxt.txt'
+caffe_model_path = f'{Path.cwd()}\\resources\\models\\res10_300x300_ssd_iter_140000.caffemodel'
 caffe_model = dnn.readNetFromCaffe(proto_txt_path, caffe_model_path)
 
 
 def intersect(v1, v2):
-    a1, a2 = v1
-    b1, b2 = v2
-    da, db, dp = a2 - a1, b2 - b1, a1 - b1
-
-    dap = np.empty_like(da)
-    dap[0], dap[1] = -da[1], da[0]
-
-    numerator, denominator = np.dot(dap, dp), np.dot(dap, db)
+    da, db, dp = v1[1] - v1[0], v2[1] - v2[0], v1[0] - v2[0]
+    da[0], da[1] = -da[1], da[0]
+    numerator, denominator = np.dot(da, dp), np.dot(da, db)
     if float(denominator) == 0.0:
-        return numerator * 100 * db + b1
+        return numerator * 100 * db + v2[0]
     else:
-        return numerator / denominator * db + b1
+        return numerator / denominator * db + v2[0]
 
 
 def distance(pt1, pt2):
@@ -83,16 +80,16 @@ def _determine_safe_zoom(img_h, img_w, x, y, w, h, percent_face):
     """Find out what zoom factor to use given self.aspect_ratio"""
     center = np.array([x + w * 0.5, y + h * 0.5])
     """Image corners"""
+    corners = np.array(list(itertools.product((x, x + w), (y, y + h))))
+    corner_vectors = np.hstack([np.repeat(center, 4, axis=0).reshape((4, 2)), corners]).reshape((4, 2, 2))
     im = np.zeros((5, 2))
     im[1:2, 1], im[2:3, 0] = img_h, img_w
     image_sides = np.dstack([im[:-1], im[1:]])
-    corners = np.array(list(itertools.product((x, x + w), (y, y + h))))
-    corner_vectors = np.hstack([np.repeat(center, 4, axis=0).reshape((2, 4)).T, corners]).reshape((4, 2, 2))
-    A = np.array([distance(*vector) for vector in corner_vectors])
     intersects = np.array([[intersect(vector, side) for side in image_sides] for vector in corner_vectors])
-    Z = (intersects >= 0) * (intersects <= im[2])
+    B = (intersects >= 0) * (intersects <= im[2])
     X = np.array([distance(center, inter) for inter in intersects])
-    result = np.append(percent_face, [1e4 * A if (X == 0)[i] and Z.all() else 1e2 * A / X[i] for i in range(len(X))])
+    V = np.array([distance(*vector) for vector in corner_vectors])
+    result = np.append(percent_face, [1e4 * V if (X == 0)[i] and B.all() else 1e2 * V / X[i] for i in range(len(X))])
     return np.amax(result)
 
 
@@ -153,8 +150,7 @@ def box_detect(img_path, wide, high, conf, face_perc):
     if np.max(confidence_list) < conf:
         return None
     """get the surrounding box coordinates and upscale them to original image"""
-    box = output[:, 3:7] * np.array([width, height, width, height])
-    x0, y0, x1, y1 = box[np.argmax(confidence_list)]
+    x0, y0, x1, y1 = (output[:, 3:7] * np.array([width, height, width, height]))[np.argmax(confidence_list)]
     return _crop_positions(height, width, x0, y0, x1 - x0, y1 - y0, face_perc, wide, high)
 
 
@@ -166,22 +162,19 @@ def display_crop(img_path, wide, high, conf, face_perc, label, gam):
         """Open image and check exif orientation and rotate accordingly"""
         with Image.open(img_path) as img:
             pic = reorient_image(img)
-        """crop picture"""
-        try:
+            """crop picture"""
             cropped_pic = pic.crop((bounding_box[2], bounding_box[0], bounding_box[3], bounding_box[1]))
             cropped_pic = np.array(cropped_pic)
             table = gamma(gam * GAMMA_THRESHOLD).astype('uint8')
             cropped_pic = LUT(cropped_pic, table)
 
             pic_array = cvtColor(np.array(cropped_pic), COLOR_BGR2RGB)
-            height, width, channel = pic_array.shape
+            height, width = pic_array.shape[:2]
             bytesPerLine = 3 * width
 
             qImg = QImage(pic_array.data, width, height, bytesPerLine, QImage.Format.Format_BGR888)
             pixmap = QPixmap.fromImage(qImg)
             label.setPixmap(pixmap.scaled(label.size(), Qt.AspectRatioMode.KeepAspectRatio))
-        except AttributeError:
-            pass
 
 
 def reorient_image(im):
