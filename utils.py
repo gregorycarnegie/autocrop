@@ -1,43 +1,31 @@
 import itertools
 import os
-from pathlib import Path
-
+import shutil
 import numpy as np
+import pandas as pd
 from PIL import Image
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap, QImage
-from cv2 import cvtColor, dnn, imread, COLOR_BGR2RGB, LUT
+from cv2 import cvtColor, dnn, imread, COLOR_BGR2RGB, LUT, imwrite, resize, INTER_AREA
+from settings import FileTypeList, SpreadSheet, GAMMA_THRESHOLD, proto_path, caffe_path
 
-GAMMA, GAMMA_THRESHOLD = 0.90, 0.001
-CV2_FILETYPES = np.array(['.bmp', '.dib', '.jp2', '.jpe', '.jpeg',
-                          '.jpg', '.pbm', '.pgm', '.png', '.ppm',
-                          '.ras', '.sr', '.tif', '.tiff', '.webp'])
-PILLOW_FILETYPES = np.array(['.eps', '.icns', '.ico',
-                             '.im', '.msp', '.pcx',
-                             '.sgi', '.spi', '.xbm'])
-COMBINED_FILETYPES = np.append(CV2_FILETYPES, PILLOW_FILETYPES)
-FILE_FILTER = np.array([f'*{file}' for file in COMBINED_FILETYPES])
-INPUT_FILETYPES = np.append(COMBINED_FILETYPES, [s.upper() for s in COMBINED_FILETYPES])
-file_type_list = f"All Files (*){''.join(f';;{_} Files (*{_})' for _ in np.sort(COMBINED_FILETYPES))}"
-default_dir = f'{Path.home()}\\Pictures'
-proto_txt_path = f'{Path.cwd()}\\resources\\weights\\deploy.prototxt.txt'
-caffe_model_path = f'{Path.cwd()}\\resources\\models\\res10_300x300_ssd_iter_140000.caffemodel'
-caffe_model = dnn.readNetFromCaffe(proto_txt_path, caffe_model_path)
+caffe_model = dnn.readNetFromCaffe(proto_path, caffe_path)
 
 
-def intersect(v1, v2):
-    da, db, dp = v1[1] - v1[0], v2[1] - v2[0], v1[0] - v2[0]
-    da[0], da[1] = -da[1], da[0]
-    numerator, denominator = np.dot(da, dp), np.dot(da, db)
-    if float(denominator) == 0.0:
-        return numerator * 100 * db + v2[0]
-    else:
-        return numerator / denominator * db + v2[0]
+def intersect(corner_vectors, image_sides):
+    corn = np.tile(corner_vectors, (4, 1)).reshape((16, 2, 2))
 
+    da = np.fliplr(corn[:, 1] - corn[:, 0])
+    da[:, 0] *= -1
+    db = np.tile(image_sides[:, 1] - image_sides[:, 0], (4, 1))
 
-def distance(pt1, pt2):
-    """Returns the euclidean distance in 2D between 2 pts."""
-    return np.linalg.norm(pt2 - pt1)
+    dp = corner_vectors[:, 0] - image_sides[:, 0]
+    dp = np.tile([np.append(dp[:2], np.rot90(dp[:2], 2)), np.append(np.rot90(dp[2:], 2), dp[2:])], 2).reshape(16, 2)
+
+    dividend, divisor = np.sum(da * dp, axis=1), np.sum(da * db, axis=1)
+    xcv = np.where(divisor == 0, 100 * dividend, dividend / divisor) * db.T
+    gcv = xcv.T + np.tile(image_sides[:, 0], (4, 1))
+    return gcv.reshape(4, 4, 2)
 
 
 def gamma(gam=1.0):
@@ -48,21 +36,32 @@ def gamma(gam=1.0):
 
 
 def open_file(input_filename):
+    print(input_filename)
     """Given a filename, returns a numpy array"""
     extension = os.path.splitext(input_filename)[1].lower()
-    if extension in CV2_FILETYPES:
+    if extension in FileTypeList().list1:
         """Try with cv2"""
         x = imread(input_filename)
         assert not isinstance(x, type(None)), 'image not found'
         return x
-    if extension in PILLOW_FILETYPES:
+    if extension in FileTypeList().list2:
         """Try with PIL"""
         with Image.open(input_filename) as img_orig:
             return np.fromfile(img_orig)
+    if extension.lower() in SpreadSheet().list1:
+        try:
+            return pd.read_csv(input_filename)
+        except FileNotFoundError:
+            return None
+    if extension.lower() in SpreadSheet().list2:
+        try:
+            return pd.read_excel(input_filename)
+        except FileNotFoundError:
+            return None
     return None
 
 
-def _determine_safe_zoom(img_h, img_w, x, y, w, h, percent_face):
+def determine_safe_zoom(img_h, img_w, x, y, w, h, percent_face):
     """
     Determines the safest zoom level with which to add margins
     around the detected face. Tries to honor `self.face_percent`
@@ -80,20 +79,24 @@ def _determine_safe_zoom(img_h, img_w, x, y, w, h, percent_face):
     """Find out what zoom factor to use given self.aspect_ratio"""
     center = np.array([x + w * 0.5, y + h * 0.5])
     """Image corners"""
-    corners = np.array(list(itertools.product((x, x + w), (y, y + h))))
-    corner_vectors = np.hstack([np.repeat(center, 4, axis=0).reshape((4, 2)), corners]).reshape((4, 2, 2))
+    corner_vectors = np.hstack([np.repeat(center, 4, axis=0).reshape((4, 2)),
+                                np.array(list(itertools.product((x, x + w), (y, y + h))))]).reshape((4, 2, 2))
     im = np.zeros((5, 2))
     im[1:2, 1], im[2:3, 0] = img_h, img_w
-    image_sides = np.dstack([im[:-1], im[1:]])
-    intersects = np.array([[intersect(vector, side) for side in image_sides] for vector in corner_vectors])
+
+    intersects = intersect(corner_vectors, np.dstack([im[:-1], im[1:]]))
     B = (intersects >= 0) * (intersects <= im[2])
-    X = np.array([distance(center, inter) for inter in intersects])
-    V = np.array([distance(*vector) for vector in corner_vectors])
-    result = np.append(percent_face, [1e4 * V if (X == 0)[i] and B.all() else 1e2 * V / X[i] for i in range(len(X))])
+    V = np.linalg.norm(corner_vectors[:, 1] - corner_vectors[:, 0], axis=1)
+    c, v = np.meshgrid(np.linalg.norm(np.linalg.norm(intersects - center, axis=1), axis=1), V)
+    u = 100 * v / c
+    if np.inf in u and B.all():
+        u[:, np.isinf(u[0])] = 1e4 * V.reshape(4, 1)
+
+    result = np.append(percent_face, u)
     return np.amax(result)
 
 
-def _crop_positions(img_h, img_w, x, y, w, h, percent_face, wide, high):
+def crop_positions(img_h, img_w, x, y, w, h, percent_face, wide, high):
     """
     Returns the coordinates of the crop position centered
     around the detected face with extra margins. Tries to
@@ -114,8 +117,7 @@ def _crop_positions(img_h, img_w, x, y, w, h, percent_face, wide, high):
     """aspect: float | Aspect ratio"""
     aspect = wide / high
     """zoom: float | Zoom factor"""
-    zoom = _determine_safe_zoom(img_h, img_w, x, y, w, h, percent_face)
-
+    zoom = determine_safe_zoom(img_h, img_w, x, y, w, h, percent_face)
     """Adjust output height based on percent"""
     if high >= wide:
         height_crop = h * 100.0 / zoom
@@ -151,7 +153,7 @@ def box_detect(img_path, wide, high, conf, face_perc):
         return None
     """get the surrounding box coordinates and upscale them to original image"""
     x0, y0, x1, y1 = (output[:, 3:7] * np.array([width, height, width, height]))[np.argmax(confidence_list)]
-    return _crop_positions(height, width, x0, y0, x1 - x0, y1 - y0, face_perc, wide, high)
+    return crop_positions(height, width, x0, y0, x1 - x0, y1 - y0, face_perc, wide, high)
 
 
 def display_crop(img_path, wide, high, conf, face_perc, label, gam):
@@ -163,24 +165,20 @@ def display_crop(img_path, wide, high, conf, face_perc, label, gam):
         with Image.open(img_path) as img:
             pic = reorient_image(img)
             """crop picture"""
-            cropped_pic = pic.crop((bounding_box[2], bounding_box[0], bounding_box[3], bounding_box[1]))
-            cropped_pic = np.array(cropped_pic)
-            table = gamma(gam * GAMMA_THRESHOLD).astype('uint8')
-            cropped_pic = LUT(cropped_pic, table)
+            cropped_pic = np.array(pic.crop((bounding_box[2], bounding_box[0], bounding_box[3], bounding_box[1])))
+            cropped_pic = LUT(cropped_pic, gamma(gam * GAMMA_THRESHOLD).astype('uint8'))
 
             pic_array = cvtColor(np.array(cropped_pic), COLOR_BGR2RGB)
             height, width = pic_array.shape[:2]
-            bytesPerLine = 3 * width
 
-            qImg = QImage(pic_array.data, width, height, bytesPerLine, QImage.Format.Format_BGR888)
+            qImg = QImage(pic_array.data, width, height, 3 * width, QImage.Format.Format_BGR888)
             pixmap = QPixmap.fromImage(qImg)
             label.setPixmap(pixmap.scaled(label.size(), Qt.AspectRatioMode.KeepAspectRatio))
 
 
 def reorient_image(im):
     try:
-        image_exif = im.getexif()
-        image_orientation = image_exif[274]
+        image_orientation = im.getexif()[274]
         if image_orientation in {2, '2'}:
             return im.transpose(Image.FLIP_LEFT_RIGHT)
         elif image_orientation in {3, '3'}:
@@ -199,3 +197,58 @@ def reorient_image(im):
             return im
     except (KeyError, AttributeError, TypeError, IndexError):
         return im
+
+
+def crop(image, file_bool, destination, width, height, confidence, face, user_gam, radio, n, lines, radio_choices):
+    source, image = os.path.split(image) if file_bool else (lines[n].text(), image)
+    path = f'{source}\\{image}'
+    bounding_box = box_detect(path, int(width), int(height), float(confidence), float(face))
+    """Save the cropped image with PIL if a face was detected"""
+    if bounding_box is not None:
+        """Open image and check exif orientation and rotate accordingly"""
+        pic = reorient_image(Image.open(path))
+        """crop picture"""
+        cropped_pic = pic.crop((bounding_box[2], bounding_box[0], bounding_box[3], bounding_box[1]))
+        """Colour correct as Numpy array"""
+        pic_array = cvtColor(np.array(cropped_pic), COLOR_BGR2RGB)
+        cropped_image = resize(pic_array, (int(width), int(height)), interpolation=INTER_AREA)
+        table = gamma(user_gam * GAMMA_THRESHOLD)
+        if not os.path.exists(destination):
+            os.makedirs(destination, mode=438, exist_ok=True)
+        if radio == radio_choices[0]:
+            imwrite(f'{destination}\\{image}', LUT(cropped_image, table))
+        elif radio in radio_choices[1:]:
+            imwrite(f'{destination}\\{os.path.splitext(image)[0]}{radio}', LUT(cropped_image, table))
+    else:
+        reject = f'{destination}\\reject'
+        if not os.path.exists(reject):
+            os.makedirs(reject, mode=438, exist_ok=True)
+        to_file = f'{reject}\\{image}'
+        shutil.copy(path, to_file)
+
+
+def m_crop(source_folder, image, new, destination, width, height, confidence, face, user_gam, radio, radio_choices):
+    path = f'{source_folder}\\{image}'
+    bounding_box = box_detect(path, int(width), int(height), float(confidence), float(face))
+    """Save the cropped image with PIL if a face was detected"""
+    if bounding_box is not None:
+        """Open image and check exif orientation and rotate accordingly"""
+        pic = reorient_image(Image.open(path))
+        """crop picture"""
+        cropped_pic = pic.crop((bounding_box[2], bounding_box[0], bounding_box[3], bounding_box[1]))
+        """Colour correct as Numpy array"""
+        pic_array = cvtColor(np.array(cropped_pic), COLOR_BGR2RGB)
+        cropped_image = resize(pic_array, (int(width), int(height)), interpolation=INTER_AREA)
+        table = gamma(user_gam * GAMMA_THRESHOLD)
+        if not os.path.exists(destination):
+            os.makedirs(destination, mode=438, exist_ok=True)
+        if radio == radio_choices[0]:
+            imwrite(f'{destination}\\{new}{os.path.splitext(image)[1]}', LUT(cropped_image, table))
+        elif radio in radio_choices[1:]:
+            imwrite(f'{destination}\\{new}{radio}', LUT(cropped_image, table))
+    else:
+        reject = f'{destination}\\reject'
+        if not os.path.exists(reject):
+            os.makedirs(reject, mode=438, exist_ok=True)
+        to_file = f'{reject}\\{image}'
+        shutil.copy(path, to_file)

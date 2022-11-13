@@ -1,5 +1,6 @@
 <RCC>
   <qresource prefix="icons">
+    <file>icons/excel.svg</file>
     <file>icons/no.svg</file>
     <file>icons/bmp.svg</file>
     <file>icons/jpg.svg</file>
