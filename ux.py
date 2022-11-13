@@ -71,9 +71,7 @@ class AboutDialog(QDialog):
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
-        self.data_frame = None
-        self.worker = None
-        self.thread = None
+        self.data_frame, self.worker, self.thread = None, None, None
 
         self.msg = AboutDialog()
 
@@ -242,7 +240,7 @@ class MainWindow(QMainWindow):
                     except (IndexError, FileNotFoundError):
                         return
 
-    def open_folder(self, n):
+    def open_folder(self, n: int):
         f_name = QFileDialog.getExistingDirectory(self, 'Select Directory', default_dir)
         self.lines[n].setText(f_name)
         if n == 2:
@@ -267,24 +265,17 @@ class MainWindow(QMainWindow):
              self.lineEdit_3, self.lineEdit_4, self.lineEdit_5, self.lineEdit_6, self.lineEdit_7,
              self.radioButton_1, self.radioButton_2, self.radioButton_3, self.radioButton_4, self.radioButton_5,
              self.hSlider_2, self.hSlider_3, self.hSlider_4]
-        if boolean:
-            for i in range(len(x)):
-                if i in {0, 1}:
-                    x[i].setEnabled(True)
-                else:
-                    x[i].setEnabled(False)
-        else:
-            for i in range(len(x)):
-                if i in {0, 1}:
-                    x[i].setEnabled(False)
-                else:
-                    x[i].setEnabled(True)
+        for i in range(len(x)):
+            if boolean and i in {0, 1} or not boolean and i not in {0, 1}:
+                x[i].setEnabled(True)
+            else:
+                x[i].setEnabled(False)
 
     def folder_process(self, source: str, destination: str):
         self.thread, self.worker = QThread(), Cropper()
         self.worker.moveToThread(self.thread)
-        file_list = np.array([pic for pic in os.listdir(source) if os.path.splitext(pic)[1] in self.ALL_PICTYPES])
         self.thread.started.connect(lambda: self.disable_ui(True))
+        file_list = np.array([pic for pic in os.listdir(source) if os.path.splitext(pic)[1] in self.ALL_PICTYPES])
         self.thread.started.connect(
             lambda: self.worker.crop_dir(file_list, destination, self.lineEdit_3, self.lineEdit_4, self.hSlider_4,
                                          self.hSlider_3, self.hSlider_2, self.radio_choices[np.where(self.radio)[0][0]],
@@ -299,17 +290,13 @@ class MainWindow(QMainWindow):
     def mapping_process(self, source: str, destination: str):
         self.thread, self.worker = QThread(), Cropper()
         self.worker.moveToThread(self.thread)
-
-        # self.data_frame = open_file(self.lineEdit_7.text())
-        self.name_column, self.mapping = self.comboBox_1.currentText(), self.comboBox_2.currentText()
-
         self.thread.started.connect(lambda: self.disable_ui(True))
         self.thread.started.connect(
-            lambda: self.worker.mapping_crop(source, self.data_frame, self.name_column, self.mapping, destination,
-                                             self.lineEdit_3, self.lineEdit_4, self.hSlider_4, self.hSlider_3,
-                                             self.hSlider_2, self.radio_choices[np.where(self.radio)[0][0]],
-                                             self.radio_choices, self.progressBar_2))
-
+            lambda: self.worker.mapping_crop(source, self.data_frame, self.comboBox_1.currentText(),
+                                             self.comboBox_2.currentText(), destination, self.lineEdit_3,
+                                             self.lineEdit_4, self.hSlider_4, self.hSlider_3, self.hSlider_2,
+                                             self.radio_choices[np.where(self.radio)[0][0]], self.radio_choices,
+                                             self.progressBar_2))
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)

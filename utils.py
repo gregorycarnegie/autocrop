@@ -36,7 +36,6 @@ def gamma(gam=1.0):
 
 
 def open_file(input_filename):
-    print(input_filename)
     """Given a filename, returns a numpy array"""
     extension = os.path.splitext(input_filename)[1].lower()
     if extension in FileTypeList().list1:
