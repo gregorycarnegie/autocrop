@@ -1,5 +1,5 @@
 numpy>=1.10
 Pillow>=9.0.0
-PyQt6>=6.3.1
-opencv-python==4.5.5.64
+PyQt6>=6.4.0
+opencv-python>=4.6.0.66
 pandas>=1.5.1
