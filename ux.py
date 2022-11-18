@@ -280,12 +280,7 @@ class MainWindow(QMainWindow):
             lambda: self.worker.crop_dir(file_list, destination, self.lineEdit_3, self.lineEdit_4, self.hSlider_4,
                                          self.hSlider_3, self.hSlider_2, self.radio_choices[np.where(self.radio)[0][0]],
                                          2, self.lines, self.radio_choices, self.progressBar_1))
-        self.worker.finished.connect(self.thread.quit)
-        self.worker.finished.connect(self.worker.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
-        self.thread.start()
-        self.thread.finished.connect(lambda: self.disable_ui(False))
-        self.thread.finished.connect(lambda: self.show_message_box())
+        self.start_thread()
 
     def mapping_process(self, source: str, destination: str):
         self.thread, self.worker = QThread(), Cropper()
@@ -297,6 +292,9 @@ class MainWindow(QMainWindow):
                                              self.lineEdit_4, self.hSlider_4, self.hSlider_3, self.hSlider_2,
                                              self.radio_choices[np.where(self.radio)[0][0]], self.radio_choices,
                                              self.progressBar_2))
+        self.start_thread()
+
+    def start_thread(self):
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
