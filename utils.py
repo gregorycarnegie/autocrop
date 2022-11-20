@@ -198,32 +198,41 @@ def reorient_image(im):
         return im
 
 
+def grate(path, bounding_box, width, height):
+    pic = reorient_image(Image.open(path))
+    cropped_pic = pic.crop((bounding_box[2], bounding_box[0], bounding_box[3], bounding_box[1]))
+    pic_array = cvtColor(np.array(cropped_pic), COLOR_BGR2RGB)
+    return resize(pic_array, (int(width), int(height)), interpolation=INTER_AREA)
+
+
+def reject(path, destination, image):
+    reject = f'{destination}\\reject'
+    if not os.path.exists(reject):
+        os.makedirs(reject, mode=438, exist_ok=True)
+    to_file = f'{reject}\\{image}'
+    shutil.copy(path, to_file)
+
+
 def crop(image, file_bool, destination, width, height, confidence, face, user_gam, radio, n, lines, radio_choices):
     source, image = os.path.split(image) if file_bool else (lines[n].text(), image)
     path = f'{source}\\{image}'
     bounding_box = box_detect(path, int(width), int(height), float(confidence), float(face))
     """Save the cropped image with PIL if a face was detected"""
     if bounding_box is not None:
-        """Open image and check exif orientation and rotate accordingly"""
-        pic = reorient_image(Image.open(path))
-        """crop picture"""
-        cropped_pic = pic.crop((bounding_box[2], bounding_box[0], bounding_box[3], bounding_box[1]))
-        """Colour correct as Numpy array"""
-        pic_array = cvtColor(np.array(cropped_pic), COLOR_BGR2RGB)
-        cropped_image = resize(pic_array, (int(width), int(height)), interpolation=INTER_AREA)
-        table = gamma(user_gam * GAMMA_THRESHOLD)
+        cropped_image = grate(path, bounding_box, width, height)
         if not os.path.exists(destination):
             os.makedirs(destination, mode=438, exist_ok=True)
         if radio == radio_choices[0]:
-            imwrite(f'{destination}\\{image}', LUT(cropped_image, table))
+            imwrite(f'{destination}\\{image}', LUT(cropped_image, gamma(user_gam * GAMMA_THRESHOLD)))
         elif radio in radio_choices[1:]:
-            imwrite(f'{destination}\\{os.path.splitext(image)[0]}{radio}', LUT(cropped_image, table))
+            imwrite(f'{destination}\\{os.path.splitext(image)[0]}{radio}', LUT(cropped_image, gamma(user_gam * GAMMA_THRESHOLD)))
     else:
-        reject = f'{destination}\\reject'
-        if not os.path.exists(reject):
-            os.makedirs(reject, mode=438, exist_ok=True)
-        to_file = f'{reject}\\{image}'
-        shutil.copy(path, to_file)
+        reject(path, destination, image)
+        # reject = f'{destination}\\reject'
+        # if not os.path.exists(reject):
+        #     os.makedirs(reject, mode=438, exist_ok=True)
+        # to_file = f'{reject}\\{image}'
+        # shutil.copy(path, to_file)
 
 
 def m_crop(source_folder, image, new, destination, width, height, confidence, face, user_gam, radio, radio_choices):
@@ -231,23 +240,17 @@ def m_crop(source_folder, image, new, destination, width, height, confidence, fa
     bounding_box = box_detect(path, int(width), int(height), float(confidence), float(face))
     """Save the cropped image with PIL if a face was detected"""
     if bounding_box is not None:
-        """Open image and check exif orientation and rotate accordingly"""
-        pic = reorient_image(Image.open(path))
-        """crop picture"""
-        cropped_pic = pic.crop((bounding_box[2], bounding_box[0], bounding_box[3], bounding_box[1]))
-        """Colour correct as Numpy array"""
-        pic_array = cvtColor(np.array(cropped_pic), COLOR_BGR2RGB)
-        cropped_image = resize(pic_array, (int(width), int(height)), interpolation=INTER_AREA)
-        table = gamma(user_gam * GAMMA_THRESHOLD)
+        cropped_image = grate(path, bounding_box, width, height)
         if not os.path.exists(destination):
             os.makedirs(destination, mode=438, exist_ok=True)
         if radio == radio_choices[0]:
-            imwrite(f'{destination}\\{new}{os.path.splitext(image)[1]}', LUT(cropped_image, table))
+            imwrite(f'{destination}\\{new}{os.path.splitext(image)[1]}', LUT(cropped_image, gamma(user_gam * GAMMA_THRESHOLD)))
         elif radio in radio_choices[1:]:
-            imwrite(f'{destination}\\{new}{radio}', LUT(cropped_image, table))
+            imwrite(f'{destination}\\{new}{radio}', LUT(cropped_image, gamma(user_gam * GAMMA_THRESHOLD)))
     else:
-        reject = f'{destination}\\reject'
-        if not os.path.exists(reject):
-            os.makedirs(reject, mode=438, exist_ok=True)
-        to_file = f'{reject}\\{image}'
-        shutil.copy(path, to_file)
+        reject(path, destination, image)
+        # reject = f'{destination}\\reject'
+        # if not os.path.exists(reject):
+        #     os.makedirs(reject, mode=438, exist_ok=True)
+        # to_file = f'{reject}\\{image}'
+        # shutil.copy(path, to_file)
