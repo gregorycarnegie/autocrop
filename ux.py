@@ -197,16 +197,16 @@ class MainWindow(QMainWindow):
             os.startfile(self.lineEdit_5.text())
 
     def change_pushbutton(self):
-        empty = {'', None}
-        if self.lineEdit_1.text() not in empty and self.lineEdit_5.text() not in empty:
+        E = {'', None}
+        if self.lineEdit_1.text() not in E and self.lineEdit_5.text() not in E:
             self.CropPushButton_1.setEnabled(True)
         else:
             self.CropPushButton_1.setEnabled(False)
-        if self.lineEdit_2.text() not in empty and self.lineEdit_5.text() not in empty:
+        if self.lineEdit_2.text() not in E and self.lineEdit_5.text() not in E:
             self.CropPushButton_2.setEnabled(True)
         else:
             self.CropPushButton_2.setEnabled(False)
-        if self.lineEdit_5.text() not in empty and self.lineEdit_6.text() not in empty and self.lineEdit_7.text() not in empty:
+        if self.lineEdit_5.text() not in E and self.lineEdit_6.text() not in E and self.lineEdit_7.text() not in E:
             self.CropPushButton_3.setEnabled(True)
         else:
             self.CropPushButton_3.setEnabled(False)

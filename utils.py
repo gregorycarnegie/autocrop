@@ -206,10 +206,10 @@ def crop_image(path, bounding_box, width, height):
 
 
 def reject(path, destination, image):
-    reject = f'{destination}\\reject'
-    if not os.path.exists(reject):
-        os.makedirs(reject, mode=438, exist_ok=True)
-    to_file = f'{reject}\\{image}'
+    reject_folder = f'{destination}\\reject'
+    if not os.path.exists(reject_folder):
+        os.makedirs(reject_folder, mode=438, exist_ok=True)
+    to_file = f'{reject_folder}\\{image}'
     shutil.copy(path, to_file)
 
 
@@ -225,7 +225,8 @@ def crop(image, file_bool, destination, width, height, confidence, face, user_ga
         if radio == radio_choices[0]:
             imwrite(f'{destination}\\{image}', LUT(cropped_image, gamma(user_gam * GAMMA_THRESHOLD)))
         elif radio in radio_choices[1:]:
-            imwrite(f'{destination}\\{os.path.splitext(image)[0]}{radio}', LUT(cropped_image, gamma(user_gam * GAMMA_THRESHOLD)))
+            imwrite(f'{destination}\\{os.path.splitext(image)[0]}{radio}',
+                    LUT(cropped_image, gamma(user_gam * GAMMA_THRESHOLD)))
     else:
         reject(path, destination, image)
 
@@ -239,7 +240,8 @@ def m_crop(source_folder, image, new, destination, width, height, confidence, fa
         if not os.path.exists(destination):
             os.makedirs(destination, mode=438, exist_ok=True)
         if radio == radio_choices[0]:
-            imwrite(f'{destination}\\{new}{os.path.splitext(image)[1]}', LUT(cropped_image, gamma(user_gam * GAMMA_THRESHOLD)))
+            imwrite(f'{destination}\\{new}{os.path.splitext(image)[1]}',
+                    LUT(cropped_image, gamma(user_gam * GAMMA_THRESHOLD)))
         elif radio in radio_choices[1:]:
             imwrite(f'{destination}\\{new}{radio}', LUT(cropped_image, gamma(user_gam * GAMMA_THRESHOLD)))
     else:
