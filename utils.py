@@ -12,7 +12,26 @@ from settings import FileTypeList, SpreadSheet, GAMMA_THRESHOLD, proto_path, caf
 caffe_model = dnn.readNetFromCaffe(proto_path, caffe_path)
 
 
-def intersect(corner_vectors, image_sides):
+def intersect(corner_vectors: np.ndarray, image_sides: np.ndarray) -> np.ndarray:
+    """
+    This code defines an intersect function that takes in two arguments: corner_vectors and image_sides.
+    corner_vectors is a two-dimensional NumPy array with a shape of (4, 2), while image_sides is a two-dimensional
+    NumPy array with a shape of (4, 2). The function returns a three-dimensional NumPy array with a (4, 4, 2) shape.
+
+    The function calculates the intersection points between four lines, each represented by a pair of coordinates in
+    corner_vectors, and four sides of an image, each represented by a pair of coordinates in image_sides. The
+    returned array contains the coordinates of the intersection points.
+
+    To accomplish this, the function first uses the NumPy Tile function to replicate the corner_vectors array four
+    times and reshape it into a new array with a shape of (16, 2, 2). It then calculates the direction vectors of the
+    four lines using the NumPy Fliplr and corn arrays and the direction vectors of the four sides of the image using
+    the image_sides array.
+
+    Next, the function calculates the projection of the direction vectors of the lines onto the direction vectors of
+    the sides of the image, using the NumPy Sum function with the axis=1 argument. It then calculates the
+    intersection points using these projections and the coordinates of the sides of the picture. Finally,
+    the function returns the intersection points as a three-dimensional NumPy array.
+    """
     corn = np.tile(corner_vectors, (4, 1)).reshape((16, 2, 2))
 
     da = np.fliplr(corn[:, 1] - corn[:, 0])
@@ -28,15 +47,21 @@ def intersect(corner_vectors, image_sides):
     return gcv.reshape(4, 4, 2)
 
 
-def gamma(gam=1.0):
+def gamma(gam=1.0) -> np.ndarray:
+    """
+    The function calculates a gamma correction curve, which is a nonlinear transformation used to correct the
+    brightness of an image. The gamma value passed in through the gam argument determines the shape of the correction
+    curve. If the gam argument is not provided or is set to 1.0, the function simply returns an array containing the
+    values 0 through 255.
+    """
     if gam != 1.0:
         return np.power(np.arange(256) / 255, 1.0 / gam) * 255
     else:
         return np.arange(256)
 
 
-def open_file(input_filename):
-    """Given a filename, returns a numpy array"""
+def open_file(input_filename: str) -> (None | np.ndarray | pd.DataFrame):
+    """Given a filename, returns a numpy array or a pandas dataframe"""
     extension = os.path.splitext(input_filename)[1].lower()
     if extension in FileTypeList().list1:
         """Try with cv2"""
@@ -60,20 +85,19 @@ def open_file(input_filename):
     return None
 
 
-def determine_safe_zoom(img_h, img_w, x, y, w, h, percent_face):
+def determine_safe_zoom(img_h: int, img_w: int, x: int, y: int, w: int, h: int, percent_face: float):
     """
-    Determines the safest zoom level with which to add margins
-    around the detected face. Tries to honor `self.face_percent`
-    when possible.
+    Determines the safest zoom level with which to add margins around the detected face. Tries to honor
+    `self.face_percent` when possible.
 
     Parameters:
     -----------
-    img_h: int | Height (px) of the image to be cropped
-    img_w: int | Width (px) of the image to be cropped
-    x: int | Leftmost coordinates of the detected face
-    y: int | Bottom-most coordinates of the detected face
-    w: int | Width of the detected face
-    h: int | Height of the detected face
+    img_h | Height (px) of the image to be cropped
+    img_w | Width (px) of the image to be cropped
+    x | Leftmost coordinates of the detected face
+    y | Bottom-most coordinates of the detected face
+    w | Width of the detected face
+    h | Height of the detected face
     """
     """Find out what zoom factor to use given self.aspect_ratio"""
     center = np.array([x + w * 0.5, y + h * 0.5])
@@ -95,22 +119,21 @@ def determine_safe_zoom(img_h, img_w, x, y, w, h, percent_face):
     return np.amax(result)
 
 
-def crop_positions(img_h, img_w, x, y, w, h, percent_face, wide, high):
+def crop_positions(img_h: int, img_w: int, x: int, y: int, w: int, h: int,
+                   percent_face: float, wide: int, high: int) -> np.ndarray:
     """
-    Returns the coordinates of the crop position centered
-    around the detected face with extra margins. Tries to
-    honor `self.face_percent` if possible, else uses the
-    largest margins that comply with required aspect ratio
-    given by `self.height` and `self.width`.
+    Returns the coordinates of the crop position centered around the detected face with extra margins. Tries to honor
+    `self.face_percent` if possible, else uses the largest margins that comply with required aspect ratio given by
+    `self.height` and `self.width`.
 
     Parameters:
     -----------
-    img_h: int | Height (px) of the image to be cropped
-    img_w: int | Width (px) of the image to be cropped
-    x: int | Leftmost coordinates of the detected face
-    y: int | Bottom-most coordinates of the detected face
-    w: int | Width of the detected face
-    h: int | Height of the detected face
+    img_h | Height (px) of the image to be cropped
+    img_w | Width (px) of the image to be cropped
+    x | Leftmost coordinates of the detected face
+    y | Bottom-most coordinates of the detected face
+    w | Width of the detected face
+    h | Height of the detected face
     """
 
     """aspect: float | Aspect ratio"""
@@ -131,7 +154,7 @@ def crop_positions(img_h, img_w, x, y, w, h, percent_face, wide, high):
     return np.array([y - y_pad, y + h + y_pad, x - x_pad, x + w + x_pad]).astype(int)
 
 
-def box_detect(img_path, wide, high, conf, face_perc):
+def box_detect(img_path: str, wide: int, high: int, conf: float, face_perc: float) -> (None | np.ndarray):
     img = open_file(img_path) if isinstance(img_path, str) else img_path
     """get width and height of the image"""
     try:
@@ -155,7 +178,7 @@ def box_detect(img_path, wide, high, conf, face_perc):
     return crop_positions(height, width, x0, y0, x1 - x0, y1 - y0, face_perc, wide, high)
 
 
-def display_crop(img_path, wide, high, conf, face_perc, label, gam):
+def display_crop(img_path: str, wide: int, high: int, conf: int, face_perc: int, label, gam: int):
     bounding_box = box_detect(img_path, wide, high, conf, face_perc)
     label.setScaledContents(False)
     """Save the cropped image with PIL if a face was detected"""
@@ -198,14 +221,14 @@ def reorient_image(im):
         return im
 
 
-def crop_image(path, bounding_box, width, height):
+def crop_image(path: str, bounding_box, width, height):
     pic = reorient_image(Image.open(path))
     cropped_pic = pic.crop((bounding_box[2], bounding_box[0], bounding_box[3], bounding_box[1]))
     pic_array = cvtColor(np.array(cropped_pic), COLOR_BGR2RGB)
     return resize(pic_array, (int(width), int(height)), interpolation=INTER_AREA)
 
 
-def reject(path, destination, image):
+def reject(path: str, destination: str, image: str):
     reject_folder = f'{destination}\\reject'
     if not os.path.exists(reject_folder):
         os.makedirs(reject_folder, mode=438, exist_ok=True)
@@ -213,10 +236,11 @@ def reject(path, destination, image):
     shutil.copy(path, to_file)
 
 
-def crop(image, file_bool, destination, width, height, confidence, face, user_gam, radio, n, lines, radio_choices):
+def crop(image: str, file_bool: bool, destination: str, width: int, height: int, confidence: int, face: int,
+         user_gam: int, radio: str, n: int, lines: dict, radio_choices: np.ndarray):
     source, image = os.path.split(image) if file_bool else (lines[n].text(), image)
     path = f'{source}\\{image}'
-    bounding_box = box_detect(path, int(width), int(height), float(confidence), float(face))
+    bounding_box = box_detect(path, width, height, confidence, face)
     """Save the cropped image with PIL if a face was detected"""
     if bounding_box is not None:
         cropped_image = crop_image(path, bounding_box, width, height)
@@ -231,9 +255,10 @@ def crop(image, file_bool, destination, width, height, confidence, face, user_ga
         reject(path, destination, image)
 
 
-def m_crop(source_folder, image, new, destination, width, height, confidence, face, user_gam, radio, radio_choices):
+def m_crop(source_folder: str, image: str, new: str, destination: str, width: int, height: int, confidence: int,
+           face: int, user_gam: int, radio: str, radio_choices: np.ndarray):
     path = f'{source_folder}\\{image}'
-    bounding_box = box_detect(path, int(width), int(height), float(confidence), float(face))
+    bounding_box = box_detect(path, width, height, confidence, face)
     """Save the cropped image with PIL if a face was detected"""
     if bounding_box is not None:
         cropped_image = crop_image(path, bounding_box, width, height)

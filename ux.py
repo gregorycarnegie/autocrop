@@ -3,7 +3,7 @@ from PyQt6.QtCore import QDir, QThread, pyqtSignal, QObject, QAbstractTableModel
 from PyQt6.QtGui import QIcon, QIntValidator, QFileSystemModel, QPixmap
 from PyQt6.QtWidgets import QDialog, QFileDialog, QMainWindow, QMessageBox
 from settings import FileTypeList, SpreadSheet, default_dir
-from utils import crop, display_crop, np, os, m_crop, open_file
+from utils import crop, display_crop, np, os, m_crop, open_file, pd
 
 
 class PandasModel(QAbstractTableModel):
@@ -31,17 +31,18 @@ class PandasModel(QAbstractTableModel):
 class Cropper(QObject):
     finished, progress = pyqtSignal(), pyqtSignal(int)
 
-    def crop_dir(self, file_list, destination, line_3, line_4, slider_4, slider_3, slider_2, radio_choice, n, lines,
-                 radio_choices, progress_bar):
+    def crop_dir(self, file_list: np.ndarray, destination: str, line_3: int, line_4: int, slider_4: int, slider_3: int,
+                 slider_2: int, radio_choice: str, n: int, lines: dict, radio_choices: np.ndarray, progress_bar):
         for v, image in enumerate(file_list, start=1):
-            crop(image, False, destination, line_3.text(), line_4.text(), slider_4.value(), slider_3.value(),
-                 slider_2.value(), radio_choice, n, lines, radio_choices)
+            crop(image, False, destination, line_3, line_4, slider_4, slider_3, slider_2, radio_choice, n, lines,
+                 radio_choices)
             self.progress.emit(v)
             progress_bar.setValue(int(100 * v / len(file_list)))
         self.finished.emit()
 
-    def mapping_crop(self, source_folder, data_frame, name_column, mapping, destination, width, height, confidence,
-                     face, user_gam, radio, radio_choices, progress_bar):
+    def mapping_crop(self, source_folder: str, data_frame: pd.DataFrame, name_column: str, mapping: str,
+                     destination: str, width: int, height: int, confidence: int, face: int, user_gam: int, radio: str,
+                     radio_choices: np.ndarray, progress_bar):
         file_list = np.array(data_frame[name_column]).astype(str)
         extensions = np.char.lower([os.path.splitext(i)[1] for i in file_list])
         types = FileTypeList().all_types()
@@ -53,8 +54,8 @@ class Cropper(QObject):
         old, new = file_list[h], np.array(data_frame[mapping])[h]
 
         for i, image in enumerate(old):
-            m_crop(source_folder, image, new[i], destination, width.text(), height.text(), confidence.value(),
-                   face.value(), user_gam.value(), radio, radio_choices)
+            m_crop(source_folder, image, new[i], destination, width, height, confidence,
+                   face, user_gam, radio, radio_choices)
             self.progress.emit(i)
             progress_bar.setValue(int(100 * i / len(file_list)))
         self.finished.emit()
@@ -109,8 +110,8 @@ class MainWindow(QMainWindow):
         self.treeView.setRootIndex(self.fileModel.index(default_dir))
         self.treeView.selectionModel().selectionChanged.connect(
             lambda: display_crop(self.fileModel.filePath(self.treeView.currentIndex()), int(self.lineEdit_3.text()),
-                                 int(self.lineEdit_4.text()), float(self.hSlider_4.value()),
-                                 float(self.hSlider_3.value()), self.crop_label_2, self.hSlider_2.value()))
+                                 int(self.lineEdit_4.text()), self.hSlider_4.value(),
+                                 self.hSlider_3.value(), self.crop_label_2, self.hSlider_2.value()))
 
         self.FilePushButton.clicked.connect(lambda: self.open_item(True))
         self.TablePushButton.clicked.connect(lambda: self.open_item(False))
@@ -122,9 +123,10 @@ class MainWindow(QMainWindow):
         self.actionAbout_Face_Cropper.triggered.connect(lambda: self.msg.exec())
 
         self.CropPushButton_1.clicked.connect(
-            lambda: crop(self.lineEdit_1.text(), True, self.lineEdit_5.text(), self.lineEdit_3.text(),
-                         self.lineEdit_4.text(), self.hSlider_4.value(), self.hSlider_3.value(), self.hSlider_2.value(),
-                         self.radio_choices[np.where(self.radio)[0][0]], 1, self.lines, self.radio_choices))
+            lambda: crop(self.lineEdit_1.text(), True, self.lineEdit_5.text(), int(self.lineEdit_3.text()),
+                         int(self.lineEdit_4.text()), self.hSlider_4.value(), self.hSlider_3.value(),
+                         self.hSlider_2.value(), self.radio_choices[np.where(self.radio)[0][0]], 1, self.lines,
+                         self.radio_choices))
 
         self.CropPushButton_2.clicked.connect(
             lambda: self.folder_process(self.lineEdit_2.text(), self.lineEdit_5.text()))
@@ -149,23 +151,23 @@ class MainWindow(QMainWindow):
         for slider in [self.hSlider_2, self.hSlider_3, self.hSlider_4]:
             slider.valueChanged[int].connect(
                 lambda: display_crop(self.lineEdit_1.text(), int(self.lineEdit_3.text()), int(self.lineEdit_4.text()),
-                                     float(self.hSlider_4.value()), float(self.hSlider_3.value()),
+                                     self.hSlider_4.value(), self.hSlider_3.value(),
                                      self.crop_label_1, self.hSlider_2.value()))
 
         self.reload_pushButton_1.clicked.connect(
             lambda: display_crop(self.lineEdit_1.text(), int(self.lineEdit_3.text()), int(self.lineEdit_4.text()),
-                                 float(self.hSlider_4.value()), float(self.hSlider_3.value()),
+                                 self.hSlider_4.value(), self.hSlider_3.value(),
                                  self.crop_label_1, self.hSlider_2.value()))
 
         self.reload_pushButton_2.clicked.connect(lambda: display_crop(
             self.fileModel.filePath(self.treeView.currentIndex()), int(self.lineEdit_3.text()),
-            int(self.lineEdit_4.text()), float(self.hSlider_4.value()), float(self.hSlider_3.value()),
+            int(self.lineEdit_4.text()), self.hSlider_4.value(), self.hSlider_3.value(),
             self.crop_label_2, self.hSlider_2.value())
         if self.fileModel.filePath(self.treeView.currentIndex()) not in {None, ''}
         else display_crop(
             f'{self.lineEdit_2.text()}\\{np.array([image for image in os.listdir(self.lineEdit_2.text()) if os.path.splitext(image)[1] in self.ALL_PICTYPES])[0]}',
-            int(self.lineEdit_3.text()), int(self.lineEdit_4.text()), float(self.hSlider_4.value()),
-            float(self.hSlider_3.value()), self.crop_label_2, self.hSlider_2.value()))
+            int(self.lineEdit_3.text()), int(self.lineEdit_4.text()), self.hSlider_4.value(),
+            self.hSlider_3.value(), self.crop_label_2, self.hSlider_2.value()))
 
     def load_svgs(self):
         x = {0: (self.reload_pushButton_1, 'reload.svg'), 1: (self.reload_pushButton_2, 'reload.svg'),
@@ -211,7 +213,7 @@ class MainWindow(QMainWindow):
         else:
             self.CropPushButton_3.setEnabled(False)
 
-    def radio_logic(self, n):
+    def radio_logic(self, n: int):
         self.radio = [not _ if _ else _ for _ in self.radio]
         self.radio[n] = True
 
@@ -220,7 +222,7 @@ class MainWindow(QMainWindow):
             f_name = QFileDialog.getOpenFileName(self, 'Open File', default_dir, FileTypeList().type_string())
             self.lineEdit_1.setText(f_name[0])
             display_crop(f_name[0], int(self.lineEdit_3.text()), int(self.lineEdit_4.text()),
-                         float(self.hSlider_4.value()), float(self.hSlider_3.value()), self.crop_label_1,
+                         self.hSlider_4.value(), self.hSlider_3.value(), self.crop_label_1,
                          self.hSlider_2.value())
         else:
             f_name = QFileDialog.getOpenFileName(self, 'Open File', default_dir, SpreadSheet().type_string())
@@ -235,7 +237,7 @@ class MainWindow(QMainWindow):
                     try:
                         display_crop(f'{self.lineEdit_6.text()}\\{self.data_frame[self.data_frame.columns[0]][0]}',
                                      int(self.lineEdit_3.text()), int(self.lineEdit_4.text()),
-                                     float(self.hSlider_4.value()), float(self.hSlider_3.value()),
+                                     self.hSlider_4.value(), self.hSlider_3.value(),
                                      self.crop_label_3, self.hSlider_2.value())
                     except (IndexError, FileNotFoundError):
                         return
@@ -250,7 +252,7 @@ class MainWindow(QMainWindow):
             try:
                 file = np.array([pic for pic in os.listdir(f_name) if os.path.splitext(pic)[1] in self.ALL_PICTYPES])[0]
                 display_crop(f'{f_name}\\{file}', int(self.lineEdit_3.text()), int(self.lineEdit_4.text()),
-                             float(self.hSlider_4.value()), float(self.hSlider_3.value()),
+                             self.hSlider_4.value(), self.hSlider_3.value(),
                              self.crop_label_2, self.hSlider_2.value())
             except (IndexError, FileNotFoundError):
                 return
@@ -277,9 +279,10 @@ class MainWindow(QMainWindow):
         self.thread.started.connect(lambda: self.disable_ui(True))
         file_list = np.array([pic for pic in os.listdir(source) if os.path.splitext(pic)[1] in self.ALL_PICTYPES])
         self.thread.started.connect(
-            lambda: self.worker.crop_dir(file_list, destination, self.lineEdit_3, self.lineEdit_4, self.hSlider_4,
-                                         self.hSlider_3, self.hSlider_2, self.radio_choices[np.where(self.radio)[0][0]],
-                                         2, self.lines, self.radio_choices, self.progressBar_1))
+            lambda: self.worker.crop_dir(file_list, destination, int(self.lineEdit_3.text()),
+                                         int(self.lineEdit_4.text()), self.hSlider_4.value(), self.hSlider_3.value(),
+                                         self.hSlider_2.value(), self.radio_choices[np.where(self.radio)[0][0]], 2,
+                                         self.lines, self.radio_choices, self.progressBar_1))
         self.start_thread()
 
     def mapping_process(self, source: str, destination: str):
@@ -288,8 +291,9 @@ class MainWindow(QMainWindow):
         self.thread.started.connect(lambda: self.disable_ui(True))
         self.thread.started.connect(
             lambda: self.worker.mapping_crop(source, self.data_frame, self.comboBox_1.currentText(),
-                                             self.comboBox_2.currentText(), destination, self.lineEdit_3,
-                                             self.lineEdit_4, self.hSlider_4, self.hSlider_3, self.hSlider_2,
+                                             self.comboBox_2.currentText(), destination, int(self.lineEdit_3.text()),
+                                             int(self.lineEdit_4.text()), self.hSlider_4.value(),
+                                             self.hSlider_3.value(), self.hSlider_2.value(),
                                              self.radio_choices[np.where(self.radio)[0][0]], self.radio_choices,
                                              self.progressBar_2))
         self.start_thread()
