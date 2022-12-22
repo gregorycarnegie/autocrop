@@ -121,6 +121,14 @@ class MainWindow(QMainWindow):
             lambda: self.lineEdit_5.setText(QFileDialog.getExistingDirectory(self, 'Select Directory', default_dir)))
 
         self.actionAbout_Face_Cropper.triggered.connect(lambda: self.msg.exec())
+        self.actionGolden_Ratio.triggered.connect(lambda: self.load_preset(0.5 * (1 + 5 ** 0.5)))
+        self.action2_3_Ratio.triggered.connect(lambda: self.load_preset(1.5))
+        self.action3_4_Ratio.triggered.connect(lambda: self.load_preset(4 / 3))
+        self.action4_5_Ratio.triggered.connect(lambda: self.load_preset(1.25))
+        self.actionSquare.triggered.connect(lambda: self.load_preset(1))
+        self.actionCrop_File.triggered.connect(lambda: self.tabWidget.setCurrentIndex(0))
+        self.actionCrop_Folder.triggered.connect(lambda: self.tabWidget.setCurrentIndex(1))
+        self.actionUse_Mapping.triggered.connect(lambda: self.tabWidget.setCurrentIndex(2))
 
         self.CropPushButton_1.clicked.connect(
             lambda: crop(self.lineEdit_1.text(), True, self.lineEdit_5.text(), int(self.lineEdit_3.text()),
@@ -149,25 +157,54 @@ class MainWindow(QMainWindow):
             line_edit.textChanged.connect(lambda: self.change_pushbutton())
 
         for slider in [self.hSlider_2, self.hSlider_3, self.hSlider_4]:
-            slider.valueChanged[int].connect(
-                lambda: display_crop(self.lineEdit_1.text(), int(self.lineEdit_3.text()), int(self.lineEdit_4.text()),
-                                     self.hSlider_4.value(), self.hSlider_3.value(),
-                                     self.crop_label_1, self.hSlider_2.value()))
+            slider.valueChanged[int].connect(lambda: self.slider_update())
 
-        self.reload_pushButton_1.clicked.connect(
-            lambda: display_crop(self.lineEdit_1.text(), int(self.lineEdit_3.text()), int(self.lineEdit_4.text()),
-                                 self.hSlider_4.value(), self.hSlider_3.value(),
-                                 self.crop_label_1, self.hSlider_2.value()))
+        self.reload_pushButton_1.clicked.connect(lambda: self.reload_1())
+        self.reload_pushButton_2.clicked.connect(lambda: self.reload_2())
+        self.reload_pushButton_3.clicked.connect(lambda: self.reload_3())
 
-        self.reload_pushButton_2.clicked.connect(lambda: display_crop(
-            self.fileModel.filePath(self.treeView.currentIndex()), int(self.lineEdit_3.text()),
-            int(self.lineEdit_4.text()), self.hSlider_4.value(), self.hSlider_3.value(),
-            self.crop_label_2, self.hSlider_2.value())
-        if self.fileModel.filePath(self.treeView.currentIndex()) not in {None, ''}
-        else display_crop(
-            f'{self.lineEdit_2.text()}\\{np.array([image for image in os.listdir(self.lineEdit_2.text()) if os.path.splitext(image)[1] in self.ALL_PICTYPES])[0]}',
-            int(self.lineEdit_3.text()), int(self.lineEdit_4.text()), self.hSlider_4.value(),
-            self.hSlider_3.value(), self.crop_label_2, self.hSlider_2.value()))
+    def load_preset(self, phi):
+        if phi == 1:
+            if int(self.lineEdit_3.text()) > int(self.lineEdit_4.text()):
+                self.lineEdit_4.setText(self.lineEdit_3.text())
+            elif int(self.lineEdit_3.text()) < int(self.lineEdit_4.text()):
+                self.lineEdit_3.setText(self.lineEdit_4.text())
+        elif int(self.lineEdit_3.text()) >= int(self.lineEdit_4.text()):
+            self.lineEdit_4.setText(str(int(float(self.lineEdit_3.text()) * phi)))
+        elif int(self.lineEdit_3.text()) < int(self.lineEdit_4.text()):
+            self.lineEdit_3.setText(str(int(float(self.lineEdit_4.text()) / phi)))
+        self.slider_update()
+
+    def slider_update(self):
+        self.reload_1()
+        self.reload_2()
+        self.reload_3()
+
+    def reload_1(self):
+        display_crop(self.lineEdit_1.text(), int(self.lineEdit_3.text()), int(self.lineEdit_4.text()),
+                     self.hSlider_4.value(), self.hSlider_3.value(),
+                     self.crop_label_1, self.hSlider_2.value())
+
+    def reload_2(self):
+        if self.fileModel.filePath(self.treeView.currentIndex()) not in {None, ''}:
+            display_crop(
+                self.fileModel.filePath(self.treeView.currentIndex()), int(self.lineEdit_3.text()),
+                int(self.lineEdit_4.text()), self.hSlider_4.value(), self.hSlider_3.value(),
+                self.crop_label_2, self.hSlider_2.value())
+        else:
+            display_crop(
+                os.path.join(self.lineEdit_2.text(), np.array([image for image in os.listdir(self.lineEdit_2.text()) if
+                                                               os.path.splitext(image)[1] in self.ALL_PICTYPES])[0]),
+                int(self.lineEdit_3.text()), int(self.lineEdit_4.text()), self.hSlider_4.value(),
+                self.hSlider_3.value(), self.crop_label_2, self.hSlider_2.value())
+
+    def reload_3(self):
+        if self.lineEdit_6.text() not in {None, ''}:
+            display_crop(
+                os.path.join(self.lineEdit_2.text(), np.array([image for image in os.listdir(self.lineEdit_6.text()) if
+                                                               os.path.splitext(image)[1] in self.ALL_PICTYPES])[0]),
+                int(self.lineEdit_3.text()), int(self.lineEdit_4.text()), self.hSlider_4.value(),
+                self.hSlider_3.value(), self.crop_label_3, self.hSlider_2.value())
 
     def load_svgs(self):
         x = {0: (self.reload_pushButton_1, 'reload.svg'), 1: (self.reload_pushButton_2, 'reload.svg'),
@@ -180,8 +217,9 @@ class MainWindow(QMainWindow):
              14: (self.radioButton_2, 'bmp.svg'), 15: (self.radioButton_3, 'jpg.svg'),
              16: (self.radioButton_4, 'png.svg'), 17: (self.radioButton_5, 'webp.svg'),
              18: (self.actionGolden_Ratio, 'webp.svg'), 19: (self.actionSquare, 'webp.svg'),
-             20: (self.actionCrop_File, 'picture.svg'), 21: (self.actionCrop_Folder, 'folder.svg'),
-             22: (self.actionUse_Mapping, 'excel.svg')}
+             20: (self.action2_3_Ratio, 'webp.svg'), 21: (self.action3_4_Ratio, 'webp.svg'),
+             22: (self.action4_5_Ratio, 'webp.svg'), 23: (self.actionCrop_File, 'picture.svg'), 
+             24: (self.actionCrop_Folder, 'folder.svg'), 25: (self.actionUse_Mapping, 'excel.svg')}
         for i in range(len(x)):
             x[i][0].setIcon(QIcon(f'resources\\icons\\{x[i][1]}'))
 
@@ -235,7 +273,7 @@ class MainWindow(QMainWindow):
                     self.comboBox_2.addItem(_)
                 if self.lineEdit_6.text() not in {'', None} and os.path.exists(self.lineEdit_6.text()):
                     try:
-                        display_crop(f'{self.lineEdit_6.text()}\\{self.data_frame[self.data_frame.columns[0]][0]}',
+                        display_crop(os.path.join(self.lineEdit_6.text(), self.data_frame[self.data_frame.columns[0]][0]),
                                      int(self.lineEdit_3.text()), int(self.lineEdit_4.text()),
                                      self.hSlider_4.value(), self.hSlider_3.value(),
                                      self.crop_label_3, self.hSlider_2.value())

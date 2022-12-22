@@ -44,7 +44,7 @@
         <item row="0" column="1">
          <widget class="QTabWidget" name="tabWidget">
           <property name="currentIndex">
-           <number>2</number>
+           <number>0</number>
           </property>
           <widget class="QWidget" name="tab_1">
            <attribute name="title">
@@ -510,7 +510,7 @@
             </item>
            </layout>
           </widget>
-          <widget class="QWidget" name="tab">
+          <widget class="QWidget" name="tab_3">
            <attribute name="title">
             <string>Mapping Crop</string>
            </attribute>
@@ -1314,6 +1314,9 @@
     </property>
     <addaction name="actionSquare"/>
     <addaction name="actionGolden_Ratio"/>
+    <addaction name="action2_3_Ratio"/>
+    <addaction name="action3_4_Ratio"/>
+    <addaction name="action4_5_Ratio"/>
    </widget>
    <widget class="QMenu" name="menuTools">
     <property name="title">
@@ -1383,6 +1386,21 @@
   <action name="actionAbout_Face_Cropper">
    <property name="text">
     <string>About Face Cropper</string>
+   </property>
+  </action>
+  <action name="action2_3_Ratio">
+   <property name="text">
+    <string>2:3 Ratio</string>
+   </property>
+  </action>
+  <action name="action3_4_Ratio">
+   <property name="text">
+    <string>3:4 Ratio</string>
+   </property>
+  </action>
+  <action name="action4_5_Ratio">
+   <property name="text">
+    <string>4:5 Ratio</string>
    </property>
   </action>
  </widget>
