@@ -8,7 +8,9 @@ from PyQt6.QtGui import QPixmap, QImage
 from cv2 import cvtColor, dnn, imread, COLOR_BGR2RGB, LUT, imwrite, resize, INTER_AREA
 from settings import FileTypeList, SpreadSheet, GAMMA_THRESHOLD, proto_path, caffe_path
 
-caffe_model = dnn.readNetFromCaffe(proto_path, caffe_path)
+
+def caffe_model():
+    return dnn.readNetFromCaffe(proto_path, caffe_path)
 
 
 def gamma(gam=1.0) -> np.ndarray:
@@ -98,9 +100,10 @@ def box_detect(img_path: str, wide: int, high: int, conf: int, face_perc: int) -
     """preprocess the image: resize and performs mean subtraction"""
     blob = dnn.blobFromImage(img, 1.0, (300, 300), (104.0, 177.0, 123.0))
     """set the image into the input of the neural network"""
-    caffe_model.setInput(blob)
+    caffe = caffe_model()
+    caffe.setInput(blob)
     """perform inference and get the result"""
-    output = np.squeeze(caffe_model.forward())
+    output = np.squeeze(caffe.forward())
     """get the confidence"""
     confidence_list = output[:, 2]
     if np.max(confidence_list) < conf * 0.01:
