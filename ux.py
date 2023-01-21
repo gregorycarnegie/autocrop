@@ -36,19 +36,21 @@ class Cropper(QObject):
     finished, progress = pyqtSignal(), pyqtSignal(int)
     bar_value = 0
 
+    def update_ui(self, progress_bar, files):
+        self.bar_value += 1
+        self.progress.emit(self.bar_value)
+        progress_bar.setValue(int(100 * self.bar_value / files))
+
     def cropdir(self, files: int, file_list: np.ndarray, destination: str, line_3: int, line_4: int,
                 slider_4: int, slider_3: int, slider_2: int, radio_choice: str, n: int, lines: dict,
                 radio_choices: np.ndarray, progress_bar):
         for v, image in enumerate(file_list, start=1):
             crop(image, False, destination, line_3, line_4, slider_4, slider_3, slider_2, radio_choice, n, lines,
                  radio_choices)
-            self.bar_value += 1
-            self.progress.emit(self.bar_value)
-            progress_bar.setValue(int(100 * self.bar_value / files))
+            self.update_ui(progress_bar, files)
 
     def crop_dir(self, file_list: np.ndarray, destination: str, line_3: int, line_4: int, slider_4: int, slider_3: int,
                  slider_2: int, radio_choice: str, n: int, lines: dict, radio_choices: np.ndarray, progress_bar):
-
         split_array = np.array_split(file_list, cpu_count())
         threads = []
         file_amount = len(file_list)
@@ -59,6 +61,10 @@ class Cropper(QObject):
                                                   slider_2, radio_choice, n, lines, radio_choices, progress_bar))
             threads.append(t)
             t.start()
+
+        for thread in threads:
+            thread.join()
+
         self.finished.emit()
 
     def map_crop(self, files: int, source_folder, old, new, destination, width, height, confidence, face, user_gam,
@@ -66,9 +72,7 @@ class Cropper(QObject):
         for i, image in enumerate(old):
             m_crop(source_folder, image, new[i], destination, width, height, confidence,
                    face, user_gam, radio, radio_choices)
-            self.bar_value += 1
-            self.progress.emit(self.bar_value)
-            progress_bar.setValue(int(100 * self.bar_value / files))
+            self.update_ui(progress_bar, files)
 
     def mapping_crop(self, source_folder: str, data: pd.DataFrame, name_column: str, mapping: str,
                      destination: str, width: int, height: int, confidence: int, face: int, user_gam: int, radio: str,
@@ -91,6 +95,10 @@ class Cropper(QObject):
                                                    confidence, face, user_gam, radio, radio_choices, progress_bar))
             threads.append(t)
             t.start()
+
+        for thread in threads:
+            thread.join()
+            
         self.finished.emit()
 
 
@@ -159,6 +167,7 @@ class MainWindow(QMainWindow):
         self.action3_4_Ratio.triggered.connect(lambda: self.load_preset(4 / 3))
         self.action4_5_Ratio.triggered.connect(lambda: self.load_preset(1.25))
         self.actionSquare.triggered.connect(lambda: self.load_preset(1))
+
         self.actionCrop_File.triggered.connect(lambda: self.tabWidget.setCurrentIndex(0))
         self.actionCrop_Folder.triggered.connect(lambda: self.tabWidget.setCurrentIndex(1))
         self.actionUse_Mapping.triggered.connect(lambda: self.tabWidget.setCurrentIndex(2))
@@ -346,29 +355,28 @@ class MainWindow(QMainWindow):
                 x[i].setEnabled(False)
 
     def folder_process(self, source: str, destination: str):
-        file_list = np.array([pic for pic in os.listdir(source) if os.path.splitext(pic)[1] in self.ALL_PICTYPES])
-        # self.disable_ui(True)
+        self.disable_ui(True)
         crop_instance = Cropper()
+        file_list = np.array([pic for pic in os.listdir(source) if os.path.splitext(pic)[1] in self.ALL_PICTYPES])
         process = Process(target=crop_instance.crop_dir, daemon=True,
-                          args=(file_list, destination, int(self.lineEdit_3.text()),
-                                int(self.lineEdit_4.text()), self.hSlider_4.value(),
-                                self.hSlider_3.value(),
-                                self.hSlider_2.value(), self.radio_choices[np.where(self.radio)[0][0]], 2,
+                          args=(file_list, destination, int(self.lineEdit_3.text()), int(self.lineEdit_4.text()),
+                                self.hSlider_4.value(), self.hSlider_3.value(), self.hSlider_2.value(),
+                                self.radio_choices[np.where(self.radio)[0][0]], 2,
                                 self.lines, self.radio_choices, self.progressBar_1))
-        process.run()
-        # self.disable_ui(False)
-        # crop_instance.finished.connect(lambda: self.disable_ui(False))
+        self.run_process(process)
 
     def mapping_process(self, source: str, destination: str):
-        # self.disable_ui(True)
+        self.disable_ui(True)
         crop_instance = Cropper()
         process = Process(target=crop_instance.mapping_crop, daemon=True,
                           args=(source, self.data_frame, self.comboBox_1.currentText(),
-                                self.comboBox_2.currentText(), destination,
-                                int(self.lineEdit_3.text()),
+                                self.comboBox_2.currentText(), destination, int(self.lineEdit_3.text()),
                                 int(self.lineEdit_4.text()), self.hSlider_4.value(),
                                 self.hSlider_3.value(), self.hSlider_2.value(),
-                                self.radio_choices[np.where(self.radio)[0][0]], self.radio_choices,
-                                self.progressBar_2))
+                                self.radio_choices[np.where(self.radio)[0][0]], self.radio_choices, self.progressBar_2))
+        self.run_process(process)
+
+    def run_process(self, process):
         process.run()
-        # crop_instance.finished.connect(lambda: self.disable_ui(False))
+        self.disable_ui(False)
+        self.show_message_box()
