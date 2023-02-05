@@ -171,7 +171,7 @@ def reject(path: str, destination: str, image: str):
 
 
 def save_detection(path: str, destination: str, image: str, width: int, height: int, confidence: int, face: int,
-                   user_gam: int, radio: str, radio_choices: np.ndarray, new: (None | str)):
+                   user_gam: int, radio: str, r_choices: np.ndarray, new: (None | str)):
     """
     This code first checks if bounding_box is not None, and if so, it proceeds to crop the image and create the
     destination directory if it doesn't already exist. It then constructs the file name using a ternary expression
@@ -185,8 +185,8 @@ def save_detection(path: str, destination: str, image: str, width: int, height: 
     if bounding_box is not None:
         cropped_image = crop_image(path, bounding_box, width, height)
         os.makedirs(destination, exist_ok=True)
-        file_name = f'{new or os.path.splitext(image)[0]}{os.path.splitext(image)[1] if radio == radio_choices[0] else radio}'
-        file_path = os.path.join(destination, file_name)
+        file = f'{new or os.path.splitext(image)[0]}{os.path.splitext(image)[1] if radio == r_choices[0] else radio}'
+        file_path = os.path.join(destination, file)
         imwrite(file_path, LUT(cropped_image, gamma(user_gam * GAMMA_THRESHOLD)))
     else:
         reject(path, destination, image)
@@ -203,3 +203,4 @@ def m_crop(source_folder: str, image: str, new: str, destination: str, width: in
            face: int, user_gam: int, radio: str, radio_choices: np.ndarray):
     path = os.path.join(source_folder, image)
     save_detection(path, destination, image, width, height, confidence, face, user_gam, radio, radio_choices, new)
+    

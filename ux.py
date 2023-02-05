@@ -1,13 +1,13 @@
-from threading import Thread
-from multiprocessing import Process, cpu_count
+from multiprocessing import Process
 
 from PyQt6 import uic
-from PyQt6.QtCore import QDir, pyqtSignal, QObject, QAbstractTableModel, Qt
+from PyQt6.QtCore import QDir, QAbstractTableModel, Qt
 from PyQt6.QtGui import QIcon, QIntValidator, QFileSystemModel, QPixmap
 from PyQt6.QtWidgets import QDialog, QFileDialog, QMainWindow, QMessageBox
 
+from cropper import Cropper
 from settings import FileTypeList, SpreadSheet, default_dir
-from utils import crop, display_crop, np, os, m_crop, open_file, pd
+from utils import crop, display_crop, np, os, open_file
 
 
 class PandasModel(QAbstractTableModel):
@@ -30,76 +30,6 @@ class PandasModel(QAbstractTableModel):
         if orientation == Qt.Orientation.Horizontal and role == Qt.ItemDataRole.DisplayRole:
             return self._data.columns[col]
         return None
-
-
-class Cropper(QObject):
-    finished, progress = pyqtSignal(), pyqtSignal(int)
-    bar_value = 0
-
-    def update_ui(self, progress_bar, files):
-        self.bar_value += 1
-        self.progress.emit(self.bar_value)
-        progress_bar.setValue(int(100 * self.bar_value / files))
-
-    def cropdir(self, files: int, file_list: np.ndarray, destination: str, line_3: int, line_4: int,
-                slider_4: int, slider_3: int, slider_2: int, radio_choice: str, n: int, lines: dict,
-                radio_choices: np.ndarray, progress_bar):
-        for v, image in enumerate(file_list, start=1):
-            crop(image, False, destination, line_3, line_4, slider_4, slider_3, slider_2, radio_choice, n, lines,
-                 radio_choices)
-            self.update_ui(progress_bar, files)
-
-    def crop_dir(self, file_list: np.ndarray, destination: str, line_3: int, line_4: int, slider_4: int, slider_3: int,
-                 slider_2: int, radio_choice: str, n: int, lines: dict, radio_choices: np.ndarray, progress_bar):
-        split_array = np.array_split(file_list, cpu_count())
-        threads = []
-        file_amount = len(file_list)
-        progress_bar.setValue(0)
-        self.bar_value = 0
-        for array in split_array:
-            t = Thread(target=self.cropdir, args=(file_amount, array, destination, line_3, line_4, slider_4, slider_3,
-                                                  slider_2, radio_choice, n, lines, radio_choices, progress_bar))
-            threads.append(t)
-            t.start()
-
-        for thread in threads:
-            thread.join()
-
-        self.finished.emit()
-
-    def map_crop(self, files: int, source_folder, old, new, destination, width, height, confidence, face, user_gam,
-                 radio, radio_choices, progress_bar):
-        for i, image in enumerate(old):
-            m_crop(source_folder, image, new[i], destination, width, height, confidence,
-                   face, user_gam, radio, radio_choices)
-            self.update_ui(progress_bar, files)
-
-    def mapping_crop(self, source_folder: str, data: pd.DataFrame, name_column: str, mapping: str,
-                     destination: str, width: int, height: int, confidence: int, face: int, user_gam: int, radio: str,
-                     radio_choices: np.ndarray, progress_bar):
-        file_list = np.array(data[name_column]).astype(str)
-        extensions = np.char.lower([os.path.splitext(i)[1] for i in file_list])
-        types = FileTypeList().all_types()
-
-        r, s = np.meshgrid(extensions, types)
-        g = r == s
-        h = [g[:, i].any() for i in range(len(file_list))]
-
-        old, new = np.array_split(file_list[h], cpu_count()), np.array_split(np.array(data[mapping])[h], cpu_count())
-        threads = []
-        file_amount = len(file_list[h])
-        progress_bar.setValue(0)
-        self.bar_value = 0
-        for i, _ in enumerate(old):
-            t = Thread(target=self.map_crop, args=(file_amount, source_folder, _, new[i], destination, width, height,
-                                                   confidence, face, user_gam, radio, radio_choices, progress_bar))
-            threads.append(t)
-            t.start()
-
-        for thread in threads:
-            thread.join()
-            
-        self.finished.emit()
 
 
 class AboutDialog(QDialog):
@@ -130,6 +60,15 @@ class MainWindow(QMainWindow):
         self.fileModel = QFileSystemModel(self)
         self.load_svgs()
 
+        self.process = Process()
+
+        self.cropper = Cropper()
+        self.cropper.started.connect(lambda: self.disable_ui(True))
+        self.cropper.finished.connect(lambda: self.disable_ui(False))
+        self.cropper.finished.connect(lambda: self.show_message_box())
+        self.cropper.folder_progress.connect(self.update_progress_1)
+        self.cropper.mapping_progress.connect(self.update_progress_2)
+
         self.CropPushButton_1.setEnabled(False)
         self.CropPushButton_2.setEnabled(False)
         self.CropPushButton_3.setEnabled(False)
@@ -137,6 +76,14 @@ class MainWindow(QMainWindow):
         self.CancelPushButton_2.setEnabled(False)
         self.lineEdit_7.setEnabled(False)
         self.TablePushButton.setEnabled(False)
+
+        self.CancelPushButton_1.clicked.connect(lambda: self.process.terminate)
+        self.CancelPushButton_1.clicked.connect(lambda: self.disable_ui(False))
+        self.CancelPushButton_2.clicked.connect(lambda: self.process.terminate)
+        self.CancelPushButton_2.clicked.connect(lambda: self.disable_ui(False))
+
+        self.CropPushButton_2.clicked.connect(lambda: self.disable_ui(True))
+        self.CropPushButton_3.clicked.connect(lambda: self.disable_ui(True))
 
         self.validator = QIntValidator(100, 10000)
         self.lineEdit_3.setValidator(self.validator)
@@ -151,8 +98,8 @@ class MainWindow(QMainWindow):
         self.treeView.setRootIndex(self.fileModel.index(default_dir))
         self.treeView.selectionModel().selectionChanged.connect(
             lambda: display_crop(self.fileModel.filePath(self.treeView.currentIndex()), int(self.lineEdit_3.text()),
-                                 int(self.lineEdit_4.text()), self.hSlider_4.value(),
-                                 self.hSlider_3.value(), self.crop_label_2, self.hSlider_2.value()))
+                                 int(self.lineEdit_4.text()), self.hSlider_4.value(), self.hSlider_3.value(),
+                                 self.crop_label_2, self.hSlider_2.value()))
 
         self.FilePushButton.clicked.connect(lambda: self.open_item(True))
         self.TablePushButton.clicked.connect(lambda: self.open_item(False))
@@ -205,6 +152,29 @@ class MainWindow(QMainWindow):
         self.reload_pushButton_2.clicked.connect(lambda: self.reload_2())
         self.reload_pushButton_3.clicked.connect(lambda: self.reload_3())
 
+    def update_progress_1(self, value):
+        self.progressBar_1.setValue(value)
+
+    def update_progress_2(self, value):
+        self.progressBar_2.setValue(value)
+
+    def message_button(self, i):
+        if i.text() == '&Yes':
+            os.startfile(self.lineEdit_5.text())
+
+    def show_message_box(self):
+        msg = QMessageBox()
+        self.configure_message_box(msg, 'Open Destination Folder', 'Open destination folder?')
+        msg.buttonClicked.connect(self.message_button)
+        x = msg.exec()
+
+    @staticmethod
+    def configure_message_box(msg: QMessageBox, arg1: str, arg2: str):
+        msg.setWindowTitle(arg1)
+        msg.setText(arg2)
+        msg.setIcon(QMessageBox.Icon.Question)
+        msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+
     def load_preset(self, phi):
         if phi == 1:
             if int(self.lineEdit_3.text()) > int(self.lineEdit_4.text()):
@@ -224,8 +194,8 @@ class MainWindow(QMainWindow):
 
     def reload_1(self):
         display_crop(self.lineEdit_1.text(), int(self.lineEdit_3.text()), int(self.lineEdit_4.text()),
-                     self.hSlider_4.value(), self.hSlider_3.value(),
-                     self.crop_label_1, self.hSlider_2.value())
+                     self.hSlider_4.value(), self.hSlider_3.value(), self.crop_label_1,
+                     self.hSlider_2.value())
 
     def reload_2(self):
         if self.fileModel.filePath(self.treeView.currentIndex()) not in {None, ''}:
@@ -243,7 +213,7 @@ class MainWindow(QMainWindow):
     def reload_3(self):
         if self.lineEdit_6.text() not in {None, ''}:
             display_crop(
-                os.path.join(self.lineEdit_2.text(), np.array([image for image in os.listdir(self.lineEdit_6.text()) if
+                os.path.join(self.lineEdit_6.text(), np.array([image for image in os.listdir(self.lineEdit_6.text()) if
                                                                os.path.splitext(image)[1] in self.ALL_PICTYPES])[0]),
                 int(self.lineEdit_3.text()), int(self.lineEdit_4.text()), self.hSlider_4.value(),
                 self.hSlider_3.value(), self.crop_label_3, self.hSlider_2.value())
@@ -264,19 +234,6 @@ class MainWindow(QMainWindow):
              24: (self.actionCrop_Folder, 'folder.svg'), 25: (self.actionUse_Mapping, 'excel.svg')}
         for i in range(len(x)):
             x[i][0].setIcon(QIcon(f'resources\\icons\\{x[i][1]}'))
-
-    def show_message_box(self):
-        msg = QMessageBox()
-        msg.setWindowTitle('Open Destination Folder')
-        msg.setText('Open destination folder?')
-        msg.setIcon(QMessageBox.Icon.Question)
-        msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-        msg.buttonClicked.connect(self.message_button)
-        x = msg.exec()
-
-    def message_button(self, i):
-        if i.text() == '&Yes':
-            os.startfile(self.lineEdit_5.text())
 
     def change_pushbutton(self):
         E = {'', None}
@@ -355,28 +312,19 @@ class MainWindow(QMainWindow):
                 x[i].setEnabled(False)
 
     def folder_process(self, source: str, destination: str):
-        self.disable_ui(True)
-        crop_instance = Cropper()
         file_list = np.array([pic for pic in os.listdir(source) if os.path.splitext(pic)[1] in self.ALL_PICTYPES])
-        process = Process(target=crop_instance.crop_dir, daemon=True,
-                          args=(file_list, destination, int(self.lineEdit_3.text()), int(self.lineEdit_4.text()),
-                                self.hSlider_4.value(), self.hSlider_3.value(), self.hSlider_2.value(),
-                                self.radio_choices[np.where(self.radio)[0][0]], 2,
-                                self.lines, self.radio_choices, self.progressBar_1))
-        self.run_process(process)
+        self.process = Process(target=self.cropper.crop_dir, daemon=True,
+                               args=(file_list, destination, int(self.lineEdit_3.text()), int(self.lineEdit_4.text()),
+                                     self.hSlider_4.value(), self.hSlider_3.value(), self.hSlider_2.value(),
+                                     self.radio_choices[np.where(self.radio)[0][0]], 2,
+                                     self.lines, self.radio_choices))
+        self.process.run()
 
     def mapping_process(self, source: str, destination: str):
-        self.disable_ui(True)
-        crop_instance = Cropper()
-        process = Process(target=crop_instance.mapping_crop, daemon=True,
-                          args=(source, self.data_frame, self.comboBox_1.currentText(),
-                                self.comboBox_2.currentText(), destination, int(self.lineEdit_3.text()),
-                                int(self.lineEdit_4.text()), self.hSlider_4.value(),
-                                self.hSlider_3.value(), self.hSlider_2.value(),
-                                self.radio_choices[np.where(self.radio)[0][0]], self.radio_choices, self.progressBar_2))
-        self.run_process(process)
-
-    def run_process(self, process):
-        process.run()
-        self.disable_ui(False)
-        self.show_message_box()
+        self.process = Process(target=self.cropper.mapping_crop, daemon=True,
+                               args=(source, self.data_frame, self.comboBox_1.currentText(),
+                                     self.comboBox_2.currentText(), destination, int(self.lineEdit_3.text()),
+                                     int(self.lineEdit_4.text()), self.hSlider_4.value(), self.hSlider_3.value(),
+                                     self.hSlider_2.value(), self.radio_choices[np.where(self.radio)[0][0]],
+                                     self.radio_choices))
+        self.process.run()
