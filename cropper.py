@@ -10,23 +10,28 @@ from utils import crop, np, os, m_crop, pd
 class Cropper(QObject):
     started, finished = pyqtSignal(), pyqtSignal()
     folder_progress, mapping_progress = pyqtSignal(int), pyqtSignal(int)
-    
+
     def __init__(self, parent = None):
         super(Cropper, self).__init__(parent)
         self.bar_value = 0
+        self.end_task = False
+        self.message_box = True
 
     def cropdir(self, files: int, file_list: np.ndarray, destination: str, line_3: int, line_4: int,
                 slider_4: int, slider_3: int, slider_2: int, radio_choice: str, n: int, lines: dict,
                 radio_choices: np.ndarray):
         for image in file_list:
+            if  self.end_task:
+                break
             crop(image, False, destination, line_3, line_4, slider_4, slider_3, slider_2, radio_choice, n, lines,
                  radio_choices)
             self.bar_value += 1
             x = int(100 * self.bar_value / files)
             self.folder_progress.emit(x)
 
-        if self.bar_value == files:
+        if (self.bar_value == files or self.end_task) and self.message_box:
             self.finished.emit()
+            self.message_box = False
 
     def crop_dir(self, file_list: np.ndarray, destination: str, line_3: int, line_4: int, slider_4: int, slider_3: int,
                  slider_2: int, radio_choice: str, n: int, lines: dict, radio_choices: np.ndarray):
@@ -45,14 +50,17 @@ class Cropper(QObject):
     def map_crop(self, files: int, source_folder, old, new, destination, width, height, confidence, face, user_gam,
                  radio, radio_choices):
         for i, image in enumerate(old):
+            if self.end_task:
+                break
             m_crop(source_folder, image, new[i], destination, width, height, confidence,
                    face, user_gam, radio, radio_choices)
             self.bar_value += 1
             x = int(100 * self.bar_value / files)
             self.mapping_progress.emit(x)
         
-        if self.bar_value == files:
+        if (self.bar_value == files or self.end_task) and self.message_box:
             self.finished.emit()
+            self.message_box = False
 
     def mapping_crop(self, source_folder: str, data: pd.DataFrame, name_column: str, mapping: str,
                      destination: str, width: int, height: int, confidence: int, face: int, user_gam: int, radio: str,

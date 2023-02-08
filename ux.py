@@ -36,6 +36,7 @@ class AboutDialog(QDialog):
     def __init__(self):
         super(AboutDialog, self).__init__()
         uic.loadUi('resources\\forms\\about_form.ui', self)
+        self.setWindowIcon(QIcon("resources\\logos\\logo.ico"))
         self.pixmap = QPixmap('resources\\logos\\logo.png')
         self.label.setPixmap(self.pixmap)
 
@@ -77,10 +78,8 @@ class MainWindow(QMainWindow):
         self.lineEdit_7.setEnabled(False)
         self.TablePushButton.setEnabled(False)
 
-        self.CancelPushButton_1.clicked.connect(lambda: self.process.terminate)
-        self.CancelPushButton_1.clicked.connect(lambda: self.disable_ui(False))
-        self.CancelPushButton_2.clicked.connect(lambda: self.process.terminate)
-        self.CancelPushButton_2.clicked.connect(lambda: self.disable_ui(False))
+        self.CancelPushButton_1.clicked.connect(lambda: self.terminate())
+        self.CancelPushButton_2.clicked.connect(lambda: self.terminate())
 
         self.CropPushButton_2.clicked.connect(lambda: self.disable_ui(True))
         self.CropPushButton_3.clicked.connect(lambda: self.disable_ui(True))
@@ -152,6 +151,10 @@ class MainWindow(QMainWindow):
         self.reload_pushButton_2.clicked.connect(lambda: self.reload_2())
         self.reload_pushButton_3.clicked.connect(lambda: self.reload_3())
 
+    def terminate(self):
+        self.cropper.end_task = True
+        self.disable_ui(False)
+    
     def update_progress_1(self, value):
         self.progressBar_1.setValue(value)
 
@@ -312,6 +315,8 @@ class MainWindow(QMainWindow):
                 x[i].setEnabled(False)
 
     def folder_process(self, source: str, destination: str):
+        self.cropper.end_task = False
+        self.cropper.message_box = True
         file_list = np.array([pic for pic in os.listdir(source) if os.path.splitext(pic)[1] in self.ALL_PICTYPES])
         self.process = Process(target=self.cropper.crop_dir, daemon=True,
                                args=(file_list, destination, int(self.lineEdit_3.text()), int(self.lineEdit_4.text()),
@@ -321,6 +326,8 @@ class MainWindow(QMainWindow):
         self.process.run()
 
     def mapping_process(self, source: str, destination: str):
+        self.cropper.end_task = False
+        self.cropper.message_box = True
         self.process = Process(target=self.cropper.mapping_crop, daemon=True,
                                args=(source, self.data_frame, self.comboBox_1.currentText(),
                                      self.comboBox_2.currentText(), destination, int(self.lineEdit_3.text()),
