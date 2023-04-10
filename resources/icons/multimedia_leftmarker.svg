@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="50"
+   height="50"
+   version="1.1"
+   viewBox="0 0 13.229 13.229"
+   id="svg4"
+   sodipodi:docname="multimedia_leftmarker.svg"
+   inkscape:version="1.1.2 (b8e25be833, 2022-02-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs8" />
+  <sodipodi:namedview
+     id="namedview6"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     showgrid="false"
+     inkscape:zoom="14.38"
+     inkscape:cx="25"
+     inkscape:cy="24.965229"
+     inkscape:window-width="3840"
+     inkscape:window-height="2107"
+     inkscape:window-x="-8"
+     inkscape:window-y="22"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg4" />
+  <path
+     d="m 5.688905,3.96873 h -2.1167 v 5.2917 h 2.1167 v 1.0583 h -2.6458 c -0.14993,0 -0.27781,-0.04851 -0.38365,-0.14552 C 2.562445,10.06738 2.513935,9.9395 2.513935,9.78956 v -6.3368 c 0,-0.14993 0.04851,-0.27781 0.14552,-0.38365 0.10583,-0.10583 0.23372,-0.15875 0.38365,-0.15875 h 2.6458 v 1.0583"
+     id="path2"
+     style="fill:#ff0000"
+     sodipodi:nodetypes="cccccscsscscc" />
+  <path
+     id="rect847"
+     style="fill:#000000;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers"
+     d="M 25.501953 14 C 25.235266 14 25.002749 14.100777 24.802734 14.300781 C 24.602719 14.500796 24.501953 14.733328 24.501953 15 L 24.501953 20 L 17.501953 20 C 17.235266 20 17.002749 20.100777 16.802734 20.300781 C 16.602719 20.500796 16.501953 20.733328 16.501953 21 L 16.501953 29 C 16.501953 29.266687 16.602719 29.501168 16.802734 29.701172 C 17.002749 29.901176 17.235266 30 17.501953 30 L 24.501953 30 L 24.501953 35 L 24.802734 35.701172 L 25.501953 36 L 29.501953 36 L 30.201172 35.701172 L 40.201172 25.701172 L 40.501953 25 L 40.201172 24.300781 L 30.201172 14.300781 C 30.001157 14.100777 29.76864 14 29.501953 14 L 25.501953 14 z "
+     transform="scale(0.26458)" />
+</svg>

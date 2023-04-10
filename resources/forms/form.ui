@@ -92,24 +92,6 @@
                     <property name="spacing">
                      <number>0</number>
                     </property>
-                    <item row="0" column="1">
-                     <widget class="QLineEdit" name="lineEdit_1">
-                      <property name="text">
-                       <string/>
-                      </property>
-                     </widget>
-                    </item>
-                    <item row="0" column="0">
-                     <widget class="QPushButton" name="reload_pushButton_1">
-                      <property name="text">
-                       <string/>
-                      </property>
-                      <property name="icon">
-                       <iconset resource="../resources.qrc">
-                        <normaloff>:/icons/icons/reload.svg</normaloff>:/icons/icons/reload.svg</iconset>
-                      </property>
-                     </widget>
-                    </item>
                     <item row="0" column="2">
                      <widget class="QPushButton" name="FilePushButton">
                       <property name="minimumSize">
@@ -136,28 +118,103 @@
                       </property>
                      </widget>
                     </item>
+                    <item row="0" column="1">
+                     <widget class="QLineEdit" name="lineEdit_1">
+                      <property name="text">
+                       <string/>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="0">
+                     <widget class="QPushButton" name="reload_pushButton_1">
+                      <property name="text">
+                       <string/>
+                      </property>
+                      <property name="icon">
+                       <iconset resource="../resources.qrc">
+                        <normaloff>:/icons/icons/reload.svg</normaloff>:/icons/icons/reload.svg</iconset>
+                      </property>
+                     </widget>
+                    </item>
                    </layout>
                   </item>
                  </layout>
                 </item>
                 <item>
-                 <layout class="QGridLayout" name="gridLayout_19">
-                  <property name="leftMargin">
-                   <number>0</number>
-                  </property>
-                  <property name="topMargin">
-                   <number>0</number>
-                  </property>
-                  <property name="rightMargin">
-                   <number>0</number>
-                  </property>
-                  <property name="bottomMargin">
-                   <number>0</number>
-                  </property>
+                 <layout class="QVBoxLayout" name="verticalLayout_13" stretch="1,20,1">
                   <property name="spacing">
                    <number>0</number>
                   </property>
-                  <item row="0" column="0">
+                  <property name="sizeConstraint">
+                   <enum>QLayout::SetDefaultConstraint</enum>
+                  </property>
+                  <item>
+                   <widget class="QFrame" name="frame">
+                    <property name="styleSheet">
+                     <string notr="true">background: #1f2c33</string>
+                    </property>
+                    <property name="locale">
+                     <locale language="English" country="UnitedStates"/>
+                    </property>
+                    <property name="frameShape">
+                     <enum>QFrame::NoFrame</enum>
+                    </property>
+                    <property name="frameShadow">
+                     <enum>QFrame::Raised</enum>
+                    </property>
+                    <property name="lineWidth">
+                     <number>1</number>
+                    </property>
+                    <layout class="QHBoxLayout" name="horizontalLayout_3">
+                     <property name="spacing">
+                      <number>0</number>
+                     </property>
+                     <property name="leftMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="topMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="rightMargin">
+                      <number>6</number>
+                     </property>
+                     <property name="bottomMargin">
+                      <number>0</number>
+                     </property>
+                     <item alignment="Qt::AlignRight">
+                      <widget class="QCheckBox" name="checkBox_1">
+                       <property name="autoFillBackground">
+                        <bool>false</bool>
+                       </property>
+                       <property name="styleSheet">
+                        <string notr="true">QCheckBox:unchecked{ color: red; }
+QCheckBox:checked{ color: white; }
+QCheckBox::indicator{
+width: 20px;
+height: 20px;
+}
+QCheckBox::indicator:checked{
+	image: url(:/icons/icons/checkbox_checked.svg);
+}
+QCheckBox::indicator:unchecked{
+	image: url(:/icons/icons/checkbox_unchecked.svg);
+}
+QCheckBox::indicator:checked:hover{
+	image: url(:/icons/icons/checkbox_checked_hover.svg);
+}
+QCheckBox::indicator:unchecked:hover{
+	image: url(:/icons/icons/checkbox_unchecked_hover.svg);
+}</string>
+                       </property>
+                       <property name="text">
+                        <string>Autocorrect</string>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
+                   </widget>
+                  </item>
+                  <item>
                    <widget class="QLabel" name="crop_label_1">
                     <property name="sizePolicy">
                      <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
@@ -171,6 +228,9 @@
                     <property name="frameShape">
                      <enum>QFrame::NoFrame</enum>
                     </property>
+                    <property name="lineWidth">
+                     <number>1</number>
+                    </property>
                     <property name="text">
                      <string/>
                     </property>
@@ -179,6 +239,19 @@
                     </property>
                     <property name="alignment">
                      <set>Qt::AlignCenter</set>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QFrame" name="frame_2">
+                    <property name="styleSheet">
+                     <string notr="true">background: #1f2c33</string>
+                    </property>
+                    <property name="frameShape">
+                     <enum>QFrame::NoFrame</enum>
+                    </property>
+                    <property name="frameShadow">
+                     <enum>QFrame::Raised</enum>
                     </property>
                    </widget>
                   </item>
@@ -361,26 +434,103 @@
                      <number>0</number>
                     </property>
                     <item row="0" column="0">
-                     <widget class="QLabel" name="crop_label_2">
-                      <property name="sizePolicy">
-                       <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
-                        <horstretch>0</horstretch>
-                        <verstretch>0</verstretch>
-                       </sizepolicy>
+                     <layout class="QVBoxLayout" name="verticalLayout_21" stretch="1,20,1">
+                      <property name="spacing">
+                       <number>0</number>
                       </property>
-                      <property name="styleSheet">
-                       <string notr="true">background: #1f2c33</string>
-                      </property>
-                      <property name="text">
-                       <string/>
-                      </property>
-                      <property name="scaledContents">
-                       <bool>true</bool>
-                      </property>
-                      <property name="alignment">
-                       <set>Qt::AlignCenter</set>
-                      </property>
-                     </widget>
+                      <item>
+                       <widget class="QFrame" name="frame_3">
+                        <property name="styleSheet">
+                         <string notr="true">background: #1f2c33</string>
+                        </property>
+                        <property name="frameShape">
+                         <enum>QFrame::NoFrame</enum>
+                        </property>
+                        <property name="frameShadow">
+                         <enum>QFrame::Raised</enum>
+                        </property>
+                        <layout class="QHBoxLayout" name="horizontalLayout_10">
+                         <property name="spacing">
+                          <number>0</number>
+                         </property>
+                         <property name="leftMargin">
+                          <number>0</number>
+                         </property>
+                         <property name="topMargin">
+                          <number>0</number>
+                         </property>
+                         <property name="rightMargin">
+                          <number>6</number>
+                         </property>
+                         <property name="bottomMargin">
+                          <number>0</number>
+                         </property>
+                         <item alignment="Qt::AlignRight">
+                          <widget class="QCheckBox" name="checkBox_2">
+                           <property name="styleSheet">
+                            <string notr="true">QCheckBox:unchecked{ color: red; }
+QCheckBox:checked{ color: white; }
+QCheckBox::indicator{
+width: 20px;
+height: 20px;
+}
+QCheckBox::indicator:checked{
+	image: url(:/icons/icons/checkbox_checked.svg);
+}
+QCheckBox::indicator:unchecked{
+	image: url(:/icons/icons/checkbox_unchecked.svg);
+}
+QCheckBox::indicator:checked:hover{
+	image: url(:/icons/icons/checkbox_checked_hover.svg);
+}
+QCheckBox::indicator:unchecked:hover{
+	image: url(:/icons/icons/checkbox_unchecked_hover.svg);
+}</string>
+                           </property>
+                           <property name="text">
+                            <string>Autocorrect</string>
+                           </property>
+                          </widget>
+                         </item>
+                        </layout>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QLabel" name="crop_label_2">
+                        <property name="sizePolicy">
+                         <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                         </sizepolicy>
+                        </property>
+                        <property name="styleSheet">
+                         <string notr="true">background: #1f2c33</string>
+                        </property>
+                        <property name="text">
+                         <string/>
+                        </property>
+                        <property name="scaledContents">
+                         <bool>true</bool>
+                        </property>
+                        <property name="alignment">
+                         <set>Qt::AlignCenter</set>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QFrame" name="frame_4">
+                        <property name="styleSheet">
+                         <string notr="true">background: #1f2c33</string>
+                        </property>
+                        <property name="frameShape">
+                         <enum>QFrame::NoFrame</enum>
+                        </property>
+                        <property name="frameShadow">
+                         <enum>QFrame::Raised</enum>
+                        </property>
+                       </widget>
+                      </item>
+                     </layout>
                     </item>
                    </layout>
                   </item>
@@ -390,6 +540,9 @@
                      <number>0</number>
                     </property>
                     <item row="0" column="0">
+                     <layout class="QVBoxLayout" name="verticalLayout_15"/>
+                    </item>
+                    <item row="0" column="1">
                      <widget class="QTreeView" name="treeView"/>
                     </item>
                    </layout>
@@ -659,26 +812,103 @@
                  <number>0</number>
                 </property>
                 <item>
-                 <widget class="QLabel" name="crop_label_3">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
+                 <layout class="QVBoxLayout" name="verticalLayout_2" stretch="1,20,1">
+                  <property name="spacing">
+                   <number>0</number>
                   </property>
-                  <property name="styleSheet">
-                   <string notr="true">background: #1f2c33</string>
-                  </property>
-                  <property name="text">
-                   <string/>
-                  </property>
-                  <property name="scaledContents">
-                   <bool>true</bool>
-                  </property>
-                  <property name="alignment">
-                   <set>Qt::AlignCenter</set>
-                  </property>
-                 </widget>
+                  <item>
+                   <widget class="QFrame" name="frame_5">
+                    <property name="styleSheet">
+                     <string notr="true">background: #1f2c33</string>
+                    </property>
+                    <property name="frameShape">
+                     <enum>QFrame::NoFrame</enum>
+                    </property>
+                    <property name="frameShadow">
+                     <enum>QFrame::Raised</enum>
+                    </property>
+                    <layout class="QHBoxLayout" name="horizontalLayout_11">
+                     <property name="spacing">
+                      <number>0</number>
+                     </property>
+                     <property name="leftMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="topMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="rightMargin">
+                      <number>6</number>
+                     </property>
+                     <property name="bottomMargin">
+                      <number>0</number>
+                     </property>
+                     <item alignment="Qt::AlignRight">
+                      <widget class="QCheckBox" name="checkBox_3">
+                       <property name="styleSheet">
+                        <string notr="true">QCheckBox:unchecked{ color: red; }
+QCheckBox:checked{ color: white; }
+QCheckBox::indicator{
+width: 20px;
+height: 20px;
+}
+QCheckBox::indicator:checked{
+	image: url(:/icons/icons/checkbox_checked.svg);
+}
+QCheckBox::indicator:unchecked{
+	image: url(:/icons/icons/checkbox_unchecked.svg);
+}
+QCheckBox::indicator:checked:hover{
+	image: url(:/icons/icons/checkbox_checked_hover.svg);
+}
+QCheckBox::indicator:unchecked:hover{
+	image: url(:/icons/icons/checkbox_unchecked_hover.svg);
+}</string>
+                       </property>
+                       <property name="text">
+                        <string>Autocorrect</string>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLabel" name="crop_label_3">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="styleSheet">
+                     <string notr="true">background: #1f2c33</string>
+                    </property>
+                    <property name="text">
+                     <string/>
+                    </property>
+                    <property name="scaledContents">
+                     <bool>true</bool>
+                    </property>
+                    <property name="alignment">
+                     <set>Qt::AlignCenter</set>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QFrame" name="frame_6">
+                    <property name="styleSheet">
+                     <string notr="true">background: #1f2c33</string>
+                    </property>
+                    <property name="frameShape">
+                     <enum>QFrame::NoFrame</enum>
+                    </property>
+                    <property name="frameShadow">
+                     <enum>QFrame::Raised</enum>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
                 </item>
                 <item>
                  <layout class="QVBoxLayout" name="verticalLayout_12">
@@ -1141,7 +1371,7 @@
                  <string/>
                 </property>
                 <property name="icon">
-                 <iconset resource="../resources.qrc">
+                 <iconset>
                   <normaloff>:/icons/icons/no.svg</normaloff>:/icons/icons/no.svg</iconset>
                 </property>
                 <property name="iconSize">
@@ -1177,7 +1407,7 @@
                  <string/>
                 </property>
                 <property name="icon">
-                 <iconset resource="../resources.qrc">
+                 <iconset>
                   <normaloff>:/icons/icons/bmp.svg</normaloff>:/icons/icons/bmp.svg</iconset>
                 </property>
                 <property name="iconSize">
@@ -1210,7 +1440,7 @@
                  <string/>
                 </property>
                 <property name="icon">
-                 <iconset resource="../resources.qrc">
+                 <iconset>
                   <normaloff>:/icons/icons/jpg.svg</normaloff>:/icons/icons/jpg.svg</iconset>
                 </property>
                 <property name="iconSize">
@@ -1243,7 +1473,7 @@
                  <string/>
                 </property>
                 <property name="icon">
-                 <iconset resource="../resources.qrc">
+                 <iconset>
                   <normaloff>:/icons/icons/png.svg</normaloff>:/icons/icons/png.svg</iconset>
                 </property>
                 <property name="iconSize">
@@ -1276,7 +1506,7 @@
                  <string/>
                 </property>
                 <property name="icon">
-                 <iconset resource="../resources.qrc">
+                 <iconset>
                   <normaloff>:/icons/icons/webp.svg</normaloff>:/icons/icons/webp.svg</iconset>
                 </property>
                 <property name="iconSize">

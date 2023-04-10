@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="50"
+   height="50"
+   version="1.1"
+   viewBox="0 0 13.229 13.229"
+   id="svg4"
+   sodipodi:docname="multimedia_rightmarker.svg"
+   inkscape:version="1.1.2 (b8e25be833, 2022-02-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs8" />
+  <sodipodi:namedview
+     id="namedview6"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     showgrid="false"
+     inkscape:zoom="14.38"
+     inkscape:cx="24.721836"
+     inkscape:cy="24.965229"
+     inkscape:window-width="3840"
+     inkscape:window-height="2107"
+     inkscape:window-x="-8"
+     inkscape:window-y="22"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg4" />
+  <path
+     d="m 10.5701,3.06917 c 0.09701,0.10583 0.14552,0.23371 0.14552,0.38365 v 6.3368 c 0,0.14993 -0.04851,0.27781 -0.14552,0.38365 -0.10583,0.09702 -0.23372,0.14552 -0.38365,0.14552 h -2.6458 v -1.0583 h 2.1167 v -5.2917 h -2.1167 v -1.0583 h 2.6458 c 0.14993,0 0.27781,0.052917 0.38365,0.15875"
+     id="path2"
+     style="fill:#ff0000"
+     sodipodi:nodetypes="csscsccccccsc" />
+  <path
+     id="rect1322"
+     style="fill:#000000;stroke:none;stroke-width:21.6766;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers"
+     d="M 20.5 14 C 20.233313 14 20.000796 14.100777 19.800781 14.300781 L 9.8007812 24.300781 C 9.6007775 24.500796 9.5 24.733325 9.5 25 C 9.5 25.266687 9.6007775 25.501168 9.8007812 25.701172 L 19.800781 35.701172 L 20.5 36 L 24.5 36 L 25.201172 35.701172 L 25.5 35 L 25.5 30 L 32.5 30 C 32.766687 30 33.001157 29.901176 33.201172 29.701172 L 33.5 29 L 33.5 21 L 33.201172 20.300781 C 33.001157 20.100777 32.766687 20 32.5 20 L 25.5 20 L 25.5 15 L 25.201172 14.300781 C 25.001157 14.100777 24.766687 14 24.5 14 L 20.5 14 z "
+     transform="scale(0.26458)" />
+</svg>

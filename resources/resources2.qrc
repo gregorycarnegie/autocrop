@@ -1,0 +1,47 @@
+<RCC>
+  <qresource prefix="resources">
+    <file>icons/crop_video.svg</file>
+    <file>icons/file_bmp_checked.svg</file>
+    <file>icons/file_bmp_unchecked.svg</file>
+    <file>icons/file_jpg_checked.svg</file>
+    <file>icons/file_jpg_unchecked.svg</file>
+    <file>icons/file_png_unchecked.svg</file>
+    <file>icons/file_png_checked.svg</file>
+    <file>icons/file_no_checked.svg</file>
+    <file>icons/file_no_unchecked.svg</file>
+    <file>icons/file_tiff_checked.svg</file>
+    <file>icons/file_tiff_unchecked.svg</file>
+    <file>icons/file_webp_checked.svg</file>
+    <file>icons/file_webp_unchecked.svg</file>
+    <file>icons/multimedia_mute.svg</file>
+    <file>icons/multimedia_unmute.svg</file>
+    <file>icons/clapperboard.svg</file>
+    <file>icons/memory_card.svg</file>
+    <file>icons/marker_label_a.svg</file>
+    <file>icons/marker_label_b.svg</file>
+    <file>icons/settings.svg</file>
+    <file>icons/multimedia_leftmarker.svg</file>
+    <file>icons/multimedia_rightmarker.svg</file>
+    <file>icons/multimedia_begining.svg</file>
+    <file>icons/multimedia_end.svg</file>
+    <file>icons/multimedia_fastfwd.svg</file>
+    <file>icons/multimedia_left.svg</file>
+    <file>icons/multimedia_pause.svg</file>
+    <file>icons/multimedia_play.svg</file>
+    <file>icons/multimedia_rewind.svg</file>
+    <file>icons/multimedia_right.svg</file>
+    <file>icons/multimedia_stop.svg</file>
+    <file>logos/logo.ico</file>
+    <file>logos/logo.png</file>
+    <file>icons/cancel.svg</file>
+    <file>icons/checkbox_checked.svg</file>
+    <file>icons/checkbox_checked_hover.svg</file>
+    <file>icons/checkbox_unchecked.svg</file>
+    <file>icons/checkbox_unchecked_hover.svg</file>
+    <file>icons/crop.svg</file>
+    <file>icons/excel.svg</file>
+    <file>icons/folder.svg</file>
+    <file>icons/picture.svg</file>
+    <file>icons/reload.svg</file>
+  </qresource>
+</RCC>

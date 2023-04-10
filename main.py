@@ -1,15 +1,12 @@
-import sys
-from PyQt6.QtWidgets import QApplication
-from ux import MainWindow
+from mainwindow import UiMainWindow
+from PyQt6 import QtWidgets
+from PIL import Image
+import numpy as np
 
-
-def run():
-    app = QApplication([])
+if __name__ == "__main__":
+    app = QtWidgets.QApplication([])
     app.setStyle('Fusion')
-    widget = MainWindow()
-    widget.show()
-    sys.exit(app.exec())
-
-
-if __name__ == '__main__':
-    run()
+    main_window = UiMainWindow()
+    main_window.show()
+    app.exec()
+    
