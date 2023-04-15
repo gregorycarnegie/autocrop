@@ -11,26 +11,6 @@ from cropper import Cropper
 import utils
 from files import PandasModel, Photo, Video
 
-"""
-# class ImageWidget(QtWidgets.QWidget):
-#     def __init__(self, image_path, parent=None):
-#         super().__init__(parent)
-#         self.image = QtGui.QImage(image_path)
-#
-#     def paintEvent(self, event):
-#         painter = QtGui.QPainter(self)
-#         painter.setRenderHint(QtGui.QPainter.RenderHint.SmoothPixmapTransform)
-#         aspect_ratio = self.image.width() / self.image.height()
-#         new_width = min(self.width(), int(self.height() * aspect_ratio))
-#         new_height = min(self.height(), int(self.width() / aspect_ratio))
-#         scaled_image = self.image.scaled(QtCore.QSize(new_width, new_height),
-#                                          QtCore.Qt.AspectRatioMode.KeepAspectRatio,
-#                                          QtCore.Qt.TransformationMode.SmoothTransformation)
-#         x_offset = (self.width() - scaled_image.width()) // 2
-#         y_offset = (self.height() - scaled_image.height()) // 2
-#         painter.drawImage(x_offset, y_offset, scaled_image)
-"""
-
 
 class UiDialog(QtWidgets.QDialog):
     def __init__(self):
@@ -1222,10 +1202,10 @@ class UiMainWindow(QtWidgets.QMainWindow):
         #                  self.radio_choices))
 
         self.cropButton_1.clicked.connect(
-            lambda: utils.crap(Path(self.photoLineEdit.text()), Path(self.destinationLineEdit_1.text()),
+            lambda: utils.crop(Path(self.photoLineEdit.text()), Path(self.destinationLineEdit_1.text()),
                                int(self.widthLineEdit.text()), int(self.heightLlineEdit.text()), 
                                self.sensitivityDial.value(), self.faceDial.value(),
-                               self.gammaDial.value(), self.radio_choices[np.where(self.radio)[0][0]], 
+                               self.gammaDial.value(), self.radio_choices[self.radio][0], 
                                self.radio_choices))
         
         self.cropButton_2.clicked.connect(lambda: self.folder_process(self.folderLineEdit_1, self.destinationLineEdit_2))
@@ -1234,7 +1214,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
             lambda: Cropper().crop_frame(self.videoLineEdit, self.destinationLineEdit_4, self.widthLineEdit,
                                          self.heightLlineEdit, self.sensitivityDial, self.faceDial, self.gammaDial,
                                          self.positionLabel, self.timelineSlider,
-                                         self.radio_choices[np.where(self.radio)[0][0]],
+                                         self.radio_choices[self.radio][0],
                                          self.radio_choices))
         self.videocropButton.clicked.connect(
             lambda: Cropper().extract_frames(self.videoLineEdit, int(self.video.start_position),
@@ -1242,7 +1222,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
                                              self.video.step, self.destinationLineEdit_4, self.widthLineEdit,
                                              self.heightLlineEdit,
                                              self.sensitivityDial, self.faceDial, self.gammaDial,
-                                             self.radio_choices[np.where(self.radio)[0][0]],
+                                             self.radio_choices[self.radio][0],
                                              self.radio_choices))
 
         self.cancelButton_1.clicked.connect(lambda: self.terminate())
@@ -1315,7 +1295,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.cropper.mapping_progress.connect(self.update_progress_2)
         self.cropper.video_progress.connect(self.update_progress_3)
 
-        self.radio_choices = np.array(['No', '.bmp', '.jpg', '.png', 'tiff', '.webp'])
+        self.radio_choices = np.array(['No', '.bmp', '.jpg', '.png', '.tiff', '.webp'])
         self.radio_buttons = [self.radioButton_1, self.radioButton_2, self.radioButton_3,
                               self.radioButton_4, self.radioButton_5, self.radioButton_6]
         self.radio = np.array([r.isChecked() for r in self.radio_buttons])
@@ -1443,26 +1423,6 @@ class UiMainWindow(QtWidgets.QMainWindow):
         elif int(self.widthLineEdit.text()) < int(self.heightLlineEdit.text()):
             self.widthLineEdit.setText(str(int(float(self.heightLlineEdit.text()) / phi)))
 
-    # def open_folder(self, line_edit: QtWidgets.QLineEdit, folder_widget: Optional[QtWidgets.QWidget] = None,
-    #                 file_model: Optional[QtGui.QFileSystemModel] = None):
-    #     f_name = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Directory', Photo().default_directory)
-    #     line_edit.setText(f_name)
-
-    #     if folder_widget is None:
-    #         return
-    #     file_model.setRootPath(f_name)
-    #     file_model.setFilter(QtCore.QDir.Filter.NoDotAndDotDot | QtCore.QDir.Filter.Files)
-    #     file_model.setNameFilters(Photo().file_filter())
-
-    #     self.treeView.setModel(file_model)
-    #     self.treeView.setRootIndex(file_model.index(f_name))
-    #     try:
-    #         display_crop(Path(f_name), int(self.widthLineEdit.text()), int(self.heightLlineEdit.text()),
-    #                      self.sensitivityDial.value(), self.faceDial.value(), self.gammaDial.value(),
-    #                      folder_widget, Photo().ALL_TYPES())
-    #     except (IndexError, FileNotFoundError, ValueError):
-    #         return
-
     def open_folder(self, line_edit: QtWidgets.QLineEdit, image_widget: Optional[utils.ImageWidget] = None,
                     file_model: Optional[QtGui.QFileSystemModel] = None):
         
@@ -1509,11 +1469,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         about_ui.exec()
 
     def radio_logic(self, n: int):
-        # self.radio = np.array([r.isChecked() for r in self.radio_buttons])
-        # self.radio = [not _ if _ else _ for _ in self.radio]
-        # self.radio = np.array([not r.isChecked() for r in self.radio_buttons])
-        self.radio = np.invert(self.radio)
-        self.radio[n] = True
+        self.radio = np.array([r.isChecked() for r in self.radio_buttons])
 
     @staticmethod
     def change_widget_state(boolean: bool, *args: QtWidgets.QWidget) -> None:
@@ -1560,7 +1516,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
         # file_list = np.array([pic for pic in os.listdir(source) if os.path.splitext(pic)[1] in Photo().ALL_TYPES()])
         file_list = np.fromiter(Path(source.text()).iterdir(), Path)
-        photo_files = [pic.suffix in Photo().ALL_TYPES() for pic in file_list]
+        photo_files = [pic.suffix.lower() in Photo().ALL_TYPES() for pic in file_list]
         self.process = Process(target=self.cropper.crop_dir, daemon=True,
                                args=(
                                    file_list[photo_files], Path(destination.text()), int(self.widthLineEdit.text()),

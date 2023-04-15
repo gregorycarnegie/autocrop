@@ -195,28 +195,6 @@ class Photo:
         return cv2.convertScaleAbs(image_array, alpha=alpha, beta=beta)
 
 
-"""
-# class Table():
-#     def __init__(self, mappingLineEdit: QtWidgets.QLineEdit) -> None:
-#         self.mappingLineEdit = mappingLineEdit.text()
-#         self.PANDAS = [".csv", ".xlsx", ".xlsm", ".xltx", ".xltm"]
-
-#     def open_table(self) -> (None | pd.DataFrame):
-#         extension = os.path.splitext(self.mappingLineEdit)[1].lower()
-#         if extension.lower() == ".csv":
-#             try:
-#                 return pd.read_csv(self.mappingLineEdit)
-#             except FileNotFoundError:
-#                 return None
-#         if extension.lower() in self.PANDAS[1:]:
-#             try:
-#                 return pd.read_excel(self.mappingLineEdit)
-#             except FileNotFoundError:
-#                 return None
-#         return None
-"""
-
-
 class Video:
     def __init__(self, audio: QtMultimedia.QAudioOutput, video_widget: QtMultimediaWidgets.QVideoWidget,
                  media_player: QtMultimedia.QMediaPlayer, timeline_slider: QtWidgets.QSlider,
