@@ -1,15 +1,15 @@
-from multiprocessing import Process
 import re
+import utils
 import numpy as np
-from typing import Optional
+import pandas as pd
+from cropper import Cropper
+from files import Photo, Video
+from multiprocessing import Process
 from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PyQt6.QtMultimediaWidgets import QVideoWidget
-
 from pathlib import Path
-from cropper import Cropper
-import utils
-from files import PandasModel, Photo, Video
+from typing import Optional, Union
 
 
 class UiDialog(QtWidgets.QDialog):
@@ -164,11 +164,11 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.data_frame = None
         self.validator = QtGui.QIntValidator(100, 10000)
 
-        # self.start_position, self.stop_position, self.step = 0.0, 0.0, 2
-
         self.pandas_model = None
 
         self.file_model = QtGui.QFileSystemModel(self)
+        self.file_model.setFilter(QtCore.QDir.Filter.NoDotAndDotDot | QtCore.QDir.Filter.Files)
+        self.file_model.setNameFilters(Photo().file_filter())
 
         self.process = Process()
         self.cropper = Cropper()
@@ -396,6 +396,9 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.horizontalLayout_12.addLayout(self.verticalLayout_16)
         self.treeView = QtWidgets.QTreeView(parent=self.folder_Tab)
         self.treeView.setObjectName("treeView")
+        # ##################################################
+        self.treeView.setModel(self.file_model)
+        # ##################################################
         self.horizontalLayout_12.addWidget(self.treeView)
         self.horizontalLayout_12.setStretch(0, 4)
         self.horizontalLayout_12.setStretch(1, 3)
@@ -506,7 +509,6 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout.setSpacing(0)
         self.verticalLayout.setObjectName("verticalLayout")
-        # self.mappingWidget = QtWidgets.QWidget(parent=self.frame_6)
         self.mappingWidget = utils.ImageWidget(parent=self.frame_6)
         self.mappingWidget.setStyleSheet("")
         self.mappingWidget.setObjectName("mappingWidget")
@@ -668,8 +670,8 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.videoWidget = QVideoWidget(parent=self.frame_9)
         self.videoWidget.setStyleSheet("background: #1f2c33")
         self.videoWidget.setObjectName("videoWidget")
-        self.video = Video(self.audio, self.videoWidget, self.player,
-                            self.timelineSlider, self.volumeSlider, self.positionLabel)
+        # self.video = Video(self.audio, self.videoWidget, self.player,
+        #                     self.timelineSlider, self.volumeSlider, self.positionLabel, self.durationLabel, self.selectEndMarkerButton)
         self.verticalLayout_23.addWidget(self.videoWidget)
         self.frame_11 = QtWidgets.QFrame(parent=self.frame_9)
         self.frame_11.setMaximumSize(QtCore.QSize(16777215, 34))
@@ -876,6 +878,8 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.label_16 = QtWidgets.QLabel(parent=self.videoTab)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred,
                                            QtWidgets.QSizePolicy.Policy.Preferred)
+        self.video = Video(self.audio, self.videoWidget, self.player, self.timelineSlider, self.volumeSlider, 
+                           self.positionLabel, self.durationLabel, self.selectEndMarkerButton)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.label_16.sizePolicy().hasHeightForWidth())
@@ -1176,15 +1180,13 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.actionUse_Mapping.triggered.connect(lambda: self.function_tabWidget.setCurrentIndex(2))
         self.actionCrop_Video.triggered.connect(lambda: self.function_tabWidget.setCurrentIndex(3))
 
-        # self.photoButton.clicked.connect(
-        #     lambda: Photo(self.photoLineEdit, self).display(self.widthLineEdit, self.heightLlineEdit,
-        #                                                     self.sensitivityDial, self.faceDial, self.gammaDial,
-        #                                                     self.photoWidget))
         self.photoButton.clicked.connect(lambda: self.open_folder(self.photoLineEdit, self.photoWidget))
         self.folderButton_1.clicked.connect(lambda: self.open_folder(self.folderLineEdit_1, self.folderWidget,
                                                                      self.file_model))
         self.folderButton_2.clicked.connect(lambda: self.open_folder(self.folderLineEdit_2, self.mappingWidget))
-        self.tableButton.clicked.connect(lambda: self.set_pandas_model())
+
+        self.tableButton.clicked.connect(lambda: self.open_table())
+
         self.videoButton.clicked.connect(
             lambda: self.video.open_video(self, self.videoLineEdit, self.playButton, self.cropButton_4))
 
@@ -1193,36 +1195,29 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.destinationButton_3.clicked.connect(lambda: self.open_folder(self.destinationLineEdit_3))
         self.destinationButton_4.clicked.connect(lambda: self.open_folder(self.destinationLineEdit_4))
 
-        # self.cropButton_1.clicked.connect(
-        #     lambda: utils.crop(Path(self.photoLineEdit.text()), True, Path(self.destinationLineEdit_1.text()),
-        #                  int(self.widthLineEdit.text()),
-        #                  int(self.heightLlineEdit.text()), self.sensitivityDial.value(), self.faceDial.value(),
-        #                  self.gammaDial.value(), self.radio_choices[np.where(self.radio)[0][0]],
-        #                  self.photoLineEdit.text(),
-        #                  self.radio_choices))
-
         self.cropButton_1.clicked.connect(
             lambda: utils.crop(Path(self.photoLineEdit.text()), Path(self.destinationLineEdit_1.text()),
-                               int(self.widthLineEdit.text()), int(self.heightLlineEdit.text()), 
-                               self.sensitivityDial.value(), self.faceDial.value(),
-                               self.gammaDial.value(), self.radio_choices[self.radio][0], 
-                               self.radio_choices))
+                               self.widthLineEdit, self.heightLlineEdit,
+                               self.sensitivityDial, self.faceDial, self.gammaDial,
+                               self.topDial, self.bottomDial, self.leftDial,
+                               self.rightDial, self.radio_choices[self.radio][0], self.radio_choices))
         
-        self.cropButton_2.clicked.connect(lambda: self.folder_process(self.folderLineEdit_1, self.destinationLineEdit_2))
-        self.cropButton_3.clicked.connect(lambda: self.folder_process(self.folderLineEdit_2, self.destinationLineEdit_3))
+        self.cropButton_2.clicked.connect(
+            lambda: self.folder_process(self.folderLineEdit_1, self.destinationLineEdit_2))
+        self.cropButton_3.clicked.connect(
+            lambda: self.mapping_process(self.folderLineEdit_2, self.destinationLineEdit_3))
         self.cropButton_4.clicked.connect(
             lambda: Cropper().crop_frame(self.videoLineEdit, self.destinationLineEdit_4, self.widthLineEdit,
                                          self.heightLlineEdit, self.sensitivityDial, self.faceDial, self.gammaDial,
-                                         self.positionLabel, self.timelineSlider,
-                                         self.radio_choices[self.radio][0],
+                                         self.topDial, self.bottomDial, self.leftDial, self.rightDial,
+                                         self.positionLabel, self.timelineSlider, self.radio_choices[self.radio][0],
                                          self.radio_choices))
         self.videocropButton.clicked.connect(
             lambda: Cropper().extract_frames(self.videoLineEdit, int(self.video.start_position),
-                                             int(self.video.stop_position),
-                                             self.video.step, self.destinationLineEdit_4, self.widthLineEdit,
-                                             self.heightLlineEdit,
-                                             self.sensitivityDial, self.faceDial, self.gammaDial,
-                                             self.radio_choices[self.radio][0],
+                                             int(self.video.stop_position), self.video.step, self.destinationLineEdit_4,
+                                             self.widthLineEdit, self.heightLlineEdit, self.sensitivityDial,
+                                             self.faceDial, self.gammaDial, self.topDial, self.bottomDial,
+                                             self.leftDial, self.rightDial, self.radio_choices[self.radio][0],
                                              self.radio_choices))
 
         self.cancelButton_1.clicked.connect(lambda: self.terminate())
@@ -1230,6 +1225,11 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.cancelButton_3.clicked.connect(lambda: self.terminate())
 
         self.playButton.clicked.connect(lambda: self.video.play_video(self.playButton))
+        self.playButton.clicked.connect(
+            lambda: self.change_widget_state(True, self.stopButton, self.stepbackButton,  self.stepfwdButton,
+                                             self.fastfwdButton, self.rewindButton, self.pushButton_26,
+                                             self.pushButton_27, self.startmarkerButton, self.endmarkerButton,
+                                             self.selectEndMarkerButton, self.selectStartMarkerButton))
         self.stopButton.clicked.connect(lambda: self.video.stop_btn())
         # self.stepbackButton.clicked.connect(lambda: 
         # self.stepfwdButton.clicked.connect(lambda: 
@@ -1253,11 +1253,11 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.leftDial.valueChanged.connect(lambda: self.reload())
         self.rightDial.valueChanged.connect(lambda: self.reload())
 
-        self.photoLineEdit.textChanged.connect(lambda: self.reload())
+        self.photoLineEdit.textChanged.connect(lambda: self.load_data(self.photoLineEdit, self.photoWidget))
         self.photoLineEdit.textChanged.connect(lambda: self.disable_buttons())
-        self.folderLineEdit_1.textChanged.connect(lambda: self.reload())
+        self.folderLineEdit_1.textChanged.connect(lambda: self.load_data(self.folderLineEdit_1, self.folderWidget))
         self.folderLineEdit_1.textChanged.connect(lambda: self.disable_buttons())
-        self.folderLineEdit_2.textChanged.connect(lambda: self.reload())
+        self.folderLineEdit_2.textChanged.connect(lambda: self.load_data(self.folderLineEdit_2, self.mappingWidget))
         self.folderLineEdit_2.textChanged.connect(lambda: self.disable_buttons())
         self.tableLineEdit.textChanged.connect(lambda: self.disable_buttons())
         self.videoLineEdit.textChanged.connect(lambda: self.disable_buttons())
@@ -1275,18 +1275,15 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.exposureCheckBox_3.stateChanged.connect(lambda: self.reload())
         self.exposureCheckBox_4.stateChanged.connect(lambda: self.reload())
 
-        # self.treeView.selectionModel().selectionChanged.connect(
-        #     lambda: display_crop(self.file_model.filePath(self.treeView.currentIndex()), int(self.widthLineEdit.text()),
-        #                          int(self.heightLlineEdit.text()), self.sensitivityDial.value(), self.faceDial.value(),
-        #                          self.gammaDial.value(), self.folderWidget))
-        # self.tableView.selectionModel().selectionChanged.connect(lambda: )
+        self.treeView.selectionModel().selectionChanged.connect(
+            lambda: self.load_data(self.file_model.filePath(self.treeView.currentIndex()), self.folderWidget))
 
-        self.radioButton_1.clicked.connect(lambda: self.radio_logic(0))
-        self.radioButton_2.clicked.connect(lambda: self.radio_logic(1))
-        self.radioButton_3.clicked.connect(lambda: self.radio_logic(2))
-        self.radioButton_4.clicked.connect(lambda: self.radio_logic(3))
-        self.radioButton_5.clicked.connect(lambda: self.radio_logic(4))
-        self.radioButton_6.clicked.connect(lambda: self.radio_logic(5))
+        self.radioButton_1.clicked.connect(self.radio_logic)
+        self.radioButton_2.clicked.connect(self.radio_logic)
+        self.radioButton_3.clicked.connect(self.radio_logic)
+        self.radioButton_4.clicked.connect(self.radio_logic)
+        self.radioButton_5.clicked.connect(self.radio_logic)
+        self.radioButton_6.clicked.connect(self.radio_logic)
 
         # self.cropper.started.connect(lambda: self.disable_ui(True))
         # self.cropper.finished.connect(lambda: self.disable_ui(False))
@@ -1385,34 +1382,29 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.action4_5_Ratio.setText(_translate("MainWindow", "4:5 Ratio"))
         self.actionCrop_Video.setText(_translate("MainWindow", "Crop Video"))
 
-    def reload(self):
+    def reload(self) -> None:
+        common_widgets = (self.widthLineEdit, self.heightLlineEdit,
+                          self.sensitivityDial, self.faceDial, self.gammaDial,
+                          self.topDial, self.bottomDial, self.leftDial, self.rightDial)
         if self.widthLineEdit.text() in {'', None} or self.heightLlineEdit.text() in {'', None}:
             return None
         if self.function_tabWidget.currentIndex() == 0:
             f_name = Path(self.photoLineEdit.text())
             if f_name.as_posix() in {'', None}:
                 return None
-            utils.display_crop(f_name, int(self.widthLineEdit.text()), int(self.heightLlineEdit.text()),
-                         self.sensitivityDial.value(), self.faceDial.value(), self.gammaDial.value(), self.photoWidget)
+            utils.display_crop(f_name, *common_widgets, self.photoWidget)
         elif self.function_tabWidget.currentIndex() == 1:
             folder = Path(self.folderLineEdit_1.text())
             if folder.as_posix() in {'', None}:
                 return None
-            utils.display_crop(folder, int(self.widthLineEdit.text()), int(self.heightLlineEdit.text()),
-                         self.sensitivityDial.value(), self.faceDial.value(), self.gammaDial.value(),
-                         self.folderWidget, Photo().ALL_TYPES())
+            utils.display_crop(folder, *common_widgets, self.folderWidget, Photo().ALL_TYPES())
         elif self.function_tabWidget.currentIndex() == 2:
             folder = Path(self.folderLineEdit_2.text())
             if folder.as_posix() in {'', None}:
                 return None
-            utils.display_crop(folder, int(self.widthLineEdit.text()), int(self.heightLlineEdit.text()),
-                         self.sensitivityDial.value(), self.faceDial.value(), self.gammaDial.value(),
-                         self.mappingWidget, Photo().ALL_TYPES())
+            utils.display_crop(folder, *common_widgets, self.mappingWidget, Photo().ALL_TYPES())
 
-    def set_pandas_model(self):
-        self.pandas_model = PandasModel(self, self.tableLineEdit, self.tableView, self.comboBox, self.comboBox_2)
-
-    def load_preset(self, phi: int | float):
+    def load_preset(self, phi: Union[int, float]) -> None:
         if phi == 1:
             if int(self.widthLineEdit.text()) > int(self.heightLlineEdit.text()):
                 self.heightLlineEdit.setText(self.widthLineEdit.text())
@@ -1423,10 +1415,26 @@ class UiMainWindow(QtWidgets.QMainWindow):
         elif int(self.widthLineEdit.text()) < int(self.heightLlineEdit.text()):
             self.widthLineEdit.setText(str(int(float(self.heightLlineEdit.text()) / phi)))
 
+    def load_data(self, line_edit: Union[QtWidgets.QLineEdit, str], image_widget: utils.ImageWidget) -> None:
+        common_widgets = (self.widthLineEdit, self.heightLlineEdit,
+                          self.sensitivityDial, self.faceDial, self.gammaDial,
+                          self.topDial, self.bottomDial, self.leftDial, self.rightDial)
+        f_name = line_edit.text() if isinstance(line_edit, QtWidgets.QLineEdit) else line_edit
+        try:
+            if line_edit is self.photoLineEdit:
+                utils.display_crop(Path(f_name), *common_widgets, image_widget)
+            else:
+                if Path(f_name).is_dir():
+                    self.file_model.setRootPath(f_name)
+                    self.treeView.setRootIndex(self.file_model.index(f_name))
+                utils.display_crop(Path(f_name), *common_widgets, image_widget, Photo().ALL_TYPES())
+        except (IndexError, FileNotFoundError, ValueError, AttributeError):
+            return None
+
     def open_folder(self, line_edit: QtWidgets.QLineEdit, image_widget: Optional[utils.ImageWidget] = None,
-                    file_model: Optional[QtGui.QFileSystemModel] = None):
+                    file_model: Optional[QtGui.QFileSystemModel] = None) -> None:
         
-        if line_edit in {self.folderLineEdit_1, self.folderLineEdit_1, self.destinationLineEdit_1, 
+        if line_edit in {self.folderLineEdit_1, self.folderLineEdit_2, self.destinationLineEdit_1, 
                          self.destinationLineEdit_2, self.destinationLineEdit_3, self.destinationLineEdit_4}:
             f_name = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Directory', Photo().default_directory)
             line_edit.setText(f_name)
@@ -1435,21 +1443,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 return
             
             if isinstance(file_model, QtGui.QFileSystemModel):
-                try:
-                    file_model.setRootPath(f_name)
-                except AttributeError:
-                    return
-                file_model.setFilter(QtCore.QDir.Filter.NoDotAndDotDot | QtCore.QDir.Filter.Files)
-                file_model.setNameFilters(Photo().file_filter())
-
-                self.treeView.setModel(file_model)
-                self.treeView.setRootIndex(file_model.index(f_name))
-            try:
-                utils.display_crop(Path(f_name), int(self.widthLineEdit.text()), int(self.heightLlineEdit.text()),
-                             self.sensitivityDial.value(), self.faceDial.value(), self.gammaDial.value(),
-                             image_widget, Photo().ALL_TYPES())
-            except (IndexError, FileNotFoundError, ValueError):
-                return
+                self.load_data(f_name, image_widget)
         
         if line_edit is self.photoLineEdit:
             f_name, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', Photo().default_directory,
@@ -1457,19 +1451,50 @@ class UiMainWindow(QtWidgets.QMainWindow):
             line_edit.setText(f_name)
             if isinstance(image_widget, utils.ImageWidget):
                 try:
-                    utils.display_crop(Path(f_name), int(self.widthLineEdit.text()), int(self.heightLlineEdit.text()),
-                                 self.sensitivityDial.value(), self.faceDial.value(), self.gammaDial.value(),
-                                 image_widget)
+                    utils.display_crop(Path(f_name), self.widthLineEdit, self.heightLlineEdit,
+                                       self.sensitivityDial, self.faceDial, self.gammaDial,
+                                       self.topDial, self.bottomDial, self.leftDial, self.rightDial,
+                                       image_widget)
                 except (IndexError, FileNotFoundError, ValueError):
                     return
+    
+    def open_table(self) -> None:
+        type_string = "All Files (*);;" + ";;".join(f"{_} Files (*{_})" for _ in np.sort(utils.PANDAS_TYPES))
+        f_name, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', Photo().default_directory,
+                                                              type_string)
+        if f_name is None:
+            return None
+        self.tableLineEdit.setText(f_name)
+        
+        data = utils.open_file(f_name)
+        assert isinstance(data, pd.DataFrame)
+
+        self.data_frame = data
+        if self.data_frame is None:
+            return None
+        self.model = utils.DataFrameModel(self.data_frame)
+        self.tableView.setModel(self.model)
+
+        self.comboBox.addItems(self.data_frame.columns.to_numpy())
+        self.comboBox_2.addItems(self.data_frame.columns.to_numpy())
 
     @staticmethod
-    def load_about_form():
+    def load_about_form() -> None:
         about_ui = UiDialog()
         about_ui.exec()
 
-    def radio_logic(self, n: int):
+    def radio_logic(self) -> None:
         self.radio = np.array([r.isChecked() for r in self.radio_buttons])
+    
+    @staticmethod
+    def disable_widget(*args: QtWidgets.QWidget) -> None:
+        for arg in args:
+            arg.setDisabled(True)
+
+    @staticmethod
+    def enable_widget(*args: QtWidgets.QWidget) -> None:
+        for arg in args:
+            arg.setEnabled(True)
 
     @staticmethod
     def change_widget_state(boolean: bool, *args: QtWidgets.QWidget) -> None:
@@ -1478,85 +1503,80 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 arg.setEnabled(boolean)
             else:
                 arg.setDisabled(not boolean)
-    
-    @staticmethod
-    def disable_widget(*args: QtWidgets.QWidget):
-        for arg in args:
-            arg.setDisabled(True)
 
-    @staticmethod
-    def enable_widget(*args: QtWidgets.QWidget):
-        for arg in args:
-            arg.setEnabled(True)
+    def disable_buttons(self) -> None:
+        def all_filled(*line_edits: Union[QtWidgets.QLineEdit, QtWidgets.QComboBox]) -> bool:
+            x = all(edit.text() for edit in line_edits if isinstance(edit, QtWidgets.QLineEdit))
+            y = all(edit.currentText() for edit in line_edits if isinstance(edit, QtWidgets.QComboBox))
+            return x and y
 
-    def disable_buttons(self):
-        if self.photoLineEdit.text() and self.destinationLineEdit_1.text() and self.widthLineEdit.text() and self.heightLlineEdit.text():
-            self.change_widget_state(True, self.cropButton_1)
-        else:
-            self.change_widget_state(False, self.cropButton_1)
+        def update_widget_state(condition: bool, *widgets) -> None:
+            for widget in widgets:
+                self.change_widget_state(condition, widget)
 
-        if self.folderLineEdit_1.text() and self.destinationLineEdit_2.text() and self.widthLineEdit.text() and self.heightLlineEdit.text():
-            self.change_widget_state(True, self.cropButton_2)
-        else:
-            self.change_widget_state(False, self.cropButton_2)
+        common_line_edits = [self.widthLineEdit, self.heightLlineEdit]
 
-        if self.folderLineEdit_2.text() and self.tableLineEdit.text() and self.destinationLineEdit_3.text() and self.comboBox.currentText() and self.comboBox_2.currentText() and self.widthLineEdit.text() and self.heightLlineEdit.text():
-            self.change_widget_state(True, self.cropButton_3)
-        else:
-            self.change_widget_state(False, self.cropButton_3)
+        # Photo logic
+        update_widget_state(all_filled(self.photoLineEdit, self.destinationLineEdit_1, *common_line_edits),
+                            self.cropButton_1)
+        # Folder logic
+        update_widget_state(all_filled(self.folderLineEdit_1, self.destinationLineEdit_2, *common_line_edits),
+                            self.cropButton_2)
+        # Mapping logic
+        update_widget_state(all_filled(self.folderLineEdit_2, self.tableLineEdit, self.destinationLineEdit_3,
+                                       self.comboBox, self.comboBox_2, *common_line_edits), self.cropButton_3)
+        # Video logic
+        update_widget_state(all_filled(self.videoLineEdit, self.destinationLineEdit_4, *common_line_edits),
+                            self.cropButton_4, self.videocropButton)
 
-        if self.videoLineEdit.text() and self.destinationLineEdit_4.text() and self.widthLineEdit.text() and self.heightLlineEdit.text():
-            self.change_widget_state(True, self.cropButton_4, self.videocropButton)
-        else:
-            self.change_widget_state(False, self.cropButton_4, self.videocropButton)
-
-    def folder_process(self, source: QtWidgets.QLineEdit, destination: QtWidgets.QLineEdit):
+    def folder_process(self, source: QtWidgets.QLineEdit, destination: QtWidgets.QLineEdit) -> None:
         self.cropper.end_task = False
         self.cropper.message_box = True
 
-        # file_list = np.array([pic for pic in os.listdir(source) if os.path.splitext(pic)[1] in Photo().ALL_TYPES()])
         file_list = np.fromiter(Path(source.text()).iterdir(), Path)
-        photo_files = [pic.suffix.lower() in Photo().ALL_TYPES() for pic in file_list]
+        photo_files = np.array([pic.suffix.lower() in Photo().ALL_TYPES() for pic in file_list])
         self.process = Process(target=self.cropper.crop_dir, daemon=True,
                                args=(
-                                   file_list[photo_files], Path(destination.text()), int(self.widthLineEdit.text()),
-                                   int(self.heightLlineEdit.text()),
-                                   self.sensitivityDial.value(), self.faceDial.value(), self.gammaDial.value(),
-                                   self.radio_choices[np.where(self.radio)[0][0]], self.folderLineEdit_1.text(),
+                                   file_list[photo_files], Path(destination.text()), self.widthLineEdit,
+                                   self.heightLlineEdit,
+                                   self.sensitivityDial, self.faceDial, self.gammaDial, 
+                                   self.topDial, self.bottomDial, self.leftDial, self.rightDial,
+                                   self.radio_choices[self.radio][0], self.folderLineEdit_1,
                                    self.radio_choices))
         self.process.run()
 
-    def mapping_process(self, source: QtWidgets.QLineEdit, destination: QtWidgets.QLineEdit):
+    def mapping_process(self, source: QtWidgets.QLineEdit, destination: QtWidgets.QLineEdit) -> None:
         self.cropper.end_task = False
         self.cropper.message_box = True
         self.process = Process(target=self.cropper.mapping_crop, daemon=True,
-                               args=(source, self.data_frame, self.comboBox.currentText(),
-                                     self.comboBox_2.currentText(), destination, int(self.widthLineEdit.text()),
-                                     int(self.heightLlineEdit.text()), self.sensitivityDial.value(),
-                                     self.faceDial.value(),
-                                     self.gammaDial.value(), self.radio_choices[np.where(self.radio)[0][0]],
-                                     self.radio_choices))
+                               args=(Path(source.text()), self.data_frame, self.comboBox,
+                                     self.comboBox_2, Path(destination.text()), self.widthLineEdit,
+                                     self.heightLlineEdit, self.sensitivityDial,
+                                     self.faceDial, self.gammaDial, 
+                                     self.topDial, self.bottomDial, self.leftDial, self.rightDial,
+                                     self.radio_choices[self.radio][0], self.radio_choices))
         self.process.run()
 
-    def video_process(self, source: QtWidgets.QLineEdit, destination: QtWidgets.QLineEdit):
+    def video_process(self, source: QtWidgets.QLineEdit, destination: QtWidgets.QLineEdit) -> None:
         self.cropper.end_task = False
         self.cropper.message_box = True
         self.process = Process(target=self.cropper.extract_frames, daemon=True,
                                args=(source, self.video.start_position, self.video.stop_position, self.video.step,
                                      destination, self.widthLineEdit, self.heightLlineEdit, self.sensitivityDial,
-                                     self.faceDial, self.gammaDial, self.radio_choices[np.where(self.radio)[0][0]],
-                                     self.radio_choices))
+                                     self.faceDial, self.gammaDial, 
+                                     self.topDial, self.bottomDial, self.leftDial, self.rightDial,
+                                     self.radio_choices[self.radio][0], self.radio_choices))
         self.process.run()
 
-    def update_progress_1(self, value: int):
+    def update_progress_1(self, value: int) -> None:
         self.progressBar_1.setValue(value)
 
-    def update_progress_2(self, value: int):
+    def update_progress_2(self, value: int) -> None:
         self.progressBar_2.setValue(value)
 
-    def update_progress_3(self, value: int):
+    def update_progress_3(self, value: int) -> None:
         self.progressBar_3.setValue(value)
 
-    def terminate(self):
+    def terminate(self) -> None:
         self.cropper.end_task = True
         # self.disable_ui(False)
