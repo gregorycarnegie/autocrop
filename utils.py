@@ -1,7 +1,6 @@
 import contextlib
 import cv2
 import rawpy
-import re
 import shutil
 import time
 import numpy as np
@@ -85,7 +84,7 @@ def timeit(func):
         start_time = time.perf_counter_ns()
         result = func(*args, **kwargs)
         end_time = time.perf_counter_ns()
-        print(f"{func.__name__} took {end_time - start_time} seconds to execute.")
+        print(f"{func.__name__} took {end_time - start_time} ns to execute.")
         return result
 
     return wrapper
@@ -107,17 +106,31 @@ def gamma(gam: Union[int, float] = 1.0) -> np.ndarray:
     """
     return np.power(np.arange(256) / 255, 1.0 / gam) * 255 if gam != 1.0 else np.arange(256)
 
-def correct_exposure(image: Union[cv2.Mat, np.ndarray], exposure: Optional[bool] = False) -> Union[cv2.Mat, np.ndarray]:
+
+def correct_exposure(image: Union[cv2.Mat, Image.Image, np.ndarray], exposure: Optional[bool] = False) -> Union[cv2.Mat, Image.Image, np.ndarray]:
     if not exposure:
         return image
-    # Convert to grayscale
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    # Calculate histogram
-    hist = cv2.calcHist([gray], [0], None, [256], [0, 256])
-    average_pixel_value = np.sum(hist * np.arange(256)) / np.sum(hist)
-    return cv2.convertScaleAbs(image,
-                               alpha=1.5 if average_pixel_value < 127 else 0.5,
-                               beta=50 if average_pixel_value < 127 else -50)
+    
+    gray = cv2.cvtColor(np.array(image), cv2.COLOR_BGR2GRAY) if isinstance(image, Image.Image) else cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # Grayscale histogram
+    hist = cv2.calcHist([gray],[0],None,[256],[0,256]).ravel()
+
+    # Cumulative distribution from the histogram
+    accumulator = np.cumsum(hist)
+
+    # Locate points to clip
+    clip_hist_percent = accumulator[-1] * 0.005
+    minimum_gray = np.argmax(accumulator > clip_hist_percent)
+    maximum_gray = np.argmax(accumulator >= (accumulator[-1] - clip_hist_percent)).astype(int)
+    if maximum_gray == 0:
+        maximum_gray = 255
+
+    # Calculate alpha and beta
+    alpha = 255 / (maximum_gray - minimum_gray)
+    beta = -minimum_gray * alpha
+
+    return cv2.convertScaleAbs(image, alpha=alpha, beta=beta)
 
 def open_file(input_file: Union[Path, str], exposure: Optional[bool] = False) -> Union[np.ndarray, pd.DataFrame, None]:
     """Given a filename, returns a numpy array or a pandas dataframe"""
@@ -162,6 +175,7 @@ def crop_positions(x: int, y: int, width: int, height: int, percent_face: int, o
         output_height (int): The height of the output image
         percent_face (int): The percentage of the image that the face occupies.
     """
+    
     if 0 < percent_face <= 100 and output_height > 0:
         if output_height >= output_width:
             cropped_height = height * 100.0 / percent_face
@@ -171,15 +185,14 @@ def crop_positions(x: int, y: int, width: int, height: int, percent_face: int, o
             cropped_height = output_height * cropped_width / output_width
         
         # left, top, right, bottom
-        l = x + (width - cropped_width) / 2 - left / 100 * cropped_width
-        t = y + (height - cropped_height) / 2 - top / 100 * cropped_height
-        r = x + (width + cropped_width) / 2 + right / 100 * cropped_width
-        b = y + (height + cropped_height) / 2 + bottom / 100 * cropped_height
+        l = x + (width - cropped_width) * .5 - left * 0.01 * cropped_width
+        t = y + (height - cropped_height) * .5 - top * 0.01 * cropped_height
+        r = x + (width + cropped_width) * .5 + right * 0.01 * cropped_width
+        b = y + (height + cropped_height) * .5 + bottom * 0.01 * cropped_height
 
         return np.array([l, t, r, b]).astype(int)
     else:
         return None
-
 
 def box_detect(img_path: Union[cv2.Mat, Path], wide: int, high: int, conf: int, face_perc: int,
                top: int, bottom: int, left: int, right: int) -> Optional[np.ndarray]:
@@ -213,53 +226,6 @@ def get_first_file(img_path: Path, file_types: np.ndarray) -> Optional[Path]:
     file = np.array([pic for pic in files if pic.suffix.lower() in file_types])
     return file[0] if file.size > 0 else None
 
-def display_crop(img_path: Path, wide: QtWidgets.QLineEdit, high: QtWidgets.QLineEdit, conf: QtWidgets.QDial,
-                 face_perc: QtWidgets.QDial, gam: QtWidgets.QDial, top: QtWidgets.QDial, bottom: QtWidgets.QDial,
-                 left: QtWidgets.QDial, right: QtWidgets.QDial, image_widget: ImageWidget,
-                 file_types: Optional[np.ndarray] = None) -> None:
-    if not img_path or img_path.as_posix() in {'', '.', None}:
-        return None
-
-    if img_path.is_dir():
-        if not isinstance(file_types, np.ndarray):
-            return None
-
-        img_path = get_first_file(img_path, file_types)
-        if img_path is None:
-            return None
-
-    bounding_box = box_detect(img_path, int(wide.text()), int(high.text()), conf.value(), face_perc.value(),
-                              top.value(), bottom.value(), left.value(), right.value())
-    if bounding_box is None:
-        return None
-
-    photo_path = img_path.as_posix()
-    
-    if (extention := img_path.suffix.lower()) in CV2_TYPES or extention in PIL_TYPES:
-        with Image.open(photo_path) as img:
-            pic = reorient_image_from_object(img)
-            crop_and_set(pic, bounding_box, gam.value(), image_widget)
-    elif extention in RAW_TYPES:
-        with rawpy.imread(photo_path) as raw:
-            pic = reorient_image_from_object(raw)
-            crop_and_set(pic, bounding_box, gam.value(), image_widget)
-    else:
-        return None
-
-def crop_and_set(pic: Image.Image, bounding_box: np.ndarray, gam: int, image_widget: ImageWidget) -> None:
-    try:
-        cropped_pic = np.array(pic.crop(bounding_box))
-        cropped_pic = cv2.LUT(cropped_pic, gamma(gam * GAMMA_THRESHOLD).astype('uint8'))
-        pic_array = cv2.cvtColor(np.array(cropped_pic), cv2.COLOR_BGR2RGB)
-    except (cv2.error, Image.DecompressionBombError):
-        return None
-    # Convert numpy array to QImage
-    height, width, channel = pic_array.shape
-    bytes_per_line = channel * width
-    qImg = QtGui.QImage(pic_array.data, width, height, bytes_per_line, QtGui.QImage.Format.Format_BGR888)
-    # Set image to the image widget
-    image_widget.setImage(QtGui.QPixmap.fromImage(qImg))
-
 def reorient_image_by_exif(im: Image.Image, exif_orientation: int) -> Image.Image:
     try:
         orientations = {
@@ -287,29 +253,6 @@ def reorient_image_from_object(im_obj: Union[Image.Image, rawpy.RawPy]) -> Image
             return reorient_image_by_exif(im, exif_orientation)
     return im_obj if isinstance(im_obj, Image.Image) else Image.fromarray(im_obj.postprocess(use_camera_wb=True))
 
-def crop_image(image: Union[Path, np.ndarray], bounding_box: np.ndarray, width: int, height: int) -> cv2.Mat:
-    if isinstance(image, Path):
-        if image.suffix.lower() in RAW_TYPES:
-            raw = rawpy.imread(image.as_posix())
-            pic = reorient_image_from_object(raw)
-            cropped_pic = pic.crop(bounding_box)
-        else:
-            photo = Image.open(image.as_posix())
-            pic = reorient_image_from_object(photo)
-            cropped_pic = pic.crop(bounding_box)
-            pic.close()
-    else:
-        pic = Image.fromarray(image)
-        cropped_pic = pic.crop(bounding_box)
-
-    pic_array = np.array(cropped_pic)
-    if isinstance(image, Path) and image.suffix.lower() in RAW_TYPES:
-        pic_array = pic_array[:, :, ::-1]
-    else:
-        pic_array = cv2.cvtColor(pic_array, cv2.COLOR_BGR2RGB)
-    
-    return cv2.resize(pic_array, (width, height), interpolation=cv2.INTER_AREA)
-
 def reject(path: Path, destination: Path, image: Path) -> None:
     reject_folder = destination.joinpath('rejects')
     reject_folder.mkdir(exist_ok=True)
@@ -323,102 +266,3 @@ def save_image(image: cv2.Mat, file_path: str, user_gam: Union[int, float], gamm
         tiff.imwrite(file_path, image)
     else:
         cv2.imwrite(file_path, cv2.LUT(image, gamma(user_gam * gamma_threshold)))
-
-def save_detection(path: Path, destination: Path, image: Path, width: int, height: int, confidence: int, face: int,
-                   user_gam: int, top: int, bottom: int, left: int, right: int, radio: str, 
-                   r_choices: np.ndarray, new: Optional[str] = None) -> None:
-    """
-    This code first checks if bounding_box is not None, and if so, it proceeds to crop the image and create the
-    destination directory if it doesn't already exist. It then constructs the file name using a ternary expression
-    that appends the file extension to the file name if radio is equal to the first element in radio_choices,
-    and appends radio itself if radio is not equal to the first element in radio_choices. The code then constructs
-    the file path by joining the destination directory and the file name and saves the cropped image to the file
-    using the imwrite() function. If bounding_box is None, the code calls the reject() function to reject the image.
-    """
-    # Save the cropped image if a face was detected
-    if (bounding_box := box_detect(path, width, height, confidence, face,
-                                   top, bottom, left, right)) is not None:
-        cropped_image = crop_image(path, bounding_box, width, height)
-        destination.mkdir(exist_ok=True)
-        if image.suffix.lower() in RAW_TYPES:
-            file = f'{new or image.stem}{r_choices[2] if radio == r_choices[0] else radio}'
-        else:
-            file = f'{new or image.stem}{image.suffix if radio == r_choices[0] else radio}'
-        
-        file_path = destination.joinpath(file)
-        is_tiff = file_path.suffix in {'.tif', '.tiff'}
-        save_image(cropped_image, file_path.as_posix(), user_gam, GAMMA_THRESHOLD, is_tiff=is_tiff)
-    else:
-        reject(path, destination, image)
-
-def crop_frame(frame, video_line_edit: QtWidgets.QLineEdit, destination_line_edit_4: QtWidgets.QLineEdit, wide: int,
-               high: int, conf: QtWidgets.QDial, face_perc: QtWidgets.QDial, gamma_dial: QtWidgets.QDial,
-               top: QtWidgets.QDial, bottom: QtWidgets.QDial, left: QtWidgets.QDial, right: QtWidgets.QDial,
-               position_label: QtWidgets.QLabel, radio: str, radio_options: np.ndarray) -> None:
-    if (bounding_box := box_detect(frame, wide, high, conf.value(), face_perc.value(),
-                                   top.value(), bottom.value(), left.value(), right.value())) is not None:
-        destination = Path(destination_line_edit_4.text())
-        base_name = Path(video_line_edit.text()).stem
-
-        cropped_image = crop_image(frame, bounding_box, wide, high)
-        destination.mkdir(exist_ok=True)
-        position = re.sub(':', '_', position_label.text())
-        file_path = destination.joinpath(
-            f'{base_name} - ({position}){radio_options[2] if radio == radio_options[0] else radio}')
-        is_tiff = file_path.suffix in {'.tif', '.tiff'}
-        save_image(cropped_image, file_path.as_posix(), gamma_dial.value(), GAMMA_THRESHOLD, is_tiff=is_tiff)
-    else:
-        return None
-
-def frame_extraction(video, output_dir: QtWidgets.QLineEdit, frame_number: int, frame_step: int,
-                     width: int, height: int, confidence: QtWidgets.QDial,
-                     face: QtWidgets.QDial, user_gam: QtWidgets.QDial, 
-                     top: QtWidgets.QDial, bottom: QtWidgets.QDial, left: QtWidgets.QDial, right: QtWidgets.QDial,
-                     radio: str, radio_options: np.ndarray) -> None:
-    video.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
-    ret, frame = video.read()
-
-    if not ret:
-        return None
-
-    destination = Path(output_dir.text())
-    destination.mkdir(exist_ok=True)
-
-    if (bounding_box := box_detect(frame, width, height, confidence.value(), face.value(),
-                                   top.value(), bottom.value(), left.value(), right.value())) is not None:
-        cropped_image = crop_image(frame, bounding_box, width, height)
-        cropped_image = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2RGB)
-        file_enum = f'frame_{frame_number:06d}'
-    else:
-        cropped_image = frame
-        file_enum = f'failed_frame_{frame_number:06d}'
-
-    file_string = f'{file_enum}.jpg' if radio == radio_options[0] else file_enum + radio
-    file_path = destination.joinpath(file_string)
-
-    is_tiff = file_path.suffix in {'.tif', '.tiff'}
-    save_image(cropped_image, file_path.as_posix(), user_gam.value(), GAMMA_THRESHOLD, is_tiff=is_tiff)
-    frame_number += frame_step
-
-def crop(image: Path, destination: Path, width: QtWidgets.QLineEdit, height: QtWidgets.QLineEdit, confidence: QtWidgets.QDial,
-         face: QtWidgets.QDial, user_gam: QtWidgets.QDial, top: QtWidgets.QDial, bottom: QtWidgets.QDial, left: QtWidgets.QDial, right: QtWidgets.QDial, 
-         radio: str, radio_choices: np.ndarray,
-         line_edit: Optional[str] = None, source_folder: Optional[Path] = None, new: Optional[str] = None) -> None:
-    if line_edit is None and isinstance(new, str) and isinstance(source_folder, Path):
-        # Data cropping
-        path = source_folder.joinpath(image)
-        save_detection(path, destination, image, int(width.text()), int(height.text()), confidence.value(), face.value(), user_gam.value(), 
-                       top.value(), bottom.value(), left.value(), right.value(),
-                       radio, radio_choices, new)
-    elif isinstance(line_edit, str):
-        # Folder cropping
-        source, image_name = Path(line_edit), image.name
-        path = source.joinpath(image_name)
-        save_detection(path, destination, Path(image_name), int(width.text()), int(height.text()), confidence.value(), face.value(), user_gam.value(),
-                       top.value(), bottom.value(), left.value(), right.value(),
-                       radio, radio_choices)
-    elif image.is_file():
-        # File cropping
-        save_detection(image, destination, image, int(width.text()), int(height.text()), confidence.value(), face.value(), user_gam.value(), 
-                       top.value(), bottom.value(), left.value(), right.value(),
-                       radio, radio_choices, new)

@@ -53,7 +53,8 @@ class Video:
 
     def open_video(self, main_window: QtWidgets.QMainWindow, video_line_edit: QtWidgets.QLineEdit,
                    play_button: QtWidgets.QPushButton, crop_button: QtWidgets.QPushButton) -> None:
-        file_name, _ = QtWidgets.QFileDialog.getOpenFileName(main_window, 'Open Video', self.default_directory, 'Video files (*.mp4 *.avi)')
+        file_name, _ = QtWidgets.QFileDialog.getOpenFileName(main_window, 'Open Video', self.default_directory,
+                                                             'Video files (*.mp4 *.avi)')
         if file_name != '':
             self.player.setSource(QtCore.QUrl.fromLocalFile(file_name))
             video_line_edit.setText(file_name)
@@ -62,7 +63,8 @@ class Video:
 
     @staticmethod
     def open_video_folder(main_window: QtWidgets.QMainWindow, destination_line_edit: QtWidgets.QLineEdit) -> None:
-        folder_name = QtWidgets.QFileDialog.getExistingDirectory(main_window, 'Select Directory', f"{Path.home()}\\Videos")
+        folder_name = QtWidgets.QFileDialog.getExistingDirectory(main_window, 'Select Directory',
+                                                                 f"{Path.home()}\\Videos")
         
         if folder_name != '':
             destination_line_edit.setText(folder_name)
