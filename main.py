@@ -1,9 +1,14 @@
 from mainwindow import UiMainWindow
 from PyQt6 import QtWidgets
+from utils import profileit
 
-if __name__ == "__main__":
+# @profileit
+def main():
     app = QtWidgets.QApplication([])
     app.setStyle('Fusion')
     main_window = UiMainWindow()
     main_window.show()
-    app.exec()
+    app.exec()   
+
+if __name__ == "__main__":
+    main()

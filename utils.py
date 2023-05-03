@@ -2,14 +2,17 @@ import contextlib
 import cv2
 import rawpy
 import shutil
-import time
 import numpy as np
 import pandas as pd
 import tifffile as tiff
+from functools import cache, lru_cache, wraps
 from pathlib import Path
 from PIL import Image
 from PyQt6 import QtCore, QtGui, QtWidgets
 from typing import Optional, Union
+
+import cProfile
+import pstats
 
 
 class ImageWidget(QtWidgets.QWidget):
@@ -27,8 +30,8 @@ class ImageWidget(QtWidgets.QWidget):
             qp.setRenderHint(QtGui.QPainter.RenderHint.SmoothPixmapTransform)
             scaled_image = self.image.scaled(self.size(), QtCore.Qt.AspectRatioMode.KeepAspectRatio,
                                              QtCore.Qt.TransformationMode.SmoothTransformation)
-            x_offset = (self.width() - scaled_image.width()) // 2
-            y_offset = (self.height() - scaled_image.height()) // 2
+            x_offset = (self.width() - scaled_image.width()) >> 1
+            y_offset = (self.height() - scaled_image.height()) >> 1
             qp.drawPixmap(x_offset, y_offset, scaled_image)
 
 
@@ -64,28 +67,20 @@ PIL_TYPES = np.array(['.bmp', '.dib', '.jfif', '.jp2', '.jpe', '.jpeg', '.jpg', 
 CV2_TYPES = np.array(['.eps', '.icns', '.ico', '.im', '.msp', '.pcx', '.sgi', '.spi', '.xbm'])
 RAW_TYPES = np.array(['.dng', '.arw', '.cr2', '.crw', '.erf', '.kdc', '.nef', '.nrw', 
                       '.orf', '.pef', '.raf', '.raw', '.sr2', '.srw', '.x3f'])
+IMAGE_TYPES = np.concatenate((PIL_TYPES, CV2_TYPES, RAW_TYPES))
 PANDAS_TYPES = np.array(['.csv', ".xlsx", ".xlsm", ".xltx", ".xltm"])
 VIDEO_TYPES = np.array([".avi", ".m4v", ".mkv", ".mov", ".mp4", ".wmv"])
 
 GAMMA_THRESHOLD = 0.001
 
-def timeit(func):
-    """
-    A decorator that times how long a function takes to execute.
-
-    Args:
-        func: The function to time.
-
-    Returns:
-        A wrapper function that times the execution of the decorated function.
-    """
-
+def profileit(func):
+    @wraps(func)
     def wrapper(*args, **kwargs):
-        start_time = time.perf_counter_ns()
-        result = func(*args, **kwargs)
-        end_time = time.perf_counter_ns()
-        print(f"{func.__name__} took {end_time - start_time} ns to execute.")
-        return result
+        with cProfile.Profile() as profile:
+            func(*args, **kwargs)
+        result = pstats.Stats(profile)
+        result.sort_stats(pstats.SortKey.TIME)
+        result.print_stats()
 
     return wrapper
 
@@ -93,6 +88,7 @@ def caffe_model():
     return cv2.dnn.readNetFromCaffe("resources\\weights\\deploy.prototxt.txt",
                                     "resources\\models\\res10_300x300_ssd_iter_140000.caffemodel")
 
+@cache
 def gamma(gam: Union[int, float] = 1.0) -> np.ndarray:
     """
     The function calculates a gamma correction curve, which is a nonlinear transformation used to correct the
@@ -106,12 +102,26 @@ def gamma(gam: Union[int, float] = 1.0) -> np.ndarray:
     """
     return np.power(np.arange(256) / 255, 1.0 / gam) * 255 if gam != 1.0 else np.arange(256)
 
+def adjust_gamma(image: np.ndarray, gam: int) -> cv2.Mat:
+    gamma_lut = gamma(gam * GAMMA_THRESHOLD).astype('uint8')
+    return cv2.LUT(image, gamma_lut)
 
-def correct_exposure(image: Union[cv2.Mat, Image.Image, np.ndarray], exposure: Optional[bool] = False) -> Union[cv2.Mat, Image.Image, np.ndarray]:
+def convert_color_space(image: Union[cv2.Mat, np.ndarray]) -> cv2.Mat:
+    return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+def display_image_on_widget(image: Union[cv2.Mat, np.ndarray], image_widget: ImageWidget) -> None:
+    height, width, channel = image.shape
+    bytes_per_line = channel * width
+    q_image = QtGui.QImage(image.data, width, height, bytes_per_line, QtGui.QImage.Format.Format_BGR888)
+    image_widget.setImage(QtGui.QPixmap.fromImage(q_image))
+
+def correct_exposure(image: Union[cv2.Mat, Image.Image, np.ndarray],
+                     exposure: Optional[bool] = False) -> Union[cv2.Mat, np.ndarray]:
     if not exposure:
-        return image
-    
-    gray = cv2.cvtColor(np.array(image), cv2.COLOR_BGR2GRAY) if isinstance(image, Image.Image) else cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        return np.array(image) if isinstance(image, Image.Image) else image
+
+    image_array = np.array(image) if isinstance(image, Image.Image) else image
+    gray = cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY) if len(image_array.shape) > 2 else image_array
 
     # Grayscale histogram
     hist = cv2.calcHist([gray],[0],None,[256],[0,256]).ravel()
@@ -132,10 +142,10 @@ def correct_exposure(image: Union[cv2.Mat, Image.Image, np.ndarray], exposure: O
 
     return cv2.convertScaleAbs(image, alpha=alpha, beta=beta)
 
+@lru_cache(5, True)
 def open_file(input_file: Union[Path, str], exposure: Optional[bool] = False) -> Union[np.ndarray, pd.DataFrame, None]:
     """Given a filename, returns a numpy array or a pandas dataframe"""
     input_file = Path(input_file) if isinstance(input_file, str) else input_file
-    
     if (extension := input_file.suffix.lower()) in CV2_TYPES:
         # Try with cv2
         with cv2.imread(input_file.as_posix()) as img:
@@ -157,8 +167,9 @@ def open_file(input_file: Union[Path, str], exposure: Optional[bool] = False) ->
         return pd.read_csv(input_file) if extension == '.csv' else pd.read_excel(input_file)
     return None
 
-def crop_positions(x: int, y: int, width: int, height: int, percent_face: int, output_width: int,
-                   output_height: int, top: int, bottom: int, left: int, right: int) -> Optional[np.ndarray]:
+@cache
+def crop_positions(x: int, y: int, width: int, height: int, percent_face: int, output_width: int, output_height: int,
+                   top: int, bottom: int, left: int, right: int) -> Optional[np.ndarray]:
     """
     Returns the coordinates of the crop position centered around the detected face with extra margins. Tries to honor
     `self.face_percent` if possible, else uses the largest margins that comply with required aspect ratio given by
@@ -174,6 +185,10 @@ def crop_positions(x: int, y: int, width: int, height: int, percent_face: int, o
         output_width (int): The width of the output image
         output_height (int): The height of the output image
         percent_face (int): The percentage of the image that the face occupies.
+        top (int): Top padding
+        bottom (int): Bottom padding
+        left (int): Left padding
+        right (int): Right padding
     """
     
     if 0 < percent_face <= 100 and output_height > 0:
@@ -185,24 +200,17 @@ def crop_positions(x: int, y: int, width: int, height: int, percent_face: int, o
             cropped_height = output_height * cropped_width / output_width
         
         # left, top, right, bottom
-        l = x + (width - cropped_width) * .5 - left * 0.01 * cropped_width
-        t = y + (height - cropped_height) * .5 - top * 0.01 * cropped_height
-        r = x + (width + cropped_width) * .5 + right * 0.01 * cropped_width
-        b = y + (height + cropped_height) * .5 + bottom * 0.01 * cropped_height
+        l = x + (width - cropped_width) * .5 - left * .01 * cropped_width
+        t = y + (height - cropped_height) * .5 - top * .01 * cropped_height
+        r = x + (width + cropped_width) * .5 + right * .01 * cropped_width
+        b = y + (height + cropped_height) * .5 + bottom * .01 * cropped_height
 
         return np.array([l, t, r, b]).astype(int)
     else:
         return None
-
-def box_detect(img_path: Union[cv2.Mat, Path], wide: int, high: int, conf: int, face_perc: int,
-               top: int, bottom: int, left: int, right: int) -> Optional[np.ndarray]:
-    img = open_file(img_path) if isinstance(img_path, Path) else img_path
-    # get width and height of the image
-    try:
-        height, width = img.shape[:2]
-    except AttributeError:
-        return None
-
+    
+def box(img: Union[cv2.Mat, Path], conf: int, face_perc: int, width: int, height: int, wide: int, high: int, top: int,
+        bottom: int, left: int, right: int) -> Optional[np.ndarray]:
     # preprocess the image: resize and performs mean subtraction
     blob = cv2.dnn.blobFromImage(img, 1.0, (300, 300), (104.0, 177.0, 123.0))
     # set the image into the input of the neural network
@@ -212,46 +220,79 @@ def box_detect(img_path: Union[cv2.Mat, Path], wide: int, high: int, conf: int, 
     output = np.squeeze(caffe.forward())
     # get the confidence
     confidence_list = output[:, 2]
-    if np.max(confidence_list) < conf * 0.01:
+    if np.max(confidence_list) < conf * .01:
         return None
     # get the surrounding box coordinates and upscale them to original image
     box_coords = output[:, 3:7] * np.array([width, height, width, height])
-    
     x0, y0, x1, y1 = box_coords[np.argmax(confidence_list)]
-
     return crop_positions(x0, y0, x1 - x0, y1 - y0, face_perc, wide, high, top, bottom, left, right)
+
+@cache
+def box_detect(img_path: Path, wide: int, high: int, conf: int, face_perc: int, top: int, bottom: int,
+               left: int, right: int) -> Optional[np.ndarray]:
+    img = open_file(img_path)
+    # get width and height of the image
+    try:
+        if isinstance(img, np.ndarray):
+            height, width = img.shape[:2]
+        else:
+            return None
+    except AttributeError:
+        return None
+    return box(img, conf, face_perc, width, height, wide, high, top, bottom, left, right)
+
+def box_detect_frame(img: cv2.Mat, wide: int, high: int, conf: int, face_perc: int, top: int, bottom: int,
+               left: int, right: int) -> Optional[np.ndarray]:
+    # get width and height of the image
+    try:
+        height, width = img.shape[:2]
+    except AttributeError:
+        return None
+    return box(img, conf, face_perc, width, height, wide, high, top, bottom, left, right)
 
 def get_first_file(img_path: Path, file_types: np.ndarray) -> Optional[Path]:
     files = np.fromiter(img_path.iterdir(), Path)
     file = np.array([pic for pic in files if pic.suffix.lower() in file_types])
     return file[0] if file.size > 0 else None
 
-def reorient_image_by_exif(im: Image.Image, exif_orientation: int) -> Image.Image:
+def reorient_image_by_exif(im: Image.Image, exif_orientation: int) -> np.ndarray:
     try:
-        orientations = {
-            2: Image.FLIP_LEFT_RIGHT,
-            3: Image.ROTATE_180,
-            4: Image.FLIP_TOP_BOTTOM,
-            5: Image.ROTATE_90 | Image.FLIP_TOP_BOTTOM,
-            6: Image.ROTATE_270,
-            7: Image.ROTATE_270 | Image.FLIP_TOP_BOTTOM,
-            8: Image.ROTATE_90,
-        }
-        return im.transpose(orientations[exif_orientation])
+        orientations = {2: Image.FLIP_LEFT_RIGHT,
+                        3: Image.ROTATE_180,
+                        4: Image.FLIP_TOP_BOTTOM,
+                        5: Image.ROTATE_90 | Image.FLIP_TOP_BOTTOM,
+                        6: Image.ROTATE_270,
+                        7: Image.ROTATE_270 | Image.FLIP_TOP_BOTTOM,
+                        8: Image.ROTATE_90}
+        return np.array(im.transpose(orientations[exif_orientation]))
     except (KeyError, AttributeError, TypeError, IndexError):
-        return im
+        return np.array(im)
 
-def reorient_image_from_object(im_obj: Union[Image.Image, rawpy.RawPy]) -> Image.Image:
+def reorient_image_from_object(im_obj: Union[Image.Image, rawpy.RawPy]) -> np.ndarray:
     with contextlib.suppress(KeyError, AttributeError, TypeError, IndexError):
         if isinstance(im_obj, Image.Image):
             exif_orientation = im_obj.getexif()[274]
             return reorient_image_by_exif(im_obj, exif_orientation)
         elif isinstance(im_obj, rawpy.RawPy):
             rgb_image = im_obj.postprocess(use_camera_wb=True)
-            im = Image.fromarray(rgb_image)
+            im = Image.fromarray(rgb_image.raw_image_visible)
             exif_orientation = im_obj.exif_data.get('Orientation', 1)
             return reorient_image_by_exif(im, exif_orientation)
-    return im_obj if isinstance(im_obj, Image.Image) else Image.fromarray(im_obj.postprocess(use_camera_wb=True))
+    return np.array(im_obj if isinstance(im_obj, Image.Image) else im_obj.postprocess(use_camera_wb=True))
+
+def preprocess_image(image: Union[Image.Image, rawpy.RawPy], bounding_box: np.ndarray, checkbox: bool) -> Image.Image:
+    pic = reorient_image_from_object(image)
+    pic_array = correct_exposure(pic, checkbox)
+    return Image.fromarray(pic_array).crop(bounding_box)
+
+@cache
+def set_filename(image_path: Path, destination: Path, radio_choice: str, radio_options: tuple, new: Optional[str] = None) -> tuple[Path, bool]:
+    if image_path.suffix.lower() in RAW_TYPES:
+        selected_extension = radio_options[2] if radio_choice == radio_options[0] else radio_choice
+    else:
+        selected_extension = image_path.suffix if radio_choice == radio_options[0] else radio_choice
+    final_path = destination.joinpath(f'{new or image_path.stem}{selected_extension}')
+    return final_path, final_path.suffix in {'.tif', '.tiff'}
 
 def reject(path: Path, destination: Path, image: Path) -> None:
     reject_folder = destination.joinpath('rejects')
@@ -261,8 +302,8 @@ def reject(path: Path, destination: Path, image: Path) -> None:
 def save_image(image: cv2.Mat, file_path: str, user_gam: Union[int, float], gamma_threshold: Union[int, float],
                is_tiff: bool = False) -> None:
     if is_tiff:
-        array = np.array(image).astype(np.uint8)
-        image = cv2.cvtColor(array, cv2.COLOR_BGR2RGB)
+        image = cv2.convertScaleAbs(image)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         tiff.imwrite(file_path, image)
-    else:
+    else:  
         cv2.imwrite(file_path, cv2.LUT(image, gamma(user_gam * gamma_threshold)))

@@ -8,7 +8,8 @@ class Photo:
     def __init__(self) -> None:
         self.default_directory = f"{Path.home()}\\Pictures"
 
-    def ALL_TYPES(self) -> np.ndarray:
+    @staticmethod
+    def ALL_TYPES() -> np.ndarray:
         return np.concatenate([utils.PIL_TYPES, utils.CV2_TYPES, utils.RAW_TYPES])
 
     def file_filter(self) -> np.ndarray:
@@ -48,7 +49,8 @@ class Video:
         self.volume_slider.sliderMoved.connect(self.volume_slider_changed)
         self.timeline_slider.sliderMoved.connect(self.player_slider_changed)
 
-    def type_string(self) -> str:
+    @staticmethod
+    def type_string() -> str:
         return "All Files (*);;" + ";;".join(f"{_} Files (*{_})" for _ in np.sort(utils.VIDEO_TYPES))
 
     def open_video(self, main_window: QtWidgets.QMainWindow, video_line_edit: QtWidgets.QLineEdit,
@@ -60,14 +62,6 @@ class Video:
             video_line_edit.setText(file_name)
             play_button.setEnabled(True)
             crop_button.setEnabled(True)
-
-    @staticmethod
-    def open_video_folder(main_window: QtWidgets.QMainWindow, destination_line_edit: QtWidgets.QLineEdit) -> None:
-        folder_name = QtWidgets.QFileDialog.getExistingDirectory(main_window, 'Select Directory',
-                                                                 f"{Path.home()}\\Videos")
-        
-        if folder_name != '':
-            destination_line_edit.setText(folder_name)
 
     def create_mediaPlayer(self) -> None:
         self.player.setAudioOutput(self.audio)
