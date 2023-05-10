@@ -1,8 +1,16 @@
-import utils
 import numpy as np
 from pathlib import Path
 from typing import Union
 from PyQt6 import QtCore, QtGui, QtMultimedia, QtMultimediaWidgets, QtWidgets
+
+PIL_TYPES = np.array(['.bmp', '.dib', '.jfif', '.jp2', '.jpe', '.jpeg', '.jpg', '.pbm',
+                      '.pgm', '.png', '.ppm', '.ras', '.sr', '.tif', '.tiff', '.webp'])
+CV2_TYPES = np.array(['.eps', '.icns', '.ico', '.im', '.msp', '.pcx', '.sgi', '.spi', '.xbm'])
+RAW_TYPES = np.array(['.dng', '.arw', '.cr2', '.crw', '.erf', '.kdc', '.nef', '.nrw', 
+                      '.orf', '.pef', '.raf', '.raw', '.sr2', '.srw', '.x3f'])
+IMAGE_TYPES = np.concatenate((PIL_TYPES, CV2_TYPES, RAW_TYPES))
+PANDAS_TYPES = np.array(['.csv', ".xlsx", ".xlsm", ".xltx", ".xltm"])
+VIDEO_TYPES = np.array([".avi", ".m4v", ".mkv", ".mov", ".mp4", ".wmv"])
 
 class Photo:
     def __init__(self) -> None:
@@ -10,13 +18,13 @@ class Photo:
 
     @staticmethod
     def ALL_TYPES() -> np.ndarray:
-        return np.concatenate([utils.PIL_TYPES, utils.CV2_TYPES, utils.RAW_TYPES])
+        return np.concatenate([PIL_TYPES, CV2_TYPES, RAW_TYPES])
 
     def file_filter(self) -> np.ndarray:
-        return np.array([f'*{file}' for file in self.ALL_TYPES()])
+        return np.array([f'*{file}' for file in IMAGE_TYPES])
 
     def type_string(self) -> str:
-        return "All Files (*);;" + ";;".join(f"{_} Files (*{_})" for _ in np.sort(self.ALL_TYPES()))
+        return "All Files (*);;" + ";;".join(f"{_} Files (*{_})" for _ in np.sort(IMAGE_TYPES))
 
 
 class Video:
@@ -51,7 +59,7 @@ class Video:
 
     @staticmethod
     def type_string() -> str:
-        return "All Files (*);;" + ";;".join(f"{_} Files (*{_})" for _ in np.sort(utils.VIDEO_TYPES))
+        return "All Files (*);;" + ";;".join(f"{_} Files (*{_})" for _ in np.sort(VIDEO_TYPES))
 
     def open_video(self, main_window: QtWidgets.QMainWindow, video_line_edit: QtWidgets.QLineEdit,
                    play_button: QtWidgets.QPushButton, crop_button: QtWidgets.QPushButton) -> None:
@@ -100,11 +108,11 @@ class Video:
         if self.timeline_slider.maximum() != self.player.duration():
             self.timeline_slider.setMaximum(self.player.duration())
 
-        self.timeline_slider.blockSignals(True)
+        # self.timeline_slider.blockSignals(True)
         self.timeline_slider.setValue(position)
         minutes, seconds = divmod(round(position / 1_000), 60)
         hours, minutes = divmod(minutes, 60)
-        self.timeline_slider.blockSignals(False)
+        # self.timeline_slider.blockSignals(False)
 
         self.position_label.setText(QtCore.QTime(hours, minutes, seconds).toString())
 

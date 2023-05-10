@@ -4,6 +4,8 @@ import rawpy
 import re
 import numpy as np
 import pandas as pd
+from custom_widgets import ImageWidget
+from files import IMAGE_TYPES, PIL_TYPES, CV2_TYPES, RAW_TYPES, PANDAS_TYPES
 from functools import cache
 from multiprocessing import cpu_count
 from pathlib import Path
@@ -64,10 +66,9 @@ class Cropper(QtCore.QObject):
              checkbox: QtWidgets.QCheckBox, confidence: QtWidgets.QDial, face: QtWidgets.QDial,
              user_gam: QtWidgets.QDial, top: QtWidgets.QDial, bottom: QtWidgets.QDial, left: QtWidgets.QDial,
              right: QtWidgets.QDial, radio: str, radio_choices: np.ndarray, line_edit: Optional[str] = None,
-             source_folder: Optional[Path] = None,
-             new: Optional[str] = None) -> None:
+             source_folder: Optional[Path] = None, new: Optional[str] = None) -> None:
         common_widget_values = (int(width.text()), int(height.text()), checkbox.isChecked(), confidence.value(),
-                                face.value(), user_gam.value(),  top.value(), bottom.value(), left.value(),
+                                face.value(), user_gam.value(), top.value(), bottom.value(), left.value(),
                                 right.value(), radio, radio_choices)
         if line_edit is None and isinstance(new, str) and isinstance(source_folder, Path):
             # Data cropping
@@ -85,7 +86,7 @@ class Cropper(QtCore.QObject):
     def display_crop(self, img_path: Path, checkbox: QtWidgets.QCheckBox, wide: QtWidgets.QLineEdit,
                      high: QtWidgets.QLineEdit, conf: QtWidgets.QDial, face_perc: QtWidgets.QDial, gam: QtWidgets.QDial,
                      top: QtWidgets.QDial, bottom: QtWidgets.QDial, left: QtWidgets.QDial, right: QtWidgets.QDial,
-                     image_widget: utils.ImageWidget, file_types: Optional[np.ndarray] = None) -> None:
+                     image_widget: ImageWidget, file_types: Optional[np.ndarray] = None) -> None:
         if not img_path or img_path.as_posix() in {'', '.', None}:
             return None
 
@@ -107,11 +108,11 @@ class Cropper(QtCore.QObject):
         else:
             return None
         
-        if (extention := img_path.suffix.lower()) in utils.CV2_TYPES or extention in utils.PIL_TYPES:
+        if (extention := img_path.suffix.lower()) in CV2_TYPES or extention in PIL_TYPES:
             with Image.open(photo_path) as img:
                 pic = utils.reorient_image_from_object(img)
                 self.crop_and_set(pic, bounding_box, gam.value(), image_widget, checkbox.isChecked())
-        elif extention in utils.RAW_TYPES:
+        elif extention in RAW_TYPES:
             with rawpy.imread(photo_path) as raw:
                 pic = utils.reorient_image_from_object(raw)
                 self.crop_and_set(pic, bounding_box, gam.value(), image_widget, checkbox.isChecked())
@@ -123,7 +124,7 @@ class Cropper(QtCore.QObject):
         picture = Image.fromarray(image)
         return np.array(picture.crop(bounding_box))
 
-    def crop_and_set(self, image: np.ndarray, bounding_box: np.ndarray, gamma: int, image_widget: utils.ImageWidget,
+    def crop_and_set(self, image: np.ndarray, bounding_box: np.ndarray, gamma: int, image_widget: ImageWidget,
                      exposure_correction: bool) -> None:
         """
         Crop the given image using the bounding box, adjust its exposure and gamma, and set it to an image widget.
@@ -149,7 +150,7 @@ class Cropper(QtCore.QObject):
     def crop_image(image: Union[Path, np.ndarray], bounding_box: np.ndarray, width: int, height: int,
                    checkbox: bool) -> cv2.Mat:
         if isinstance(image, Path):
-            if image.suffix.lower() in utils.RAW_TYPES:
+            if image.suffix.lower() in RAW_TYPES:
                 raw = rawpy.imread(image.as_posix())
                 cropped_pic = utils.preprocess_image(raw, bounding_box, checkbox)
             else:
@@ -168,7 +169,7 @@ class Cropper(QtCore.QObject):
         return cv2.resize(result, (width, height), interpolation=cv2.INTER_AREA)
 
     def folder_worker(self, file_amount: int, file_list: np.ndarray, destination: Path, width: QtWidgets.QLineEdit,
-                height: QtWidgets.QLineEdit,  checkbox: QtWidgets.QCheckBox, confidence: QtWidgets.QDial,
+                height: QtWidgets.QLineEdit, checkbox: QtWidgets.QCheckBox, confidence: QtWidgets.QDial,
                 face: QtWidgets.QDial, gamma_dial: QtWidgets.QDial, top: QtWidgets.QDial, bottom: QtWidgets.QDial,
                 left: QtWidgets.QDial, right: QtWidgets.QDial, radio_choice: str, line_edit: QtWidgets.QLineEdit,
                 radio_choices: np.ndarray) -> None:
@@ -204,10 +205,10 @@ class Cropper(QtCore.QObject):
             t.start()
 
     def mapping_worker(self, files: int, source_folder: Path, old: np.ndarray, new: np.ndarray, destination: Path,
-                       width: QtWidgets.QLineEdit, height: QtWidgets.QLineEdit,  checkbox: QtWidgets.QCheckBox,
-                       confidence: QtWidgets.QDial, face: QtWidgets.QDial, user_gam: QtWidgets.QDial, top: QtWidgets.QDial,
-                       bottom: QtWidgets.QDial, left: QtWidgets.QDial, right: QtWidgets.QDial, radio: str,
-                       radio_choices: np.ndarray) -> None:
+                       width: QtWidgets.QLineEdit, height: QtWidgets.QLineEdit, checkbox: QtWidgets.QCheckBox,
+                       confidence: QtWidgets.QDial, face: QtWidgets.QDial, user_gam: QtWidgets.QDial,
+                       top: QtWidgets.QDial, bottom: QtWidgets.QDial, left: QtWidgets.QDial, right: QtWidgets.QDial,
+                       radio: str, radio_choices: np.ndarray) -> None:
         for i, image in enumerate(old):
             if self.end_task:
                 break
@@ -223,7 +224,7 @@ class Cropper(QtCore.QObject):
 
     def mapping_crop(self, source_folder: Path, data: pd.DataFrame, name_column: QtWidgets.QComboBox,
                      mapping: QtWidgets.QComboBox, destination: Path, width: QtWidgets.QLineEdit,
-                     height: QtWidgets.QLineEdit,  checkbox: QtWidgets.QCheckBox, confidence: QtWidgets.QDial,
+                     height: QtWidgets.QLineEdit, checkbox: QtWidgets.QCheckBox, confidence: QtWidgets.QDial,
                      face: QtWidgets.QDial, gamma_dial: QtWidgets.QDial, top: QtWidgets.QDial, bottom: QtWidgets.QDial,
                      left: QtWidgets.QDial, right: QtWidgets.QDial, radio: str, radio_choices: np.ndarray) -> None:
         self.mapping_started.emit()
@@ -232,7 +233,7 @@ class Cropper(QtCore.QObject):
         # Get the extensions of the file names.
         extensions = np.char.lower([Path(file).suffix for file in file_list])
         # Create a mask that indicates which files have supported extensions.
-        mask = np.in1d(extensions, utils.IMAGE_TYPES)
+        mask = np.in1d(extensions, IMAGE_TYPES)
         # Split the file list and the mapping data into chunks.
         old_file_list = np.array_split(file_list[mask], cpu_count())
         new_file_list = np.array_split(np.array(data[mapping.currentText()])[mask], cpu_count())
@@ -282,7 +283,7 @@ class Cropper(QtCore.QObject):
             return None
 
     def frame_extraction(self, video, output_dir: QtWidgets.QLineEdit, frame_number: int, width: QtWidgets.QLineEdit,
-                         height: QtWidgets.QLineEdit,  checkbox: QtWidgets.QCheckBox, confidence: QtWidgets.QDial,
+                         height: QtWidgets.QLineEdit, checkbox: QtWidgets.QCheckBox, confidence: QtWidgets.QDial,
                          face: QtWidgets.QDial, user_gam: QtWidgets.QDial, top: QtWidgets.QDial,
                          bottom: QtWidgets.QDial, left: QtWidgets.QDial, right: QtWidgets.QDial, radio: str,
                          radio_options: np.ndarray, progress_callback) -> None:
@@ -335,8 +336,8 @@ class Cropper(QtCore.QObject):
             self.video_progress.emit(x)
         
         for frame_number in frame_numbers:
-            self.frame_extraction(video, output_dir, frame_number, width, height, checkbox, confidence, face,
-                                  user_gam, top, bottom, left, right, radio, radio_options, progress_callback)
+            self.frame_extraction(video, output_dir, frame_number, width, height, checkbox, confidence, face, user_gam,
+                                  top, bottom, left, right, radio, radio_options, progress_callback)
             
             if (self.bar_value == frame_numbers.size or self.end_task) and self.message_box:
                 self.video_finished.emit()

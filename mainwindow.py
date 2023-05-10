@@ -2,6 +2,7 @@ import re
 import utils
 import numpy as np
 import pandas as pd
+import custom_widgets
 from cropper import Cropper
 from files import Photo, Video
 from multiprocessing import Process
@@ -13,156 +14,11 @@ from pathlib import Path
 from typing import Optional, Union
 
 
-class UiDialog(QtWidgets.QDialog):
-    def __init__(self):
-        super(UiDialog, self).__init__()
-        self.setObjectName("Dialog")
-        self.resize(347, 442)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.sizePolicy().hasHeightForWidth())
-        self.setSizePolicy(sizePolicy)
-        self.setMinimumSize(QtCore.QSize(347, 442))
-        self.setMaximumSize(QtCore.QSize(347, 442))
-        self.verticalLayout = QtWidgets.QVBoxLayout(self)
-        self.verticalLayout.setObjectName("verticalLayout")
-        self.label = QtWidgets.QLabel(parent=self)
-        self.label.setEnabled(True)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label.sizePolicy().hasHeightForWidth())
-        self.label.setSizePolicy(sizePolicy)
-        self.label.setMinimumSize(QtCore.QSize(329, 329))
-        self.label.setText("")
-        self.label.setPixmap(QtGui.QPixmap("resources/logos/logo.png"))
-        self.setWindowIcon(QtGui.QIcon("resources/logos/logo.ico"))
-        self.label.setScaledContents(True)
-        self.label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.label.setObjectName("label")
-        self.verticalLayout.addWidget(self.label)
-        self.frame = QtWidgets.QFrame(parent=self)
-        self.frame.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
-        self.frame.setFrameShadow(QtWidgets.QFrame.Shadow.Raised)
-        self.frame.setLineWidth(0)
-        self.frame.setObjectName("frame")
-        self.horizontalLayout = QtWidgets.QHBoxLayout(self.frame)
-        self.horizontalLayout.setObjectName("horizontalLayout")
-        self.label_7 = QtWidgets.QLabel(parent=self.frame)
-        self.label_7.setMinimumSize(QtCore.QSize(50, 0))
-        self.label_7.setMaximumSize(QtCore.QSize(50, 16777215))
-        self.label_7.setTextFormat(QtCore.Qt.TextFormat.AutoText)
-        self.label_7.setAlignment(
-            QtCore.Qt.AlignmentFlag.AlignLeading | QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop)
-        self.label_7.setObjectName("label_7")
-        self.horizontalLayout.addWidget(self.label_7)
-        self.label_8 = QtWidgets.QLabel(parent=self.frame)
-        self.label_8.setAlignment(
-            QtCore.Qt.AlignmentFlag.AlignLeading | QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop)
-        self.label_8.setObjectName("label_8")
-        self.horizontalLayout.addWidget(self.label_8)
-        self.verticalLayout.addWidget(self.frame)
-        self.frame_2 = QtWidgets.QFrame(parent=self)
-        self.frame_2.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
-        self.frame_2.setFrameShadow(QtWidgets.QFrame.Shadow.Raised)
-        self.frame_2.setLineWidth(0)
-        self.frame_2.setObjectName("frame_2")
-        self.horizontalLayout_2 = QtWidgets.QHBoxLayout(self.frame_2)
-        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
-        self.label_4 = QtWidgets.QLabel(parent=self.frame_2)
-        self.label_4.setMinimumSize(QtCore.QSize(50, 0))
-        self.label_4.setMaximumSize(QtCore.QSize(50, 16777215))
-        self.label_4.setAlignment(
-            QtCore.Qt.AlignmentFlag.AlignLeading | QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop)
-        self.label_4.setObjectName("label_4")
-        self.horizontalLayout_2.addWidget(self.label_4)
-        self.label_3 = QtWidgets.QLabel(parent=self.frame_2)
-        self.label_3.setAlignment(
-            QtCore.Qt.AlignmentFlag.AlignLeading | QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop)
-        self.label_3.setObjectName("label_3")
-        self.horizontalLayout_2.addWidget(self.label_3)
-        self.verticalLayout.addWidget(self.frame_2)
-        self.frame_3 = QtWidgets.QFrame(parent=self)
-        self.frame_3.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
-        self.frame_3.setFrameShadow(QtWidgets.QFrame.Shadow.Raised)
-        self.frame_3.setLineWidth(0)
-        self.frame_3.setObjectName("frame_3")
-        self.horizontalLayout_3 = QtWidgets.QHBoxLayout(self.frame_3)
-        self.horizontalLayout_3.setContentsMargins(0, 0, -1, 0)
-        self.horizontalLayout_3.setSpacing(0)
-        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
-        self.frame_5 = QtWidgets.QFrame(parent=self.frame_3)
-        self.frame_5.setMinimumSize(QtCore.QSize(50, 0))
-        self.frame_5.setMaximumSize(QtCore.QSize(50, 16777215))
-        self.frame_5.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
-        self.frame_5.setFrameShadow(QtWidgets.QFrame.Shadow.Raised)
-        self.frame_5.setLineWidth(0)
-        self.frame_5.setObjectName("frame_5")
-        self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.frame_5)
-        self.verticalLayout_3.setContentsMargins(-1, -1, 0, -1)
-        self.verticalLayout_3.setObjectName("verticalLayout_3")
-        self.label_5 = QtWidgets.QLabel(parent=self.frame_5)
-        self.label_5.setMinimumSize(QtCore.QSize(50, 0))
-        self.label_5.setMaximumSize(QtCore.QSize(50, 16777215))
-        self.label_5.setLineWidth(0)
-        self.label_5.setObjectName("label_5")
-        self.verticalLayout_3.addWidget(self.label_5)
-        self.label_9 = QtWidgets.QLabel(parent=self.frame_5)
-        self.label_9.setMinimumSize(QtCore.QSize(50, 0))
-        self.label_9.setMaximumSize(QtCore.QSize(50, 16777215))
-        self.label_9.setLineWidth(0)
-        self.label_9.setText("")
-        self.label_9.setObjectName("label_9")
-        self.verticalLayout_3.addWidget(self.label_9)
-        self.horizontalLayout_3.addWidget(self.frame_5)
-        self.frame_4 = QtWidgets.QFrame(parent=self.frame_3)
-        self.frame_4.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
-        self.frame_4.setFrameShadow(QtWidgets.QFrame.Shadow.Raised)
-        self.frame_4.setLineWidth(0)
-        self.frame_4.setObjectName("frame_4")
-        self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.frame_4)
-        self.verticalLayout_2.setContentsMargins(14, -1, 0, -1)
-        self.verticalLayout_2.setObjectName("verticalLayout_2")
-        self.label_6 = QtWidgets.QLabel(parent=self.frame_4)
-        self.label_6.setStyleSheet("")
-        self.label_6.setLineWidth(0)
-        self.label_6.setOpenExternalLinks(True)
-        self.label_6.setObjectName("label_6")
-        self.verticalLayout_2.addWidget(self.label_6)
-        self.label_2 = QtWidgets.QLabel(parent=self.frame_4)
-        self.label_2.setLineWidth(0)
-        self.label_2.setAlignment(
-            QtCore.Qt.AlignmentFlag.AlignLeading | QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter)
-        self.label_2.setOpenExternalLinks(True)
-        self.label_2.setObjectName("label_2")
-        self.verticalLayout_2.addWidget(self.label_2)
-        self.horizontalLayout_3.addWidget(self.frame_4)
-        self.verticalLayout.addWidget(self.frame_3)
-
-        self.retranslateUi()
-        QtCore.QMetaObject.connectSlotsByName(self)
-
-    def retranslateUi(self):
-        _translate = QtCore.QCoreApplication.translate
-        self.setWindowTitle(_translate("Dialog", "About Face Cropper"))
-        self.label_7.setText(_translate("Dialog", "Version:"))
-        self.label_8.setText(_translate("Dialog", "2.0.0"))
-        self.label_4.setText(_translate("Dialog", "Creator:"))
-        self.label_3.setText(_translate("Dialog", "Gregory Carnegie"))
-        self.label_5.setText(_translate("Dialog", "Credits:"))
-        self.label_6.setText(
-            _translate("Dialog",
-                       "<a href=\"https://leblancfg.com/autocrop/\">François (leblancfg) Leblanc\'s autocrop library</a>"))
-        self.label_2.setText(
-            _translate("Dialog",
-                       "<a href=\"https://bleedai.com/5-easy-effective-face-detection-algorithms-in-python/\">Bleed AI\'s \'Effective Face Detection\' article</a>"))
-
-
 class UiMainWindow(QtWidgets.QMainWindow):
     def __init__(self) -> None:
         super(UiMainWindow, self).__init__()
-        self.model: Optional[utils.DataFrameModel] = None
+        self.setAcceptDrops(True)
+        self.model: Optional[custom_widgets.DataFrameModel] = None
         self.data_frame: Optional[pd.DataFrame] = None
         self.validator = QtGui.QIntValidator(100, 10_000)
 
@@ -221,15 +77,15 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_8.setObjectName("verticalLayout_8")
         self.horizontalLayout_5 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_5.setObjectName("horizontalLayout_5")
-        self.photoLineEdit = QtWidgets.QLineEdit(parent=self.photoTab)
+        self.photoLineEdit = custom_widgets.PathLineEdit('image', parent=self.photoTab)
         self.photoLineEdit.setMinimumSize(QtCore.QSize(0, 24))
-        self.photoLineEdit.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.photoLineEdit.setMaximumSize(QtCore.QSize(16_777_215, 24))
         self.photoLineEdit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
         self.photoLineEdit.setObjectName("photoLineEdit")
         self.horizontalLayout_5.addWidget(self.photoLineEdit)
         self.photoButton = QtWidgets.QPushButton(parent=self.photoTab)
         self.photoButton.setMinimumSize(QtCore.QSize(0, 24))
-        self.photoButton.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.photoButton.setMaximumSize(QtCore.QSize(16_777_215, 24))
         icon1 = QtGui.QIcon()
         icon1.addPixmap(QtGui.QPixmap("resources/icons/picture.svg"), QtGui.QIcon.Mode.Normal,
                         QtGui.QIcon.State.Off)
@@ -247,7 +103,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_20.setObjectName("verticalLayout_20")
         self.frame = QtWidgets.QFrame(parent=self.frame_8)
         self.frame.setMinimumSize(QtCore.QSize(0, 40))
-        self.frame.setMaximumSize(QtCore.QSize(16777215, 40))
+        self.frame.setMaximumSize(QtCore.QSize(16_777_215, 40))
         self.frame.setStyleSheet("background: #1f2c33")
         self.frame.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
         self.frame.setFrameShadow(QtWidgets.QFrame.Shadow.Raised)
@@ -268,14 +124,14 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_29.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_29.setSpacing(0)
         self.verticalLayout_29.setObjectName("verticalLayout_29")
-        self.photoWidget = utils.ImageWidget(parent=self.frame_13)
+        self.photoWidget = custom_widgets.ImageWidget(parent=self.frame_13)
         self.photoWidget.setStyleSheet("")
         self.photoWidget.setObjectName("photoWidget")
         self.verticalLayout_29.addWidget(self.photoWidget)
         self.verticalLayout_20.addWidget(self.frame_13)
         self.frame_2 = QtWidgets.QFrame(parent=self.frame_8)
         self.frame_2.setMinimumSize(QtCore.QSize(0, 40))
-        self.frame_2.setMaximumSize(QtCore.QSize(16777215, 40))
+        self.frame_2.setMaximumSize(QtCore.QSize(16_777_215, 40))
         self.frame_2.setStyleSheet("background: #1f2c33")
         self.frame_2.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
         self.frame_2.setFrameShadow(QtWidgets.QFrame.Shadow.Raised)
@@ -288,7 +144,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_8.addWidget(self.frame_8)
         self.cropButton_1 = QtWidgets.QPushButton(parent=self.photoTab)
         self.cropButton_1.setMinimumSize(QtCore.QSize(0, 24))
-        self.cropButton_1.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.cropButton_1.setMaximumSize(QtCore.QSize(16_777_215, 24))
         self.cropButton_1.setText("")
         icon2 = QtGui.QIcon()
         icon2.addPixmap(QtGui.QPixmap("resources/icons/crop.svg"), QtGui.QIcon.Mode.Normal,
@@ -298,15 +154,15 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_8.addWidget(self.cropButton_1)
         self.horizontalLayout_6 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_6.setObjectName("horizontalLayout_6")
-        self.destinationLineEdit_1 = QtWidgets.QLineEdit(parent=self.photoTab)
+        self.destinationLineEdit_1 = custom_widgets.PathLineEdit('folder', parent=self.photoTab)
         self.destinationLineEdit_1.setMinimumSize(QtCore.QSize(0, 24))
-        self.destinationLineEdit_1.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.destinationLineEdit_1.setMaximumSize(QtCore.QSize(16_777_215, 24))
         self.destinationLineEdit_1.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
         self.destinationLineEdit_1.setObjectName("destinationLineEdit_1")
         self.horizontalLayout_6.addWidget(self.destinationLineEdit_1)
         self.destinationButton_1 = QtWidgets.QPushButton(parent=self.photoTab)
         self.destinationButton_1.setMinimumSize(QtCore.QSize(0, 24))
-        self.destinationButton_1.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.destinationButton_1.setMaximumSize(QtCore.QSize(16_777_215, 24))
         icon3 = QtGui.QIcon()
         icon3.addPixmap(QtGui.QPixmap("resources/icons/folder.svg"), QtGui.QIcon.Mode.Normal,
                         QtGui.QIcon.State.Off)
@@ -325,15 +181,15 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_15.setObjectName("verticalLayout_15")
         self.horizontalLayout_11 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_11.setObjectName("horizontalLayout_11")
-        self.folderLineEdit_1 = QtWidgets.QLineEdit(parent=self.folder_Tab)
+        self.folderLineEdit_1 = custom_widgets.PathLineEdit('folder', parent=self.folder_Tab)
         self.folderLineEdit_1.setMinimumSize(QtCore.QSize(0, 24))
-        self.folderLineEdit_1.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.folderLineEdit_1.setMaximumSize(QtCore.QSize(16_777_215, 24))
         self.folderLineEdit_1.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
         self.folderLineEdit_1.setObjectName("folderLineEdit_1")
         self.horizontalLayout_11.addWidget(self.folderLineEdit_1)
         self.folderButton_1 = QtWidgets.QPushButton(parent=self.folder_Tab)
         self.folderButton_1.setMinimumSize(QtCore.QSize(0, 24))
-        self.folderButton_1.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.folderButton_1.setMaximumSize(QtCore.QSize(16_777_215, 24))
         self.folderButton_1.setIcon(icon3)
         self.folderButton_1.setObjectName("folderButton_1")
         self.horizontalLayout_11.addWidget(self.folderButton_1)
@@ -345,7 +201,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_16.setObjectName("verticalLayout_16")
         self.frame_3 = QtWidgets.QFrame(parent=self.folder_Tab)
         self.frame_3.setMinimumSize(QtCore.QSize(0, 40))
-        self.frame_3.setMaximumSize(QtCore.QSize(16777215, 40))
+        self.frame_3.setMaximumSize(QtCore.QSize(16_777_215, 40))
         self.frame_3.setStyleSheet("background: #1f2c33")
         self.frame_3.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
         self.frame_3.setFrameShadow(QtWidgets.QFrame.Shadow.Raised)
@@ -366,14 +222,14 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_7.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_7.setSpacing(0)
         self.verticalLayout_7.setObjectName("verticalLayout_7")
-        self.folderWidget = utils.ImageWidget(parent=self.frame_12)
+        self.folderWidget = custom_widgets.ImageWidget(parent=self.frame_12)
         self.folderWidget.setStyleSheet("")
         self.folderWidget.setObjectName("folderWidget")
         self.verticalLayout_7.addWidget(self.folderWidget)
         self.verticalLayout_16.addWidget(self.frame_12)
         self.frame_4 = QtWidgets.QFrame(parent=self.folder_Tab)
         self.frame_4.setMinimumSize(QtCore.QSize(0, 40))
-        self.frame_4.setMaximumSize(QtCore.QSize(16777215, 40))
+        self.frame_4.setMaximumSize(QtCore.QSize(16_777_215, 40))
         self.frame_4.setStyleSheet("background: #1f2c33")
         self.frame_4.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
         self.frame_4.setFrameShadow(QtWidgets.QFrame.Shadow.Raised)
@@ -382,7 +238,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.horizontalLayout_16.setObjectName("horizontalLayout_16")
         self.progressBar_1 = QtWidgets.QProgressBar(parent=self.frame_4)
         self.progressBar_1.setMinimumSize(QtCore.QSize(0, 12))
-        self.progressBar_1.setMaximumSize(QtCore.QSize(16777215, 12))
+        self.progressBar_1.setMaximumSize(QtCore.QSize(16_777_215, 12))
         self.progressBar_1.setProperty("value", 0)
         self.progressBar_1.setTextVisible(False)
         self.progressBar_1.setObjectName("progressBar_1")
@@ -403,14 +259,14 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.horizontalLayout_13.setObjectName("horizontalLayout_13")
         self.cropButton_2 = QtWidgets.QPushButton(parent=self.folder_Tab)
         self.cropButton_2.setMinimumSize(QtCore.QSize(0, 24))
-        self.cropButton_2.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.cropButton_2.setMaximumSize(QtCore.QSize(16_777_215, 24))
         self.cropButton_2.setText("")
         self.cropButton_2.setIcon(icon2)
         self.cropButton_2.setObjectName("cropButton_2")
         self.horizontalLayout_13.addWidget(self.cropButton_2)
         self.cancelButton_1 = QtWidgets.QPushButton(parent=self.folder_Tab)
         self.cancelButton_1.setMinimumSize(QtCore.QSize(0, 24))
-        self.cancelButton_1.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.cancelButton_1.setMaximumSize(QtCore.QSize(16_777_215, 24))
         self.cancelButton_1.setText("")
         icon4 = QtGui.QIcon()
         icon4.addPixmap(QtGui.QPixmap("resources/icons/cancel.svg"), QtGui.QIcon.Mode.Normal,
@@ -421,15 +277,15 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_15.addLayout(self.horizontalLayout_13)
         self.horizontalLayout_14 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_14.setObjectName("horizontalLayout_14")
-        self.destinationLineEdit_2 = QtWidgets.QLineEdit(parent=self.folder_Tab)
+        self.destinationLineEdit_2 = custom_widgets.PathLineEdit('folder', parent=self.folder_Tab)
         self.destinationLineEdit_2.setMinimumSize(QtCore.QSize(0, 24))
-        self.destinationLineEdit_2.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.destinationLineEdit_2.setMaximumSize(QtCore.QSize(16_777_215, 24))
         self.destinationLineEdit_2.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
         self.destinationLineEdit_2.setObjectName("destinationLineEdit_2")
         self.horizontalLayout_14.addWidget(self.destinationLineEdit_2)
         self.destinationButton_2 = QtWidgets.QPushButton(parent=self.folder_Tab)
         self.destinationButton_2.setMinimumSize(QtCore.QSize(0, 24))
-        self.destinationButton_2.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.destinationButton_2.setMaximumSize(QtCore.QSize(16_777_215, 24))
         self.destinationButton_2.setIcon(icon3)
         self.destinationButton_2.setObjectName("destinationButton_2")
         self.horizontalLayout_14.addWidget(self.destinationButton_2)
@@ -450,27 +306,27 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.horizontalLayout_17.addLayout(self.horizontalLayout_22)
         self.gridLayout = QtWidgets.QGridLayout()
         self.gridLayout.setObjectName("gridLayout")
-        self.tableLineEdit = QtWidgets.QLineEdit(parent=self.mappingTab)
+        self.tableLineEdit = custom_widgets.PathLineEdit('table', parent=self.mappingTab)
         self.tableLineEdit.setMinimumSize(QtCore.QSize(0, 24))
-        self.tableLineEdit.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.tableLineEdit.setMaximumSize(QtCore.QSize(16_777_215, 24))
         self.tableLineEdit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
         self.tableLineEdit.setObjectName("tableLineEdit")
         self.gridLayout.addWidget(self.tableLineEdit, 1, 0, 1, 1)
-        self.folderLineEdit_2 = QtWidgets.QLineEdit(parent=self.mappingTab)
+        self.folderLineEdit_2 = custom_widgets.PathLineEdit('folder', parent=self.mappingTab)
         self.folderLineEdit_2.setMinimumSize(QtCore.QSize(0, 24))
-        self.folderLineEdit_2.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.folderLineEdit_2.setMaximumSize(QtCore.QSize(16_777_215, 24))
         self.folderLineEdit_2.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
         self.folderLineEdit_2.setObjectName("folderLineEdit_2")
         self.gridLayout.addWidget(self.folderLineEdit_2, 0, 0, 1, 1)
         self.folderButton_2 = QtWidgets.QPushButton(parent=self.mappingTab)
         self.folderButton_2.setMinimumSize(QtCore.QSize(0, 24))
-        self.folderButton_2.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.folderButton_2.setMaximumSize(QtCore.QSize(16_777_215, 24))
         self.folderButton_2.setIcon(icon3)
         self.folderButton_2.setObjectName("folderButton_2")
         self.gridLayout.addWidget(self.folderButton_2, 0, 1, 1, 1)
         self.tableButton = QtWidgets.QPushButton(parent=self.mappingTab)
         self.tableButton.setMinimumSize(QtCore.QSize(0, 24))
-        self.tableButton.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.tableButton.setMaximumSize(QtCore.QSize(16_777_215, 24))
         icon5 = QtGui.QIcon()
         icon5.addPixmap(QtGui.QPixmap("resources/icons/excel.svg"), QtGui.QIcon.Mode.Normal,
                         QtGui.QIcon.State.Off)
@@ -505,7 +361,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout.setSpacing(0)
         self.verticalLayout.setObjectName("verticalLayout")
-        self.mappingWidget = utils.ImageWidget(parent=self.frame_6)
+        self.mappingWidget = custom_widgets.ImageWidget(parent=self.frame_6)
         self.mappingWidget.setStyleSheet("")
         self.mappingWidget.setObjectName("mappingWidget")
         self.verticalLayout.addWidget(self.mappingWidget)
@@ -519,7 +375,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.horizontalLayout_21.setObjectName("horizontalLayout_21")
         self.progressBar_2 = QtWidgets.QProgressBar(parent=self.frame_7)
         self.progressBar_2.setMinimumSize(QtCore.QSize(0, 12))
-        self.progressBar_2.setMaximumSize(QtCore.QSize(16777215, 12))
+        self.progressBar_2.setMaximumSize(QtCore.QSize(16_777_215, 12))
         self.progressBar_2.setProperty("value", 0)
         self.progressBar_2.setTextVisible(False)
         self.progressBar_2.setObjectName("progressBar_2")
@@ -538,12 +394,12 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.horizontalLayout_24.setObjectName("horizontalLayout_24")
         self.comboBox = QtWidgets.QComboBox(parent=self.mappingTab)
         self.comboBox.setMinimumSize(QtCore.QSize(0, 22))
-        self.comboBox.setMaximumSize(QtCore.QSize(16777215, 22))
+        self.comboBox.setMaximumSize(QtCore.QSize(16_777_215, 22))
         self.comboBox.setObjectName("comboBox")
         self.horizontalLayout_24.addWidget(self.comboBox)
         self.comboBox_2 = QtWidgets.QComboBox(parent=self.mappingTab)
         self.comboBox_2.setMinimumSize(QtCore.QSize(0, 22))
-        self.comboBox_2.setMaximumSize(QtCore.QSize(16777215, 22))
+        self.comboBox_2.setMaximumSize(QtCore.QSize(16_777_215, 22))
         self.comboBox_2.setObjectName("comboBox_2")
         self.horizontalLayout_24.addWidget(self.comboBox_2)
         self.verticalLayout_19.addLayout(self.horizontalLayout_24)
@@ -555,14 +411,14 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.horizontalLayout_19.setObjectName("horizontalLayout_19")
         self.cropButton_3 = QtWidgets.QPushButton(parent=self.mappingTab)
         self.cropButton_3.setMinimumSize(QtCore.QSize(0, 24))
-        self.cropButton_3.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.cropButton_3.setMaximumSize(QtCore.QSize(16_777_215, 24))
         self.cropButton_3.setText("")
         self.cropButton_3.setIcon(icon2)
         self.cropButton_3.setObjectName("cropButton_3")
         self.horizontalLayout_19.addWidget(self.cropButton_3)
         self.cancelButton_2 = QtWidgets.QPushButton(parent=self.mappingTab)
         self.cancelButton_2.setMinimumSize(QtCore.QSize(0, 24))
-        self.cancelButton_2.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.cancelButton_2.setMaximumSize(QtCore.QSize(16_777_215, 24))
         self.cancelButton_2.setText("")
         self.cancelButton_2.setIcon(icon4)
         self.cancelButton_2.setObjectName("cancelButton_2")
@@ -570,15 +426,15 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_17.addLayout(self.horizontalLayout_19)
         self.horizontalLayout_20 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_20.setObjectName("horizontalLayout_20")
-        self.destinationLineEdit_3 = QtWidgets.QLineEdit(parent=self.mappingTab)
+        self.destinationLineEdit_3 = custom_widgets.PathLineEdit('folder', parent=self.mappingTab)
         self.destinationLineEdit_3.setMinimumSize(QtCore.QSize(0, 24))
-        self.destinationLineEdit_3.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.destinationLineEdit_3.setMaximumSize(QtCore.QSize(16_777_215, 24))
         self.destinationLineEdit_3.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
         self.destinationLineEdit_3.setObjectName("destinationLineEdit_3")
         self.horizontalLayout_20.addWidget(self.destinationLineEdit_3)
         self.destinationButton_3 = QtWidgets.QPushButton(parent=self.mappingTab)
         self.destinationButton_3.setMinimumSize(QtCore.QSize(0, 24))
-        self.destinationButton_3.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.destinationButton_3.setMaximumSize(QtCore.QSize(16_777_215, 24))
         self.destinationButton_3.setIcon(icon3)
         self.destinationButton_3.setObjectName("destinationButton_3")
         self.horizontalLayout_20.addWidget(self.destinationButton_3)
@@ -594,14 +450,14 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_22.setObjectName("verticalLayout_22")
         self.horizontalLayout_25 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_25.setObjectName("horizontalLayout_25")
-        self.videoLineEdit = QtWidgets.QLineEdit(parent=self.videoTab)
+        self.videoLineEdit = custom_widgets.PathLineEdit('video', parent=self.videoTab)
         self.videoLineEdit.setMinimumSize(QtCore.QSize(0, 24))
-        self.videoLineEdit.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.videoLineEdit.setMaximumSize(QtCore.QSize(16_777_215, 24))
         self.videoLineEdit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
         self.videoLineEdit.setObjectName("videoLineEdit")
         self.horizontalLayout_25.addWidget(self.videoLineEdit)
         self.videoButton = QtWidgets.QPushButton(parent=self.videoTab)
-        self.videoButton.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.videoButton.setMaximumSize(QtCore.QSize(16_777_215, 24))
         icon6 = QtGui.QIcon()
         icon6.addPixmap(QtGui.QPixmap("resources/icons/clapperboard.svg"), QtGui.QIcon.Mode.Normal,
                         QtGui.QIcon.State.Off)
@@ -618,7 +474,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_23.setSpacing(0)
         self.verticalLayout_23.setObjectName("verticalLayout_23")
         self.frame_10 = QtWidgets.QFrame(parent=self.frame_9)
-        self.frame_10.setMaximumSize(QtCore.QSize(16777215, 42))
+        self.frame_10.setMaximumSize(QtCore.QSize(16_777_215, 42))
         self.frame_10.setStyleSheet("background: #1f2c33")
         self.frame_10.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
         self.frame_10.setFrameShadow(QtWidgets.QFrame.Shadow.Raised)
@@ -649,8 +505,10 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.positionLabel.setObjectName("positionLabel")
         self.horizontalLayout_32.addWidget(self.positionLabel)
         self.timelineSlider = QtWidgets.QSlider(parent=self.frame_10)
+        # self.timelineSlider = utils.ClickableSlider(QtCore.Qt.Orientation.Horizontal, parent=self.frame_10)
         self.timelineSlider.setOrientation(QtCore.Qt.Orientation.Horizontal)
         self.timelineSlider.setObjectName("timelineSlider")
+        
         self.horizontalLayout_32.addWidget(self.timelineSlider)
         self.durationLabel = QtWidgets.QLabel(parent=self.frame_10)
         self.durationLabel.setObjectName("durationLabel")
@@ -668,7 +526,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.videoWidget.setObjectName("videoWidget")
         self.verticalLayout_23.addWidget(self.videoWidget)
         self.frame_11 = QtWidgets.QFrame(parent=self.frame_9)
-        self.frame_11.setMaximumSize(QtCore.QSize(16777215, 34))
+        self.frame_11.setMaximumSize(QtCore.QSize(16_777_215, 34))
         self.frame_11.setStyleSheet("background: #1f2c33")
         self.frame_11.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
         self.frame_11.setFrameShadow(QtWidgets.QFrame.Shadow.Raised)
@@ -677,7 +535,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.horizontalLayout_31.setObjectName("horizontalLayout_31")
         self.progressBar_3 = QtWidgets.QProgressBar(parent=self.frame_11)
         self.progressBar_3.setMinimumSize(QtCore.QSize(0, 12))
-        self.progressBar_3.setMaximumSize(QtCore.QSize(16777215, 12))
+        self.progressBar_3.setMaximumSize(QtCore.QSize(16_777_215, 12))
         self.progressBar_3.setProperty("value", 0)
         self.progressBar_3.setTextVisible(False)
         self.progressBar_3.setObjectName("progressBar_3")
@@ -691,14 +549,14 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.horizontalLayout_26.setObjectName("horizontalLayout_26")
         self.cropButton_4 = QtWidgets.QPushButton(parent=self.videoTab)
         self.cropButton_4.setMinimumSize(QtCore.QSize(0, 24))
-        self.cropButton_4.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.cropButton_4.setMaximumSize(QtCore.QSize(16_777_215, 24))
         self.cropButton_4.setText("")
         self.cropButton_4.setIcon(icon2)
         self.cropButton_4.setObjectName("cropButton_4")
         self.horizontalLayout_26.addWidget(self.cropButton_4)
         self.videocropButton = QtWidgets.QPushButton(parent=self.videoTab)
         self.videocropButton.setMinimumSize(QtCore.QSize(0, 24))
-        self.videocropButton.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.videocropButton.setMaximumSize(QtCore.QSize(16_777_215, 24))
         self.videocropButton.setText("")
         icon8 = QtGui.QIcon()
         icon8.addPixmap(QtGui.QPixmap("resources/icons/crop_video.svg"), QtGui.QIcon.Mode.Normal,
@@ -708,7 +566,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.horizontalLayout_26.addWidget(self.videocropButton)
         self.cancelButton_3 = QtWidgets.QPushButton(parent=self.videoTab)
         self.cancelButton_3.setMinimumSize(QtCore.QSize(0, 24))
-        self.cancelButton_3.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.cancelButton_3.setMaximumSize(QtCore.QSize(16_777_215, 24))
         self.cancelButton_3.setText("")
         self.cancelButton_3.setIcon(icon4)
         self.cancelButton_3.setObjectName("cancelButton_3")
@@ -716,15 +574,15 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_22.addLayout(self.horizontalLayout_26)
         self.horizontalLayout_30 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_30.setObjectName("horizontalLayout_30")
-        self.destinationLineEdit_4 = QtWidgets.QLineEdit(parent=self.videoTab)
+        self.destinationLineEdit_4 = custom_widgets.PathLineEdit('folder', parent=self.videoTab)
         self.destinationLineEdit_4.setMinimumSize(QtCore.QSize(0, 24))
-        self.destinationLineEdit_4.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.destinationLineEdit_4.setMaximumSize(QtCore.QSize(16_777_215, 24))
         self.destinationLineEdit_4.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
         self.destinationLineEdit_4.setObjectName("destinationLineEdit_4")
         self.horizontalLayout_30.addWidget(self.destinationLineEdit_4)
         self.destinationButton_4 = QtWidgets.QPushButton(parent=self.videoTab)
         self.destinationButton_4.setMinimumSize(QtCore.QSize(0, 24))
-        self.destinationButton_4.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.destinationButton_4.setMaximumSize(QtCore.QSize(16_777_215, 24))
         self.destinationButton_4.setIcon(icon3)
         self.destinationButton_4.setObjectName("destinationButton_4")
         self.horizontalLayout_30.addWidget(self.destinationButton_4)
@@ -906,13 +764,13 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout()
         self.verticalLayout_3.setObjectName("verticalLayout_3")
-        self.gammaDial = QtWidgets.QDial(parent=self.settingsTab)
+        self.gammaDial = custom_widgets.CustomQDial(parent=self.settingsTab)
         self.gammaDial.setMinimum(1)
-        self.gammaDial.setMaximum(2000)
+        self.gammaDial.setMaximum(2_000)
         self.gammaDial.setSingleStep(5)
         self.gammaDial.setPageStep(100)
-        self.gammaDial.setProperty("value", 1000)
-        self.gammaDial.setSliderPosition(1000)
+        self.gammaDial.setProperty("value", 1_000)
+        self.gammaDial.setSliderPosition(1_000)
         self.gammaDial.setInvertedAppearance(True)
         self.gammaDial.setInvertedControls(False)
         self.gammaDial.setWrapping(False)
@@ -927,7 +785,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.horizontalLayout_3.addLayout(self.verticalLayout_3)
         self.verticalLayout_4 = QtWidgets.QVBoxLayout()
         self.verticalLayout_4.setObjectName("verticalLayout_4")
-        self.faceDial = QtWidgets.QDial(parent=self.settingsTab)
+        self.faceDial = custom_widgets.CustomQDial(parent=self.settingsTab)
         self.faceDial.setMaximum(100)
         self.faceDial.setProperty("value", 62)
         self.faceDial.setNotchesVisible(True)
@@ -941,7 +799,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.horizontalLayout_3.addLayout(self.verticalLayout_4)
         self.verticalLayout_5 = QtWidgets.QVBoxLayout()
         self.verticalLayout_5.setObjectName("verticalLayout_5")
-        self.sensitivityDial = QtWidgets.QDial(parent=self.settingsTab)
+        self.sensitivityDial = custom_widgets.CustomQDial(parent=self.settingsTab)
         self.sensitivityDial.setMaximum(100)
         self.sensitivityDial.setProperty("value", 50)
         self.sensitivityDial.setNotchesVisible(True)
@@ -965,7 +823,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.label_4 = QtWidgets.QLabel(parent=self.settingsTab)
         self.label_4.setObjectName("label_4")
         self.verticalLayout_9.addWidget(self.label_4)
-        self.widthLineEdit = QtWidgets.QLineEdit(parent=self.settingsTab)
+        self.widthLineEdit = custom_widgets.NumberLineEdit(parent=self.settingsTab)
         self.widthLineEdit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhDigitsOnly)
         self.widthLineEdit.setText("")
         self.widthLineEdit.setValidator(self.validator)
@@ -977,7 +835,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.label_5 = QtWidgets.QLabel(parent=self.settingsTab)
         self.label_5.setObjectName("label_5")
         self.verticalLayout_10.addWidget(self.label_5)
-        self.heightLineEdit = QtWidgets.QLineEdit(parent=self.settingsTab)
+        self.heightLineEdit = custom_widgets.NumberLineEdit(parent=self.settingsTab)
         self.heightLineEdit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhDigitsOnly)
         self.heightLineEdit.setText("")
         self.heightLineEdit.setValidator(self.validator)
@@ -992,7 +850,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.horizontalLayout_10.setObjectName("horizontalLayout_10")
         self.verticalLayout_14 = QtWidgets.QVBoxLayout()
         self.verticalLayout_14.setObjectName("verticalLayout_14")
-        self.topDial = QtWidgets.QDial(parent=self.settingsTab)
+        self.topDial = custom_widgets.CustomQDial(parent=self.settingsTab)
         self.topDial.setMaximum(30)
         self.topDial.setNotchesVisible(True)
         self.topDial.setObjectName("topDial")
@@ -1003,7 +861,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.horizontalLayout_10.addLayout(self.verticalLayout_14)
         self.verticalLayout_13 = QtWidgets.QVBoxLayout()
         self.verticalLayout_13.setObjectName("verticalLayout_13")
-        self.bottomDial = QtWidgets.QDial(parent=self.settingsTab)
+        self.bottomDial = custom_widgets.CustomQDial(parent=self.settingsTab)
         self.bottomDial.setMaximum(30)
         self.bottomDial.setNotchesVisible(True)
         self.bottomDial.setObjectName("bottomDial")
@@ -1014,7 +872,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.horizontalLayout_10.addLayout(self.verticalLayout_13)
         self.verticalLayout_12 = QtWidgets.QVBoxLayout()
         self.verticalLayout_12.setObjectName("verticalLayout_12")
-        self.leftDial = QtWidgets.QDial(parent=self.settingsTab)
+        self.leftDial = custom_widgets.CustomQDial(parent=self.settingsTab)
         self.leftDial.setMaximum(30)
         self.leftDial.setNotchesVisible(True)
         self.leftDial.setObjectName("leftDial")
@@ -1025,7 +883,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.horizontalLayout_10.addLayout(self.verticalLayout_12)
         self.verticalLayout_11 = QtWidgets.QVBoxLayout()
         self.verticalLayout_11.setObjectName("verticalLayout_11")
-        self.rightDial = QtWidgets.QDial(parent=self.settingsTab)
+        self.rightDial = custom_widgets.CustomQDial(parent=self.settingsTab)
         self.rightDial.setMaximum(30)
         self.rightDial.setNotchesVisible(True)
         self.rightDial.setObjectName("rightDial")
@@ -1195,7 +1053,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
                                self.sensitivityDial, self.faceDial, self.gammaDial,
                                self.topDial, self.bottomDial, self.leftDial,
                                self.rightDial, self.radio_choices[self.radio][0], self.radio_choices))
-        
+
         self.cropButton_2.clicked.connect(lambda: self.folder_process())
         self.cropButton_3.clicked.connect(lambda: self.mapping_process())
         self.cropButton_4.clicked.connect(
@@ -1233,9 +1091,9 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
         self.connect_lineEdits_buttons(self.photoLineEdit, self.folderLineEdit_1, self.folderLineEdit_2,
                                        self.tableLineEdit, self.videoLineEdit, self.destinationLineEdit_1,
-                                       self.destinationLineEdit_2, self.destinationLineEdit_3, self.destinationLineEdit_4,
-                                       self.widthLineEdit, self.heightLineEdit)
-        
+                                       self.destinationLineEdit_2, self.destinationLineEdit_3,
+                                       self.destinationLineEdit_4, self.widthLineEdit, self.heightLineEdit)
+
         self.photoLineEdit.textChanged.connect(lambda: self.load_data(self.photoLineEdit, self.photoWidget))
         self.folderLineEdit_1.textChanged.connect(lambda: self.load_data(self.folderLineEdit_1, self.folderWidget))
         self.folderLineEdit_2.textChanged.connect(lambda: self.load_data(self.folderLineEdit_2, self.mappingWidget))
@@ -1245,70 +1103,76 @@ class UiMainWindow(QtWidgets.QMainWindow):
             self.gammaDial, self.faceDial, self.sensitivityDial, self.topDial, self.bottomDial, self.leftDial,
             self.rightDial, self.widthLineEdit, self.heightLineEdit)
 
-        self.treeView.selectionModel().selectionChanged.connect(lambda: self.reload())
+        self.treeView.selectionModel().selectionChanged.connect(lambda: self.reload_widgets())
 
         self.connect_radio_buttons(self.radioButton_1, self.radioButton_2, self.radioButton_3,
                                    self.radioButton_4, self.radioButton_5, self.radioButton_6,)
 
         # Folder start connection
         self.cropper.folder_started.connect(
-            lambda: self.disable_widget(self.widthLineEdit, self.heightLineEdit, self.exposureCheckBox_2, self.sensitivityDial, 
-                                        self.faceDial, self.gammaDial, self.topDial, self.bottomDial, self.leftDial, self.rightDial,
-                                        self.folderLineEdit_1, self.destinationLineEdit_2, self.destinationButton_2, self.folderButton_1,
-                                        self.radioButton_1, self.radioButton_2, self.radioButton_3, self.radioButton_4, self.radioButton_5,
-                                        self.radioButton_6, self.cropButton_2))
+            lambda: self.disable_widget(self.widthLineEdit, self.heightLineEdit, self.exposureCheckBox_2,
+                                        self.sensitivityDial, self.faceDial, self.gammaDial, self.topDial,
+                                        self.bottomDial, self.leftDial, self.rightDial, self.folderLineEdit_1,
+                                        self.destinationLineEdit_2, self.destinationButton_2, self.folderButton_1,
+                                        self.radioButton_1, self.radioButton_2, self.radioButton_3, self.radioButton_4,
+                                        self.radioButton_5, self.radioButton_6, self.cropButton_2))
         self.cropper.folder_started.connect(lambda: self.enable_widget(self.cancelButton_1))
-        
+
         # Maping start connection
         self.cropper.mapping_started.connect(
-            lambda: self.disable_widget(self.widthLineEdit, self.heightLineEdit, self.exposureCheckBox_3, self.sensitivityDial,
-                                        self.faceDial, self.gammaDial, self.topDial,self.bottomDial, self.leftDial, self.rightDial,
-                                        self.folderLineEdit_2, self.destinationLineEdit_3, self.destinationButton_3, self.folderButton_2,
-                                        self.tableLineEdit, self.comboBox, self.comboBox_2, self.radioButton_1, self.radioButton_2,
-                                        self.radioButton_3, self.radioButton_4, self.radioButton_5, self.radioButton_6,
-                                        self.cropButton_3))
+            lambda: self.disable_widget(self.widthLineEdit, self.heightLineEdit, self.exposureCheckBox_3,
+                                        self.sensitivityDial, self.faceDial, self.gammaDial, self.topDial,
+                                        self.bottomDial, self.leftDial, self.rightDial, self.folderLineEdit_2,
+                                        self.destinationLineEdit_3, self.destinationButton_3, self.folderButton_2,
+                                        self.tableLineEdit, self.comboBox, self.comboBox_2, self.radioButton_1,
+                                        self.radioButton_2, self.radioButton_3, self.radioButton_4, self.radioButton_5,
+                                        self.radioButton_6, self.cropButton_3))
         self.cropper.mapping_started.connect(lambda: self.enable_widget(self.cancelButton_2))
 
         # Video start connection
         self.cropper.video_started.connect(
-            lambda: self.disable_widget(self.widthLineEdit, self.heightLineEdit, self.exposureCheckBox_4, self.sensitivityDial,
-                                        self.faceDial, self.gammaDial, self.topDial, self.bottomDial, self.leftDial, self.rightDial,
-                                        self.videoLineEdit, self.destinationLineEdit_4, self.destinationButton_4, self.radioButton_1,
-                                        self.radioButton_2, self.radioButton_3, self.radioButton_4, self.radioButton_5, self.radioButton_6,
-                                        self.cropButton_4, self.videocropButton))
+            lambda: self.disable_widget(self.widthLineEdit, self.heightLineEdit, self.exposureCheckBox_4,
+                                        self.sensitivityDial, self.faceDial, self.gammaDial, self.topDial,
+                                        self.bottomDial, self.leftDial, self.rightDial, self.videoLineEdit,
+                                        self.destinationLineEdit_4, self.destinationButton_4, self.radioButton_1,
+                                        self.radioButton_2, self.radioButton_3, self.radioButton_4, self.radioButton_5,
+                                        self.radioButton_6, self.cropButton_4, self.videocropButton))
         self.cropper.video_started.connect(lambda: self.enable_widget(self.cancelButton_3))
 
         # Folder end connection
         self.cropper.folder_finished.connect(
-            lambda: self.enable_widget(self.widthLineEdit, self.heightLineEdit, self.exposureCheckBox_2, self.sensitivityDial,
-                                       self.faceDial, self.gammaDial, self.topDial, self.bottomDial, self.leftDial, self.rightDial,
-                                       self.folderLineEdit_1, self.destinationLineEdit_2, self.destinationButton_2, self.folderButton_1,
-                                       self.radioButton_1, self.radioButton_2, self.radioButton_3, self.radioButton_4, self.radioButton_5,
-                                       self.radioButton_6, self.cropButton_2))
+            lambda: self.enable_widget(self.widthLineEdit, self.heightLineEdit, self.exposureCheckBox_2,
+                                       self.sensitivityDial, self.faceDial, self.gammaDial, self.topDial,
+                                       self.bottomDial, self.leftDial, self.rightDial, self.folderLineEdit_1,
+                                       self.destinationLineEdit_2, self.destinationButton_2, self.folderButton_1,
+                                       self.radioButton_1, self.radioButton_2, self.radioButton_3, self.radioButton_4,
+                                       self.radioButton_5, self.radioButton_6, self.cropButton_2))
         self.cropper.folder_finished.connect(lambda: self.disable_widget(self.cancelButton_1))
         self.cropper.folder_finished.connect(lambda: self.show_message_box(self.destinationLineEdit_2))
-        
+
         # Maping end connection
         self.cropper.mapping_finished.connect(
-            lambda: self.enable_widget(self.widthLineEdit, self.heightLineEdit, self.exposureCheckBox_3, self.sensitivityDial,
-                                       self.faceDial, self.gammaDial, self.topDial, self.bottomDial, self.leftDial, self.rightDial,
-                                       self.folderLineEdit_2, self.destinationLineEdit_3, self.destinationButton_3, self.folderButton_2,
-                                       self.tableLineEdit, self.comboBox, self.comboBox_2, self.radioButton_1, self.radioButton_2,
-                                       self.radioButton_3, self.radioButton_4, self.radioButton_5, self.radioButton_6,
-                                       self.cropButton_3))
+            lambda: self.enable_widget(self.widthLineEdit, self.heightLineEdit, self.exposureCheckBox_3,
+                                       self.sensitivityDial, self.faceDial, self.gammaDial, self.topDial,
+                                       self.bottomDial, self.leftDial, self.rightDial, self.folderLineEdit_2,
+                                       self.destinationLineEdit_3, self.destinationButton_3, self.folderButton_2,
+                                       self.tableLineEdit, self.comboBox, self.comboBox_2, self.radioButton_1,
+                                       self.radioButton_2, self.radioButton_3, self.radioButton_4, self.radioButton_5,
+                                       self.radioButton_6, self.cropButton_3))
         self.cropper.mapping_finished.connect(lambda: self.disable_widget(self.cancelButton_2))
         self.cropper.mapping_finished.connect(lambda: self.show_message_box(self.destinationLineEdit_3))
-        
+
         # Video end connection
         self.cropper.video_finished.connect(
-            lambda: self.enable_widget(self.widthLineEdit, self.heightLineEdit, self.exposureCheckBox_4, self.sensitivityDial,
-                                       self.faceDial, self.gammaDial, self.topDial, self.bottomDial, self.leftDial, self.rightDial,
-                                       self.videoLineEdit, self.destinationLineEdit_4, self.destinationButton_4, self.radioButton_1,
-                                       self.radioButton_2, self.radioButton_3, self.radioButton_4, self.radioButton_5, self.radioButton_6,
-                                       self.cropButton_4, self.videocropButton))
+            lambda: self.enable_widget(self.widthLineEdit, self.heightLineEdit, self.exposureCheckBox_4,
+                                       self.sensitivityDial, self.faceDial, self.gammaDial, self.topDial,
+                                       self.bottomDial, self.leftDial, self.rightDial, self.videoLineEdit,
+                                       self.destinationLineEdit_4, self.destinationButton_4, self.radioButton_1,
+                                       self.radioButton_2, self.radioButton_3, self.radioButton_4, self.radioButton_5,
+                                       self.radioButton_6, self.cropButton_4, self.videocropButton))
         self.cropper.video_finished.connect(lambda: self.disable_widget(self.cancelButton_3))
         self.cropper.video_finished.connect(lambda: self.show_message_box(self.destinationLineEdit_4))
-        
+
         self.cropper.folder_progress.connect(self.update_progress_1)
         self.cropper.mapping_progress.connect(self.update_progress_2)
         self.cropper.video_progress.connect(self.update_progress_3)
@@ -1339,16 +1203,16 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.destinationLineEdit_1.setPlaceholderText(
             _translate("MainWindow", "Choose where you want to save the cropped image"))
         self.destinationButton_1.setText(_translate("MainWindow", "Destination Folder"))
-        self.function_tabWidget.setTabText(self.function_tabWidget.indexOf(self.photoTab),
-                                           _translate("MainWindow", "Photo Crop"))
+        self.function_tabWidget.setTabText(
+            self.function_tabWidget.indexOf(self.photoTab), _translate("MainWindow", "Photo Crop"))
         self.folderLineEdit_1.setPlaceholderText(_translate("MainWindow", "Choose the folder you want to crop"))
         self.folderButton_1.setText(_translate("MainWindow", "Select Folder"))
         self.exposureCheckBox_2.setText(_translate("MainWindow", "Autocorrect Exposure"))
         self.destinationLineEdit_2.setPlaceholderText(
             _translate("MainWindow", "Choose where you want to save the cropped images"))
         self.destinationButton_2.setText(_translate("MainWindow", "Destination Folder"))
-        self.function_tabWidget.setTabText(self.function_tabWidget.indexOf(self.folder_Tab),
-                                           _translate("MainWindow", "Folder Crop"))
+        self.function_tabWidget.setTabText(
+            self.function_tabWidget.indexOf(self.folder_Tab), _translate("MainWindow", "Folder Crop"))
         self.tableLineEdit.setPlaceholderText(_translate("MainWindow", "Choose the Excel or CSV file with the mapping"))
         self.folderLineEdit_2.setPlaceholderText(_translate("MainWindow", "Choose the folder you want to crop"))
         self.folderButton_2.setText(_translate("MainWindow", "Select Folder"))
@@ -1359,8 +1223,8 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.destinationLineEdit_3.setPlaceholderText(
             _translate("MainWindow", "Choose where you want to save the cropped images"))
         self.destinationButton_3.setText(_translate("MainWindow", "Destination Folder"))
-        self.function_tabWidget.setTabText(self.function_tabWidget.indexOf(self.mappingTab),
-                                           _translate("MainWindow", "Mapping Crop"))
+        self.function_tabWidget.setTabText(
+            self.function_tabWidget.indexOf(self.mappingTab), _translate("MainWindow", "Mapping Crop"))
         self.videoLineEdit.setPlaceholderText(_translate("MainWindow", "Choose the video you want to crop"))
         self.videoButton.setText(_translate("MainWindow", "Open Video"))
         self.positionLabel.setText(_translate("MainWindow", "00:00:00"))
@@ -1371,8 +1235,8 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.destinationButton_4.setText(_translate("MainWindow", "Destination Folder"))
         self.selectStartMarkerButton.setText(_translate("MainWindow", "00:00:00"))
         self.selectEndMarkerButton.setText(_translate("MainWindow", "00:00:00"))
-        self.function_tabWidget.setTabText(self.function_tabWidget.indexOf(self.videoTab),
-                                           _translate("MainWindow", "Video Crop"))
+        self.function_tabWidget.setTabText(
+            self.function_tabWidget.indexOf(self.videoTab), _translate("MainWindow", "Video Crop"))
         self.label.setText(_translate("MainWindow", "Gamma"))
         self.label_2.setText(_translate("MainWindow", "Face %"))
         self.label_3.setText(_translate("MainWindow", "Sensitivity"))
@@ -1385,10 +1249,10 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.label_9.setText(_translate("MainWindow", "Bottom"))
         self.label_10.setText(_translate("MainWindow", "Left"))
         self.label_11.setText(_translate("MainWindow", "Right"))
-        self.settings_tabWidget.setTabText(self.settings_tabWidget.indexOf(self.settingsTab),
-                                           _translate("MainWindow", "Settings"))
-        self.settings_tabWidget.setTabText(self.settings_tabWidget.indexOf(self.formatTab),
-                                           _translate("MainWindow", "Format Conversion"))
+        self.settings_tabWidget.setTabText(
+            self.settings_tabWidget.indexOf(self.settingsTab), _translate("MainWindow", "Settings"))
+        self.settings_tabWidget.setTabText(
+            self.settings_tabWidget.indexOf(self.formatTab), _translate("MainWindow", "Format Conversion"))
         self.menuFile.setTitle(_translate("MainWindow", "Presets"))
         self.menuTools.setTitle(_translate("MainWindow", "Tools"))
         self.menuInfo.setTitle(_translate("MainWindow", "Info"))
@@ -1406,39 +1270,39 @@ class UiMainWindow(QtWidgets.QMainWindow):
     def connect_radio_buttons(self, *buttons: QtWidgets.QRadioButton):
         for radioButton in buttons:
             radioButton.clicked.connect(self.radio_logic)
-    
+
     def connect_lineEdits_buttons(self, *lineEdits: QtWidgets.QLineEdit):
         for lineEdit in lineEdits:
             lineEdit.textChanged.connect(lambda: self.disable_buttons())
-    
+
     def connect_input_widgets(self, *input_widgets: QtWidgets.QWidget):
         for input_widget in input_widgets:
             if isinstance(input_widget, QtWidgets.QLineEdit):
-                input_widget.textChanged.connect(lambda: self.reload())
+                input_widget.textChanged.connect(lambda: self.reload_widgets())
             elif isinstance(input_widget, QtWidgets.QDial):
-                input_widget.valueChanged.connect(lambda: self.reload())
+                input_widget.valueChanged.connect(lambda: self.reload_widgets())
             elif isinstance(input_widget, QtWidgets.QCheckBox):
-                input_widget.stateChanged.connect(lambda: self.reload())
+                input_widget.stateChanged.connect(lambda: self.reload_widgets())
 
     def folder_image_select(self) -> None:
-        if self.widthLineEdit.text() in {'', None} or self.heightLineEdit.text() in {'', None}:
+        if not self.widthLineEdit.text() or not self.heightLineEdit.text():
             return None
         
-        if Path(self.folderLineEdit_1.text()).as_posix() in {'', None}:
+        if not Path(self.folderLineEdit_1.text()).as_posix():
             return None
         self.cropper.display_crop(Path(self.file_model.filePath(self.treeView.currentIndex())), self.exposureCheckBox_2,
                                   self.widthLineEdit, self.heightLineEdit, self.sensitivityDial, self.faceDial,
                                   self.gammaDial, self.topDial, self.bottomDial, self.leftDial, self.rightDial,
                                   self.folderWidget)
 
-    def reload(self) -> None:
+    def reload_widgets(self) -> None:
         common_widgets = (self.widthLineEdit, self.heightLineEdit, self.sensitivityDial, self.faceDial, 
                           self.gammaDial, self.topDial, self.bottomDial, self.leftDial, self.rightDial)
-        if self.widthLineEdit.text() in {'', None} or self.heightLineEdit.text() in {'', None}:
+        if not self.widthLineEdit.text() or not self.heightLineEdit.text():
             return None
         if self.function_tabWidget.currentIndex() == 0:
             f_name = Path(self.photoLineEdit.text())
-            if f_name.as_posix() in {'', None}:
+            if not f_name.as_posix():
                 return None
             self.cropper.display_crop(f_name, self.exposureCheckBox_1, *common_widgets, self.photoWidget)
         elif self.function_tabWidget.currentIndex() == 1:
@@ -1447,16 +1311,68 @@ class UiMainWindow(QtWidgets.QMainWindow):
             else:
                 folder = Path(self.folderLineEdit_1.text())
 
-            if folder.as_posix() in {'', None}:
+            if not folder.as_posix():
                 return None
             self.cropper.display_crop(folder, self.exposureCheckBox_2, *common_widgets, self.folderWidget,
                                       Photo().ALL_TYPES())
         elif self.function_tabWidget.currentIndex() == 2:
             folder = Path(self.folderLineEdit_2.text())
-            if folder.as_posix() in {'', None}:
+            if not folder.as_posix():
                 return None
             self.cropper.display_crop(folder, self.exposureCheckBox_3, *common_widgets, self.mappingWidget,
                                       Photo().ALL_TYPES())
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.setDropAction(QtCore.Qt.DropAction.CopyAction)
+            file_path = Path(event.mimeData().urls()[0].toLocalFile())
+            common_widgets = (self.widthLineEdit, self.heightLineEdit, self.sensitivityDial, self.faceDial,
+                              self.gammaDial, self.topDial, self.bottomDial, self.leftDial, self.rightDial)
+            if file_path.is_dir():
+                self.function_tabWidget.setCurrentIndex(1)
+                self.folderLineEdit_1.setText(file_path.as_posix())
+                if self.widthLineEdit.text() and self.heightLineEdit.text():
+                    self.cropper.display_crop(file_path, self.exposureCheckBox_2, *common_widgets, self.folderWidget)
+            elif file_path.is_file():
+                if file_path.suffix in utils.IMAGE_TYPES:
+                    self.function_tabWidget.setCurrentIndex(0)
+                    self.photoLineEdit.setText(file_path.as_posix())
+                    if self.widthLineEdit.text() and self.heightLineEdit.text():
+                        self.cropper.display_crop(file_path, self.exposureCheckBox_1, *common_widgets, self.photoWidget)
+                elif file_path.suffix in utils.VIDEO_TYPES:
+                    self.function_tabWidget.setCurrentIndex(3)
+                    self.videoLineEdit.setText(file_path.as_posix())
+                elif file_path.suffix in utils.PANDAS_TYPES:
+                    self.function_tabWidget.setCurrentIndex(2)
+                    self.tableLineEdit.setText(file_path.as_posix())
+                    data = utils.open_file(file_path)
+                    assert isinstance(data, pd.DataFrame)
+
+                    self.data_frame = data
+                    if self.data_frame is None:
+                        return None
+
+                    self.model = custom_widgets.DataFrameModel(self.data_frame)
+                    self.tableView.setModel(self.model)
+
+                    self.comboBox.addItems(self.data_frame.columns.to_numpy())
+                    self.comboBox_2.addItems(self.data_frame.columns.to_numpy())
+
+            event.accept()
+        else:
+            event.ignore()
 
     def load_preset(self, phi: Union[int, float]) -> None:
         if phi == 1:
@@ -1469,9 +1385,9 @@ class UiMainWindow(QtWidgets.QMainWindow):
         elif int(self.widthLineEdit.text()) < int(self.heightLineEdit.text()):
             self.widthLineEdit.setText(str(int(float(self.heightLineEdit.text()) / phi)))
 
-    def load_data(self, line_edit: Union[QtWidgets.QLineEdit, str], image_widget: utils.ImageWidget) -> None:
+    def load_data(self, line_edit: Union[QtWidgets.QLineEdit, str], image_widget: custom_widgets.ImageWidget) -> None:
         common_widgets = (self.widthLineEdit, self.heightLineEdit, self.sensitivityDial, self.faceDial,
-                          self.gammaDial,  self.topDial, self.bottomDial, self.leftDial, self.rightDial,
+                          self.gammaDial, self.topDial, self.bottomDial, self.leftDial, self.rightDial,
                           image_widget)
         f_name = line_edit.text() if isinstance(line_edit, QtWidgets.QLineEdit) else line_edit
         path = Path(f_name)
@@ -1487,9 +1403,9 @@ class UiMainWindow(QtWidgets.QMainWindow):
         except (IndexError, FileNotFoundError, ValueError, AttributeError):
             return None
 
-    def open_folder(self, line_edit: QtWidgets.QLineEdit, image_widget: Optional[utils.ImageWidget] = None,
+    def open_folder(self, line_edit: QtWidgets.QLineEdit, image_widget: Optional[custom_widgets.ImageWidget] = None,
                     file_model: Optional[QtGui.QFileSystemModel] = None) -> None:
-        
+
         if line_edit in {self.folderLineEdit_1, self.folderLineEdit_2, self.destinationLineEdit_1, 
                          self.destinationLineEdit_2, self.destinationLineEdit_3, self.destinationLineEdit_4}:
             f_name = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Directory', Photo().default_directory)
@@ -1497,10 +1413,10 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
             if image_widget is None:
                 return
-            
+
             if isinstance(file_model, QtGui.QFileSystemModel):
                 self.load_data(line_edit, image_widget)
-        
+
         if line_edit is self.photoLineEdit:
             f_name, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', Photo().default_directory,
                                                               Photo().type_string())
@@ -1508,22 +1424,24 @@ class UiMainWindow(QtWidgets.QMainWindow):
             if image_widget is None:
                 return
             self.load_data(line_edit, image_widget)
-    
+
     def open_table(self) -> None:
         type_string = "All Files (*);;" + ";;".join(f"{_} Files (*{_})" for _ in np.sort(utils.PANDAS_TYPES))
-        f_name, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', Photo().default_directory,
-                                                          type_string)
+        f_name, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', Photo().default_directory, type_string)
         if f_name is None:
             return None
         self.tableLineEdit.setText(f_name)
-        
+
         data = utils.open_file(f_name)
-        assert isinstance(data, pd.DataFrame)
+        try:
+            assert isinstance(data, pd.DataFrame)
+        except AssertionError:
+            return None
 
         self.data_frame = data
         if self.data_frame is None:
             return None
-        self.model = utils.DataFrameModel(self.data_frame)
+        self.model = custom_widgets.DataFrameModel(self.data_frame)
         self.tableView.setModel(self.model)
 
         self.comboBox.addItems(self.data_frame.columns.to_numpy())
@@ -1531,12 +1449,12 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
     @staticmethod
     def load_about_form() -> None:
-        about_ui = UiDialog()
+        about_ui = custom_widgets.UiDialog()
         about_ui.exec()
 
     def radio_logic(self) -> None:
         self.radio = np.array([r.isChecked() for r in self.radio_buttons])
-    
+
     @staticmethod
     def show_message_box(destination: QtWidgets.QLineEdit):
         def message_button(answer):
@@ -1589,17 +1507,19 @@ class UiMainWindow(QtWidgets.QMainWindow):
         common_line_edits = (self.widthLineEdit, self.heightLineEdit)
 
         # Photo logic
-        update_widget_state(all_filled(self.photoLineEdit, self.destinationLineEdit_1, *common_line_edits),
-                            self.cropButton_1)
+        update_widget_state(
+            all_filled(self.photoLineEdit, self.destinationLineEdit_1, *common_line_edits), self.cropButton_1)
         # Folder logic
-        update_widget_state(all_filled(self.folderLineEdit_1, self.destinationLineEdit_2, *common_line_edits),
-                            self.cropButton_2)
+        update_widget_state(
+            all_filled(self.folderLineEdit_1, self.destinationLineEdit_2, *common_line_edits), self.cropButton_2)
         # Mapping logic
-        update_widget_state(all_filled(self.folderLineEdit_2, self.tableLineEdit, self.destinationLineEdit_3,
-                                       self.comboBox, self.comboBox_2, *common_line_edits), self.cropButton_3)
+        update_widget_state(
+            all_filled(self.folderLineEdit_2, self.tableLineEdit, self.destinationLineEdit_3, self.comboBox,
+                       self.comboBox_2, *common_line_edits), self.cropButton_3)
         # Video logic
-        update_widget_state(all_filled(self.videoLineEdit, self.destinationLineEdit_4, *common_line_edits),
-                            self.cropButton_4, self.videocropButton)
+        update_widget_state(
+            all_filled(self.videoLineEdit, self.destinationLineEdit_4, *common_line_edits), self.cropButton_4,
+            self.videocropButton)
 
     def folder_process(self) -> None:
         self.cropper.reset()
@@ -1626,10 +1546,10 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.cropper.reset()
         process = Process(target=self.cropper.extract_frames, daemon=True,
                           args=(self.videoLineEdit, self.video.start_position, self.video.stop_position,
-                                self.destinationLineEdit_4, self.widthLineEdit, self.heightLineEdit, self.exposureCheckBox_4,
-                                self.sensitivityDial, self.faceDial, self.gammaDial, self.topDial, self.bottomDial,
-                                self.leftDial, self.rightDial, self.radio_choices[self.radio][0],
-                                self.radio_choices))
+                                self.destinationLineEdit_4, self.widthLineEdit, self.heightLineEdit,
+                                self.exposureCheckBox_4, self.sensitivityDial, self.faceDial, self.gammaDial,
+                                self.topDial, self.bottomDial, self.leftDial, self.rightDial,
+                                self.radio_choices[self.radio][0], self.radio_choices))
         process.run()
 
     def update_progress_1(self, value: int) -> None:

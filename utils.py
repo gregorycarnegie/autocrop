@@ -5,71 +5,17 @@ import shutil
 import numpy as np
 import pandas as pd
 import tifffile as tiff
+from files import PIL_TYPES, CV2_TYPES, RAW_TYPES, PANDAS_TYPES
+from custom_widgets import ImageWidget
 from functools import cache, lru_cache, wraps
 from pathlib import Path
 from PIL import Image
-from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtGui
 from typing import Optional, Union
 
 import cProfile
 import pstats
 
-
-class ImageWidget(QtWidgets.QWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.image = None
-
-    def setImage(self, image: QtGui.QPixmap) -> None:
-        self.image = image
-        self.update()
-
-    def paintEvent(self, event) -> None:
-        if self.image is not None:
-            qp = QtGui.QPainter(self)
-            qp.setRenderHint(QtGui.QPainter.RenderHint.SmoothPixmapTransform)
-            scaled_image = self.image.scaled(self.size(), QtCore.Qt.AspectRatioMode.KeepAspectRatio,
-                                             QtCore.Qt.TransformationMode.SmoothTransformation)
-            x_offset = (self.width() - scaled_image.width()) >> 1
-            y_offset = (self.height() - scaled_image.height()) >> 1
-            qp.drawPixmap(x_offset, y_offset, scaled_image)
-
-
-class DataFrameModel(QtCore.QAbstractTableModel):
-    def __init__(self, df: pd.DataFrame, parent=None):
-        super(DataFrameModel, self).__init__(parent)
-        self._df = df
-
-    def rowCount(self, parent=None):
-        if self._df is not None:
-            return self._df.shape[0]
-
-    def columnCount(self, parent=None):
-        if self._df is not None:
-            return self._df.shape[1]
-
-    def data(self, index, role=QtCore.Qt.ItemDataRole.DisplayRole) -> Optional[str]:
-        if index.isValid() and role == QtCore.Qt.ItemDataRole.DisplayRole:
-            return str(self._df.iloc[index.row(), index.column()])
-        return None
-
-    def headerData(self, section, orientation, role=QtCore.Qt.ItemDataRole.DisplayRole) -> Optional[str]:
-        if role == QtCore.Qt.ItemDataRole.DisplayRole:
-            if orientation == QtCore.Qt.Orientation.Horizontal:
-                return str(self._df.columns[section])
-            if orientation == QtCore.Qt.Orientation.Vertical:
-                return str(self._df.index[section])
-        return None
-    
-    
-PIL_TYPES = np.array(['.bmp', '.dib', '.jfif', '.jp2', '.jpe', '.jpeg', '.jpg', '.pbm',
-                      '.pgm', '.png', '.ppm', '.ras', '.sr', '.tif', '.tiff', '.webp'])
-CV2_TYPES = np.array(['.eps', '.icns', '.ico', '.im', '.msp', '.pcx', '.sgi', '.spi', '.xbm'])
-RAW_TYPES = np.array(['.dng', '.arw', '.cr2', '.crw', '.erf', '.kdc', '.nef', '.nrw', 
-                      '.orf', '.pef', '.raf', '.raw', '.sr2', '.srw', '.x3f'])
-IMAGE_TYPES = np.concatenate((PIL_TYPES, CV2_TYPES, RAW_TYPES))
-PANDAS_TYPES = np.array(['.csv', ".xlsx", ".xlsm", ".xltx", ".xltm"])
-VIDEO_TYPES = np.array([".avi", ".m4v", ".mkv", ".mov", ".mp4", ".wmv"])
 
 GAMMA_THRESHOLD = 0.001
 
@@ -79,7 +25,7 @@ def profileit(func):
         with cProfile.Profile() as profile:
             func(*args, **kwargs)
         result = pstats.Stats(profile)
-        result.sort_stats(pstats.SortKey.TIME)
+        result.sort_stats(pstats.SortKey.CUMULATIVE)
         result.print_stats()
 
     return wrapper
@@ -124,7 +70,7 @@ def correct_exposure(image: Union[cv2.Mat, Image.Image, np.ndarray],
     gray = cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY) if len(image_array.shape) > 2 else image_array
 
     # Grayscale histogram
-    hist = cv2.calcHist([gray],[0],None,[256],[0,256]).ravel()
+    hist = cv2.calcHist([gray], [0], None, [256], [0, 256]).ravel()
 
     # Cumulative distribution from the histogram
     accumulator = np.cumsum(hist)
@@ -132,7 +78,7 @@ def correct_exposure(image: Union[cv2.Mat, Image.Image, np.ndarray],
     # Locate points to clip
     clip_hist_percent = accumulator[-1] * 0.005
     minimum_gray = np.argmax(accumulator > clip_hist_percent)
-    maximum_gray = np.argmax(accumulator >= (accumulator[-1] - clip_hist_percent)).astype(int)
+    maximum_gray = np.argmax(accumulator >= (accumulator[-1] - clip_hist_percent))
     if maximum_gray == 0:
         maximum_gray = 255
 
@@ -168,6 +114,10 @@ def open_file(input_file: Union[Path, str], exposure: Optional[bool] = False) ->
     return None
 
 @cache
+def calculate_edge(face_coordinate: int, width: int, cropped_width: float, padding: int) -> float:
+    return face_coordinate + (width + cropped_width) * .5 + padding * .01 * cropped_width
+
+@cache
 def crop_positions(x: int, y: int, width: int, height: int, percent_face: int, output_width: int, output_height: int,
                    top: int, bottom: int, left: int, right: int) -> Optional[np.ndarray]:
     """
@@ -200,11 +150,10 @@ def crop_positions(x: int, y: int, width: int, height: int, percent_face: int, o
             cropped_height = output_height * cropped_width / output_width
         
         # left, top, right, bottom
-        l = x + (width - cropped_width) * .5 - left * .01 * cropped_width
-        t = y + (height - cropped_height) * .5 - top * .01 * cropped_height
-        r = x + (width + cropped_width) * .5 + right * .01 * cropped_width
-        b = y + (height + cropped_height) * .5 + bottom * .01 * cropped_height
-
+        l = calculate_edge(x, width, -cropped_width, left)
+        t = calculate_edge(y, height, -cropped_height, top)
+        r = calculate_edge(x, width, cropped_width, right)
+        b = calculate_edge(y, height, cropped_height, bottom)
         return np.array([l, t, r, b]).astype(int)
     else:
         return None
@@ -228,8 +177,8 @@ def box(img: Union[cv2.Mat, Path], conf: int, face_perc: int, width: int, height
     return crop_positions(x0, y0, x1 - x0, y1 - y0, face_perc, wide, high, top, bottom, left, right)
 
 @cache
-def box_detect(img_path: Path, wide: int, high: int, conf: int, face_perc: int, top: int, bottom: int,
-               left: int, right: int) -> Optional[np.ndarray]:
+def box_detect(img_path: Path, wide: int, high: int, conf: int, face_perc: int, top: int, bottom: int, left: int,
+               right: int) -> Optional[np.ndarray]:
     img = open_file(img_path)
     # get width and height of the image
     try:
@@ -241,8 +190,8 @@ def box_detect(img_path: Path, wide: int, high: int, conf: int, face_perc: int, 
         return None
     return box(img, conf, face_perc, width, height, wide, high, top, bottom, left, right)
 
-def box_detect_frame(img: cv2.Mat, wide: int, high: int, conf: int, face_perc: int, top: int, bottom: int,
-               left: int, right: int) -> Optional[np.ndarray]:
+def box_detect_frame(img: cv2.Mat, wide: int, high: int, conf: int, face_perc: int, top: int, bottom: int, left: int,
+                     right: int) -> Optional[np.ndarray]:
     # get width and height of the image
     try:
         height, width = img.shape[:2]
@@ -286,7 +235,8 @@ def preprocess_image(image: Union[Image.Image, rawpy.RawPy], bounding_box: np.nd
     return Image.fromarray(pic_array).crop(bounding_box)
 
 @cache
-def set_filename(image_path: Path, destination: Path, radio_choice: str, radio_options: tuple, new: Optional[str] = None) -> tuple[Path, bool]:
+def set_filename(image_path: Path, destination: Path, radio_choice: str, radio_options: tuple,
+                 new: Optional[str] = None) -> tuple[Path, bool]:
     if image_path.suffix.lower() in RAW_TYPES:
         selected_extension = radio_options[2] if radio_choice == radio_options[0] else radio_choice
     else:
@@ -305,5 +255,5 @@ def save_image(image: cv2.Mat, file_path: str, user_gam: Union[int, float], gamm
         image = cv2.convertScaleAbs(image)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         tiff.imwrite(file_path, image)
-    else:  
+    else:
         cv2.imwrite(file_path, cv2.LUT(image, gamma(user_gam * gamma_threshold)))
