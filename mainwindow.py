@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import custom_widgets
 from cropper import Cropper
-from files import Photo, Video
+from files import Photo, Video, IMAGE_TYPES, VIDEO_TYPES, PANDAS_TYPES
 from multiprocessing import Process
 from os import startfile
 from PyQt6 import QtCore, QtGui, QtWidgets
@@ -1075,10 +1075,10 @@ class UiMainWindow(QtWidgets.QMainWindow):
                                              self.pushButton_27, self.startmarkerButton, self.endmarkerButton,
                                              self.selectEndMarkerButton, self.selectStartMarkerButton))
         self.stopButton.clicked.connect(lambda: self.video.stop_btn())
-        # self.stepbackButton.clicked.connect(lambda: 
-        # self.stepfwdButton.clicked.connect(lambda: 
-        self.rewindButton.clicked.connect(lambda: self.video.fastfwd())
-        self.fastfwdButton.clicked.connect(lambda: self.video.rewind())
+        self.stepbackButton.clicked.connect(lambda: self.video.stepback())
+        self.stepfwdButton.clicked.connect(lambda: self.video.stepfwd())
+        self.fastfwdButton.clicked.connect(lambda: self.video.fastfwd())
+        self.rewindButton.clicked.connect(lambda: self.video.rewind())
         self.pushButton_26.clicked.connect(lambda: self.video.goto_begining())
         self.pushButton_27.clicked.connect(lambda: self.video.goto_end())
         self.startmarkerButton.clicked.connect(
@@ -1314,13 +1314,13 @@ class UiMainWindow(QtWidgets.QMainWindow):
             if not folder.as_posix():
                 return None
             self.cropper.display_crop(folder, self.exposureCheckBox_2, *common_widgets, self.folderWidget,
-                                      Photo().ALL_TYPES())
+                                      IMAGE_TYPES)
         elif self.function_tabWidget.currentIndex() == 2:
             folder = Path(self.folderLineEdit_2.text())
             if not folder.as_posix():
                 return None
             self.cropper.display_crop(folder, self.exposureCheckBox_3, *common_widgets, self.mappingWidget,
-                                      Photo().ALL_TYPES())
+                                      IMAGE_TYPES)
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
@@ -1335,44 +1335,62 @@ class UiMainWindow(QtWidgets.QMainWindow):
             event.ignore()
 
     def dropEvent(self, event):
-        if event.mimeData().hasUrls():
-            event.setDropAction(QtCore.Qt.DropAction.CopyAction)
-            file_path = Path(event.mimeData().urls()[0].toLocalFile())
-            common_widgets = (self.widthLineEdit, self.heightLineEdit, self.sensitivityDial, self.faceDial,
-                              self.gammaDial, self.topDial, self.bottomDial, self.leftDial, self.rightDial)
-            if file_path.is_dir():
-                self.function_tabWidget.setCurrentIndex(1)
-                self.folderLineEdit_1.setText(file_path.as_posix())
-                if self.widthLineEdit.text() and self.heightLineEdit.text():
-                    self.cropper.display_crop(file_path, self.exposureCheckBox_2, *common_widgets, self.folderWidget)
-            elif file_path.is_file():
-                if file_path.suffix in utils.IMAGE_TYPES:
-                    self.function_tabWidget.setCurrentIndex(0)
-                    self.photoLineEdit.setText(file_path.as_posix())
-                    if self.widthLineEdit.text() and self.heightLineEdit.text():
-                        self.cropper.display_crop(file_path, self.exposureCheckBox_1, *common_widgets, self.photoWidget)
-                elif file_path.suffix in utils.VIDEO_TYPES:
-                    self.function_tabWidget.setCurrentIndex(3)
-                    self.videoLineEdit.setText(file_path.as_posix())
-                elif file_path.suffix in utils.PANDAS_TYPES:
-                    self.function_tabWidget.setCurrentIndex(2)
-                    self.tableLineEdit.setText(file_path.as_posix())
-                    data = utils.open_file(file_path)
-                    assert isinstance(data, pd.DataFrame)
-
-                    self.data_frame = data
-                    if self.data_frame is None:
-                        return None
-
-                    self.model = custom_widgets.DataFrameModel(self.data_frame)
-                    self.tableView.setModel(self.model)
-
-                    self.comboBox.addItems(self.data_frame.columns.to_numpy())
-                    self.comboBox_2.addItems(self.data_frame.columns.to_numpy())
-
-            event.accept()
-        else:
+        if not event.mimeData().hasUrls():
             event.ignore()
+            return
+
+        event.setDropAction(QtCore.Qt.DropAction.CopyAction)
+        file_path = Path(event.mimeData().urls()[0].toLocalFile())
+        common_widgets = (self.widthLineEdit, self.heightLineEdit, self.sensitivityDial, self.faceDial,
+                          self.gammaDial, self.topDial, self.bottomDial, self.leftDial, self.rightDial)
+
+        if file_path.is_dir():
+            self.handle_directory(file_path, common_widgets)
+        elif file_path.is_file():
+            self.handle_file(file_path, common_widgets)
+
+        event.accept()
+
+    def handle_directory(self, file_path, common_widgets):
+        self.function_tabWidget.setCurrentIndex(1)
+        self.folderLineEdit_1.setText(file_path.as_posix())
+        if self.widthLineEdit.text() and self.heightLineEdit.text():
+            self.cropper.display_crop(file_path, self.exposureCheckBox_2, *common_widgets, self.folderWidget)
+
+    def handle_file(self, file_path, common_widgets):
+        if file_path.suffix in IMAGE_TYPES:
+            self.handle_image_file(file_path, common_widgets)
+        elif file_path.suffix in VIDEO_TYPES:
+            self.handle_video_file(file_path)
+        elif file_path.suffix in PANDAS_TYPES:
+            self.handle_pandas_file(file_path)
+
+    def handle_image_file(self, file_path, common_widgets):
+        self.function_tabWidget.setCurrentIndex(0)
+        self.photoLineEdit.setText(file_path.as_posix())
+        if self.widthLineEdit.text() and self.heightLineEdit.text():
+            self.cropper.display_crop(file_path, self.exposureCheckBox_1, *common_widgets, self.photoWidget)
+
+    def handle_video_file(self, file_path):
+        self.function_tabWidget.setCurrentIndex(3)
+        self.videoLineEdit.setText(file_path.as_posix())
+
+    def handle_pandas_file(self, file_path):
+        self.function_tabWidget.setCurrentIndex(2)
+        self.tableLineEdit.setText(file_path.as_posix())
+        data = utils.open_file(file_path)
+        assert isinstance(data, pd.DataFrame)
+
+        self.data_frame = data
+        if self.data_frame is None:
+            return
+
+        self.model = custom_widgets.DataFrameModel(self.data_frame)
+        self.tableView.setModel(self.model)
+
+        self.comboBox.addItems(self.data_frame.columns.to_numpy())
+        self.comboBox_2.addItems(self.data_frame.columns.to_numpy())
+
 
     def load_preset(self, phi: Union[int, float]) -> None:
         if phi == 1:
@@ -1397,9 +1415,9 @@ class UiMainWindow(QtWidgets.QMainWindow):
             elif line_edit is self.folderLineEdit_1:
                 self.file_model.setRootPath(f_name)
                 self.treeView.setRootIndex(self.file_model.index(f_name))
-                self.cropper.display_crop(path, self.exposureCheckBox_2, *common_widgets, Photo().ALL_TYPES())
+                self.cropper.display_crop(path, self.exposureCheckBox_2, *common_widgets, IMAGE_TYPES)
             elif line_edit is self.folderLineEdit_2:
-                self.cropper.display_crop(path, self.exposureCheckBox_3, *common_widgets, Photo().ALL_TYPES())
+                self.cropper.display_crop(path, self.exposureCheckBox_3, *common_widgets, IMAGE_TYPES)
         except (IndexError, FileNotFoundError, ValueError, AttributeError):
             return None
 
@@ -1524,7 +1542,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
     def folder_process(self) -> None:
         self.cropper.reset()
         file_list = np.fromiter(Path(self.folderLineEdit_1.text()).iterdir(), Path)
-        photo_files = np.array([pic.suffix.lower() in utils.IMAGE_TYPES for pic in file_list])
+        photo_files = np.array([pic.suffix.lower() in IMAGE_TYPES for pic in file_list])
         process = Process(target=self.cropper.crop_dir, daemon=True,
                           args=(file_list[photo_files], Path(self.destinationLineEdit_2.text()), self.widthLineEdit,
                                 self.heightLineEdit, self.exposureCheckBox_2, self.sensitivityDial, self.faceDial,

@@ -1,3 +1,4 @@
+import autocrop_rs
 import contextlib
 import cv2
 import rawpy
@@ -12,7 +13,6 @@ from pathlib import Path
 from PIL import Image
 from PyQt6 import QtGui
 from typing import Optional, Union
-
 import cProfile
 import pstats
 
@@ -49,8 +49,7 @@ def gamma(gam: Union[int, float] = 1.0) -> np.ndarray:
     return np.power(np.arange(256) / 255, 1.0 / gam) * 255 if gam != 1.0 else np.arange(256)
 
 def adjust_gamma(image: np.ndarray, gam: int) -> cv2.Mat:
-    gamma_lut = gamma(gam * GAMMA_THRESHOLD).astype('uint8')
-    return cv2.LUT(image, gamma_lut)
+    return cv2.LUT(image, gamma(gam * GAMMA_THRESHOLD).astype('uint8'))
 
 def convert_color_space(image: Union[cv2.Mat, np.ndarray]) -> cv2.Mat:
     return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -60,6 +59,23 @@ def display_image_on_widget(image: Union[cv2.Mat, np.ndarray], image_widget: Ima
     bytes_per_line = channel * width
     q_image = QtGui.QImage(image.data, width, height, bytes_per_line, QtGui.QImage.Format.Format_BGR888)
     image_widget.setImage(QtGui.QPixmap.fromImage(q_image))
+
+def calc_alpha_beta(hist: np.ndarray):
+    # Cumulative distribution from the histogram
+    accumulator = np.cumsum(hist)
+
+    # Locate points to clip
+    clip_hist_percent = accumulator[-1] * 0.005
+    minimum_gray = np.argmax(accumulator > clip_hist_percent)
+    # Calculate alpha based on maximum_gray
+    if (maximum_gray := np.argmax(accumulator >= (accumulator[-1] - clip_hist_percent))) == 0:
+        # maximum_gray = 255
+        alpha = 255 / (255 - minimum_gray)
+    else:
+        alpha = 255 / (maximum_gray - minimum_gray)
+
+    # Calculate alpha and beta
+    return alpha, -minimum_gray * alpha
 
 def correct_exposure(image: Union[cv2.Mat, Image.Image, np.ndarray],
                      exposure: Optional[bool] = False) -> Union[cv2.Mat, np.ndarray]:
@@ -72,20 +88,8 @@ def correct_exposure(image: Union[cv2.Mat, Image.Image, np.ndarray],
     # Grayscale histogram
     hist = cv2.calcHist([gray], [0], None, [256], [0, 256]).ravel()
 
-    # Cumulative distribution from the histogram
-    accumulator = np.cumsum(hist)
-
-    # Locate points to clip
-    clip_hist_percent = accumulator[-1] * 0.005
-    minimum_gray = np.argmax(accumulator > clip_hist_percent)
-    maximum_gray = np.argmax(accumulator >= (accumulator[-1] - clip_hist_percent))
-    if maximum_gray == 0:
-        maximum_gray = 255
-
     # Calculate alpha and beta
-    alpha = 255 / (maximum_gray - minimum_gray)
-    beta = -minimum_gray * alpha
-
+    alpha, beta = calc_alpha_beta(hist)
     return cv2.convertScaleAbs(image, alpha=alpha, beta=beta)
 
 @lru_cache(5, True)
@@ -113,53 +117,8 @@ def open_file(input_file: Union[Path, str], exposure: Optional[bool] = False) ->
         return pd.read_csv(input_file) if extension == '.csv' else pd.read_excel(input_file)
     return None
 
-@cache
-def calculate_edge(face_coordinate: int, width: int, cropped_width: float, padding: int) -> float:
-    return face_coordinate + (width + cropped_width) * .5 + padding * .01 * cropped_width
-
-@cache
-def crop_positions(x: int, y: int, width: int, height: int, percent_face: int, output_width: int, output_height: int,
-                   top: int, bottom: int, left: int, right: int) -> Optional[np.ndarray]:
-    """
-    Returns the coordinates of the crop position centered around the detected face with extra margins. Tries to honor
-    `self.face_percent` if possible, else uses the largest margins that comply with required aspect ratio given by
-    `self.height` and `self.width`.
-
-    Parameters:
-    -----------
-    Args:
-        x (int): The x-coordinate of the top-left corner of the face.
-        y (int): The y-coordinate of the top-left corner of the face.
-        width (int): The width of the face.
-        height (int): The height of the face.
-        output_width (int): The width of the output image
-        output_height (int): The height of the output image
-        percent_face (int): The percentage of the image that the face occupies.
-        top (int): Top padding
-        bottom (int): Bottom padding
-        left (int): Left padding
-        right (int): Right padding
-    """
-    
-    if 0 < percent_face <= 100 and output_height > 0:
-        if output_height >= output_width:
-            cropped_height = height * 100.0 / percent_face
-            cropped_width = output_width * cropped_height / output_height
-        else:
-            cropped_width = width * 100.0 / percent_face
-            cropped_height = output_height * cropped_width / output_width
-        
-        # left, top, right, bottom
-        l = calculate_edge(x, width, -cropped_width, left)
-        t = calculate_edge(y, height, -cropped_height, top)
-        r = calculate_edge(x, width, cropped_width, right)
-        b = calculate_edge(y, height, cropped_height, bottom)
-        return np.array([l, t, r, b]).astype(int)
-    else:
-        return None
-    
-def box(img: Union[cv2.Mat, Path], conf: int, face_perc: int, width: int, height: int, wide: int, high: int, top: int,
-        bottom: int, left: int, right: int) -> Optional[np.ndarray]:
+def box(img: Union[cv2.Mat, np.ndarray], conf: int, face_perc: int, width: int, height: int, wide: int, high: int,
+        top: int, bottom: int, left: int, right: int) -> Optional[tuple[int]]:
     # preprocess the image: resize and performs mean subtraction
     blob = cv2.dnn.blobFromImage(img, 1.0, (300, 300), (104.0, 177.0, 123.0))
     # set the image into the input of the neural network
@@ -174,11 +133,11 @@ def box(img: Union[cv2.Mat, Path], conf: int, face_perc: int, width: int, height
     # get the surrounding box coordinates and upscale them to original image
     box_coords = output[:, 3:7] * np.array([width, height, width, height])
     x0, y0, x1, y1 = box_coords[np.argmax(confidence_list)]
-    return crop_positions(x0, y0, x1 - x0, y1 - y0, face_perc, wide, high, top, bottom, left, right)
+    return autocrop_rs.crop_positions(x0, y0, x1 - x0, y1 - y0, face_perc, wide, high, top, bottom, left, right)
 
 @cache
 def box_detect(img_path: Path, wide: int, high: int, conf: int, face_perc: int, top: int, bottom: int, left: int,
-               right: int) -> Optional[np.ndarray]:
+               right: int) -> Optional[tuple[int]]:
     img = open_file(img_path)
     # get width and height of the image
     try:
@@ -191,7 +150,7 @@ def box_detect(img_path: Path, wide: int, high: int, conf: int, face_perc: int, 
     return box(img, conf, face_perc, width, height, wide, high, top, bottom, left, right)
 
 def box_detect_frame(img: cv2.Mat, wide: int, high: int, conf: int, face_perc: int, top: int, bottom: int, left: int,
-                     right: int) -> Optional[np.ndarray]:
+                     right: int) -> Optional[tuple[int]]:
     # get width and height of the image
     try:
         height, width = img.shape[:2]
@@ -229,7 +188,7 @@ def reorient_image_from_object(im_obj: Union[Image.Image, rawpy.RawPy]) -> np.nd
             return reorient_image_by_exif(im, exif_orientation)
     return np.array(im_obj if isinstance(im_obj, Image.Image) else im_obj.postprocess(use_camera_wb=True))
 
-def preprocess_image(image: Union[Image.Image, rawpy.RawPy], bounding_box: np.ndarray, checkbox: bool) -> Image.Image:
+def preprocess_image(image: Union[Image.Image, rawpy.RawPy], bounding_box: tuple[int], checkbox: bool) -> Image.Image:
     pic = reorient_image_from_object(image)
     pic_array = correct_exposure(pic, checkbox)
     return Image.fromarray(pic_array).crop(bounding_box)

@@ -5,7 +5,7 @@ import re
 import numpy as np
 import pandas as pd
 from custom_widgets import ImageWidget
-from files import IMAGE_TYPES, PIL_TYPES, CV2_TYPES, RAW_TYPES, PANDAS_TYPES
+from files import IMAGE_TYPES, PIL_TYPES, CV2_TYPES, RAW_TYPES
 from functools import cache
 from multiprocessing import cpu_count
 from pathlib import Path
@@ -84,19 +84,21 @@ class Cropper(QtCore.QObject):
             self.save_detection(image, destination, image, *common_widget_values, new)
 
     def display_crop(self, img_path: Path, checkbox: QtWidgets.QCheckBox, wide: QtWidgets.QLineEdit,
-                     high: QtWidgets.QLineEdit, conf: QtWidgets.QDial, face_perc: QtWidgets.QDial, gam: QtWidgets.QDial,
-                     top: QtWidgets.QDial, bottom: QtWidgets.QDial, left: QtWidgets.QDial, right: QtWidgets.QDial,
-                     image_widget: ImageWidget, file_types: Optional[np.ndarray] = None) -> None:
+                     high: QtWidgets.QLineEdit, conf: QtWidgets.QDial, face_perc: QtWidgets.QDial,
+                     gam: QtWidgets.QDial, top: QtWidgets.QDial, bottom: QtWidgets.QDial, left: QtWidgets.QDial,
+                     right: QtWidgets.QDial, image_widget: ImageWidget,
+                     file_types: Optional[np.ndarray] = None) -> None:
         if not img_path or img_path.as_posix() in {'', '.', None}:
             return None
 
         if img_path.is_dir():
             if not isinstance(file_types, np.ndarray):
                 return None
-
-            img_path = utils.get_first_file(img_path, file_types)
-            if img_path is None:
+            
+            first_file = utils.get_first_file(img_path, file_types)
+            if first_file is None:
                 return None
+            img_path = first_file
 
         bounding_box = utils.box_detect(img_path, int(wide.text()), int(high.text()), conf.value(), face_perc.value(),
                                         top.value(), bottom.value(), left.value(), right.value())
@@ -120,11 +122,11 @@ class Cropper(QtCore.QObject):
             return None
 
     @staticmethod
-    def _numpy_array_crop(image: np.ndarray, bounding_box: np.ndarray) -> np.ndarray:
+    def _numpy_array_crop(image: np.ndarray, bounding_box: tuple[int]) -> np.ndarray:
         picture = Image.fromarray(image)
         return np.array(picture.crop(bounding_box))
 
-    def crop_and_set(self, image: np.ndarray, bounding_box: np.ndarray, gamma: int, image_widget: ImageWidget,
+    def crop_and_set(self, image: np.ndarray, bounding_box: tuple[int], gamma: int, image_widget: ImageWidget,
                      exposure_correction: bool) -> None:
         """
         Crop the given image using the bounding box, adjust its exposure and gamma, and set it to an image widget.
@@ -147,7 +149,7 @@ class Cropper(QtCore.QObject):
         utils.display_image_on_widget(final_image, image_widget)
 
     @staticmethod
-    def crop_image(image: Union[Path, np.ndarray], bounding_box: np.ndarray, width: int, height: int,
+    def crop_image(image: Union[Path, np.ndarray], bounding_box: tuple[int], width: int, height: int,
                    checkbox: bool) -> cv2.Mat:
         if isinstance(image, Path):
             if image.suffix.lower() in RAW_TYPES:

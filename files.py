@@ -17,15 +17,12 @@ class Photo:
         self.default_directory = f"{Path.home()}\\Pictures"
 
     @staticmethod
-    def ALL_TYPES() -> np.ndarray:
-        return np.concatenate([PIL_TYPES, CV2_TYPES, RAW_TYPES])
-
-    def file_filter(self) -> np.ndarray:
+    def file_filter() -> np.ndarray:
         return np.array([f'*{file}' for file in IMAGE_TYPES])
 
-    def type_string(self) -> str:
+    @staticmethod
+    def type_string() -> str:
         return "All Files (*);;" + ";;".join(f"{_} Files (*{_})" for _ in np.sort(IMAGE_TYPES))
-
 
 class Video:
     def __init__(self, audio: QtMultimedia.QAudioOutput, video_widget: QtMultimediaWidgets.QVideoWidget,
@@ -47,8 +44,6 @@ class Video:
 
         self.start_position, self.stop_position, self.step = 0.0, 0.0, 2
 
-        self.VIDEO_SPEEDS = np.array([1.0, 1.25, 1.5, 1.75, 2.0])
-        self.REWIND_SPEEDS = -1 * self.VIDEO_SPEEDS
         self.speed = 0
         self.reverse = 0
 
@@ -93,16 +88,50 @@ class Video:
         self.player.stop()
 
     def fastfwd(self) -> None:
+        VIDEO_SPEEDS = np.array([1.0, 1.25, 1.5, 1.75, 2.0])
         self.reverse = 0
         self.speed += 1
-        self.speed = min(self.speed, self.VIDEO_SPEEDS.size - 1)
-        self.player.setPlaybackRate(self.VIDEO_SPEEDS[self.speed])
+        if self.speed > VIDEO_SPEEDS.size - 1:
+            self.player.setPlaybackRate(VIDEO_SPEEDS[-1])
+        else:
+            self.player.setPlaybackRate(VIDEO_SPEEDS[self.speed])
 
     def rewind(self) -> None:
-        self.speed = 0
-        self.reverse += 1
-        self.speed = min(self.speed, self.REWIND_SPEEDS.size - 1)
-        self.player.setPlaybackRate(self.REWIND_SPEEDS[self.reverse])
+        # Create a QTimer if it doesn't exist yet
+        if not hasattr(self, 'rewind_timer'):
+            self.rewind_timer = QtCore.QTimer()
+            self.rewind_timer.timeout.connect(self.rewind_step)
+
+        # Start the timer to call rewind_step every 100 milliseconds
+        self.rewind_timer.start(100)
+
+    def rewind_step(self) -> None:
+        # Calculate the new position
+        new_position = self.player.position() - 1000  # Amount to rewind in milliseconds
+
+        # Make sure we don't go past the start of the video
+        new_position = max(new_position, 0)
+
+        # Set the new position
+        self.player.setPosition(new_position)
+
+        # If we're at the start of the video, stop the timer
+        if new_position == 0:
+            self.rewind_timer.stop()
+
+    def stepfwd(self):
+        new_position = self.player.position() + 10000
+        if new_position >= self.player.duration():
+            self.player.setPosition(self.player.duration())
+        else:
+            self.player.setPosition(new_position)
+    
+    def stepback(self):
+        new_position = self.player.position() - 10000
+        if new_position <= 0:
+            self.player.setPosition(0)
+        else:
+            self.player.setPosition(new_position)
 
     def position_changed(self, position) -> None:
         if self.timeline_slider.maximum() != self.player.duration():
