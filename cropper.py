@@ -53,8 +53,8 @@ class Cropper(QtCore.QObject):
         using the imwrite() function. If bounding_box is None, the code calls the reject() function to reject the image.
         """
         # Save the cropped image if a face was detected
-        if (bounding_box := utils.box_detect(path, width, height, confidence, face,
-                                    top, bottom, left, right)) is not None:
+        if (bounding_box := utils.box_detect(path, width, height, confidence, face, top, bottom, left,
+                                             right)) is not None:
             cropped_image = self.crop_image(path, bounding_box, width, height, checkbox)
             destination.mkdir(exist_ok=True)
             file_path, is_tiff = utils.set_filename(image, destination, radio, tuple(r_choices), new)
@@ -89,6 +89,10 @@ class Cropper(QtCore.QObject):
                      right: QtWidgets.QDial, image_widget: ImageWidget,
                      file_types: Optional[np.ndarray] = None) -> None:
         if not img_path or img_path.as_posix() in {'', '.', None}:
+            return None
+        
+        ######################################
+        if not wide.text() or not high.text():
             return None
 
         if img_path.is_dir():
@@ -140,6 +144,10 @@ class Cropper(QtCore.QObject):
         """
         try:
             processed_image = utils.correct_exposure(image, exposure_correction)
+
+            # TODO: Add support for face alignment
+            processed_image = utils.align_head(processed_image)
+
             cropped_image = self._numpy_array_crop(processed_image, bounding_box)
             adjusted_image = utils.adjust_gamma(cropped_image, gamma)
             final_image = utils.convert_color_space(adjusted_image)
@@ -161,6 +169,8 @@ class Cropper(QtCore.QObject):
                 photo.close()
         else:
             pic_array = utils.correct_exposure(image, checkbox)
+            ########################################
+            pic_array = utils.align_head(pic_array)
             cropped_pic = Image.fromarray(pic_array).crop(bounding_box)
 
         if len(cropped_pic.getbands()) >= 3:
@@ -171,10 +181,10 @@ class Cropper(QtCore.QObject):
         return cv2.resize(result, (width, height), interpolation=cv2.INTER_AREA)
 
     def folder_worker(self, file_amount: int, file_list: np.ndarray, destination: Path, width: QtWidgets.QLineEdit,
-                height: QtWidgets.QLineEdit, checkbox: QtWidgets.QCheckBox, confidence: QtWidgets.QDial,
-                face: QtWidgets.QDial, gamma_dial: QtWidgets.QDial, top: QtWidgets.QDial, bottom: QtWidgets.QDial,
-                left: QtWidgets.QDial, right: QtWidgets.QDial, radio_choice: str, line_edit: QtWidgets.QLineEdit,
-                radio_choices: np.ndarray) -> None:
+                      height: QtWidgets.QLineEdit, checkbox: QtWidgets.QCheckBox, confidence: QtWidgets.QDial,
+                      face: QtWidgets.QDial, gamma_dial: QtWidgets.QDial, top: QtWidgets.QDial, bottom: QtWidgets.QDial,
+                      left: QtWidgets.QDial, right: QtWidgets.QDial, radio_choice: str, line_edit: QtWidgets.QLineEdit,
+                      radio_choices: np.ndarray) -> None:
         for image in file_list:
             if self.end_task:
                 break
@@ -334,7 +344,7 @@ class Cropper(QtCore.QObject):
         self.bar_value = 0
         def progress_callback():
             self.bar_value += 1
-            x = int(100 * self.bar_value / frame_numbers.size)
+            x = 100 * self.bar_value // frame_numbers.size
             self.video_progress.emit(x)
         
         for frame_number in frame_numbers:

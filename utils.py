@@ -1,6 +1,8 @@
 import autocrop_rs
 import contextlib
 import cv2
+import dlib
+import math
 import rawpy
 import shutil
 import numpy as np
@@ -30,7 +32,7 @@ def profileit(func):
 
     return wrapper
 
-def caffe_model():
+def caffe_model() -> cv2.dnn.Net:
     return cv2.dnn.readNetFromCaffe("resources\\weights\\deploy.prototxt.txt",
                                     "resources\\models\\res10_300x300_ssd_iter_140000.caffemodel")
 
@@ -60,23 +62,6 @@ def display_image_on_widget(image: Union[cv2.Mat, np.ndarray], image_widget: Ima
     q_image = QtGui.QImage(image.data, width, height, bytes_per_line, QtGui.QImage.Format.Format_BGR888)
     image_widget.setImage(QtGui.QPixmap.fromImage(q_image))
 
-def calc_alpha_beta(hist: np.ndarray):
-    # Cumulative distribution from the histogram
-    accumulator = np.cumsum(hist)
-
-    # Locate points to clip
-    clip_hist_percent = accumulator[-1] * 0.005
-    minimum_gray = np.argmax(accumulator > clip_hist_percent)
-    # Calculate alpha based on maximum_gray
-    if (maximum_gray := np.argmax(accumulator >= (accumulator[-1] - clip_hist_percent))) == 0:
-        # maximum_gray = 255
-        alpha = 255 / (255 - minimum_gray)
-    else:
-        alpha = 255 / (maximum_gray - minimum_gray)
-
-    # Calculate alpha and beta
-    return alpha, -minimum_gray * alpha
-
 def correct_exposure(image: Union[cv2.Mat, Image.Image, np.ndarray],
                      exposure: Optional[bool] = False) -> Union[cv2.Mat, np.ndarray]:
     if not exposure:
@@ -89,7 +74,7 @@ def correct_exposure(image: Union[cv2.Mat, Image.Image, np.ndarray],
     hist = cv2.calcHist([gray], [0], None, [256], [0, 256]).ravel()
 
     # Calculate alpha and beta
-    alpha, beta = calc_alpha_beta(hist)
+    alpha, beta = autocrop_rs.calc_alpha_beta(hist)
     return cv2.convertScaleAbs(image, alpha=alpha, beta=beta)
 
 @lru_cache(5, True)
@@ -136,9 +121,106 @@ def box(img: Union[cv2.Mat, np.ndarray], conf: int, face_perc: int, width: int, 
     return autocrop_rs.crop_positions(x0, y0, x1 - x0, y1 - y0, face_perc, wide, high, top, bottom, left, right)
 
 @cache
+def dlib_predictor(path: str) -> dlib.shape_predictor:
+    return dlib.shape_predictor(path)
+
+def align_head(image: Union[cv2.Mat, np.ndarray]) -> Union[cv2.Mat, np.ndarray]:
+    """
+    Aligns the head in an image using dlib and shape_predictor_68_face_landmarks.dat.
+
+    Args:
+        image: A numpy array representing the image.
+
+    Returns:
+        A numpy array representing the aligned image.
+    """
+
+    # Load the face detector and shape predictor.
+    # TODO: This is very slow
+    face_detector = dlib.get_frontal_face_detector()
+    predictor = dlib_predictor('resources\\models\\shape_predictor_68_face_landmarks.dat')
+
+
+    height, _ = image.shape[:2]
+    scaling_factor = 256 / height
+    image_array = cv2.resize(image, None, fx=scaling_factor, fy=scaling_factor, interpolation=cv2.INTER_AREA)
+    # Detect the faces in the image.
+
+    if len(image_array.shape) >=3:
+        image_array = cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY)
+    
+    faces = face_detector(image_array, 1)
+
+    # If no faces are detected, return the original image.
+    if len(faces) == 0:
+        return image
+
+    # Find the face with the highest confidence score.
+    face = max(faces, key=lambda face: face.area())
+
+    # Get the 68 facial landmarks for the face.
+    landmarks = predictor(image_array, face)
+
+    # Find the center of the face.
+    center = (sum(landmarks.part(i).x for i in range(36, 48)) // (12 * scaling_factor),
+              sum(landmarks.part(i).y for i in range(36, 48)) // (12 * scaling_factor))
+    
+    # Find the angle of the tilt.
+    angle = get_angle_of_tilt(landmarks)
+
+    return rotate_image(image, angle, center)
+
+
+def get_angle_of_tilt(landmarks: dlib.full_object_detection) -> float:
+    """
+    Gets the angle of tilt of a face in an image using dlib.
+
+    Args:
+        landmarks: The 68 facial landmarks for the face.
+
+    Returns:
+        The angle of tilt in degrees.
+    """
+
+    # Find the eyes in the image.
+    left_eye = (
+        sum(landmarks.part(i).x for i in range(42, 48)) // 6,
+        sum(landmarks.part(i).y for i in range(42, 48)) // 6,
+    )
+    right_eye = (
+        sum(landmarks.part(i).x for i in range(36, 42)) // 6,
+        sum(landmarks.part(i).y for i in range(36, 42)) // 6,
+    )
+
+    return math.atan2(left_eye[1] - right_eye[1], left_eye[0] - right_eye[0]) * 180 / math.pi
+
+
+def rotate_image(image: Union[cv2.Mat, np.ndarray], angle: float, center: tuple) -> cv2.Mat:
+    """
+    Rotates an image by a specified angle around a center point.
+
+    Args:
+        image: A numpy array representing the image.
+        angle: The angle to rotate the image by in degrees.
+        center: The point to rotate the image around.
+
+    Returns:
+        A numpy array representing the rotated image.
+    """
+
+    # Get the rotation matrix.
+    rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1)
+
+    # Apply the rotation to the image.
+    return cv2.warpAffine(image, rotation_matrix, (image.shape[1], image.shape[0]))
+
+
+@cache
 def box_detect(img_path: Path, wide: int, high: int, conf: int, face_perc: int, top: int, bottom: int, left: int,
                right: int) -> Optional[tuple[int]]:
     img = open_file(img_path)
+    # TODO: Add support for face alignment
+    img = align_head(img)
     # get width and height of the image
     try:
         if isinstance(img, np.ndarray):
@@ -152,6 +234,8 @@ def box_detect(img_path: Path, wide: int, high: int, conf: int, face_perc: int, 
 def box_detect_frame(img: cv2.Mat, wide: int, high: int, conf: int, face_perc: int, top: int, bottom: int, left: int,
                      right: int) -> Optional[tuple[int]]:
     # get width and height of the image
+    # TODO: Add support for face alignment
+    img = align_head(img)
     try:
         height, width = img.shape[:2]
     except AttributeError:
@@ -191,6 +275,9 @@ def reorient_image_from_object(im_obj: Union[Image.Image, rawpy.RawPy]) -> np.nd
 def preprocess_image(image: Union[Image.Image, rawpy.RawPy], bounding_box: tuple[int], checkbox: bool) -> Image.Image:
     pic = reorient_image_from_object(image)
     pic_array = correct_exposure(pic, checkbox)
+    ################################
+    pic_array = align_head(pic_array)
+
     return Image.fromarray(pic_array).crop(bounding_box)
 
 @cache

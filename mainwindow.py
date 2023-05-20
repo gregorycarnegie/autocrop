@@ -505,7 +505,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.positionLabel.setObjectName("positionLabel")
         self.horizontalLayout_32.addWidget(self.positionLabel)
         self.timelineSlider = QtWidgets.QSlider(parent=self.frame_10)
-        # self.timelineSlider = utils.ClickableSlider(QtCore.Qt.Orientation.Horizontal, parent=self.frame_10)
+        # self.timelineSlider = custom_widgets.ClickableSlider(QtCore.Qt.Orientation.Horizontal, parent=self.frame_10)
         self.timelineSlider.setOrientation(QtCore.Qt.Orientation.Horizontal)
         self.timelineSlider.setObjectName("timelineSlider")
         

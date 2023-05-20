@@ -9,9 +9,41 @@ struct Rectangle {
 
 type BoxCoordinates = (i32, i32, i32, i32);
 
+fn cumsum(vec: &[f64]) -> Vec<f64> {
+    let mut sum = 0.0;
+    let mut cumsum = Vec::with_capacity(vec.len());
+    for &i in vec {
+        sum += i;
+        cumsum.push(sum);
+    }
+    cumsum
+}
+
+#[pyfunction]
+fn calc_alpha_beta(hist: Vec<f64>) -> PyResult<(f64, f64)> {
+    // Cumulative distribution from the histogram
+    let accumulator: Vec<f64> = cumsum(&hist);
+
+    // Locate points to clip
+    let clip_hist_percent = *accumulator.last().unwrap() * 0.005;
+    let minimum_gray = accumulator.iter().position(|&x| x > clip_hist_percent).unwrap();
+    
+    let mut maximum_gray = accumulator.iter().rposition(|&x| x >= (*accumulator.last().unwrap() - clip_hist_percent)).unwrap();
+    
+    if maximum_gray == 0 {
+        maximum_gray = 255;
+    }
+
+    // Calculate alpha based on maximum_gray
+    let alpha = 255.0 / (maximum_gray as f64 - minimum_gray as f64);
+
+    // Calculate alpha and beta
+    Ok((alpha, minimum_gray as f64 * -alpha))
+}
+
 fn cropped_lengths(rect: &Rectangle, output_width: u32, output_height: u32, percent_face: u32) -> (f64, f64) {
-    let inveprcentage: f64 = 100.0 / percent_face as f64;
-    let cropfactor: (f64, f64) = (rect.width as f64 * inveprcentage, rect.height as f64 * inveprcentage);
+    let inv_percentage: f64 = 100.0 / percent_face as f64;
+    let cropfactor: (f64, f64) = (rect.width as f64 * inv_percentage, rect.height as f64 * inv_percentage);
     if output_height >= output_width {
         (output_width as f64 * cropfactor.1 / output_height as f64, cropfactor.1)
     } else {
@@ -47,5 +79,6 @@ fn crop_positions(x_loc: f64, y_loc: f64, width_dim: f64, height_dim: f64, perce
 #[pymodule]
 fn autocrop_rs(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(crop_positions, m)?)?;
+    m.add_function(wrap_pyfunction!(calc_alpha_beta, m)?)?;
     Ok(())
 }

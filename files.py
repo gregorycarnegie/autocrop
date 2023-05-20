@@ -1,4 +1,5 @@
 import numpy as np
+from threading import Thread
 from pathlib import Path
 from typing import Union
 from PyQt6 import QtCore, QtGui, QtMultimedia, QtMultimediaWidgets, QtWidgets
@@ -27,8 +28,8 @@ class Photo:
 class Video:
     def __init__(self, audio: QtMultimedia.QAudioOutput, video_widget: QtMultimediaWidgets.QVideoWidget,
                  media_player: QtMultimedia.QMediaPlayer, timeline_slider: QtWidgets.QSlider,
-                 volume_slider: QtWidgets.QSlider, position_label: QtWidgets.QLabel, durationLabel: QtWidgets.QLabel,
-                 selectEndMarkerButton: QtWidgets.QPushButton) -> None:
+                 volume_slider: QtWidgets.QSlider, position_label: QtWidgets.QLabel,
+                 durationLabel: QtWidgets.QLabel, selectEndMarkerButton: QtWidgets.QPushButton) -> None:
         self.default_directory = f"{Path.home()}\\Videos"
         self.muted = False
         self.paused = False
@@ -71,6 +72,7 @@ class Video:
         self.player.setVideoOutput(self.video_widget)
 
     def play_video(self, play_button: QtWidgets.QPushButton) -> None:
+        self.timeline_slider.setEnabled(True)
         if self.paused:
             # Stop timer to update video frames
             # self.timer.stop()
@@ -134,16 +136,21 @@ class Video:
             self.player.setPosition(new_position)
 
     def position_changed(self, position) -> None:
-        if self.timeline_slider.maximum() != self.player.duration():
-            self.timeline_slider.setMaximum(self.player.duration())
+        def callback():
+            if self.timeline_slider.maximum() != self.player.duration():
+                self.timeline_slider.setMaximum(self.player.duration())
 
-        # self.timeline_slider.blockSignals(True)
-        self.timeline_slider.setValue(position)
-        minutes, seconds = divmod(round(position / 1_000), 60)
-        hours, minutes = divmod(minutes, 60)
-        # self.timeline_slider.blockSignals(False)
+            self.timeline_slider.blockSignals(True)
+            self.timeline_slider.setValue(position)
+            minutes, seconds = divmod(round(position / 1_000), 60)
+            hours, minutes = divmod(minutes, 60)
+            self.timeline_slider.blockSignals(False)
 
-        self.position_label.setText(QtCore.QTime(hours, minutes, seconds).toString())
+            self.position_label.setText(QtCore.QTime(hours, minutes, seconds).toString())
+        
+        thread = Thread(target=callback)
+        thread.start()
+
 
     def duration_changed(self, duration: int) -> None:
         self.timeline_slider.setMaximum(duration)

@@ -120,27 +120,6 @@ class NumberLineEdit(QtWidgets.QLineEdit):
         return
 
 
-# class ClickableSlider(QtWidgets.QSlider):
-#     def __init__(self, orientation, parent=None):
-#         super().__init__(orientation, parent)
-
-#     def mousePressEvent(self, event):
-#         if event.button() == QtCore.Qt.MouseButton.LeftButton:
-#             value = self.pixelPosToRangeValue(event.pos())
-#             self.setValue(value)
-#             event.accept()
-#         else:
-#             super().mousePressEvent(event)
-
-#     def pixelPosToRangeValue(self, pos):
-#         opt = self.style().sliderPositionFromValue(
-#             self.minimum(), self.maximum(), 0, self.width(), self.orientation()
-#         )
-#         return self.style().sliderValueFromPosition(
-#             self.minimum(), self.maximum(), opt - pos.x(), self.width(), self.orientation()
-#         )
-
-
 class UiDialog(QtWidgets.QDialog):
     def __init__(self):
         super(UiDialog, self).__init__()
