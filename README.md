@@ -27,6 +27,8 @@ The following file types are supported:
 - Windows bitmap files (`.bmp`, `.dib`)
 - Windows ICO files (`.ico`)
 - X bitmap files (`.xbm`)
+- RAW files (`.dng`, `.arw`, `.cr2`, `.crw`, `.erf`, `.kdc`, `.nef`, `.nrw`, `.orf`, `.pef`, `.raf`, `.raw`, `.sr2`, `.srw`, `.x3f`)
+- Video files (`.avi`, `.m4v`, `.mkv`, `.mov`, `.mp4`, `.wmv`)
 
 # Misc
 ### Installing directly

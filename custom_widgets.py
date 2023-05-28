@@ -53,17 +53,6 @@ class DataFrameModel(QtCore.QAbstractTableModel):
         return None
     
 
-class CustomQDial(QtWidgets.QDial):
-    def __init__(self, *args, **kwargs):
-        super(CustomQDial, self).__init__(*args, **kwargs)
-
-    def event(self, event):
-        if event.type() == QtCore.QEvent.Type.ToolTip:
-            QtWidgets.QToolTip.showText(event.globalPos(), str(self.value()), self)
-            return True
-        return super(CustomQDial, self).event(event)
-
-
 class PathLineEdit(QtWidgets.QLineEdit):
     def __init__(self, path_type: str, parent=None):
         super(PathLineEdit, self).__init__(parent)
@@ -81,17 +70,17 @@ class PathLineEdit(QtWidgets.QLineEdit):
             return
 
         if self.path_type == 'image':
-            if QtCore.QFileInfo(path).isFile() and any(path.endswith(ext) for ext in IMAGE_TYPES):
+            if QtCore.QFileInfo(path).isFile() and any(path.lower().endswith(ext) for ext in IMAGE_TYPES):
                 color = self.validColour
             else:
                 color = self.invalidColour
         elif self.path_type == 'table':
-            if QtCore.QFileInfo(path).isFile() and any(path.endswith(ext) for ext in PANDAS_TYPES):
+            if QtCore.QFileInfo(path).isFile() and any(path.lower().endswith(ext) for ext in PANDAS_TYPES):
                 color = self.validColour
             else:
                 color = self.invalidColour
         elif self.path_type == 'video':
-            if QtCore.QFileInfo(path).isFile() and any(path.endswith(ext) for ext in VIDEO_TYPES):
+            if QtCore.QFileInfo(path).isFile() and any(path.lower().endswith(ext) for ext in VIDEO_TYPES):
                 color = self.validColour
             else:
                 color = self.invalidColour

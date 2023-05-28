@@ -4,12 +4,13 @@ from pathlib import Path
 from typing import Union
 from PyQt6 import QtCore, QtGui, QtMultimedia, QtMultimediaWidgets, QtWidgets
 
-PIL_TYPES = np.array(['.bmp', '.dib', '.jfif', '.jp2', '.jpe', '.jpeg', '.jpg', '.pbm',
-                      '.pgm', '.png', '.ppm', '.ras', '.sr', '.tif', '.tiff', '.webp'])
-CV2_TYPES = np.array(['.eps', '.icns', '.ico', '.im', '.msp', '.pcx', '.sgi', '.spi', '.xbm'])
-RAW_TYPES = np.array(['.dng', '.arw', '.cr2', '.crw', '.erf', '.kdc', '.nef', '.nrw', 
-                      '.orf', '.pef', '.raf', '.raw', '.sr2', '.srw', '.x3f'])
-IMAGE_TYPES = np.concatenate((PIL_TYPES, CV2_TYPES, RAW_TYPES))
+CV2_TYPES = np.array(['.bmp', '.dib', '.jpeg', '.jpg', '.jpe', '.jp2', '.png',
+                      '.webp', '.pbm', '.pgm', '.ppm', '.pxm', '.pnm', '.pfm',
+                      '.sr', '.ras', '.tiff', '.tif', '.exr', '.hdr', '.pic'])
+RAW_TYPES = np.array(['.dng', '.arw', '.cr2', '.crw', '.erf',
+                      '.kdc', '.nef', '.nrw', '.orf', '.pef',
+                      '.raf', '.raw', '.sr2', '.srw', '.x3f'])
+IMAGE_TYPES = np.concatenate((CV2_TYPES, RAW_TYPES))
 PANDAS_TYPES = np.array(['.csv', ".xlsx", ".xlsm", ".xltx", ".xltm"])
 VIDEO_TYPES = np.array([".avi", ".m4v", ".mkv", ".mov", ".mp4", ".wmv"])
 
@@ -109,7 +110,7 @@ class Video:
 
     def rewind_step(self) -> None:
         # Calculate the new position
-        new_position = self.player.position() - 1000  # Amount to rewind in milliseconds
+        new_position = self.player.position() - 1_000  # Amount to rewind in milliseconds
 
         # Make sure we don't go past the start of the video
         new_position = max(new_position, 0)
@@ -122,14 +123,14 @@ class Video:
             self.rewind_timer.stop()
 
     def stepfwd(self):
-        new_position = self.player.position() + 10000
+        new_position = self.player.position() + 10_000
         if new_position >= self.player.duration():
             self.player.setPosition(self.player.duration())
         else:
             self.player.setPosition(new_position)
     
     def stepback(self):
-        new_position = self.player.position() - 10000
+        new_position = self.player.position() - 10_000
         if new_position <= 0:
             self.player.setPosition(0)
         else:

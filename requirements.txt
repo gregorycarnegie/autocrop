@@ -1,10 +1,10 @@
 numpy>=1.24.3
 Pillow>=9.5.0
 PyQt6>=6.5.0
-opencv-python>=4.5.5.64
+opencv-python>=4.7.0.72
 openpyxl>=3.1.2
-pandas>=2.0.0
+pandas>=2.0.1
 rawpy>=0.18.1
 tifffile>=2023.4.12
-maturin>=0.15.2
+maturin>=0.15.3
 dlib>=19.24.1
