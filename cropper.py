@@ -81,19 +81,84 @@ class Cropper(QtCore.QObject):
         else:
             utils.reject(source_image, destination_path, source_image)
 
+    def multi_save_detection1(self, source_image: Path, image: Path, job: utils.Job, new: str) -> None:
+        if (destination_path := job.destination_path()) is None:
+            return None
+        if (cropped_images := self.multi_crop(source_image, job)) is None:
+            utils.reject(source_image, destination_path, image)
+        else:
+            file_path, is_tiff = utils.set_filename(image, destination_path, job.radio_choice(), 
+                                                    tuple(job.radio_options), new)
+            for i, image in enumerate(cropped_images):
+                new_file_path = file_path.with_stem(f'{file_path.stem}_{i}')
+                utils.save_image(image, new_file_path.as_posix(), job.gamma.value(), utils.GAMMA_THRESHOLD,
+                                 is_tiff=is_tiff)
+
+    def multi_save_detection2(self, source_image: Path, image_name: Path, job: utils.Job) -> None:
+        if (destination_path := job.destination_path()) is None:
+            return None
+        if (cropped_images := self.multi_crop(source_image, job)) is None:
+            utils.reject(source_image, destination_path, image_name)
+        else:
+            file_path, is_tiff = utils.set_filename(image_name, destination_path, job.radio_choice(),
+                                                    tuple(job.radio_options))
+            for i, image in enumerate(cropped_images):
+                new_file_path = file_path.with_stem(f'{file_path.stem}_{i}')
+                utils.save_image(image, new_file_path.as_posix(), job.gamma.value(), utils.GAMMA_THRESHOLD,
+                                 is_tiff=is_tiff)
+
+    def multi_save_detection3(self, source_image: Path, job: utils.Job) -> None:
+        if (destination_path := job.destination_path()) is None:
+            return None
+
+        if (cropped_images := self.multi_crop(source_image, job)) is None:
+            utils.reject(source_image, destination_path, source_image)
+        else:
+            file_path, is_tiff = utils.set_filename(source_image, destination_path, job.radio_choice(),
+                                                    tuple(job.radio_options))
+            for i, image in enumerate(cropped_images):
+                new_file_path = file_path.with_stem(f'{file_path.stem}_{i}')
+                utils.save_image(image, new_file_path.as_posix(), job.gamma.value(), utils.GAMMA_THRESHOLD,
+                                 is_tiff=is_tiff)
+
+    def multi_crop(self, source_image: Path, job: utils.Job) -> Optional[list[cv2.Mat]]:
+        img = utils.open_file(source_image, job.fix_exposure_job.isChecked(), job.autotilt_job.isChecked())
+
+        detections, crop_positions = utils.multi_box_positions(img, job.sensitivity.value(), job.facepercent.value(),
+                                                               job.width_value(), job.height_value(), job.top.value(),
+                                                               job.bottom.value(), job.left.value(), job.right.value())
+        # Check if any faces were detected
+        if not np.any(detections[0, 0, :, 2] > job.sensitivity.value() * 0.01):
+            return None
+
+        images = [Image.fromarray(img).crop(crop_position) for crop_position in crop_positions]
+
+        image_array = [np.array(image) for image in images]
+
+        results = [utils.convert_color_space(image) for image in image_array]
+
+        return [cv2.resize(result, (job.width_value(), job.height_value()), interpolation=cv2.INTER_AREA) for result in results]
+
     def crop(self, image: Path, job: utils.Job, face_detector, predictor, new: Optional[str] = None) -> None:
         common_widget_values = (job, face_detector, predictor)
         if job.table is not None and job.folder_path is not None and new is not None:
             # Data cropping
             path = Path(job.folder_path.text()).joinpath(image)
-            self.save_detection1(path, image, *common_widget_values, new)
+            if job.multiface_job.isChecked():
+                self.multi_save_detection1(path, image, job, new)
+            else:
+                self.save_detection1(path, image, *common_widget_values, new)
         elif job.folder_path is not None:
             # Folder cropping
             source, image_name = Path(job.folder_path.text()), image.name
             path = source.joinpath(image_name)
-            self.save_detection2(path, Path(image_name), *common_widget_values)
+            if job.multiface_job.isChecked():
+                self.multi_save_detection2(path, Path(image_name), job)
+            else:
+                self.save_detection2(path, Path(image_name), *common_widget_values)
+        elif job.multiface_job.isChecked():
+            self.multi_save_detection3(image, job)
         else:
-            # File cropping
             self.save_detection3(image, *common_widget_values)
 
     def display_crop(self, job: utils.Job, line_edit: Union[Path, QtWidgets.QLineEdit], image_widget: ImageWidget) -> None:
@@ -116,13 +181,21 @@ class Cropper(QtCore.QObject):
         if pic_array is None:
             return None
         
-        bounding_box = utils.box_detect_numpy(pic_array, job.width_value(), job.height_value(), job.sensitivity.value(),
-                                              job.facepercent.value(), job.top.value(), job.bottom.value(), job.left.value(),
-                                              job.right.value())
-        if bounding_box is None:
-            return None
+        if job.multiface_job.isChecked():
+            # TODO: add gamm adjustment for multiface
+            adjusted = utils.convert_color_space(pic_array)
+            pic = utils.multi_box(adjusted, job.sensitivity.value(), job.facepercent.value(), job.width_value(), job.height_value(),
+                                  job.top.value(), job.bottom.value(), job.left.value(), job.right.value())
+            
+            utils.display_image_on_widget(pic, image_widget)
+        else:
+            bounding_box = utils.box_detect_numpy(pic_array, job.width_value(), job.height_value(), job.sensitivity.value(),
+                                                  job.facepercent.value(), job.top.value(), job.bottom.value(), job.left.value(),
+                                                  job.right.value())
+            if bounding_box is None:
+                return None
 
-        self.crop_and_set(pic_array, bounding_box, job.gamma.value(), image_widget)
+            self.crop_and_set(pic_array, bounding_box, job.gamma.value(), image_widget)
 
     @staticmethod
     def _numpy_array_crop(image: np.ndarray, bounding_box: tuple[int, int, int, int]) -> np.ndarray:

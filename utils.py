@@ -133,8 +133,8 @@ def correct_exposure(image: Union[cv2.Mat, Image.Image, np.ndarray],
 
 def open_cv2(image: Path, exposure: bool, tilt: bool, face_detector = None,
              predictor = None) -> (cv2.Mat | np.ndarray):
-    if face_detector is None or predictor is None:
-        return None
+    # if face_detector is None or predictor is None:
+    #     return None
     img = cv2.imread(image.as_posix())
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = correct_exposure(img, exposure)
@@ -142,8 +142,8 @@ def open_cv2(image: Path, exposure: bool, tilt: bool, face_detector = None,
 
 def open_raw(image: Path, exposure: bool, tilt: bool, face_detector = None,
              predictor = None) -> (cv2.Mat | np.ndarray):
-    if face_detector is None or predictor is None:
-        return None
+    # if face_detector is None or predictor is None:
+    #     return None
     with rawpy.imread(image.as_posix()) as raw:
         # Post-process the raw image data
         x = reorient_image_from_object(raw)
@@ -260,6 +260,64 @@ def box(img: Union[cv2.Mat, np.ndarray], conf: int, face_perc: int, width: int, 
     box_coords = output[:, 3:7] * np.array([width, height, width, height])
     x0, y0, x1, y1 = box_coords[np.argmax(confidence_list)]
     return autocrop_rs.crop_positions(x0, y0, x1 - x0, y1 - y0, face_perc, wide, high, top, bottom, left, right)
+
+
+def multi_box(image: Union[cv2.Mat, np.ndarray], conf: int, face_perc: int, wide: int, high: int,
+              top: int, bottom: int, left: int, right: int):
+    height, width = image.shape[:2]
+    # Create blob from image
+    # We standardize the image by scaling it and then subtracting the mean RGB values
+    blob = cv2.dnn.blobFromImage(image, 1.0, (300, 300), [104, 117, 123], False, False)
+
+    # Set the input for the neural network
+    caffe = caffe_model()
+    caffe.setInput(blob)
+
+    # Forward pass through the network to get detections
+    detections = caffe.forward()
+    for i in range(detections.shape[2]):
+        # Confidence in the detection
+        if (confidence := detections[0, 0, i, 2]) > conf * .01: # Threshold
+            # get the surrounding box coordinates and upscale them to original image
+            box = detections[0, 0, i, 3:7] * np.array([width, height, width, height])
+            x0, y0, x1, y1 = box.astype("int")
+            x0, y0, x1, y1 = autocrop_rs.crop_positions(x0, y0, x1 - x0, y1 - y0, face_perc, wide, high, top, bottom, left, right)
+
+            text = "{:.2f}%".format(confidence * 100)
+            y = y0 - 10 if y0 > 20 else y0 + 10
+            
+            cv2.rectangle(image, (x0, y0), (x1, y1),(0, 0, 255), 2)
+            cv2.putText(image, text, (x0, y), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 2)
+    
+    return image
+
+def multi_box_positions(image: Union[cv2.Mat, np.ndarray], conf: int, face_perc: int, wide: int, high: int,
+                        top: int, bottom: int, left: int, right: int) -> tuple[np.ndarray, np.ndarray]:
+    height, width = image.shape[:2]
+    # Create blob from image
+    # We standardize the image by scaling it and then subtracting the mean RGB values
+    blob = cv2.dnn.blobFromImage(image, 1.0, (300, 300), [104, 117, 123], False, False)
+
+    # Set the input for the neural network
+    caffe = caffe_model()
+    caffe.setInput(blob)
+
+    # Forward pass through the network to get detections
+    detections = caffe.forward()
+    crop_positions = []
+    for i in range(detections.shape[2]):
+        # Confidence in the detection
+        if detections[0, 0, i, 2] > conf * .01: # Threshold
+            # get the surrounding box coordinates and upscale them to original image
+            box = detections[0, 0, i, 3:7] * np.array([width, height, width, height])
+            x0, y0, x1, y1 = box.astype("int")
+
+            # x0, y0, x1, y1 = autocrop_rs.crop_positions(x0, y0, x1 - x0, y1 - y0, face_perc, wide, high, top, bottom, left, right)
+            # print(f'{x0}, {y0}, {x1}, {y1}')
+            # np.append(crop_positions, (x0, y0, x1, y1))
+            crop_positions.append(autocrop_rs.crop_positions(x0, y0, x1 - x0, y1 - y0, face_perc, wide, high, top, bottom, left, right))
+    
+    return detections, np.array(crop_positions)
 
 @cache
 def box_detect(img_path: Path, wide: int, high: int, conf: int, face_perc: int, top: int, bottom: int, left: int,

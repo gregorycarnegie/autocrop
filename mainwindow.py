@@ -32,7 +32,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
 
         self.radio_choices = np.array(['No', '.bmp', '.jpg', '.png', '.tiff', '.webp'])
 
-        self.exposure_string = """QCheckBox:unchecked{color: red}
+        self.checkBox_stylesheet = """QCheckBox:unchecked{color: red}
         QCheckBox:checked{color: white}
         QCheckBox::indicator{
                 width: 20px;
@@ -51,7 +51,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
                 image: url(resources/icons/checkbox_unchecked_hover.svg);
         }"""
 
-        self.radioButton_string = """QRadioButton::indicator:checked{
+        self.radioButton_stylesheet = """QRadioButton::indicator:checked{
             image: url(resources/icons/file_string_checked.svg);
             }
             QRadioButton::indicator:unchecked{
@@ -61,8 +61,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.setObjectName("MainWindow")
         self.resize(1348, 896)
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("resources/logos/logo.ico"), QtGui.QIcon.Mode.Normal,
-                       QtGui.QIcon.State.Off)
+        icon.addPixmap(QtGui.QPixmap("resources/logos/logo.ico"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         self.setWindowIcon(icon)
         self.centralwidget = QtWidgets.QWidget(parent=self)
         self.centralwidget.setObjectName("centralwidget")
@@ -79,7 +78,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_8.setObjectName("verticalLayout_8")
         self.horizontalLayout_5 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_5.setObjectName("horizontalLayout_5")
-        self.photoLineEdit = custom_widgets.PathLineEdit('image', parent=self.photoTab)
+        self.photoLineEdit = QtWidgets.QLineEdit(parent=self.photoTab)
         self.photoLineEdit.setMinimumSize(QtCore.QSize(0, 24))
         self.photoLineEdit.setMaximumSize(QtCore.QSize(16777215, 24))
         self.photoLineEdit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
@@ -113,16 +112,16 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.horizontalLayout_8.setObjectName("horizontalLayout_8")
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
         self.horizontalLayout_8.addItem(spacerItem)
-        self.checkBox = QtWidgets.QCheckBox(parent=self.frame)
-        self.checkBox.setStyleSheet(self.exposure_string)
-        self.checkBox.setObjectName("checkBox")
-        self.horizontalLayout_8.addWidget(self.checkBox)
+        self.mfaceCheckBox_1 = QtWidgets.QCheckBox(parent=self.frame)
+        self.mfaceCheckBox_1.setStyleSheet(self.checkBox_stylesheet)
+        self.mfaceCheckBox_1.setObjectName("mfaceCheckBox_1")
+        self.horizontalLayout_8.addWidget(self.mfaceCheckBox_1)
         self.tiltCheckBox_1 = QtWidgets.QCheckBox(parent=self.frame)
-        self.tiltCheckBox_1.setStyleSheet(self.exposure_string)
+        self.tiltCheckBox_1.setStyleSheet(self.checkBox_stylesheet)
         self.tiltCheckBox_1.setObjectName("tiltCheckBox_1")
         self.horizontalLayout_8.addWidget(self.tiltCheckBox_1)
         self.exposureCheckBox_1 = QtWidgets.QCheckBox(parent=self.frame)
-        self.exposureCheckBox_1.setStyleSheet(self.exposure_string)
+        self.exposureCheckBox_1.setStyleSheet(self.checkBox_stylesheet)
         self.exposureCheckBox_1.setObjectName("exposureCheckBox_1")
         self.horizontalLayout_8.addWidget(self.exposureCheckBox_1)
         self.verticalLayout_20.addWidget(self.frame)
@@ -163,7 +162,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_8.addWidget(self.frame_8)
         self.horizontalLayout_6 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_6.setObjectName("horizontalLayout_6")
-        self.destinationLineEdit_1 = custom_widgets.PathLineEdit('folder', parent=self.photoTab)
+        self.destinationLineEdit_1 = QtWidgets.QLineEdit(parent=self.photoTab)
         self.destinationLineEdit_1.setMinimumSize(QtCore.QSize(0, 24))
         self.destinationLineEdit_1.setMaximumSize(QtCore.QSize(16777215, 24))
         self.destinationLineEdit_1.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
@@ -188,7 +187,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_15.setObjectName("verticalLayout_15")
         self.horizontalLayout_11 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_11.setObjectName("horizontalLayout_11")
-        self.folderLineEdit_1 = custom_widgets.PathLineEdit('folder', parent=self.folder_Tab)
+        self.folderLineEdit_1 = QtWidgets.QLineEdit(parent=self.folder_Tab)
         self.folderLineEdit_1.setMinimumSize(QtCore.QSize(0, 24))
         self.folderLineEdit_1.setMaximumSize(QtCore.QSize(16777215, 24))
         self.folderLineEdit_1.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
@@ -217,16 +216,16 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.horizontalLayout_15.setObjectName("horizontalLayout_15")
         spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
         self.horizontalLayout_15.addItem(spacerItem1)
-        self.checkBox_2 = QtWidgets.QCheckBox(parent=self.frame_3)
-        self.checkBox_2.setStyleSheet(self.exposure_string)
-        self.checkBox_2.setObjectName("checkBox_2")
-        self.horizontalLayout_15.addWidget(self.checkBox_2)
+        self.mfaceCheckBox_2 = QtWidgets.QCheckBox(parent=self.frame_3)
+        self.mfaceCheckBox_2.setStyleSheet(self.checkBox_stylesheet)
+        self.mfaceCheckBox_2.setObjectName("mfaceCheckBox_2")
+        self.horizontalLayout_15.addWidget(self.mfaceCheckBox_2)
         self.tiltCheckBox_2 = QtWidgets.QCheckBox(parent=self.frame_3)
-        self.tiltCheckBox_2.setStyleSheet(self.exposure_string)
+        self.tiltCheckBox_2.setStyleSheet(self.checkBox_stylesheet)
         self.tiltCheckBox_2.setObjectName("tiltCheckBox_2")
         self.horizontalLayout_15.addWidget(self.tiltCheckBox_2)
         self.exposureCheckBox_2 = QtWidgets.QCheckBox(parent=self.frame_3)
-        self.exposureCheckBox_2.setStyleSheet(self.exposure_string)
+        self.exposureCheckBox_2.setStyleSheet(self.checkBox_stylesheet)
         self.exposureCheckBox_2.setObjectName("exposureCheckBox_2")
         self.horizontalLayout_15.addWidget(self.exposureCheckBox_2, 0, QtCore.Qt.AlignmentFlag.AlignRight)
         self.verticalLayout_16.addWidget(self.frame_3)
@@ -282,7 +281,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.progressBar_1 = QtWidgets.QProgressBar(parent=self.frame_4)
         self.progressBar_1.setMinimumSize(QtCore.QSize(0, 12))
         self.progressBar_1.setMaximumSize(QtCore.QSize(16777215, 12))
-        self.progressBar_1.setProperty("value", 24)
+        self.progressBar_1.setProperty("value", 0)
         self.progressBar_1.setTextVisible(False)
         self.progressBar_1.setObjectName("progressBar_1")
         self.verticalLayout_30.addWidget(self.progressBar_1)
@@ -301,7 +300,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_15.addLayout(self.horizontalLayout_12)
         self.horizontalLayout_14 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_14.setObjectName("horizontalLayout_14")
-        self.destinationLineEdit_2 = custom_widgets.PathLineEdit('folder', parent=self.folder_Tab)
+        self.destinationLineEdit_2 = QtWidgets.QLineEdit(parent=self.folder_Tab)
         self.destinationLineEdit_2.setMinimumSize(QtCore.QSize(0, 24))
         self.destinationLineEdit_2.setMaximumSize(QtCore.QSize(16777215, 24))
         self.destinationLineEdit_2.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
@@ -329,13 +328,13 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.horizontalLayout_17.addLayout(self.horizontalLayout_22)
         self.gridLayout = QtWidgets.QGridLayout()
         self.gridLayout.setObjectName("gridLayout")
-        self.tableLineEdit = custom_widgets.PathLineEdit('table', parent=self.mappingTab)
+        self.tableLineEdit = QtWidgets.QLineEdit(parent=self.mappingTab)
         self.tableLineEdit.setMinimumSize(QtCore.QSize(0, 24))
         self.tableLineEdit.setMaximumSize(QtCore.QSize(16777215, 24))
         self.tableLineEdit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
         self.tableLineEdit.setObjectName("tableLineEdit")
         self.gridLayout.addWidget(self.tableLineEdit, 1, 0, 1, 1)
-        self.folderLineEdit_2 = custom_widgets.PathLineEdit('folder', parent=self.mappingTab)
+        self.folderLineEdit_2 = QtWidgets.QLineEdit(parent=self.mappingTab)
         self.folderLineEdit_2.setMinimumSize(QtCore.QSize(0, 24))
         self.folderLineEdit_2.setMaximumSize(QtCore.QSize(16777215, 24))
         self.folderLineEdit_2.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
@@ -371,16 +370,16 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.horizontalLayout_23.setObjectName("horizontalLayout_23")
         spacerItem2 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
         self.horizontalLayout_23.addItem(spacerItem2)
-        self.checkBox_3 = QtWidgets.QCheckBox(parent=self.frame_5)
-        self.checkBox_3.setStyleSheet(self.exposure_string)
-        self.checkBox_3.setObjectName("checkBox_3")
-        self.horizontalLayout_23.addWidget(self.checkBox_3)
+        self.mfaceCheckBox_3 = QtWidgets.QCheckBox(parent=self.frame_5)
+        self.mfaceCheckBox_3.setStyleSheet(self.checkBox_stylesheet)
+        self.mfaceCheckBox_3.setObjectName("mfaceCheckBox_3")
+        self.horizontalLayout_23.addWidget(self.mfaceCheckBox_3)
         self.tiltCheckBox_3 = QtWidgets.QCheckBox(parent=self.frame_5)
-        self.tiltCheckBox_3.setStyleSheet(self.exposure_string)
+        self.tiltCheckBox_3.setStyleSheet(self.checkBox_stylesheet)
         self.tiltCheckBox_3.setObjectName("tiltCheckBox_3")
         self.horizontalLayout_23.addWidget(self.tiltCheckBox_3)
         self.exposureCheckBox_3 = QtWidgets.QCheckBox(parent=self.frame_5)
-        self.exposureCheckBox_3.setStyleSheet(self.exposure_string)
+        self.exposureCheckBox_3.setStyleSheet(self.checkBox_stylesheet)
         self.exposureCheckBox_3.setObjectName("exposureCheckBox_3")
         self.horizontalLayout_23.addWidget(self.exposureCheckBox_3, 0, QtCore.Qt.AlignmentFlag.AlignRight)
         self.verticalLayout_18.addWidget(self.frame_5)
@@ -432,7 +431,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.progressBar_2 = QtWidgets.QProgressBar(parent=self.frame_7)
         self.progressBar_2.setMinimumSize(QtCore.QSize(0, 12))
         self.progressBar_2.setMaximumSize(QtCore.QSize(16777215, 12))
-        self.progressBar_2.setProperty("value", 24)
+        self.progressBar_2.setProperty("value", 0)
         self.progressBar_2.setTextVisible(False)
         self.progressBar_2.setObjectName("progressBar_2")
         self.horizontalLayout_21.addWidget(self.progressBar_2)
@@ -449,11 +448,11 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_19.addWidget(self.tableView)
         self.horizontalLayout_24 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_24.setObjectName("horizontalLayout_24")
-        self.comboBox = QtWidgets.QComboBox(parent=self.mappingTab)
-        self.comboBox.setMinimumSize(QtCore.QSize(0, 22))
-        self.comboBox.setMaximumSize(QtCore.QSize(16777215, 22))
-        self.comboBox.setObjectName("comboBox")
-        self.horizontalLayout_24.addWidget(self.comboBox)
+        self.comboBox_1 = QtWidgets.QComboBox(parent=self.mappingTab)
+        self.comboBox_1.setMinimumSize(QtCore.QSize(0, 22))
+        self.comboBox_1.setMaximumSize(QtCore.QSize(16777215, 22))
+        self.comboBox_1.setObjectName("comboBox_1")
+        self.horizontalLayout_24.addWidget(self.comboBox_1)
         self.comboBox_2 = QtWidgets.QComboBox(parent=self.mappingTab)
         self.comboBox_2.setMinimumSize(QtCore.QSize(0, 22))
         self.comboBox_2.setMaximumSize(QtCore.QSize(16777215, 22))
@@ -466,7 +465,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_17.addLayout(self.horizontalLayout_18)
         self.horizontalLayout_20 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_20.setObjectName("horizontalLayout_20")
-        self.destinationLineEdit_3 = custom_widgets.PathLineEdit('folder', parent=self.mappingTab)
+        self.destinationLineEdit_3 = QtWidgets.QLineEdit(parent=self.mappingTab)
         self.destinationLineEdit_3.setMinimumSize(QtCore.QSize(0, 24))
         self.destinationLineEdit_3.setMaximumSize(QtCore.QSize(16777215, 24))
         self.destinationLineEdit_3.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
@@ -489,7 +488,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_22.setObjectName("verticalLayout_22")
         self.horizontalLayout_25 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_25.setObjectName("horizontalLayout_25")
-        self.videoLineEdit = custom_widgets.PathLineEdit('video', parent=self.videoTab)
+        self.videoLineEdit = QtWidgets.QLineEdit(parent=self.videoTab)
         self.videoLineEdit.setMinimumSize(QtCore.QSize(0, 24))
         self.videoLineEdit.setMaximumSize(QtCore.QSize(16777215, 24))
         self.videoLineEdit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
@@ -550,16 +549,16 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.horizontalLayout_32.addWidget(self.durationLabel)
         spacerItem3 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Minimum)
         self.horizontalLayout_32.addItem(spacerItem3)
-        self.checkBox_4 = QtWidgets.QCheckBox(parent=self.frame_10)
-        self.checkBox_4.setStyleSheet(self.exposure_string)
-        self.checkBox_4.setObjectName("checkBox_4")
-        self.horizontalLayout_32.addWidget(self.checkBox_4)
+        self.mfaceCheckBox_4 = QtWidgets.QCheckBox(parent=self.frame_10)
+        self.mfaceCheckBox_4.setStyleSheet(self.checkBox_stylesheet)
+        self.mfaceCheckBox_4.setObjectName("mfaceCheckBox_4")
+        self.horizontalLayout_32.addWidget(self.mfaceCheckBox_4)
         self.tiltCheckBox_4 = QtWidgets.QCheckBox(parent=self.frame_10)
-        self.tiltCheckBox_4.setStyleSheet(self.exposure_string)
+        self.tiltCheckBox_4.setStyleSheet(self.checkBox_stylesheet)
         self.tiltCheckBox_4.setObjectName("tiltCheckBox_4")
         self.horizontalLayout_32.addWidget(self.tiltCheckBox_4)
         self.exposureCheckBox_4 = QtWidgets.QCheckBox(parent=self.frame_10)
-        self.exposureCheckBox_4.setStyleSheet(self.exposure_string)
+        self.exposureCheckBox_4.setStyleSheet(self.checkBox_stylesheet)
         self.exposureCheckBox_4.setObjectName("exposureCheckBox_4")
         self.horizontalLayout_32.addWidget(self.exposureCheckBox_4, 0, QtCore.Qt.AlignmentFlag.AlignRight)
         self.verticalLayout_23.addWidget(self.frame_10)
@@ -610,7 +609,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.progressBar_3 = QtWidgets.QProgressBar(parent=self.frame_11)
         self.progressBar_3.setMinimumSize(QtCore.QSize(0, 12))
         self.progressBar_3.setMaximumSize(QtCore.QSize(16777215, 12))
-        self.progressBar_3.setProperty("value", 24)
+        self.progressBar_3.setProperty("value", 0)
         self.progressBar_3.setTextVisible(False)
         self.progressBar_3.setObjectName("progressBar_3")
         self.horizontalLayout_31.addWidget(self.progressBar_3)
@@ -622,7 +621,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_22.addWidget(self.frame_9)
         self.horizontalLayout_30 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_30.setObjectName("horizontalLayout_30")
-        self.destinationLineEdit_4 = custom_widgets.PathLineEdit('folder', parent=self.videoTab)
+        self.destinationLineEdit_4 = QtWidgets.QLineEdit(parent=self.videoTab)
         self.destinationLineEdit_4.setMinimumSize(QtCore.QSize(0, 24))
         self.destinationLineEdit_4.setMaximumSize(QtCore.QSize(16777215, 24))
         self.destinationLineEdit_4.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
@@ -768,8 +767,10 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.label_16.sizePolicy().hasHeightForWidth())
+
         self.video = Video(self.audio, self.videoWidget, self.player, self.timelineSlider, self.volumeSlider, 
                            self.positionLabel, self.durationLabel, self.selectEndMarkerButton)
+
         self.label_16.setSizePolicy(sizePolicy)
         self.label_16.setMaximumSize(QtCore.QSize(14, 14))
         self.label_16.setText("")
@@ -892,7 +893,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.label_4 = QtWidgets.QLabel(parent=self.settingsTab)
         self.label_4.setObjectName("label_4")
         self.verticalLayout_9.addWidget(self.label_4)
-        self.widthLineEdit = custom_widgets.NumberLineEdit(parent=self.settingsTab)
+        self.widthLineEdit = QtWidgets.QLineEdit(parent=self.settingsTab)
         self.widthLineEdit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhDigitsOnly)
         self.widthLineEdit.setText("")
         self.widthLineEdit.setObjectName("widthLineEdit")
@@ -903,7 +904,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.label_5 = QtWidgets.QLabel(parent=self.settingsTab)
         self.label_5.setObjectName("label_5")
         self.verticalLayout_10.addWidget(self.label_5)
-        self.heightLineEdit = custom_widgets.NumberLineEdit(parent=self.settingsTab)
+        self.heightLineEdit = QtWidgets.QLineEdit(parent=self.settingsTab)
         self.heightLineEdit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhDigitsOnly)
         self.heightLineEdit.setText("")
         self.heightLineEdit.setObjectName("heightLineEdit")
@@ -1019,7 +1020,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_21 = QtWidgets.QVBoxLayout()
         self.verticalLayout_21.setObjectName("verticalLayout_21")
         self.radioButton_1 = QtWidgets.QRadioButton(parent=self.formatTab)
-        self.radioButton_1.setStyleSheet(re.sub('_string', '_no', self.radioButton_string))
+        self.radioButton_1.setStyleSheet(re.sub('_string', '_no', self.radioButton_stylesheet))
         self.radioButton_1.setText("")
         self.radioButton_1.setIconSize(QtCore.QSize(64, 64))
         self.radioButton_1.setChecked(True)
@@ -1031,7 +1032,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_24 = QtWidgets.QVBoxLayout()
         self.verticalLayout_24.setObjectName("verticalLayout_24")
         self.radioButton_2 = QtWidgets.QRadioButton(parent=self.formatTab)
-        self.radioButton_2.setStyleSheet(re.sub('_string', '_bmp', self.radioButton_string))
+        self.radioButton_2.setStyleSheet(re.sub('_string', '_bmp', self.radioButton_stylesheet))
         self.radioButton_2.setText("")
         self.radioButton_2.setObjectName("radioButton_2")
         self.verticalLayout_24.addWidget(self.radioButton_2, 0, QtCore.Qt.AlignmentFlag.AlignHCenter)
@@ -1039,7 +1040,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_25 = QtWidgets.QVBoxLayout()
         self.verticalLayout_25.setObjectName("verticalLayout_25")
         self.radioButton_3 = QtWidgets.QRadioButton(parent=self.formatTab)
-        self.radioButton_3.setStyleSheet(re.sub('_string', '_jpg', self.radioButton_string))
+        self.radioButton_3.setStyleSheet(re.sub('_string', '_jpg', self.radioButton_stylesheet))
         self.radioButton_3.setText("")
         self.radioButton_3.setObjectName("radioButton_3")
         self.verticalLayout_25.addWidget(self.radioButton_3, 0, QtCore.Qt.AlignmentFlag.AlignHCenter)
@@ -1047,7 +1048,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_26 = QtWidgets.QVBoxLayout()
         self.verticalLayout_26.setObjectName("verticalLayout_26")
         self.radioButton_4 = QtWidgets.QRadioButton(parent=self.formatTab)
-        self.radioButton_4.setStyleSheet(re.sub('_string', '_png', self.radioButton_string))
+        self.radioButton_4.setStyleSheet(re.sub('_string', '_png', self.radioButton_stylesheet))
         self.radioButton_4.setText("")
         self.radioButton_4.setObjectName("radioButton_4")
         self.verticalLayout_26.addWidget(self.radioButton_4, 0, QtCore.Qt.AlignmentFlag.AlignHCenter)
@@ -1055,7 +1056,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_27 = QtWidgets.QVBoxLayout()
         self.verticalLayout_27.setObjectName("verticalLayout_27")
         self.radioButton_5 = QtWidgets.QRadioButton(parent=self.formatTab)
-        self.radioButton_5.setStyleSheet(re.sub('_string', '_tiff', self.radioButton_string))
+        self.radioButton_5.setStyleSheet(re.sub('_string', '_tiff', self.radioButton_stylesheet))
         self.radioButton_5.setText("")
         self.radioButton_5.setObjectName("radioButton_5")
         self.verticalLayout_27.addWidget(self.radioButton_5, 0, QtCore.Qt.AlignmentFlag.AlignHCenter)
@@ -1063,7 +1064,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_28 = QtWidgets.QVBoxLayout()
         self.verticalLayout_28.setObjectName("verticalLayout_28")
         self.radioButton_6 = QtWidgets.QRadioButton(parent=self.formatTab)
-        self.radioButton_6.setStyleSheet(re.sub('_string', '_webp', self.radioButton_string))
+        self.radioButton_6.setStyleSheet(re.sub('_string', '_webp', self.radioButton_stylesheet))
         self.radioButton_6.setText("")
         self.radioButton_6.setObjectName("radioButton_6")
         self.verticalLayout_28.addWidget(self.radioButton_6, 0, QtCore.Qt.AlignmentFlag.AlignHCenter)
@@ -1131,7 +1132,8 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.menubar.addAction(self.menuFile.menuAction())
         self.menubar.addAction(self.menuTools.menuAction())
         self.menubar.addAction(self.menuInfo.menuAction())
-        
+
+        # CONNECTIONS
         self.gammaDial.valueChanged['int'].connect(self.gammaLCDNumber.display) # type: ignore
         self.faceDial.valueChanged['int'].connect(self.faceLCDNumber.display) # type: ignore
         self.sensitivityDial.valueChanged['int'].connect(self.sensitivityLCDNumber.display) # type: ignore
@@ -1140,7 +1142,6 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.leftDial.valueChanged['int'].connect(self.leftLCDNumber.display) # type: ignore
         self.rightDial.valueChanged['int'].connect(self.rightLCDNumber.display) # type: ignore
 
-        # CONNECTIONS
         self.actionAbout_Face_Cropper.triggered.connect(lambda: self.load_about_form())
         self.actionGolden_Ratio.triggered.connect(lambda: self.load_preset(0.5 * (1 + 5 ** 0.5)))
         self.action2_3_Ratio.triggered.connect(lambda: self.load_preset(1.5))
@@ -1153,10 +1154,10 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.actionUse_Mapping.triggered.connect(lambda: self.function_tabWidget.setCurrentIndex(2))
         self.actionCrop_Video.triggered.connect(lambda: self.function_tabWidget.setCurrentIndex(3))
 
-        self.checkBox.clicked.connect(lambda: self.reload_widgets())
-        self.checkBox_2.clicked.connect(lambda: self.reload_widgets())
-        self.checkBox_3.clicked.connect(lambda: self.reload_widgets())
-        self.checkBox_4.clicked.connect(lambda: self.reload_widgets())
+        self.mfaceCheckBox_1.clicked.connect(lambda: self.reload_widgets())
+        self.mfaceCheckBox_2.clicked.connect(lambda: self.reload_widgets())
+        self.mfaceCheckBox_3.clicked.connect(lambda: self.reload_widgets())
+        self.mfaceCheckBox_4.clicked.connect(lambda: self.reload_widgets())
         self.exposureCheckBox_1.clicked.connect(lambda: self.reload_widgets())
         self.exposureCheckBox_2.clicked.connect(lambda: self.reload_widgets())
         self.exposureCheckBox_3.clicked.connect(lambda: self.reload_widgets())
@@ -1166,18 +1167,18 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.tiltCheckBox_3.clicked.connect(lambda: self.reload_widgets())
         self.tiltCheckBox_4.clicked.connect(lambda: self.reload_widgets())
 
-        self.checkBox.clicked.connect(lambda: self.uncheck_boxes(self.exposureCheckBox_1, self.tiltCheckBox_1))
-        self.checkBox_2.clicked.connect(lambda: self.uncheck_boxes(self.exposureCheckBox_2, self.tiltCheckBox_2))
-        self.checkBox_3.clicked.connect(lambda: self.uncheck_boxes(self.exposureCheckBox_3, self.tiltCheckBox_3))
-        self.checkBox_4.clicked.connect(lambda: self.uncheck_boxes(self.exposureCheckBox_4, self.tiltCheckBox_4))
-        self.exposureCheckBox_1.clicked.connect(lambda: self.uncheck_boxes(self.checkBox))
-        self.exposureCheckBox_2.clicked.connect(lambda: self.uncheck_boxes(self.checkBox_2))
-        self.exposureCheckBox_3.clicked.connect(lambda: self.uncheck_boxes(self.checkBox_3))
-        self.exposureCheckBox_4.clicked.connect(lambda: self.uncheck_boxes(self.checkBox_4))
-        self.tiltCheckBox_1.clicked.connect(lambda: self.uncheck_boxes(self.checkBox))
-        self.tiltCheckBox_2.clicked.connect(lambda: self.uncheck_boxes(self.checkBox_2))
-        self.tiltCheckBox_3.clicked.connect(lambda: self.uncheck_boxes(self.checkBox_3))
-        self.tiltCheckBox_4.clicked.connect(lambda: self.uncheck_boxes(self.checkBox_4))
+        self.mfaceCheckBox_1.clicked.connect(lambda: self.uncheck_boxes(self.exposureCheckBox_1, self.tiltCheckBox_1))
+        self.mfaceCheckBox_2.clicked.connect(lambda: self.uncheck_boxes(self.exposureCheckBox_2, self.tiltCheckBox_2))
+        self.mfaceCheckBox_3.clicked.connect(lambda: self.uncheck_boxes(self.exposureCheckBox_3, self.tiltCheckBox_3))
+        self.mfaceCheckBox_4.clicked.connect(lambda: self.uncheck_boxes(self.exposureCheckBox_4, self.tiltCheckBox_4))
+        self.exposureCheckBox_1.clicked.connect(lambda: self.uncheck_boxes(self.mfaceCheckBox_1))
+        self.exposureCheckBox_2.clicked.connect(lambda: self.uncheck_boxes(self.mfaceCheckBox_2))
+        self.exposureCheckBox_3.clicked.connect(lambda: self.uncheck_boxes(self.mfaceCheckBox_3))
+        self.exposureCheckBox_4.clicked.connect(lambda: self.uncheck_boxes(self.mfaceCheckBox_4))
+        self.tiltCheckBox_1.clicked.connect(lambda: self.uncheck_boxes(self.mfaceCheckBox_1))
+        self.tiltCheckBox_2.clicked.connect(lambda: self.uncheck_boxes(self.mfaceCheckBox_2))
+        self.tiltCheckBox_3.clicked.connect(lambda: self.uncheck_boxes(self.mfaceCheckBox_3))
+        self.tiltCheckBox_4.clicked.connect(lambda: self.uncheck_boxes(self.mfaceCheckBox_4))
 
         self.photoButton.clicked.connect(lambda: self.open_folder(self.photoLineEdit, self.photoWidget))
         self.folderButton_1.clicked.connect(lambda: self.open_folder(self.folderLineEdit_1, self.folderWidget,
@@ -1261,7 +1262,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
                                         self.sensitivityDial, self.faceDial, self.gammaDial, self.topDial,
                                         self.bottomDial, self.leftDial, self.rightDial, self.folderLineEdit_2,
                                         self.destinationLineEdit_3, self.destinationButton_3, self.folderButton_2,
-                                        self.tableLineEdit, self.comboBox, self.comboBox_2, self.radioButton_1,
+                                        self.tableLineEdit, self.comboBox_1, self.comboBox_2, self.radioButton_1,
                                         self.radioButton_2, self.radioButton_3, self.radioButton_4, self.radioButton_5,
                                         self.radioButton_6, self.cropButton_3))
         self.cropper.mapping_started.connect(lambda: self.enable_widget(self.cancelButton_2))
@@ -1293,7 +1294,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
                                        self.sensitivityDial, self.faceDial, self.gammaDial, self.topDial,
                                        self.bottomDial, self.leftDial, self.rightDial, self.folderLineEdit_2,
                                        self.destinationLineEdit_3, self.destinationButton_3, self.folderButton_2,
-                                       self.tableLineEdit, self.comboBox, self.comboBox_2, self.radioButton_1,
+                                       self.tableLineEdit, self.comboBox_1, self.comboBox_2, self.radioButton_1,
                                        self.radioButton_2, self.radioButton_3, self.radioButton_4, self.radioButton_5,
                                        self.radioButton_6, self.cropButton_3))
         self.cropper.mapping_finished.connect(lambda: self.disable_widget(self.cancelButton_2))
@@ -1331,7 +1332,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.photoLineEdit.setPlaceholderText(_translate("MainWindow", "Choose the image you want to crop"))
         self.photoButton.setText(_translate("MainWindow", "PushButton"))
-        self.checkBox.setText(_translate("MainWindow", "Multi-Face"))
+        self.mfaceCheckBox_1.setText(_translate("MainWindow", "Multi-Face"))
         self.tiltCheckBox_1.setText(_translate("MainWindow", "Autotilt"))
         self.exposureCheckBox_1.setText(_translate("MainWindow", "Autocorrect"))
         self.destinationLineEdit_1.setPlaceholderText(_translate("MainWindow", "Choose where you want to save the cropped image"))
@@ -1339,7 +1340,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.function_tabWidget.setTabText(self.function_tabWidget.indexOf(self.photoTab), _translate("MainWindow", "Photo Crop"))
         self.folderLineEdit_1.setPlaceholderText(_translate("MainWindow", "Choose the folder you want to crop"))
         self.folderButton_1.setText(_translate("MainWindow", "Select Folder"))
-        self.checkBox_2.setText(_translate("MainWindow", "Multi-Face"))
+        self.mfaceCheckBox_2.setText(_translate("MainWindow", "Multi-Face"))
         self.tiltCheckBox_2.setText(_translate("MainWindow", "Autotilt"))
         self.exposureCheckBox_2.setText(_translate("MainWindow", "Autocorrect"))
         self.destinationLineEdit_2.setPlaceholderText(_translate("MainWindow", "Choose where you want to save the cropped images"))
@@ -1349,10 +1350,10 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.folderLineEdit_2.setPlaceholderText(_translate("MainWindow", "Choose the folder you want to crop"))
         self.folderButton_2.setText(_translate("MainWindow", "Select Folder"))
         self.tableButton.setText(_translate("MainWindow", "Open File"))
-        self.checkBox_3.setText(_translate("MainWindow", "Multi-Face"))
+        self.mfaceCheckBox_3.setText(_translate("MainWindow", "Multi-Face"))
         self.tiltCheckBox_3.setText(_translate("MainWindow", "Autotilt"))
         self.exposureCheckBox_3.setText(_translate("MainWindow", "Autocorrect"))
-        self.comboBox.setPlaceholderText(_translate("MainWindow", "Filename column"))
+        self.comboBox_1.setPlaceholderText(_translate("MainWindow", "Filename column"))
         self.comboBox_2.setPlaceholderText(_translate("MainWindow", "Mapping column"))
         self.destinationLineEdit_3.setPlaceholderText(_translate("MainWindow", "Choose where you want to save the cropped images"))
         self.destinationButton_3.setText(_translate("MainWindow", "Destination Folder"))
@@ -1361,7 +1362,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.videoButton.setText(_translate("MainWindow", "Open Video"))
         self.positionLabel.setText(_translate("MainWindow", "00:00:00"))
         self.durationLabel.setText(_translate("MainWindow", "00:00:00"))
-        self.checkBox_4.setText(_translate("MainWindow", "Multi-Face"))
+        self.mfaceCheckBox_4.setText(_translate("MainWindow", "Multi-Face"))
         self.tiltCheckBox_4.setText(_translate("MainWindow", "Autotilt"))
         self.exposureCheckBox_4.setText(_translate("MainWindow", "Autocorrect"))
         self.destinationLineEdit_4.setPlaceholderText(_translate("MainWindow", "Choose where you want to save the cropped images"))
@@ -1425,7 +1426,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         if not Path(self.folderLineEdit_1.text()).as_posix():
             return None
         self.display_crop(self.folderWidget, Path(self.file_model.filePath(self.treeView.currentIndex())),
-                          self.exposureCheckBox_2, self.checkBox_2, self.tiltCheckBox_2)
+                          self.exposureCheckBox_2, self.mfaceCheckBox_2, self.tiltCheckBox_2)
 
     def reload_widgets(self) -> None:
         if not self.widthLineEdit.text() or not self.heightLineEdit.text():
@@ -1434,7 +1435,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
             f_name = Path(self.photoLineEdit.text())
             if not f_name.as_posix():
                 return None
-            self.display_crop(self.photoWidget, f_name, self.exposureCheckBox_1, self.checkBox, self.tiltCheckBox_1)
+            self.display_crop(self.photoWidget, f_name, self.exposureCheckBox_1, self.mfaceCheckBox_1, self.tiltCheckBox_1)
         elif self.function_tabWidget.currentIndex() == 1:
             if self.treeView.currentIndex().isValid():
                 folder = Path(self.file_model.filePath(self.treeView.currentIndex()))
@@ -1443,12 +1444,12 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
 
             if not folder.as_posix():
                 return None
-            self.display_crop(self.folderWidget, folder, self.exposureCheckBox_2, self.checkBox_2, self.tiltCheckBox_2)
+            self.display_crop(self.folderWidget, folder, self.exposureCheckBox_2, self.mfaceCheckBox_2, self.tiltCheckBox_2)
         elif self.function_tabWidget.currentIndex() == 2:
             folder = Path(self.folderLineEdit_2.text())
             if not folder.as_posix():
                 return None
-            self.display_crop(self.mappingWidget, folder, self.exposureCheckBox_3, self.checkBox_3, self.tiltCheckBox_3)
+            self.display_crop(self.mappingWidget, folder, self.exposureCheckBox_3, self.mfaceCheckBox_3, self.tiltCheckBox_3)
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
@@ -1481,7 +1482,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.function_tabWidget.setCurrentIndex(1)
         self.folderLineEdit_1.setText(file_path.as_posix())
         if self.widthLineEdit.text() and self.heightLineEdit.text():
-            self.display_crop(self.folderWidget, file_path, self.exposureCheckBox_2, self.checkBox_2, self.tiltCheckBox_2)
+            self.display_crop(self.folderWidget, file_path, self.exposureCheckBox_2, self.mfaceCheckBox_2, self.tiltCheckBox_2)
 
     def handle_file(self, file_path):
         if file_path.suffix.lower() in IMAGE_TYPES:
@@ -1495,7 +1496,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.function_tabWidget.setCurrentIndex(0)
         self.photoLineEdit.setText(file_path.as_posix())
         if self.widthLineEdit.text() and self.heightLineEdit.text():
-            self.display_crop(self.photoWidget, file_path, self.exposureCheckBox_2, self.checkBox, self.tiltCheckBox_1)
+            self.display_crop(self.photoWidget, file_path, self.exposureCheckBox_1, self.mfaceCheckBox_1, self.tiltCheckBox_1)
 
     def handle_video_file(self, file_path):
         self.function_tabWidget.setCurrentIndex(3)
@@ -1531,16 +1532,16 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
     def load_data(self, line_edit: QtWidgets.QLineEdit, image_widget: custom_widgets.ImageWidget) -> None:
         try:
             if line_edit is self.photoLineEdit:
-                self.display_crop(image_widget, line_edit, self.exposureCheckBox_1, self.checkBox,
+                self.display_crop(image_widget, line_edit, self.exposureCheckBox_1, self.mfaceCheckBox_1,
                                   self.tiltCheckBox_1)
             elif line_edit is self.folderLineEdit_1:
                 f_name = line_edit.text()
                 self.file_model.setRootPath(f_name)
                 self.treeView.setRootIndex(self.file_model.index(f_name))
-                self.display_crop(image_widget, line_edit, self.exposureCheckBox_2, self.checkBox_2,
+                self.display_crop(image_widget, line_edit, self.exposureCheckBox_2, self.mfaceCheckBox_2,
                                   self.tiltCheckBox_2)
             elif line_edit is self.folderLineEdit_2:
-                self.display_crop(image_widget, line_edit, self.exposureCheckBox_3, self.checkBox_3,
+                self.display_crop(image_widget, line_edit, self.exposureCheckBox_3, self.mfaceCheckBox_3,
                                   self.tiltCheckBox_3)
         except (IndexError, FileNotFoundError, ValueError, AttributeError):
             return None
@@ -1586,7 +1587,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.model = custom_widgets.DataFrameModel(self.data_frame)
         self.tableView.setModel(self.model)
 
-        self.comboBox.addItems(self.data_frame.columns.to_numpy())
+        self.comboBox_1.addItems(self.data_frame.columns.to_numpy())
         self.comboBox_2.addItems(self.data_frame.columns.to_numpy())
 
     @staticmethod
@@ -1656,7 +1657,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
             all_filled(self.folderLineEdit_1, self.destinationLineEdit_2, *common_line_edits), self.cropButton_2)
         # Mapping logic
         update_widget_state(
-            all_filled(self.folderLineEdit_2, self.tableLineEdit, self.destinationLineEdit_3, self.comboBox,
+            all_filled(self.folderLineEdit_2, self.tableLineEdit, self.destinationLineEdit_3, self.comboBox_1,
                        self.comboBox_2, *common_line_edits), self.cropButton_3)
         # Video logic
         update_widget_state(
@@ -1688,7 +1689,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
             self.widthLineEdit,
             self.heightLineEdit,
             self.exposureCheckBox_1,
-            self.checkBox,
+            self.mfaceCheckBox_1,
             self.tiltCheckBox_1,
             self.sensitivityDial,
             self.faceDial,
@@ -1709,7 +1710,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
             self.widthLineEdit,
             self.heightLineEdit,
             self.exposureCheckBox_2,
-            self.checkBox_2,
+            self.mfaceCheckBox_2,
             self.tiltCheckBox_2,
             self.sensitivityDial,
             self.faceDial,
@@ -1732,7 +1733,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
             self.widthLineEdit,
             self.heightLineEdit,
             self.exposureCheckBox_3,
-            self.checkBox_3,
+            self.mfaceCheckBox_3,
             self.tiltCheckBox_3,
             self.sensitivityDial,
             self.faceDial,
@@ -1746,7 +1747,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
              folder_path=self.folderLineEdit_2,
              destination=self.destinationLineEdit_3,
              table=self.data_frame,
-             column1=self.comboBox,
+             column1=self.comboBox_1,
              column2=self.comboBox_2
         )        
         self.cropper.reset()
@@ -1758,7 +1759,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
             self.widthLineEdit,
             self.heightLineEdit,
             self.exposureCheckBox_4,
-            self.checkBox_4,
+            self.mfaceCheckBox_4,
             self.tiltCheckBox_4,
             self.sensitivityDial,
             self.faceDial,
@@ -1779,7 +1780,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
             self.widthLineEdit,
             self.heightLineEdit,
             self.exposureCheckBox_4,
-            self.checkBox_4,
+            self.mfaceCheckBox_4,
             self.tiltCheckBox_4,
             self.sensitivityDial,
             self.faceDial,
