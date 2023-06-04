@@ -6,7 +6,7 @@
 
 Perfect for profile picture processing for your website or batch work for ID cards, autocrop will output images centered around the biggest face detected.
 
-# Supported file types
+## Supported file types
 
 The following file types are supported:
 
@@ -30,27 +30,28 @@ The following file types are supported:
 - RAW files (`.dng`, `.arw`, `.cr2`, `.crw`, `.erf`, `.kdc`, `.nef`, `.nrw`, `.orf`, `.pef`, `.raf`, `.raw`, `.sr2`, `.srw`, `.x3f`)
 - Video files (`.avi`, `.m4v`, `.mkv`, `.mov`, `.mp4`, `.wmv`)
 
-# Misc
-### Installing directly
+## Misc
 
+### Installing directly
 
 Autocrop is [currently being tested on](https://github.com/leblancfg/autocrop/actions/workflows/ci.yml):
 
-* Python 3.7 to 3.11
-* OS:
-    - Linux
-    - macOS
-    - Windows
+- Python 3.7 to 3.11
+- OS:
+  - Linux
+  - macOS
+  - Windows
 
-# More Info
+## More Info
+
 Check out:
 
-* http://docs.opencv.org/master/d7/d8b/tutorial_py_face_detection.html#gsc.tab=0
-* http://docs.opencv.org/master/d5/daf/tutorial_py_histogram_equalization.html#gsc.tab=0
+- <http://docs.opencv.org/master/d7/d8b/tutorial_py_face_detection.html#gsc.tab=0>
+- <http://docs.opencv.org/master/d5/daf/tutorial_py_histogram_equalization.html#gsc.tab=0>
 
 Adapted from:
 
-* http://photo.stackexchange.com/questions/60411/how-can-i-batch-crop-based-on-face-location
+- <http://photo.stackexchange.com/questions/60411/how-can-i-batch-crop-based-on-face-location>
 
 ### Contributing
 

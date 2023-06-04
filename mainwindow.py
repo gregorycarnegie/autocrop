@@ -14,9 +14,9 @@ from pathlib import Path
 from typing import Optional, Union
 
 
-class Ui_MainWindow(QtWidgets.QMainWindow):
+class UiMainWindow(QtWidgets.QMainWindow):
     def __init__(self) -> None:
-        super(Ui_MainWindow, self).__init__()
+        super(UiMainWindow, self).__init__()
         self.setAcceptDrops(True)
         self.model: Optional[custom_widgets.DataFrameModel] = None
         self.data_frame: Optional[pd.DataFrame] = None
@@ -1181,8 +1181,8 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.tiltCheckBox_4.clicked.connect(lambda: self.uncheck_boxes(self.mfaceCheckBox_4))
 
         self.photoButton.clicked.connect(lambda: self.open_folder(self.photoLineEdit, self.photoWidget))
-        self.folderButton_1.clicked.connect(lambda: self.open_folder(self.folderLineEdit_1, self.folderWidget,
-                                                                     self.file_model))
+        self.folderButton_1.clicked.connect(
+            lambda: self.open_folder(self.folderLineEdit_1, self.folderWidget, self.file_model))
         self.folderButton_2.clicked.connect(lambda: self.open_folder(self.folderLineEdit_2, self.mappingWidget))
 
         self.tableButton.clicked.connect(lambda: self.open_table())
@@ -1415,7 +1415,8 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
             elif isinstance(input_widget, QtWidgets.QCheckBox):
                 input_widget.stateChanged.connect(lambda: self.reload_widgets())
 
-    def uncheck_boxes(self, *checkboxes: QtWidgets.QCheckBox):
+    @staticmethod
+    def uncheck_boxes(*checkboxes: QtWidgets.QCheckBox):
         for checkbox in checkboxes:
             checkbox.setCheckState(QtCore.Qt.CheckState.Unchecked)
 
@@ -1482,7 +1483,8 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.function_tabWidget.setCurrentIndex(1)
         self.folderLineEdit_1.setText(file_path.as_posix())
         if self.widthLineEdit.text() and self.heightLineEdit.text():
-            self.display_crop(self.folderWidget, file_path, self.exposureCheckBox_2, self.mfaceCheckBox_2, self.tiltCheckBox_2)
+            self.display_crop(self.folderWidget, file_path, self.exposureCheckBox_2, self.mfaceCheckBox_2,
+                              self.tiltCheckBox_2)
 
     def handle_file(self, file_path):
         if file_path.suffix.lower() in IMAGE_TYPES:
@@ -1496,7 +1498,8 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.function_tabWidget.setCurrentIndex(0)
         self.photoLineEdit.setText(file_path.as_posix())
         if self.widthLineEdit.text() and self.heightLineEdit.text():
-            self.display_crop(self.photoWidget, file_path, self.exposureCheckBox_1, self.mfaceCheckBox_1, self.tiltCheckBox_1)
+            self.display_crop(self.photoWidget, file_path, self.exposureCheckBox_1, self.mfaceCheckBox_1,
+                              self.tiltCheckBox_1)
 
     def handle_video_file(self, file_path):
         self.function_tabWidget.setCurrentIndex(3)
@@ -1515,7 +1518,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.model = custom_widgets.DataFrameModel(self.data_frame)
         self.tableView.setModel(self.model)
 
-        self.comboBox.addItems(self.data_frame.columns.to_numpy())
+        self.comboBox_1.addItems(self.data_frame.columns.to_numpy())
         self.comboBox_2.addItems(self.data_frame.columns.to_numpy())
 
     def load_preset(self, phi: Union[int, float]) -> None:
@@ -1703,7 +1706,8 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
              photo_path=self.photoLineEdit,
              destination=self.destinationLineEdit_1,
         )
-        self.cropper.crop(Path(self.photoLineEdit.text()), job, self.cropper.face_workers[0][0], self.cropper.face_workers[0][1])
+        self.cropper.crop(Path(self.photoLineEdit.text()), job, self.cropper.face_workers[0][0],
+                          self.cropper.face_workers[0][1])
 
     def folder_process(self) -> None:
         job = utils.Job(

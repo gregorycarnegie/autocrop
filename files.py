@@ -30,7 +30,8 @@ class Video:
     def __init__(self, audio: QtMultimedia.QAudioOutput, video_widget: QtMultimediaWidgets.QVideoWidget,
                  media_player: QtMultimedia.QMediaPlayer, timeline_slider: QtWidgets.QSlider,
                  volume_slider: QtWidgets.QSlider, position_label: QtWidgets.QLabel,
-                 durationLabel: QtWidgets.QLabel, selectEndMarkerButton: QtWidgets.QPushButton) -> None:
+                 duration_label: QtWidgets.QLabel, select_end_marker_button: QtWidgets.QPushButton) -> None:
+        self.rewind_timer = None
         self.default_directory = f"{Path.home()}\\Videos"
         self.muted = False
         self.paused = False
@@ -41,8 +42,8 @@ class Video:
         self.timeline_slider = timeline_slider
         self.position_label = position_label
         self.volume_slider = volume_slider
-        self.durationLabel = durationLabel
-        self.selectEndMarkerButton = selectEndMarkerButton
+        self.durationLabel = duration_label
+        self.selectEndMarkerButton = select_end_marker_button
 
         self.start_position, self.stop_position, self.step = 0.0, 0.0, 2
 

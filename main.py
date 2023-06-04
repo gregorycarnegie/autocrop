@@ -1,10 +1,10 @@
-from mainwindow import Ui_MainWindow
+from mainwindow import UiMainWindow
 from PyQt6 import QtWidgets
 
 def main():
     app = QtWidgets.QApplication([])
     app.setStyle('Fusion')
-    main_window = Ui_MainWindow()
+    main_window = UiMainWindow()
     main_window.show()
     app.exec()
 

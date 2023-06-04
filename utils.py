@@ -18,7 +18,7 @@ import cProfile
 import pstats
 
 
-GAMMA_THRESHOLD = 0.001
+GAMMA_THRESHOLD = .001
 
 class Job(NamedTuple):
     width: QtWidgets.QLineEdit
@@ -61,7 +61,7 @@ class Job(NamedTuple):
     def height_value(self) -> int:
         return int(self.height.text())
     
-    def destination_path(self) -> Optional[Path]:
+    def get_destination(self) -> Optional[Path]:
         if self.destination is None:
             return None
         x = Path(self.destination.text())
@@ -79,7 +79,7 @@ class Job(NamedTuple):
         y = self.table[self.column2.currentText()].to_numpy().astype(str)
         return x, y
 
-def profileit(func):
+def profile_it(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         with cProfile.Profile() as profile:
@@ -131,38 +131,40 @@ def correct_exposure(image: Union[cv2.Mat, Image.Image, np.ndarray],
     alpha, beta = autocrop_rs.calc_alpha_beta(hist)
     return cv2.convertScaleAbs(image, alpha=alpha, beta=beta)
 
-def open_cv2(image: Path, exposure: bool, tilt: bool, face_detector = None,
-             predictor = None) -> (cv2.Mat | np.ndarray):
-    # if face_detector is None or predictor is None:
-    #     return None
+def open_cv2(image: Path, exposure: bool, tilt: bool, face_detector: Optional[dlib.fhog_object_detector] = None,
+             predictor: Optional[dlib.shape_predictor] = None) -> (cv2.Mat | np.ndarray):
     img = cv2.imread(image.as_posix())
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = correct_exposure(img, exposure)
     return align_head(img, face_detector, predictor) if tilt else img
 
-def open_raw(image: Path, exposure: bool, tilt: bool, face_detector = None,
-             predictor = None) -> (cv2.Mat | np.ndarray):
-    # if face_detector is None or predictor is None:
-    #     return None
+def open_raw(image: Path, exposure: bool, tilt: bool, face_detector: Optional[dlib.fhog_object_detector] = None,
+             predictor: Optional[dlib.shape_predictor] = None) -> (cv2.Mat | np.ndarray):
     with rawpy.imread(image.as_posix()) as raw:
         # Post-process the raw image data
-        x = reorient_image_from_object(raw)
-        x = correct_exposure(x, exposure)
-        return align_head(x, face_detector, predictor) if tilt else x
+        img = reorient_image_from_object(raw)
+        img = correct_exposure(img, exposure)
+        return align_head(img, face_detector, predictor) if tilt else img
 
+@cache
 def open_table(input_file: Path, extension: str) -> pd.DataFrame:
     return pd.read_csv(input_file) if extension == '.csv' else pd.read_excel(input_file)
 
 @lru_cache(5, True)
-def open_file(input_file: Union[Path, str], exposure: bool, tilt: bool, face_detector = None,
-              predictor = None) -> Union[cv2.Mat, np.ndarray, pd.DataFrame, None]:
+def open_file(input_file: Union[Path, str], exposure: Optional[bool] = None, tilt: Optional[bool] = None,
+              face_detector: Optional[dlib.fhog_object_detector] = None,
+              predictor: Optional[dlib.shape_predictor] = None) -> Union[cv2.Mat, np.ndarray, pd.DataFrame, None]:
     """Given a filename, returns a numpy array or a pandas dataframe"""
     input_file = Path(input_file) if isinstance(input_file, str) else input_file
     if (extension := input_file.suffix.lower()) in CV2_TYPES:
         # Try with OpenCV
+        if exposure is None or tilt is None:
+            return None
         return open_cv2(input_file, exposure, tilt, face_detector, predictor)
     elif extension in RAW_TYPES:
         # Try with rawpy
+        if exposure is None or tilt is None:
+            return None
         return open_raw(input_file, exposure, tilt, face_detector, predictor)
     elif extension in PANDAS_TYPES:
         # Try pandas
@@ -173,12 +175,15 @@ def open_file(input_file: Union[Path, str], exposure: bool, tilt: bool, face_det
 def dlib_predictor(path: str) -> dlib.shape_predictor:
     return dlib.shape_predictor(path)
 
-def align_head(image: Union[cv2.Mat, np.ndarray], face_detector, predictor) -> Union[cv2.Mat, np.ndarray]:
+def align_head(image: Union[cv2.Mat, np.ndarray], face_detector: dlib.fhog_object_detector,
+               predictor: dlib.shape_predictor) -> Union[cv2.Mat, np.ndarray]:
     """
     Aligns the head in an image using dlib and shape_predictor_68_face_landmarks.dat.
 
     Args:
         image: A numpy array representing the image.
+        face_detector: face detector for current thread.
+        predictor: predictor for current thread.
 
     Returns:
         A numpy array representing the aligned image.
@@ -188,7 +193,7 @@ def align_head(image: Union[cv2.Mat, np.ndarray], face_detector, predictor) -> U
     scaling_factor = 256 / height
     image_array = cv2.resize(image, None, fx=scaling_factor, fy=scaling_factor, interpolation=cv2.INTER_AREA)
     # Detect the faces in the image.
-    if len(image_array.shape) >=3:
+    if len(image_array.shape) >= 3:
         image_array = cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY)
     
     faces = face_detector(image_array, 1)
@@ -207,7 +212,6 @@ def align_head(image: Union[cv2.Mat, np.ndarray], face_detector, predictor) -> U
     angle = get_angle_of_tilt(landmarks)
     return rotate_image(image, angle, center)
 
-
 def get_angle_of_tilt(landmarks: dlib.full_object_detection) -> float:
     """
     Gets the angle of tilt of a face in an image using dlib.
@@ -220,11 +224,11 @@ def get_angle_of_tilt(landmarks: dlib.full_object_detection) -> float:
     """
 
     # Find the eyes in the image.
-    left_eye = (sum(landmarks.part(i).x for i in range(42, 48)) / 6,
-                sum(landmarks.part(i).y for i in range(42, 48)) / 6)
-    right_eye = (sum(landmarks.part(i).x for i in range(36, 42)) / 6,
-                 sum(landmarks.part(i).y for i in range(36, 42)) / 6)
-    return np.arctan2(left_eye[1] - right_eye[1], left_eye[0] - right_eye[0]) * 180 / np.pi
+    l_eye = (sum(landmarks.part(i).x for i in range(42, 48)) / 6,
+             sum(landmarks.part(i).y for i in range(42, 48)) / 6)
+    r_eye = (sum(landmarks.part(i).x for i in range(36, 42)) / 6,
+             sum(landmarks.part(i).y for i in range(36, 42)) / 6)
+    return np.arctan2(l_eye[1] - r_eye[1], l_eye[0] - r_eye[0]) * 180 / np.pi
 
 def rotate_image(image: Union[cv2.Mat, np.ndarray], angle: float, center: tuple[float, float]) -> cv2.Mat:
     """
@@ -243,104 +247,65 @@ def rotate_image(image: Union[cv2.Mat, np.ndarray], angle: float, center: tuple[
     # Apply the rotation to the image.
     return cv2.warpAffine(image, rotation_matrix, (image.shape[1], image.shape[0]))
 
-def box(img: Union[cv2.Mat, np.ndarray], conf: int, face_perc: int, width: int, height: int, wide: int, high: int,
-        top: int, bottom: int, left: int, right: int) -> Optional[tuple[int, int, int, int]]:
-    # preprocess the image: resize and performs mean subtraction
-    blob = cv2.dnn.blobFromImage(img, 1.0, (300, 300), (104.0, 177.0, 123.0))
-    # set the image into the input of the neural network
+def prepare_detections(image: Union[cv2.Mat, np.ndarray]):
+    # Create blob from image
+    # We standardize the image by scaling it and then subtracting the mean RGB values
+    blob = cv2.dnn.blobFromImage(image, 1.0, (300, 300), (104.0, 177.0, 123.0), False, False)
+    # Set the input for the neural network
     caffe = caffe_model()
     caffe.setInput(blob)
-    # perform inference and get the result
-    output = np.squeeze(caffe.forward())
+    # Forward pass through the network to get detections
+    return caffe.forward()
+
+def get_box_coordinates(output: np.ndarray, width: int, height: int, job: Job,
+                        x: Optional[np.ndarray] = None) -> tuple[int, int, int, int]:
+    box_outputs = output * np.array([width, height, width, height])
+    x0, y0, x1, y1 = box_outputs.astype("int") if x is None else box_outputs[np.argmax(x)]
+    return autocrop_rs.crop_positions(
+        x0, y0, x1 - x0, y1 - y0, job.facepercent.value(), job.width_value(), job.height_value(), job.top.value(),
+        job.bottom.value(), job.left.value(), job.right.value()
+        )
+
+def box(img: Union[cv2.Mat, np.ndarray], width: int, height: int, job: Job) -> Optional[tuple[int, int, int, int]]:
+    # # preprocess the image: resize and performs mean subtraction
+    detections = prepare_detections(img)
+    output = np.squeeze(detections)
     # get the confidence
     confidence_list = output[:, 2]
-    if np.max(confidence_list) < conf * .01:
+    if np.max(confidence_list) < job.sensitivity.value() * .01:
         return None
-    # get the surrounding box coordinates and upscale them to original image
-    box_coords = output[:, 3:7] * np.array([width, height, width, height])
-    x0, y0, x1, y1 = box_coords[np.argmax(confidence_list)]
-    return autocrop_rs.crop_positions(x0, y0, x1 - x0, y1 - y0, face_perc, wide, high, top, bottom, left, right)
+    return get_box_coordinates(output[:, 3:7], width, height, job, confidence_list)
 
-
-def multi_box(image: Union[cv2.Mat, np.ndarray], conf: int, face_perc: int, wide: int, high: int,
-              top: int, bottom: int, left: int, right: int):
+def multi_box(image: Union[cv2.Mat, np.ndarray], job: Job) -> Union[cv2.Mat, np.ndarray]:
     height, width = image.shape[:2]
-    # Create blob from image
-    # We standardize the image by scaling it and then subtracting the mean RGB values
-    blob = cv2.dnn.blobFromImage(image, 1.0, (300, 300), [104, 117, 123], False, False)
-
-    # Set the input for the neural network
-    caffe = caffe_model()
-    caffe.setInput(blob)
-
-    # Forward pass through the network to get detections
-    detections = caffe.forward()
+    detections = prepare_detections(image)
     for i in range(detections.shape[2]):
         # Confidence in the detection
-        if (confidence := detections[0, 0, i, 2]) > conf * .01: # Threshold
-            # get the surrounding box coordinates and upscale them to original image
-            box = detections[0, 0, i, 3:7] * np.array([width, height, width, height])
-            x0, y0, x1, y1 = box.astype("int")
-            x0, y0, x1, y1 = autocrop_rs.crop_positions(x0, y0, x1 - x0, y1 - y0, face_perc, wide, high, top, bottom, left, right)
-
+        if (confidence := detections[0, 0, i, 2]) > job.sensitivity.value() * .01: # Threshold
+            x0, y0, x1, y1 = get_box_coordinates(detections[0, 0, i, 3:7], width, height, job)
             text = "{:.2f}%".format(confidence * 100)
             y = y0 - 10 if y0 > 20 else y0 + 10
-            
-            cv2.rectangle(image, (x0, y0), (x1, y1),(0, 0, 255), 2)
+            cv2.rectangle(image, (x0, y0), (x1, y1), (0, 0, 255), 2)
             cv2.putText(image, text, (x0, y), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 2)
-    
     return image
 
-def multi_box_positions(image: Union[cv2.Mat, np.ndarray], conf: int, face_perc: int, wide: int, high: int,
-                        top: int, bottom: int, left: int, right: int) -> tuple[np.ndarray, np.ndarray]:
+def multi_box_positions(image: Union[cv2.Mat, np.ndarray], job: Job) -> tuple[np.ndarray, np.ndarray]:
     height, width = image.shape[:2]
-    # Create blob from image
-    # We standardize the image by scaling it and then subtracting the mean RGB values
-    blob = cv2.dnn.blobFromImage(image, 1.0, (300, 300), [104, 117, 123], False, False)
-
-    # Set the input for the neural network
-    caffe = caffe_model()
-    caffe.setInput(blob)
-
-    # Forward pass through the network to get detections
-    detections = caffe.forward()
-    crop_positions = []
-    for i in range(detections.shape[2]):
-        # Confidence in the detection
-        if detections[0, 0, i, 2] > conf * .01: # Threshold
-            # get the surrounding box coordinates and upscale them to original image
-            box = detections[0, 0, i, 3:7] * np.array([width, height, width, height])
-            x0, y0, x1, y1 = box.astype("int")
-
-            # x0, y0, x1, y1 = autocrop_rs.crop_positions(x0, y0, x1 - x0, y1 - y0, face_perc, wide, high, top, bottom, left, right)
-            # print(f'{x0}, {y0}, {x1}, {y1}')
-            # np.append(crop_positions, (x0, y0, x1, y1))
-            crop_positions.append(autocrop_rs.crop_positions(x0, y0, x1 - x0, y1 - y0, face_perc, wide, high, top, bottom, left, right))
-    
+    detections = prepare_detections(image)
+    crop_positions = [
+        get_box_coordinates(detections[0, 0, i, 3:7], width, height, job)
+        for i in range(detections.shape[2])
+        if detections[0, 0, i, 2] > job.sensitivity.value() * .01
+    ]
     return detections, np.array(crop_positions)
 
-@cache
-def box_detect(img_path: Path, wide: int, high: int, conf: int, face_perc: int, top: int, bottom: int, left: int,
-               right: int) -> Optional[tuple[int, int, int, int]]:
-    img = open_file(img_path)
-    # get width and height of the image
-    try:
-        if isinstance(img, np.ndarray):
-            height, width = img.shape[:2]
-        else:
-            return None
-    except AttributeError:
-        return None
-    return box(img, conf, face_perc, width, height, wide, high, top, bottom, left, right)
-
-def box_detect_numpy(img: Union[cv2.Mat, np.ndarray], wide: int, high: int, conf: int, face_perc: int, top: int,
-                     bottom: int, left: int, right: int) -> Optional[tuple[int, int, int, int]]:
+def box_detect(img: Union[cv2.Mat, np.ndarray], job: Job) -> Optional[tuple[int, int, int, int]]:
     try:
         # get width and height of the image
         height, width = img.shape[:2]
     except AttributeError:
         return None
-    return box(img, conf, face_perc, width, height, wide, high, top, bottom, left, right)
+    return box(img, width, height, job)
 
 @cache
 def get_first_file(img_path: Path) -> Optional[Path]:
