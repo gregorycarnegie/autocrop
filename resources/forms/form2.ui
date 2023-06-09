@@ -2085,7 +2085,7 @@ QCheckBox::indicator:unchecked:hover{
          <enum>QTabWidget::Rounded</enum>
         </property>
         <property name="currentIndex">
-         <number>0</number>
+         <number>1</number>
         </property>
         <property name="tabsClosable">
          <bool>false</bool>
@@ -2651,32 +2651,28 @@ QCheckBox::indicator:unchecked:hover{
          </attribute>
          <layout class="QHBoxLayout" name="horizontalLayout_27">
           <item>
-           <layout class="QVBoxLayout" name="verticalLayout_21">
-            <item alignment="Qt::AlignHCenter">
-             <widget class="QRadioButton" name="radioButton_1">
-              <property name="styleSheet">
-               <string notr="true">QRadioButton::indicator:checked{
+           <widget class="QRadioButton" name="radioButton_1">
+            <property name="styleSheet">
+             <string notr="true">QRadioButton::indicator:checked{
 	image: url(:/resources/icons/file_no_checked.svg);
 }
 QRadioButton::indicator:unchecked{
 	image: url(:/resources/icons/file_no_unchecked.svg);
 }</string>
-              </property>
-              <property name="text">
-               <string/>
-              </property>
-              <property name="iconSize">
-               <size>
-                <width>64</width>
-                <height>64</height>
-               </size>
-              </property>
-              <property name="checked">
-               <bool>true</bool>
-              </property>
-             </widget>
-            </item>
-           </layout>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>64</width>
+              <height>64</height>
+             </size>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
           </item>
           <item>
            <spacer name="horizontalSpacer_3">
@@ -2692,99 +2688,79 @@ QRadioButton::indicator:unchecked{
            </spacer>
           </item>
           <item>
-           <layout class="QVBoxLayout" name="verticalLayout_24">
-            <item alignment="Qt::AlignHCenter">
-             <widget class="QRadioButton" name="radioButton_2">
-              <property name="styleSheet">
-               <string notr="true">QRadioButton::indicator:checked{
+           <widget class="QRadioButton" name="radioButton_2">
+            <property name="styleSheet">
+             <string notr="true">QRadioButton::indicator:checked{
 	image: url(:/resources/icons/file_bmp_checked.svg);
 }
 QRadioButton::indicator:unchecked{
 	image: url(:/resources/icons/file_bmp_unchecked.svg);
 }</string>
-              </property>
-              <property name="text">
-               <string/>
-              </property>
-             </widget>
-            </item>
-           </layout>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
           </item>
           <item>
-           <layout class="QVBoxLayout" name="verticalLayout_25">
-            <item alignment="Qt::AlignHCenter">
-             <widget class="QRadioButton" name="radioButton_3">
-              <property name="styleSheet">
-               <string notr="true">QRadioButton::indicator:checked{
+           <widget class="QRadioButton" name="radioButton_3">
+            <property name="styleSheet">
+             <string notr="true">QRadioButton::indicator:checked{
 	image: url(:/resources/icons/file_jpg_checked.svg);
 }
 QRadioButton::indicator:unchecked{
 	image: url(:/resources/icons/file_jpg_unchecked.svg);
 }</string>
-              </property>
-              <property name="text">
-               <string/>
-              </property>
-             </widget>
-            </item>
-           </layout>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
           </item>
           <item>
-           <layout class="QVBoxLayout" name="verticalLayout_26">
-            <item alignment="Qt::AlignHCenter">
-             <widget class="QRadioButton" name="radioButton_4">
-              <property name="styleSheet">
-               <string notr="true">QRadioButton::indicator:checked{
+           <widget class="QRadioButton" name="radioButton_4">
+            <property name="styleSheet">
+             <string notr="true">QRadioButton::indicator:checked{
 	image: url(:/resources/icons/file_png_checked.svg);
 }
 QRadioButton::indicator:unchecked{
 	image: url(:/resources/icons/file_png_unchecked.svg);
 }</string>
-              </property>
-              <property name="text">
-               <string/>
-              </property>
-             </widget>
-            </item>
-           </layout>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
           </item>
           <item>
-           <layout class="QVBoxLayout" name="verticalLayout_27">
-            <item alignment="Qt::AlignHCenter">
-             <widget class="QRadioButton" name="radioButton_5">
-              <property name="styleSheet">
-               <string notr="true">QRadioButton::indicator:checked{
+           <widget class="QRadioButton" name="radioButton_5">
+            <property name="styleSheet">
+             <string notr="true">QRadioButton::indicator:checked{
 	image: url(:/resources/icons/file_tiff_checked.svg);
 }
 QRadioButton::indicator:unchecked{
 	image: url(:/resources/icons/file_tiff_unchecked.svg);
 }</string>
-              </property>
-              <property name="text">
-               <string/>
-              </property>
-             </widget>
-            </item>
-           </layout>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
           </item>
           <item>
-           <layout class="QVBoxLayout" name="verticalLayout_28">
-            <item alignment="Qt::AlignHCenter">
-             <widget class="QRadioButton" name="radioButton_6">
-              <property name="styleSheet">
-               <string notr="true">QRadioButton::indicator:checked{
+           <widget class="QRadioButton" name="radioButton_6">
+            <property name="styleSheet">
+             <string notr="true">QRadioButton::indicator:checked{
 	image: url(:/resources/icons/file_webp_checked.svg);
 }
 QRadioButton::indicator:unchecked{
 	image: url(:/resources/icons/file_webp_unchecked.svg);
 }</string>
-              </property>
-              <property name="text">
-               <string/>
-              </property>
-             </widget>
-            </item>
-           </layout>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
           </item>
          </layout>
         </widget>
@@ -3079,8 +3055,8 @@ QRadioButton::indicator:unchecked{
    <slot>setFocus()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1037</x>
-     <y>836</y>
+     <x>-1</x>
+     <y>-1</y>
     </hint>
     <hint type="destinationlabel">
      <x>673</x>

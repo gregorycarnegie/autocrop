@@ -1,7 +1,7 @@
 import numpy as np
 from threading import Thread
 from pathlib import Path
-from typing import Union
+from typing import Union, Optional
 from PyQt6 import QtCore, QtGui, QtMultimedia, QtMultimediaWidgets, QtWidgets
 
 CV2_TYPES = np.array(['.bmp', '.dib', '.jpeg', '.jpg', '.jpe', '.jp2', '.png',
@@ -31,7 +31,7 @@ class Video:
                  media_player: QtMultimedia.QMediaPlayer, timeline_slider: QtWidgets.QSlider,
                  volume_slider: QtWidgets.QSlider, position_label: QtWidgets.QLabel,
                  duration_label: QtWidgets.QLabel, select_end_marker_button: QtWidgets.QPushButton) -> None:
-        self.rewind_timer = None
+        self.rewind_timer = Optional[QtCore.QTimer()]
         self.default_directory = f"{Path.home()}\\Videos"
         self.muted = False
         self.paused = False
@@ -107,7 +107,8 @@ class Video:
             self.rewind_timer.timeout.connect(self.rewind_step)
 
         # Start the timer to call rewind_step every 100 milliseconds
-        self.rewind_timer.start(100)
+        if isinstance(self.rewind_timer, QtCore.QTimer):
+            self.rewind_timer.start(100)
 
     def rewind_step(self) -> None:
         # Calculate the new position
@@ -120,7 +121,7 @@ class Video:
         self.player.setPosition(new_position)
 
         # If we're at the start of the video, stop the timer
-        if new_position == 0:
+        if new_position == 0 and isinstance(self.rewind_timer, QtCore.QTimer):
             self.rewind_timer.stop()
 
     def stepfwd(self):

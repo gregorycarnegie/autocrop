@@ -13,7 +13,7 @@ from functools import cache, lru_cache, wraps
 from pathlib import Path
 from PIL import Image
 from PyQt6 import QtGui, QtWidgets
-from typing import Optional, Union, NamedTuple, Generator
+from typing import Callable, Optional, Union, NamedTuple, Generator, Tuple
 import cProfile
 import pstats
 
@@ -33,8 +33,7 @@ class Job(NamedTuple):
     bottom: QtWidgets.QDial
     left: QtWidgets.QDial
     right: QtWidgets.QDial
-    radio_buttons: tuple[QtWidgets.QRadioButton, QtWidgets.QRadioButton, QtWidgets.QRadioButton,
-                         QtWidgets.QRadioButton, QtWidgets.QRadioButton, QtWidgets.QRadioButton]
+    radio_buttons: Tuple[QtWidgets.QRadioButton, ...]
     radio_options: np.ndarray = np.array(['No', '.bmp', '.jpg', '.png', '.tiff', '.webp'])
     destination: Optional[QtWidgets.QLineEdit] = None
     photo_path: Optional[QtWidgets.QLineEdit] = None
@@ -79,7 +78,7 @@ class Job(NamedTuple):
         y = self.table[self.column2.currentText()].to_numpy().astype(str)
         return x, y
 
-def profile_it(func):
+def profile_it(func: Callable) -> Callable:
     @wraps(func)
     def wrapper(*args, **kwargs):
         with cProfile.Profile() as profile:

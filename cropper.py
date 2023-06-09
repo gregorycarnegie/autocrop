@@ -10,7 +10,7 @@ from pathlib import Path
 from PIL import Image
 from PyQt6 import QtCore, QtWidgets
 from threading import Thread, Lock
-from typing import Union, Optional
+from typing import Callable, Union, Optional
 
 
 class Cropper(QtCore.QObject):
@@ -48,8 +48,8 @@ class Cropper(QtCore.QObject):
         self.end_task = False
         self.message_box = True
     
-    def save_detection1(self, source_image: Path, image: Path, job: utils.Job, face_detector, predictor,
-                        new: str) -> None:
+    def save_detection1(self, source_image: Path, image: Path, job: utils.Job, 
+                        face_detector: dlib.fhog_object_detector, predictor: dlib.shape_predictor, new: str) -> None:
         if (destination_path := job.get_destination()) is None:
             return None
         if (cropped_image := self.crop_image(source_image, job, face_detector, predictor)) is not None:
@@ -60,7 +60,8 @@ class Cropper(QtCore.QObject):
         else:
             utils.reject(source_image, destination_path, image)
 
-    def save_detection2(self, source_image: Path, image_name: Path, job: utils.Job, face_detector, predictor) -> None:
+    def save_detection2(self, source_image: Path, image_name: Path, job: utils.Job, 
+                        face_detector: dlib.fhog_object_detector, predictor: dlib.shape_predictor) -> None:
         if (destination_path := job.get_destination()) is None:
             return None
         if (cropped_image := self.crop_image(source_image, job, face_detector, predictor)) is not None:
@@ -71,7 +72,8 @@ class Cropper(QtCore.QObject):
         else:
             utils.reject(source_image, destination_path, image_name)
 
-    def save_detection3(self, source_image: Path, job: utils.Job, face_detector, predictor) -> None:
+    def save_detection3(self, source_image: Path, job: utils.Job, 
+                        face_detector: dlib.fhog_object_detector, predictor: dlib.shape_predictor) -> None:
         if (destination_path := job.get_destination()) is None:
             return None
         if (cropped_image := self.crop_image(source_image, job, face_detector, predictor)) is not None:
@@ -139,7 +141,8 @@ class Cropper(QtCore.QObject):
         results = [utils.convert_color_space(image) for image in image_array]
         return [cv2.resize(result, (job.width_value(), job.height_value()), interpolation=cv2.INTER_AREA) for result in results]
 
-    def crop(self, image: Path, job: utils.Job, face_detector, predictor, new: Optional[str] = None) -> None:
+    def crop(self, image: Path, job: utils.Job, face_detector: dlib.fhog_object_detector, predictor: dlib.shape_predictor,
+             new: Optional[str] = None) -> None:
         common_widget_values = (job, face_detector, predictor)
         if job.table is not None and job.folder_path is not None and new is not None:
             # Data cropping
@@ -223,7 +226,8 @@ class Cropper(QtCore.QObject):
         utils.display_image_on_widget(final_image, image_widget)
 
     @staticmethod
-    def crop_image(image: Union[Path, cv2.Mat, np.ndarray], job: utils.Job, face_detector, predictor) -> cv2.Mat:
+    def crop_image(image: Union[Path, cv2.Mat, np.ndarray], job: utils.Job,
+                   face_detector: dlib.fhog_object_detector, predictor: dlib.shape_predictor) -> cv2.Mat:
         if isinstance(image, Path):
             pic_array = utils.open_file(image, job.fix_exposure_job.isChecked(), job.autotilt_job.isChecked(),
                                         face_detector, predictor)
@@ -253,7 +257,8 @@ class Cropper(QtCore.QObject):
         self.bar_value += 1
         progress_signal.emit(int(100 * self.bar_value / file_amount))
     
-    def folder_worker(self, file_amount: int, file_list: np.ndarray, job: utils.Job, face_detector, predictor) -> None:
+    def folder_worker(self, file_amount: int, file_list: np.ndarray, job: utils.Job,
+                      face_detector: dlib.fhog_object_detector, predictor: dlib.shape_predictor) -> None:
         for image in file_list:
             if self.end_task:
                 break
@@ -278,7 +283,7 @@ class Cropper(QtCore.QObject):
             t.start()
 
     def mapping_worker(self, file_amount: int, old: np.ndarray, new: np.ndarray, job: utils.Job,
-                       face_detector, predictor) -> None:
+                       face_detector: dlib.fhog_object_detector, predictor: dlib.shape_predictor) -> None:
         for i, image in enumerate(old):
             if self.end_task:
                 break
@@ -379,7 +384,7 @@ class Cropper(QtCore.QObject):
         file_path, is_tiff = self.get_frame_path(destination, file_enum, job)
         self.save_frame(cropped_image, file_path, job, is_tiff)
 
-    def frame_extraction(self, video, frame_number: int, job: utils.Job, progress_callback) -> None:
+    def frame_extraction(self, video, frame_number: int, job: utils.Job, progress_callback: Callable) -> None:
         video.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
         ret, frame = video.read()
 
@@ -411,7 +416,7 @@ class Cropper(QtCore.QObject):
         frame_numbers = np.arange(start_frame, end_frame + 1)
 
         self.bar_value = 0
-        def progress_callback():
+        def progress_callback() -> None:
             self.bar_value += 1
             x = 100 * self.bar_value // frame_numbers.size
             self.video_progress.emit(x)
