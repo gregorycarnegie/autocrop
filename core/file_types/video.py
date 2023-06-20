@@ -3,34 +3,20 @@ from threading import Thread
 from pathlib import Path
 from typing import Union, Optional
 from PyQt6 import QtCore, QtGui, QtMultimedia, QtMultimediaWidgets, QtWidgets
+from PyQt6 import QtMultimedia, QtMultimediaWidgets
 
-CV2_TYPES = np.array(['.bmp', '.dib', '.jpeg', '.jpg', '.jpe', '.jp2', '.png',
-                      '.webp', '.pbm', '.pgm', '.ppm', '.pxm', '.pnm', '.pfm',
-                      '.sr', '.ras', '.tiff', '.tif', '.exr', '.hdr', '.pic'])
-RAW_TYPES = np.array(['.dng', '.arw', '.cr2', '.crw', '.erf',
-                      '.kdc', '.nef', '.nrw', '.orf', '.pef',
-                      '.raf', '.raw', '.sr2', '.srw', '.x3f'])
-IMAGE_TYPES = np.concatenate((CV2_TYPES, RAW_TYPES))
-PANDAS_TYPES = np.array(['.csv', ".xlsx", ".xlsm", ".xltx", ".xltm"])
 VIDEO_TYPES = np.array([".avi", ".m4v", ".mkv", ".mov", ".mp4", ".wmv"])
 
-class Photo:
-    def __init__(self) -> None:
-        self.default_directory = f"{Path.home()}\\Pictures"
-
-    @staticmethod
-    def file_filter() -> np.ndarray:
-        return np.array([f'*{file}' for file in IMAGE_TYPES])
-
-    @staticmethod
-    def type_string() -> str:
-        return "All Files (*);;" + ";;".join(f"{_} Files (*{_})" for _ in np.sort(IMAGE_TYPES))
-
 class Video:
-    def __init__(self, audio: QtMultimedia.QAudioOutput, video_widget: QtMultimediaWidgets.QVideoWidget,
-                 media_player: QtMultimedia.QMediaPlayer, timeline_slider: QtWidgets.QSlider,
-                 volume_slider: QtWidgets.QSlider, position_label: QtWidgets.QLabel,
-                 duration_label: QtWidgets.QLabel, select_end_marker_button: QtWidgets.QPushButton) -> None:
+    def __init__(self,
+                 audio: QtMultimedia.QAudioOutput,
+                 video_widget: QtMultimediaWidgets.QVideoWidget,
+                 media_player: QtMultimedia.QMediaPlayer,
+                 timeline_slider: QtWidgets.QSlider,
+                 volume_slider: QtWidgets.QSlider,
+                 position_label: QtWidgets.QLabel,
+                 duration_label: QtWidgets.QLabel,
+                 select_end_marker_button: QtWidgets.QPushButton) -> None:
         self.rewind_timer = Optional[QtCore.QTimer()]
         self.default_directory = f"{Path.home()}\\Videos"
         self.muted = False
@@ -42,6 +28,7 @@ class Video:
         self.timeline_slider = timeline_slider
         self.position_label = position_label
         self.volume_slider = volume_slider
+        self.vol_cache = 70
         self.durationLabel = duration_label
         self.selectEndMarkerButton = select_end_marker_button
 
@@ -59,8 +46,11 @@ class Video:
     def type_string() -> str:
         return "All Files (*);;" + ";;".join(f"{_} Files (*{_})" for _ in np.sort(VIDEO_TYPES))
 
-    def open_video(self, main_window: QtWidgets.QMainWindow, video_line_edit: QtWidgets.QLineEdit,
-                   play_button: QtWidgets.QPushButton, crop_button: QtWidgets.QPushButton) -> None:
+    def open_video(self,
+                   main_window: QtWidgets.QMainWindow,
+                   video_line_edit: QtWidgets.QLineEdit,
+                   play_button: QtWidgets.QPushButton,
+                   crop_button: QtWidgets.QPushButton) -> None:
         file_name, _ = QtWidgets.QFileDialog.getOpenFileName(main_window, 'Open Video', self.default_directory,
                                                              'Video files (*.mp4 *.avi)')
         if file_name != '':
@@ -168,6 +158,7 @@ class Video:
 
     def volume_slider_changed(self, position: int) -> None:
         self.audio.setVolume(position)
+        self.vol_cache = position
 
     def volume_mute(self, volume_slider: QtWidgets.QSlider, mute_button: QtWidgets.QPushButton) -> None:
         if self.muted:
@@ -176,7 +167,7 @@ class Video:
             mute_button.setIcon(QtGui.QIcon('resources\\icons\\multimedia_unmute.svg'))
         else:
             self.audio.setMuted(False)
-            volume_slider.setValue(70)
+            volume_slider.setValue(self.vol_cache)
             mute_button.setIcon(QtGui.QIcon('resources\\icons\\multimedia_mute.svg'))
         self.muted = not self.muted
 

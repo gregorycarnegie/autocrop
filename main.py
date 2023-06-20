@@ -1,4 +1,4 @@
-from mainwindow import UiMainWindow
+from core import UiMainWindow
 from PyQt6 import QtWidgets
 
 def main():

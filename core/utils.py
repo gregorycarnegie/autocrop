@@ -1,82 +1,27 @@
-import autocrop_rs
+import cProfile
 import contextlib
-import cv2
-import dlib
-import rawpy
+import pstats
 import shutil
-import numpy as np
-import pandas as pd
-import tifffile as tiff
-from files import IMAGE_TYPES, CV2_TYPES, RAW_TYPES, PANDAS_TYPES
-from custom_widgets import ImageWidget
 from functools import cache, lru_cache, wraps
 from pathlib import Path
-from PIL import Image
-from PyQt6 import QtGui, QtWidgets
-from typing import Callable, Optional, Union, NamedTuple, Generator, Tuple
-import cProfile
-import pstats
+from typing import Callable, Optional, Union, Generator
 
+import autocrop_rs
+import cv2
+import dlib
+import numpy as np
+import pandas as pd
+import rawpy
+import tifffile as tiff
+from PIL import Image
+from PyQt6 import QtGui
+
+from .custom_widgets import ImageWidget
+# from files import IMAGE_TYPES, CV2_TYPES, RAW_TYPES, PANDAS_TYPES
+from .file_types import IMAGE_TYPES, CV2_TYPES, RAW_TYPES, PANDAS_TYPES
+from .job import Job
 
 GAMMA_THRESHOLD = .001
-
-class Job(NamedTuple):
-    width: QtWidgets.QLineEdit
-    height: QtWidgets.QLineEdit
-    fix_exposure_job: QtWidgets.QCheckBox
-    multiface_job: QtWidgets.QCheckBox
-    autotilt_job: QtWidgets.QCheckBox
-    sensitivity: QtWidgets.QDial
-    facepercent: QtWidgets.QDial
-    gamma: QtWidgets.QDial
-    top: QtWidgets.QDial
-    bottom: QtWidgets.QDial
-    left: QtWidgets.QDial
-    right: QtWidgets.QDial
-    radio_buttons: Tuple[QtWidgets.QRadioButton, ...]
-    radio_options: np.ndarray = np.array(['No', '.bmp', '.jpg', '.png', '.tiff', '.webp'])
-    destination: Optional[QtWidgets.QLineEdit] = None
-    photo_path: Optional[QtWidgets.QLineEdit] = None
-    folder_path: Optional[QtWidgets.QLineEdit] = None
-    video_path: Optional[QtWidgets.QLineEdit] = None
-    start_position: Optional[float] = None
-    stop_position: Optional[float] = None
-    table: Optional[pd.DataFrame] = None
-    column1: Optional[QtWidgets.QComboBox] = None
-    column2: Optional[QtWidgets.QComboBox] = None
-
-    def file_list(self):
-        x = np.fromiter(Path(self.folder_path.text()).iterdir(), Path)
-        y = np.array([pic.suffix.lower() in IMAGE_TYPES for pic in x])
-        return x[y]
-    
-    def radio_choice(self) -> str:
-        x = np.array([r.isChecked() for r in self.radio_buttons])
-        return self.radio_options[x][0]
-    
-    def width_value(self) -> int:
-        return int(self.width.text())
-    
-    def height_value(self) -> int:
-        return int(self.height.text())
-    
-    def get_destination(self) -> Optional[Path]:
-        if self.destination is None:
-            return None
-        x = Path(self.destination.text())
-        x.mkdir(exist_ok=True)
-        return x
-    
-    def file_list_to_numpy(self) -> Optional[tuple[np.ndarray, np.ndarray]]:
-        if (
-            not isinstance(self.table, pd.DataFrame)
-            or not isinstance(self.column1, QtWidgets.QComboBox)
-            or not isinstance(self.column2, QtWidgets.QComboBox)
-        ):
-            return None
-        x = self.table[self.column1.currentText()].to_numpy().astype(str)
-        y = self.table[self.column2.currentText()].to_numpy().astype(str)
-        return x, y
 
 def profile_it(func: Callable) -> Callable:
     @wraps(func)
@@ -130,14 +75,20 @@ def correct_exposure(image: Union[cv2.Mat, Image.Image, np.ndarray],
     alpha, beta = autocrop_rs.calc_alpha_beta(hist)
     return cv2.convertScaleAbs(image, alpha=alpha, beta=beta)
 
-def open_cv2(image: Path, exposure: bool, tilt: bool, face_detector: Optional[dlib.fhog_object_detector] = None,
+def open_cv2(image: Path,
+             exposure: bool,
+             tilt: bool,
+             face_detector: Optional[dlib.fhog_object_detector] = None,
              predictor: Optional[dlib.shape_predictor] = None) -> (cv2.Mat | np.ndarray):
     img = cv2.imread(image.as_posix())
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = correct_exposure(img, exposure)
     return align_head(img, face_detector, predictor) if tilt else img
 
-def open_raw(image: Path, exposure: bool, tilt: bool, face_detector: Optional[dlib.fhog_object_detector] = None,
+def open_raw(image: Path,
+             exposure: bool,
+             tilt: bool,
+             face_detector: Optional[dlib.fhog_object_detector] = None,
              predictor: Optional[dlib.shape_predictor] = None) -> (cv2.Mat | np.ndarray):
     with rawpy.imread(image.as_posix()) as raw:
         # Post-process the raw image data
@@ -150,7 +101,9 @@ def open_table(input_file: Path, extension: str) -> pd.DataFrame:
     return pd.read_csv(input_file) if extension == '.csv' else pd.read_excel(input_file)
 
 @lru_cache(5, True)
-def open_file(input_file: Union[Path, str], exposure: Optional[bool] = None, tilt: Optional[bool] = None,
+def open_file(input_file: Union[Path, str],
+              exposure: Optional[bool] = None,
+              tilt: Optional[bool] = None,
               face_detector: Optional[dlib.fhog_object_detector] = None,
               predictor: Optional[dlib.shape_predictor] = None) -> Union[cv2.Mat, np.ndarray, pd.DataFrame, None]:
     """Given a filename, returns a numpy array or a pandas dataframe"""
@@ -174,7 +127,8 @@ def open_file(input_file: Union[Path, str], exposure: Optional[bool] = None, til
 def dlib_predictor(path: str) -> dlib.shape_predictor:
     return dlib.shape_predictor(path)
 
-def align_head(image: Union[cv2.Mat, np.ndarray], face_detector: dlib.fhog_object_detector,
+def align_head(image: Union[cv2.Mat, np.ndarray],
+               face_detector: dlib.fhog_object_detector,
                predictor: dlib.shape_predictor) -> Union[cv2.Mat, np.ndarray]:
     """
     Aligns the head in an image using dlib and shape_predictor_68_face_landmarks.dat.
@@ -229,7 +183,9 @@ def get_angle_of_tilt(landmarks: dlib.full_object_detection) -> float:
              sum(landmarks.part(i).y for i in range(36, 42)) / 6)
     return np.arctan2(l_eye[1] - r_eye[1], l_eye[0] - r_eye[0]) * 180 / np.pi
 
-def rotate_image(image: Union[cv2.Mat, np.ndarray], angle: float, center: tuple[float, float]) -> cv2.Mat:
+def rotate_image(image: Union[cv2.Mat, np.ndarray],
+                 angle: float,
+                 center: tuple[float, float]) -> cv2.Mat:
     """
     Rotates an image by a specified angle around a center point.
 
@@ -256,7 +212,10 @@ def prepare_detections(image: Union[cv2.Mat, np.ndarray]):
     # Forward pass through the network to get detections
     return caffe.forward()
 
-def get_box_coordinates(output: np.ndarray, width: int, height: int, job: Job,
+def get_box_coordinates(output: np.ndarray,
+                        width: int,
+                        height: int,
+                        job: Job,
                         x: Optional[np.ndarray] = None) -> tuple[int, int, int, int]:
     box_outputs = output * np.array([width, height, width, height])
     x0, y0, x1, y1 = box_outputs.astype("int") if x is None else box_outputs[np.argmax(x)]
@@ -265,7 +224,10 @@ def get_box_coordinates(output: np.ndarray, width: int, height: int, job: Job,
         job.bottom.value(), job.left.value(), job.right.value()
         )
 
-def box(img: Union[cv2.Mat, np.ndarray], width: int, height: int, job: Job) -> Optional[tuple[int, int, int, int]]:
+def box(img: Union[cv2.Mat, np.ndarray],
+        width: int,
+        height: int,
+        job: Job) -> Optional[tuple[int, int, int, int]]:
     # # preprocess the image: resize and performs mean subtraction
     detections = prepare_detections(img)
     output = np.squeeze(detections)
@@ -366,12 +328,17 @@ def mask_extensions(file_list: np.ndarray) -> tuple[np.ndarray, int]:
     mask = np.in1d(extensions, IMAGE_TYPES)
     return mask, file_list[mask].size
 
-def split_by_cpus(mask: np.ndarray, cpu_count: int, *file_lists: np.ndarray) -> Generator[list[np.ndarray], None, None]:
+def split_by_cpus(mask: np.ndarray,
+                  cpu_count: int,
+                  *file_lists: np.ndarray) -> Generator[list[np.ndarray], None, None]:
     """Split the file list and the mapping data into chunks."""
     return (np.array_split(file_list[mask], cpu_count) for file_list in file_lists)
 
 @cache
-def set_filename(image_path: Path, destination: Path, radio_choice: str, radio_options: tuple,
+def set_filename(image_path: Path,
+                 destination: Path,
+                 radio_choice: str,
+                 radio_options: tuple,
                  new: Optional[str] = None) -> tuple[Path, bool]:
     if image_path.suffix.lower() in RAW_TYPES:
         selected_extension = radio_options[2] if radio_choice == radio_options[0] else radio_choice
@@ -385,7 +352,10 @@ def reject(path: Path, destination: Path, image: Path) -> None:
     reject_folder.mkdir(exist_ok=True)
     shutil.copy(path, reject_folder.joinpath(image.name))
 
-def save_image(image: cv2.Mat, file_path: str, user_gam: Union[int, float], gamma_threshold: Union[int, float],
+def save_image(image: cv2.Mat,
+               file_path: str,
+               user_gam: Union[int, float],
+               gamma_threshold: Union[int, float],
                is_tiff: bool = False) -> None:
     if is_tiff:
         image = cv2.convertScaleAbs(image)

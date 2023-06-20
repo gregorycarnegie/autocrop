@@ -1,34 +1,36 @@
-import re
-import utils
-import numpy as np
-import pandas as pd
-import custom_widgets
-from cropper import Cropper
-from files import Photo, Video, IMAGE_TYPES, VIDEO_TYPES, PANDAS_TYPES
 from multiprocessing import Process
-from os import startfile
-from PyQt6 import QtCore, QtGui, QtWidgets
-from PyQt6.QtMultimedia import QAudioOutput, QMediaPlayer
-from PyQt6.QtMultimediaWidgets import QVideoWidget
 from pathlib import Path
 from typing import Callable, Optional, Union, Tuple, Dict
+
+import numpy as np
+import pandas as pd
+from PyQt6 import QtCore, QtGui, QtWidgets, QtMultimedia, QtMultimediaWidgets
+
+from .cropper import Cropper
+from .custom_widgets import DataFrameModel, ImageWidget, PathLineEdit, NumberLineEdit
+from .file_types import Photo, Video, IMAGE_TYPES, VIDEO_TYPES, PANDAS_TYPES
+from .job import Job
+from .utils import open_file
+from .window_functions import setup_frame, setup_progress_bar, setup_dial, setup_lcd, setup_radio_button, \
+    setup_dial_area, setup_combo, enable_widget, disable_widget, change_widget_state, uncheck_boxes, terminate, \
+    load_about_form, show_message_box
 
 
 class UiMainWindow(QtWidgets.QMainWindow):
     def __init__(self) -> None:
         super(UiMainWindow, self).__init__()
         self.setAcceptDrops(True)
-        self.model: Optional[custom_widgets.DataFrameModel] = None
+        self.model: Optional[DataFrameModel] = None
         self.data_frame: Optional[pd.DataFrame] = None
         self.validator = QtGui.QIntValidator(100, 10_000)
         self.file_model = QtGui.QFileSystemModel(self)
         self.file_model.setFilter(QtCore.QDir.Filter.NoDotAndDotDot | QtCore.QDir.Filter.Files)
         self.file_model.setNameFilters(Photo().file_filter())
         self.cropper = Cropper()
-        self.player = QMediaPlayer()
-        self.audio = QAudioOutput()
+        self.player = QtMultimedia.QMediaPlayer()
+        self.audio = QtMultimedia.QAudioOutput()
         self.setObjectName("MainWindow")
-        self.resize(1348, 896)
+        self.resize(1_348, 896)
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap("resources/logos/logo.ico"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         self.setWindowIcon(icon)
@@ -50,27 +52,27 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.photoLineEdit = self.setup_line_edit(self.photoTab, "photoLineEdit", self.horizontalLayout_5, path_type='image')
         self.photoButton, icon1 = self.setup_button_icon(self.photoTab, 'picture', 1, self.horizontalLayout_5)
         self.verticalLayout_8.addLayout(self.horizontalLayout_5)
-        self.frame_8 = self.setup_frame(self.photoTab, "frame_8")
+        self.frame_8 = setup_frame(self.photoTab, "frame_8")
         self.verticalLayout_20 = QtWidgets.QVBoxLayout(self.frame_8)
         self.verticalLayout_20.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_20.setSpacing(0)
         self.verticalLayout_20.setObjectName("verticalLayout_20")
-        self.frame = self.setup_frame(self.photoTab, "frame", set_size=True)
+        self.frame = setup_frame(self.photoTab, "frame", set_size=True)
         self.horizontalLayout_8 = QtWidgets.QHBoxLayout(self.frame)
         self.horizontalLayout_8.setObjectName("horizontalLayout_8")
         self.mfaceCheckBox_1, self.tiltCheckBox_1, self.exposureCheckBox_1 = self.setup_checkboxes(self.frame, self.horizontalLayout_8, 1)
         self.verticalLayout_20.addWidget(self.frame)
-        self.frame_13 = self.setup_frame(self.photoTab, "frame_13")
+        self.frame_13 = setup_frame(self.photoTab, "frame_13")
         self.verticalLayout_29 = QtWidgets.QVBoxLayout(self.frame_13)
         self.verticalLayout_29.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_29.setSpacing(0)
         self.verticalLayout_29.setObjectName("verticalLayout_29")
-        self.photoWidget = custom_widgets.ImageWidget(parent=self.frame_13)
+        self.photoWidget = ImageWidget(parent=self.frame_13)
         self.photoWidget.setStyleSheet("")
         self.photoWidget.setObjectName("photoWidget")
         self.verticalLayout_29.addWidget(self.photoWidget)
         self.verticalLayout_20.addWidget(self.frame_13)
-        self.frame_2 = self.setup_frame(self.photoTab, "frame_2", set_size=True)
+        self.frame_2 = setup_frame(self.photoTab, "frame_2", set_size=True)
         self.horizontalLayout_7 = QtWidgets.QHBoxLayout(self.frame_2)
         self.horizontalLayout_7.setObjectName("horizontalLayout_7")
         self.cropButton_1 = self.setup_button(self.frame_2, 'crop', 1, self.horizontalLayout_7)
@@ -100,33 +102,33 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_16 = QtWidgets.QVBoxLayout()
         self.verticalLayout_16.setSpacing(0)
         self.verticalLayout_16.setObjectName("verticalLayout_16")
-        self.frame_3 = self.setup_frame(self.folder_Tab, "frame_3", set_size=True)
+        self.frame_3 = setup_frame(self.folder_Tab, "frame_3", set_size=True)
         self.horizontalLayout_15 = QtWidgets.QHBoxLayout(self.frame_3)
         self.horizontalLayout_15.setObjectName("horizontalLayout_15")
         self.mfaceCheckBox_2, self.tiltCheckBox_2, self.exposureCheckBox_2 = self.setup_checkboxes(self.frame_3, self.horizontalLayout_15, 2)
         self.verticalLayout_16.addWidget(self.frame_3)
-        self.frame_12 = self.setup_frame(self.folder_Tab, "frame_12")
+        self.frame_12 = setup_frame(self.folder_Tab, "frame_12")
         self.verticalLayout_7 = QtWidgets.QVBoxLayout(self.frame_12)
         self.verticalLayout_7.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_7.setSpacing(0)
         self.verticalLayout_7.setObjectName("verticalLayout_7")
-        self.folderWidget = custom_widgets.ImageWidget(parent=self.frame_12)
+        self.folderWidget = ImageWidget(parent=self.frame_12)
         self.folderWidget.setStyleSheet("")
         self.folderWidget.setObjectName("folderWidget")
         self.verticalLayout_7.addWidget(self.folderWidget)
         self.verticalLayout_16.addWidget(self.frame_12)
-        self.frame_14 = self.setup_frame(self.folder_Tab, "frame_14")
+        self.frame_14 = setup_frame(self.folder_Tab, "frame_14")
         self.horizontalLayout_16 = QtWidgets.QHBoxLayout(self.frame_14)
         self.horizontalLayout_16.setContentsMargins(-1, 9, -1, 0)
         self.horizontalLayout_16.setObjectName("horizontalLayout_16")
         self.cropButton_2 = self.setup_button(self.frame_14, 'crop', 2, self.horizontalLayout_16)
         self.cancelButton_1 = self.setup_button(self.frame_14, 'cancel', 1, self.horizontalLayout_16)
         self.verticalLayout_16.addWidget(self.frame_14)
-        self.frame_4 = self.setup_frame(self.folder_Tab, "frame_4", set_size=True)
+        self.frame_4 = setup_frame(self.folder_Tab, "frame_4", set_size=True)
         self.verticalLayout_30 = QtWidgets.QVBoxLayout(self.frame_4)
         self.verticalLayout_30.setContentsMargins(-1, 9, -1, -1)
         self.verticalLayout_30.setObjectName("verticalLayout_30")
-        self.progressBar_1 = self.setup_progress_bar(self.frame_4, "progressBar_1", self.verticalLayout_30)
+        self.progressBar_1 = setup_progress_bar(self.frame_4, "progressBar_1", self.verticalLayout_30)
         self.verticalLayout_16.addWidget(self.frame_4)
         self.verticalLayout_16.setStretch(0, 1)
         self.verticalLayout_16.setStretch(1, 10)
@@ -175,33 +177,33 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_18 = QtWidgets.QVBoxLayout()
         self.verticalLayout_18.setSpacing(0)
         self.verticalLayout_18.setObjectName("verticalLayout_18")
-        self.frame_5 = self.setup_frame(self.mappingTab, "frame_5")
+        self.frame_5 = setup_frame(self.mappingTab, "frame_5")
         self.horizontalLayout_23 = QtWidgets.QHBoxLayout(self.frame_5)
         self.horizontalLayout_23.setObjectName("horizontalLayout_23")
         self.mfaceCheckBox_3, self.tiltCheckBox_3, self.exposureCheckBox_3 = self.setup_checkboxes(self.frame_5, self.horizontalLayout_23, 3)
         self.verticalLayout_18.addWidget(self.frame_5)
-        self.frame_6 = self.setup_frame(self.mappingTab, "frame_6")
+        self.frame_6 = setup_frame(self.mappingTab, "frame_6")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.frame_6)
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout.setSpacing(0)
         self.verticalLayout.setObjectName("verticalLayout")
-        self.mappingWidget = custom_widgets.ImageWidget(parent=self.frame_6)
+        self.mappingWidget = ImageWidget(parent=self.frame_6)
         self.mappingWidget.setStyleSheet("")
         self.mappingWidget.setObjectName("mappingWidget")
         self.verticalLayout.addWidget(self.mappingWidget)
         self.verticalLayout_18.addWidget(self.frame_6)
-        self.frame_15 = self.setup_frame(self.mappingTab, "frame_15")
+        self.frame_15 = setup_frame(self.mappingTab, "frame_15")
         self.horizontalLayout_13 = QtWidgets.QHBoxLayout(self.frame_15)
         self.horizontalLayout_13.setContentsMargins(-1, 9, -1, 0)
         self.horizontalLayout_13.setObjectName("horizontalLayout_13")
         self.cropButton_3 = self.setup_button(self.frame_15, 'crop', 3, self.horizontalLayout_13)
         self.cancelButton_2 = self.setup_button(self.frame_15, 'cancel', 2, self.horizontalLayout_13)
         self.verticalLayout_18.addWidget(self.frame_15)
-        self.frame_7 = self.setup_frame(self.mappingTab, "frame_7")
+        self.frame_7 = setup_frame(self.mappingTab, "frame_7")
         self.horizontalLayout_21 = QtWidgets.QHBoxLayout(self.frame_7)
         self.horizontalLayout_21.setContentsMargins(-1, 9, -1, -1)
         self.horizontalLayout_21.setObjectName("horizontalLayout_21")
-        self.progressBar_2 = self.setup_progress_bar(self.frame_7, "progressBar_2", self.horizontalLayout_21)
+        self.progressBar_2 = setup_progress_bar(self.frame_7, "progressBar_2", self.horizontalLayout_21)
         self.verticalLayout_18.addWidget(self.frame_7)
         self.verticalLayout_18.setStretch(0, 1)
         self.verticalLayout_18.setStretch(1, 10)
@@ -215,16 +217,8 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_19.addWidget(self.tableView)
         self.horizontalLayout_24 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_24.setObjectName("horizontalLayout_24")
-        self.comboBox_1 = QtWidgets.QComboBox(parent=self.mappingTab)
-        self.comboBox_1.setMinimumSize(QtCore.QSize(0, 22))
-        self.comboBox_1.setMaximumSize(QtCore.QSize(16777215, 22))
-        self.comboBox_1.setObjectName("comboBox_1")
-        self.horizontalLayout_24.addWidget(self.comboBox_1)
-        self.comboBox_2 = QtWidgets.QComboBox(parent=self.mappingTab)
-        self.comboBox_2.setMinimumSize(QtCore.QSize(0, 22))
-        self.comboBox_2.setMaximumSize(QtCore.QSize(16777215, 22))
-        self.comboBox_2.setObjectName("comboBox_2")
-        self.horizontalLayout_24.addWidget(self.comboBox_2)
+        self.comboBox_1 = setup_combo(self.mappingTab, 'comboBox_1', self.horizontalLayout_24)
+        self.comboBox_2 = setup_combo(self.mappingTab, 'comboBox_2', self.horizontalLayout_24)
         self.verticalLayout_19.addLayout(self.horizontalLayout_24)
         self.horizontalLayout_18.addLayout(self.verticalLayout_19)
         self.horizontalLayout_18.setStretch(0, 1)
@@ -248,12 +242,12 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.videoLineEdit = self.setup_line_edit(self.videoTab, "videoLineEdit", self.horizontalLayout_25, path_type='video')
         self.videoButton, icon6 = self.setup_button_icon(self.videoTab, 'video', 1, self.horizontalLayout_25)
         self.verticalLayout_22.addLayout(self.horizontalLayout_25)
-        self.frame_9 = self.setup_frame(self.videoTab, "frame_9")
+        self.frame_9 = setup_frame(self.videoTab, "frame_9")
         self.verticalLayout_23 = QtWidgets.QVBoxLayout(self.frame_9)
         self.verticalLayout_23.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_23.setSpacing(0)
         self.verticalLayout_23.setObjectName("verticalLayout_23")
-        self.frame_10 = self.setup_frame(self.frame_9, "frame_10", set_size=True)
+        self.frame_10 = setup_frame(self.frame_9, "frame_10", set_size=True)
         self.horizontalLayout_32 = QtWidgets.QHBoxLayout(self.frame_10)
         self.horizontalLayout_32.setObjectName("horizontalLayout_32")
         self.muteButton = QtWidgets.QPushButton(parent=self.frame_10)
@@ -287,11 +281,11 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.horizontalLayout_32.addWidget(self.durationLabel)
         self.mfaceCheckBox_4, self.tiltCheckBox_4, self.exposureCheckBox_4 = self.setup_checkboxes(self.frame_10, self.horizontalLayout_32, 4, True)
         self.verticalLayout_23.addWidget(self.frame_10)
-        self.videoWidget = QVideoWidget(parent=self.frame_9)
+        self.videoWidget = QtMultimediaWidgets.QVideoWidget(parent=self.frame_9)
         self.videoWidget.setStyleSheet("background: #1f2c33")
         self.videoWidget.setObjectName("videoWidget")
         self.verticalLayout_23.addWidget(self.videoWidget)
-        self.frame_16 = self.setup_frame(self.frame_9, "frame_16")
+        self.frame_16 = setup_frame(self.frame_9, "frame_16")
         self.horizontalLayout_19 = QtWidgets.QHBoxLayout(self.frame_16)
         self.horizontalLayout_19.setContentsMargins(-1, 9, -1, 0)
         self.horizontalLayout_19.setObjectName("horizontalLayout_19")
@@ -299,10 +293,10 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.videocropButton = self.setup_button(self.frame_16, 'vcrop', 1, self.horizontalLayout_19)
         self.cancelButton_3 = self.setup_button(self.frame_16, 'cancel', 3, self.horizontalLayout_19)
         self.verticalLayout_23.addWidget(self.frame_16)
-        self.frame_11 = self.setup_frame(self.frame_9, "frame_11", set_size=True)
+        self.frame_11 = setup_frame(self.frame_9, "frame_11", set_size=True)
         self.horizontalLayout_31 = QtWidgets.QHBoxLayout(self.frame_11)
         self.horizontalLayout_31.setObjectName("horizontalLayout_31")
-        self.progressBar_3 = self.setup_progress_bar(self.frame_11, "progressBar_3", self.horizontalLayout_31)
+        self.progressBar_3 = setup_progress_bar(self.frame_11, "progressBar_3", self.horizontalLayout_31)
         self.verticalLayout_23.addWidget(self.frame_11)
         self.verticalLayout_23.setStretch(0, 1)
         self.verticalLayout_23.setStretch(1, 10)
@@ -387,8 +381,8 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout()
         self.verticalLayout_3.setObjectName("verticalLayout_3")
-        self.gammaDial = self.setup_dial(
-            self.settingsTab, 1, 2000, 5, 100, 1000, 1000, True, False, False, True, "gammaDial", self.verticalLayout_3
+        self.gammaDial = setup_dial(
+            self.settingsTab, 1, 2_000, 5, 100, 1_000, 1_000, True, False, False, True, "gammaDial", self.verticalLayout_3
             )
         self.horizontalLayout = QtWidgets.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
@@ -397,11 +391,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.label = QtWidgets.QLabel(parent=self.settingsTab)
         self.label.setObjectName("label")
         self.horizontalLayout.addWidget(self.label)
-        self.gammaLCDNumber = QtWidgets.QLCDNumber(parent=self.settingsTab)
-        self.gammaLCDNumber.setStyleSheet("background : lightgreen; color : gray;")
-        self.gammaLCDNumber.setProperty("intValue", 1000)
-        self.gammaLCDNumber.setObjectName("gammaLCDNumber")
-        self.horizontalLayout.addWidget(self.gammaLCDNumber)
+        self.gammaLCDNumber = setup_lcd(self.settingsTab, "gammaLCDNumber", self.horizontalLayout, 1_000)
         spacerItem6 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
         self.horizontalLayout.addItem(spacerItem6)
         self.verticalLayout_3.addLayout(self.horizontalLayout)
@@ -409,7 +399,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.horizontalLayout_3.addLayout(self.verticalLayout_3)
         self.verticalLayout_4 = QtWidgets.QVBoxLayout()
         self.verticalLayout_4.setObjectName("verticalLayout_4")
-        self.faceDial = self.setup_dial(
+        self.faceDial = setup_dial(
             self.settingsTab, max_=100, dval=62, notchvis=True, name="faceDial", layout=self.verticalLayout_4
             )
         self.horizontalLayout_4 = QtWidgets.QHBoxLayout()
@@ -419,11 +409,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.label_2 = QtWidgets.QLabel(parent=self.settingsTab)
         self.label_2.setObjectName("label_2")
         self.horizontalLayout_4.addWidget(self.label_2)
-        self.faceLCDNumber = QtWidgets.QLCDNumber(parent=self.settingsTab)
-        self.faceLCDNumber.setStyleSheet("background : lightgreen; color : gray;")
-        self.faceLCDNumber.setProperty("intValue", 62)
-        self.faceLCDNumber.setObjectName("faceLCDNumber")
-        self.horizontalLayout_4.addWidget(self.faceLCDNumber)
+        self.faceLCDNumber = setup_lcd(self.settingsTab, "faceLCDNumber", self.horizontalLayout_4, 62)
         spacerItem8 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
         self.horizontalLayout_4.addItem(spacerItem8)
         self.verticalLayout_4.addLayout(self.horizontalLayout_4)
@@ -431,7 +417,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.horizontalLayout_3.addLayout(self.verticalLayout_4)
         self.verticalLayout_5 = QtWidgets.QVBoxLayout()
         self.verticalLayout_5.setObjectName("verticalLayout_5")
-        self.sensitivityDial = self.setup_dial(
+        self.sensitivityDial = setup_dial(
             self.settingsTab, 0, 100, dval=50, invapp=False, invctrl=False, notchvis=True, name="sensitivityDial", layout=self.verticalLayout_5
         )
         self.horizontalLayout_33 = QtWidgets.QHBoxLayout()
@@ -441,11 +427,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.label_3 = QtWidgets.QLabel(parent=self.settingsTab)
         self.label_3.setObjectName("label_3")
         self.horizontalLayout_33.addWidget(self.label_3)
-        self.sensitivityLCDNumber = QtWidgets.QLCDNumber(parent=self.settingsTab)
-        self.sensitivityLCDNumber.setStyleSheet("background : lightgreen; color : gray;")
-        self.sensitivityLCDNumber.setProperty("intValue", 50)
-        self.sensitivityLCDNumber.setObjectName("sensitivityLCDNumber")
-        self.horizontalLayout_33.addWidget(self.sensitivityLCDNumber)
+        self.sensitivityLCDNumber = setup_lcd(self.settingsTab, "sensitivityLCDNumber", self.horizontalLayout_33, 50)
         spacerItem10 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
         self.horizontalLayout_33.addItem(spacerItem10)
         self.verticalLayout_5.addLayout(self.horizontalLayout_33)
@@ -477,86 +459,18 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_6.addWidget(self.label_7, 0, QtCore.Qt.AlignmentFlag.AlignHCenter)
         self.horizontalLayout_10 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_10.setObjectName("horizontalLayout_10")
-        self.verticalLayout_14 = QtWidgets.QVBoxLayout()
-        self.verticalLayout_14.setObjectName("verticalLayout_14")
-        self.topDial = self.setup_dial(
-            self.settingsTab, max_=100, notchvis=True, name="topDial", layout=self.verticalLayout_14
-        )
-        self.horizontalLayout_34 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_34.setObjectName("horizontalLayout_34")
-        spacerItem12 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
-        self.horizontalLayout_34.addItem(spacerItem12)
-        self.label_8 = QtWidgets.QLabel(parent=self.settingsTab)
-        self.label_8.setObjectName("label_8")
-        self.horizontalLayout_34.addWidget(self.label_8)
-        self.topLCDNumber = QtWidgets.QLCDNumber(parent=self.settingsTab)
-        self.topLCDNumber.setStyleSheet("background : lightgreen; color : gray;")
-        self.topLCDNumber.setObjectName("topLCDNumber")
-        self.horizontalLayout_34.addWidget(self.topLCDNumber)
-        spacerItem13 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
-        self.horizontalLayout_34.addItem(spacerItem13)
-        self.verticalLayout_14.addLayout(self.horizontalLayout_34)
-        self.horizontalLayout_10.addLayout(self.verticalLayout_14)
-        self.verticalLayout_13 = QtWidgets.QVBoxLayout()
-        self.verticalLayout_13.setObjectName("verticalLayout_13")
-        self.bottomDial = self.setup_dial(
-            self.settingsTab, max_=100, notchvis=True, name="bottomDial", layout=self.verticalLayout_13
-        )
-        self.horizontalLayout_35 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_35.setObjectName("horizontalLayout_35")
-        spacerItem14 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
-        self.horizontalLayout_35.addItem(spacerItem14)
-        self.label_9 = QtWidgets.QLabel(parent=self.settingsTab)
-        self.label_9.setObjectName("label_9")
-        self.horizontalLayout_35.addWidget(self.label_9)
-        self.bottomLCDNumber = QtWidgets.QLCDNumber(parent=self.settingsTab)
-        self.bottomLCDNumber.setStyleSheet("background : lightgreen; color : gray;")
-        self.bottomLCDNumber.setObjectName("bottomLCDNumber")
-        self.horizontalLayout_35.addWidget(self.bottomLCDNumber)
-        spacerItem15 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
-        self.horizontalLayout_35.addItem(spacerItem15)
-        self.verticalLayout_13.addLayout(self.horizontalLayout_35)
-        self.horizontalLayout_10.addLayout(self.verticalLayout_13)
-        self.verticalLayout_12 = QtWidgets.QVBoxLayout()
-        self.verticalLayout_12.setObjectName("verticalLayout_12")
-        self.leftDial = self.setup_dial(
-            self.settingsTab, max_=100, notchvis=True, name="leftDial", layout=self.verticalLayout_12
-        )
-        self.horizontalLayout_36 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_36.setObjectName("horizontalLayout_36")
-        spacerItem16 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
-        self.horizontalLayout_36.addItem(spacerItem16)
-        self.label_10 = QtWidgets.QLabel(parent=self.settingsTab)
-        self.label_10.setObjectName("label_10")
-        self.horizontalLayout_36.addWidget(self.label_10)
-        self.leftLCDNumber = QtWidgets.QLCDNumber(parent=self.settingsTab)
-        self.leftLCDNumber.setStyleSheet("background : lightgreen; color : gray;")
-        self.leftLCDNumber.setObjectName("leftLCDNumber")
-        self.horizontalLayout_36.addWidget(self.leftLCDNumber)
-        spacerItem17 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
-        self.horizontalLayout_36.addItem(spacerItem17)
-        self.verticalLayout_12.addLayout(self.horizontalLayout_36)
-        self.horizontalLayout_10.addLayout(self.verticalLayout_12)
-        self.verticalLayout_11 = QtWidgets.QVBoxLayout()
-        self.verticalLayout_11.setObjectName("verticalLayout_11")
-        self.rightDial = self.setup_dial(
-            self.settingsTab, max_=100, notchvis=True, name="rightDial", layout=self.verticalLayout_11
-        )
-        self.horizontalLayout_37 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_37.setObjectName("horizontalLayout_37")
-        spacerItem18 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
-        self.horizontalLayout_37.addItem(spacerItem18)
-        self.label_11 = QtWidgets.QLabel(parent=self.settingsTab)
-        self.label_11.setObjectName("label_11")
-        self.horizontalLayout_37.addWidget(self.label_11)
-        self.rightLCDNumber = QtWidgets.QLCDNumber(parent=self.settingsTab)
-        self.rightLCDNumber.setStyleSheet("background : lightgreen; color : gray;")
-        self.rightLCDNumber.setObjectName("rightLCDNumber")
-        self.horizontalLayout_37.addWidget(self.rightLCDNumber)
-        spacerItem19 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
-        self.horizontalLayout_37.addItem(spacerItem19)
-        self.verticalLayout_11.addLayout(self.horizontalLayout_37)
-        self.horizontalLayout_10.addLayout(self.verticalLayout_11)
+        self.topDial, self.topLCDNumber, self.label_8 = setup_dial_area(
+            self.settingsTab, "top", "label_8", "verticalLayout_14", self.horizontalLayout_10
+            )
+        self.bottomDial, self.bottomLCDNumber, self.label_9 = setup_dial_area(
+            self.settingsTab, "bottom", "label_9", "verticalLayout_13", self.horizontalLayout_10
+            )
+        self.leftDial, self.leftLCDNumber, self.label_10 = setup_dial_area(
+            self.settingsTab, "left", "label_10", "verticalLayout_12", self.horizontalLayout_10
+            )
+        self.rightDial, self.rightLCDNumber, self.label_11 = setup_dial_area(
+            self.settingsTab, "right", "label_11", "verticalLayout_11", self.horizontalLayout_10
+            )
         self.verticalLayout_6.addLayout(self.horizontalLayout_10)
         self.horizontalLayout_3.addLayout(self.verticalLayout_6)
         self.horizontalLayout_3.setStretch(0, 1)
@@ -570,12 +484,12 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.formatTab.setObjectName("formatTab")
         self.horizontalLayout_27 = QtWidgets.QHBoxLayout(self.formatTab)
         self.horizontalLayout_27.setObjectName("horizontalLayout_27")
-        self.radioButton_1 = self.setup_radio_button(self.formatTab, self.horizontalLayout_27, '_no', 1, checked=True, spacer=True)
-        self.radioButton_2 = self.setup_radio_button(self.formatTab, self.horizontalLayout_27, '_bmp', 2)
-        self.radioButton_3 = self.setup_radio_button(self.formatTab, self.horizontalLayout_27, '_jpg', 3)
-        self.radioButton_4 = self.setup_radio_button(self.formatTab, self.horizontalLayout_27, '_png', 4)
-        self.radioButton_5 = self.setup_radio_button(self.formatTab, self.horizontalLayout_27, '_tiff', 5)
-        self.radioButton_6 = self.setup_radio_button(self.formatTab, self.horizontalLayout_27, '_webp', 6)
+        self.radioButton_1 = setup_radio_button(self.formatTab, self.horizontalLayout_27, '_no', 1, checked=True, spacer=True)
+        self.radioButton_2 = setup_radio_button(self.formatTab, self.horizontalLayout_27, '_bmp', 2)
+        self.radioButton_3 = setup_radio_button(self.formatTab, self.horizontalLayout_27, '_jpg', 3)
+        self.radioButton_4 = setup_radio_button(self.formatTab, self.horizontalLayout_27, '_png', 4)
+        self.radioButton_5 = setup_radio_button(self.formatTab, self.horizontalLayout_27, '_tiff', 5)
+        self.radioButton_6 = setup_radio_button(self.formatTab, self.horizontalLayout_27, '_webp', 6)
         icon20 = QtGui.QIcon()
         icon20.addPixmap(QtGui.QPixmap("resources/icons/memory_card.svg"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         self.settings_tabWidget.addTab(self.formatTab, icon20, "")
@@ -644,7 +558,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.leftDial.valueChanged['int'].connect(self.leftLCDNumber.display) # type: ignore
         self.rightDial.valueChanged['int'].connect(self.rightLCDNumber.display) # type: ignore
 
-        self.actionAbout_Face_Cropper.triggered.connect(lambda: self.load_about_form())
+        self.actionAbout_Face_Cropper.triggered.connect(lambda: load_about_form())
         self.actionGolden_Ratio.triggered.connect(lambda: self.load_preset(0.5 * (1 + 5 ** 0.5)))
         self.action2_3_Ratio.triggered.connect(lambda: self.load_preset(1.5))
         self.action3_4_Ratio.triggered.connect(lambda: self.load_preset(4 / 3))
@@ -678,13 +592,9 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
         self.videocropButton.clicked.connect(lambda: self.video_process())
 
-        self.cancelButton_1.clicked.connect(lambda: self.terminate(self.cropper))
-        self.cancelButton_2.clicked.connect(lambda: self.terminate(self.cropper))
-        self.cancelButton_3.clicked.connect(lambda: self.terminate(self.cropper))
-
         self.playButton.clicked.connect(lambda: self.video.play_video(self.playButton))
         self.playButton.clicked.connect(
-            lambda: self.change_widget_state(True, self.stopButton, self.stepbackButton,  self.stepfwdButton,
+            lambda: change_widget_state(True, self.stopButton, self.stepbackButton,  self.stepfwdButton,
                                              self.fastfwdButton, self.rewindButton, self.goto_beginingButton,
                                              self.goto_endButton, self.startmarkerButton, self.endmarkerButton,
                                              self.selectEndMarkerButton, self.selectStartMarkerButton))
@@ -716,18 +626,18 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
         # Folder start connection
         self.cropper.folder_started.connect(
-            lambda: self.disable_widget(self.widthLineEdit, self.heightLineEdit, self.exposureCheckBox_2,
+            lambda: disable_widget(self.widthLineEdit, self.heightLineEdit, self.exposureCheckBox_2,
                                         self.sensitivityDial, self.faceDial, self.gammaDial, self.topDial,
                                         self.bottomDial, self.leftDial, self.rightDial, self.folderLineEdit_1,
                                         self.destinationLineEdit_2, self.destinationButton_2, self.folderButton_1,
                                         self.radioButton_1, self.radioButton_2, self.radioButton_3, self.radioButton_4,
                                         self.radioButton_5, self.radioButton_6, self.cropButton_2,
                                         self.exposureCheckBox_2, self.mfaceCheckBox_2, self.tiltCheckBox_2))
-        self.cropper.folder_started.connect(lambda: self.enable_widget(self.cancelButton_1))
+        self.cropper.folder_started.connect(lambda: enable_widget(self.cancelButton_1))
 
         # Maping start connection
         self.cropper.mapping_started.connect(
-            lambda: self.disable_widget(self.widthLineEdit, self.heightLineEdit, self.exposureCheckBox_3,
+            lambda: disable_widget(self.widthLineEdit, self.heightLineEdit, self.exposureCheckBox_3,
                                         self.sensitivityDial, self.faceDial, self.gammaDial, self.topDial,
                                         self.bottomDial, self.leftDial, self.rightDial, self.folderLineEdit_2,
                                         self.destinationLineEdit_3, self.destinationButton_3, self.folderButton_2,
@@ -735,34 +645,34 @@ class UiMainWindow(QtWidgets.QMainWindow):
                                         self.radioButton_2, self.radioButton_3, self.radioButton_4, self.radioButton_5,
                                         self.radioButton_6, self.cropButton_3,
                                         self.exposureCheckBox_3, self.mfaceCheckBox_3, self.tiltCheckBox_3))
-        self.cropper.mapping_started.connect(lambda: self.enable_widget(self.cancelButton_2))
+        self.cropper.mapping_started.connect(lambda: enable_widget(self.cancelButton_2))
 
         # Video start connection
         self.cropper.video_started.connect(
-            lambda: self.disable_widget(self.widthLineEdit, self.heightLineEdit, self.exposureCheckBox_4,
+            lambda: disable_widget(self.widthLineEdit, self.heightLineEdit, self.exposureCheckBox_4,
                                         self.sensitivityDial, self.faceDial, self.gammaDial, self.topDial,
                                         self.bottomDial, self.leftDial, self.rightDial, self.videoLineEdit,
                                         self.destinationLineEdit_4, self.destinationButton_4, self.radioButton_1,
                                         self.radioButton_2, self.radioButton_3, self.radioButton_4, self.radioButton_5,
                                         self.radioButton_6, self.cropButton_4, self.videocropButton,
                                         self.exposureCheckBox_4, self.mfaceCheckBox_4, self.tiltCheckBox_4))
-        self.cropper.video_started.connect(lambda: self.enable_widget(self.cancelButton_3))
+        self.cropper.video_started.connect(lambda: enable_widget(self.cancelButton_3))
 
         # Folder end connection
         self.cropper.folder_finished.connect(
-            lambda: self.enable_widget(self.widthLineEdit, self.heightLineEdit, self.exposureCheckBox_2,
+            lambda: enable_widget(self.widthLineEdit, self.heightLineEdit, self.exposureCheckBox_2,
                                        self.sensitivityDial, self.faceDial, self.gammaDial, self.topDial,
                                        self.bottomDial, self.leftDial, self.rightDial, self.folderLineEdit_1,
                                        self.destinationLineEdit_2, self.destinationButton_2, self.folderButton_1,
                                        self.radioButton_1, self.radioButton_2, self.radioButton_3, self.radioButton_4,
                                        self.radioButton_5, self.radioButton_6, self.cropButton_2,
                                        self.exposureCheckBox_2, self.mfaceCheckBox_2, self.tiltCheckBox_2))
-        self.cropper.folder_finished.connect(lambda: self.disable_widget(self.cancelButton_1))
-        self.cropper.folder_finished.connect(lambda: self.show_message_box(self.destinationLineEdit_2))
+        self.cropper.folder_finished.connect(lambda: disable_widget(self.cancelButton_1))
+        self.cropper.folder_finished.connect(lambda: show_message_box(self.destinationLineEdit_2))
 
         # Maping end connection
         self.cropper.mapping_finished.connect(
-            lambda: self.enable_widget(self.widthLineEdit, self.heightLineEdit, self.exposureCheckBox_3,
+            lambda: enable_widget(self.widthLineEdit, self.heightLineEdit, self.exposureCheckBox_3,
                                        self.sensitivityDial, self.faceDial, self.gammaDial, self.topDial,
                                        self.bottomDial, self.leftDial, self.rightDial, self.folderLineEdit_2,
                                        self.destinationLineEdit_3, self.destinationButton_3, self.folderButton_2,
@@ -770,20 +680,20 @@ class UiMainWindow(QtWidgets.QMainWindow):
                                        self.radioButton_2, self.radioButton_3, self.radioButton_4, self.radioButton_5,
                                        self.radioButton_6, self.cropButton_3,
                                        self.exposureCheckBox_3, self.mfaceCheckBox_3, self.tiltCheckBox_3))
-        self.cropper.mapping_finished.connect(lambda: self.disable_widget(self.cancelButton_2))
-        self.cropper.mapping_finished.connect(lambda: self.show_message_box(self.destinationLineEdit_3))
+        self.cropper.mapping_finished.connect(lambda: disable_widget(self.cancelButton_2))
+        self.cropper.mapping_finished.connect(lambda: show_message_box(self.destinationLineEdit_3))
 
         # Video end connection
         self.cropper.video_finished.connect(
-            lambda: self.enable_widget(self.widthLineEdit, self.heightLineEdit, self.exposureCheckBox_4,
+            lambda: enable_widget(self.widthLineEdit, self.heightLineEdit, self.exposureCheckBox_4,
                                        self.sensitivityDial, self.faceDial, self.gammaDial, self.topDial,
                                        self.bottomDial, self.leftDial, self.rightDial, self.videoLineEdit,
                                        self.destinationLineEdit_4, self.destinationButton_4, self.radioButton_1,
                                        self.radioButton_2, self.radioButton_3, self.radioButton_4, self.radioButton_5,
                                        self.radioButton_6, self.cropButton_4, self.videocropButton,
                                        self.exposureCheckBox_4, self.mfaceCheckBox_4, self.tiltCheckBox_4))
-        self.cropper.video_finished.connect(lambda: self.disable_widget(self.cancelButton_3))
-        self.cropper.video_finished.connect(lambda: self.show_message_box(self.destinationLineEdit_4))
+        self.cropper.video_finished.connect(lambda: disable_widget(self.cancelButton_3))
+        self.cropper.video_finished.connect(lambda: show_message_box(self.destinationLineEdit_4))
 
         self.cropper.folder_progress.connect(self.update_progress_1)
         self.cropper.mapping_progress.connect(self.update_progress_2)
@@ -793,7 +703,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.function_tabWidget.setCurrentIndex(0)
         self.settings_tabWidget.setCurrentIndex(0)
         self.disable_buttons()
-        self.change_widget_state(False, self.cropButton_1, self.cropButton_2, self.cropButton_3, self.cropButton_4,
+        change_widget_state(False, self.cropButton_1, self.cropButton_2, self.cropButton_3, self.cropButton_4,
                                  self.videocropButton, self.cancelButton_1, self.cancelButton_2, self.cancelButton_3,
                                  self.playButton, self.stopButton, self.stepbackButton, self.stepfwdButton,
                                  self.rewindButton, self.fastfwdButton, self.goto_beginingButton, self.goto_endButton,
@@ -801,7 +711,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
                                  self.selectEndMarkerButton, self.timelineSlider)
         QtCore.QMetaObject.connectSlotsByName(self)
 
-    def retranslateUi(self):
+    def retranslateUi(self) -> None:
         _translate = QtCore.QCoreApplication.translate
         self.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.photoLineEdit.setPlaceholderText(_translate("MainWindow", "Choose the image you want to crop"))
@@ -909,59 +819,24 @@ class UiMainWindow(QtWidgets.QMainWindow):
         exposureCheckBox.setStyleSheet(stylesheet)
         exposureCheckBox.setObjectName(f"exposureCheckBox_{series}")
         layout.addWidget(exposureCheckBox, 0, QtCore.Qt.AlignmentFlag.AlignRight)
-
+        # Connect Checkboxes
         mfaceCheckBox.clicked.connect(lambda: self.reload_widgets())
         exposureCheckBox.clicked.connect(lambda: self.reload_widgets())
         tiltCheckBox.clicked.connect(lambda: self.reload_widgets())
-
-        mfaceCheckBox.clicked.connect(lambda: self.uncheck_boxes(exposureCheckBox, tiltCheckBox))
-        exposureCheckBox.clicked.connect(lambda: self.uncheck_boxes(mfaceCheckBox))
-        tiltCheckBox.clicked.connect(lambda: self.uncheck_boxes(mfaceCheckBox))
-
+        mfaceCheckBox.clicked.connect(lambda: uncheck_boxes(exposureCheckBox, tiltCheckBox))
+        exposureCheckBox.clicked.connect(lambda: uncheck_boxes(mfaceCheckBox))
+        tiltCheckBox.clicked.connect(lambda: uncheck_boxes(mfaceCheckBox))
         return mfaceCheckBox, tiltCheckBox, exposureCheckBox
-
-    @staticmethod
-    def setup_dial(parent: QtWidgets.QWidget, min_: Optional[int] = None, max_: Optional[int] = None,
-                   snglstp: Optional[int] = None, pgstp: Optional[int] = None, dval: Optional[int] = None,
-                   position: Optional[int] = None, invapp: Optional[bool] = None, invctrl: Optional[bool] = None,
-                   wrap: Optional[bool] = None, notchvis: Optional[bool] = None, name: Optional[str] = None,
-                   layout: Optional[Union[QtWidgets.QHBoxLayout, QtWidgets.QVBoxLayout]] = None) -> QtWidgets.QDial:
-        dial = QtWidgets.QDial(parent=parent)
-        if min_ is not None:
-            dial.setMinimum(min_)
-        if max_ is not None:
-            dial.setMaximum(max_)
-        if snglstp is not None:
-            dial.setSingleStep(snglstp)
-        if pgstp is not None:
-            dial.setPageStep(pgstp)
-        if dval is not None:
-            dial.setProperty("value", dval)
-        if position is not None:
-            dial.setSliderPosition(position)
-        if invapp is not None:
-            dial.setInvertedAppearance(invapp)
-        if invctrl is not None:
-            dial.setInvertedControls(invctrl)
-        if wrap is not None:
-            dial.setWrapping(wrap)
-        if notchvis is not None:
-            dial.setNotchesVisible(notchvis)
-        if name is not None:
-            dial.setObjectName(name)
-        if layout is not None:
-            layout.addWidget(dial)
-        return dial
 
     def setup_line_edit(self, parent: QtWidgets.QWidget, name: str,
                         layout: Optional[Union[QtWidgets.QHBoxLayout, QtWidgets.QVBoxLayout]] = None,
                         path_type: Optional[str] = None) -> QtWidgets.QLineEdit:
-        line_edit: Union[custom_widgets.NumberLineEdit, custom_widgets.PathLineEdit]
+        line_edit: Union[NumberLineEdit, PathLineEdit]
         if path_type is None:
-            line_edit = custom_widgets.NumberLineEdit(parent=parent)
+            line_edit = NumberLineEdit(parent=parent)
             line_edit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhDigitsOnly)
         else:
-            line_edit = custom_widgets.PathLineEdit(path_type, parent=parent)
+            line_edit = PathLineEdit(path_type, parent=parent)
             line_edit.setMinimumSize(QtCore.QSize(0, 24))
             line_edit.setMaximumSize(QtCore.QSize(16_777_215, 24))
             line_edit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
@@ -973,8 +848,10 @@ class UiMainWindow(QtWidgets.QMainWindow):
         layout.addWidget(line_edit)
         return line_edit
 
-    @staticmethod
-    def initialize_button(parent: QtWidgets.QWidget, icon_: str, series: int,
+    def initialize_button(self,
+                          parent: QtWidgets.QWidget,
+                          icon_: str,
+                          series: int,
                           normal: Optional[bool] = True) -> Tuple[QtWidgets.QPushButton, QtGui.QIcon]:
         logo_dict: Dict[str, Tuple[QtGui.QPixmap, str]] = {
             'crop': (QtGui.QPixmap("resources/icons/crop.svg"), f"cropButton_{series}"),
@@ -1000,7 +877,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         button = QtWidgets.QPushButton(parent=parent)
         if normal:
             x = (0, 24)
-            y = (16777215, 24)
+            y = (16_777_215, 24)
         else:
             x = y = (48, 48)
         button.setMinimumSize(QtCore.QSize(*x))
@@ -1013,78 +890,33 @@ class UiMainWindow(QtWidgets.QMainWindow):
         if not normal:
             button.setIconSize(QtCore.QSize(32, 32))
         button.setObjectName(name)
+        if icon_ == 'cancel':
+            button.clicked.connect(lambda: terminate(self.cropper))
         return button, icon
 
-    def setup_button(self, parent: QtWidgets.QWidget, icon_: str, series: int,
+    def setup_button(self,
+                     parent: QtWidgets.QWidget,
+                     icon_: str,
+                     series: int,
                      layout: Optional[Union[QtWidgets.QHBoxLayout, QtWidgets.QVBoxLayout]] = None,
                      normal: Optional[bool] = True) -> QtWidgets.QPushButton:
         button, _ = self.initialize_button(parent, icon_, series, normal)
-        if layout is None:
-            return button
-        else:
+        if layout is not None:
             layout.addWidget(button)
-            return button
+        return button
 
-    def setup_button_icon(self, parent: QtWidgets.QWidget, icon_: str, series: int,
+    def setup_button_icon(self,
+                          parent: QtWidgets.QWidget,
+                          icon_: str,
+                          series: int,
                           layout: Optional[Union[QtWidgets.QHBoxLayout, QtWidgets.QVBoxLayout]] = None,
                           normal: Optional[bool] = True) -> Tuple[QtWidgets.QPushButton, QtGui.QIcon]:
         button, icon = self.initialize_button(parent, icon_, series, normal)
-        if layout is None:
-            return button, icon
-        else:
+        if layout is not None:
             layout.addWidget(button)
-            return button, icon
+        return button, icon
 
-    @staticmethod
-    def setup_radio_button(parent: QtWidgets.QWidget, layout: Union[QtWidgets.QHBoxLayout, QtWidgets.QVBoxLayout],
-                           filetype: str, series: int, checked: Optional[bool] = False,
-                           spacer: Optional[bool] = False) -> QtWidgets.QRadioButton:
-        stylesheet = """QRadioButton::indicator:checked{
-            image: url(resources/icons/file_string_checked.svg);
-            }
-            QRadioButton::indicator:unchecked{
-                image: url(resources/icons/file_string_unchecked.svg);
-            }"""
-        radioButton = QtWidgets.QRadioButton(parent=parent)
-        radioButton.setStyleSheet(re.sub('_string', filetype, stylesheet))
-        radioButton.setText("")
-        radioButton.setIconSize(QtCore.QSize(64, 64))
-        if checked:
-            radioButton.setChecked(True)
-        radioButton.setObjectName(f"radioButton_{series}")
-        layout.addWidget(radioButton)
-        if spacer:
-            spacerItem = QtWidgets.QSpacerItem(
-                40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum
-            )
-            layout.addItem(spacerItem)
-        return radioButton
-
-    @staticmethod
-    def setup_frame(parent: QtWidgets.QWidget, name: str, set_size: Optional[bool] = False) -> QtWidgets.QFrame:
-        frame = QtWidgets.QFrame(parent=parent)
-        if set_size:
-            frame.setMinimumSize(QtCore.QSize(0, 40))
-            frame.setMaximumSize(QtCore.QSize(16777215, 40))
-        frame.setStyleSheet("background: #1f2c33")
-        frame.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
-        frame.setFrameShadow(QtWidgets.QFrame.Shadow.Raised)
-        frame.setObjectName(name)
-        return frame
-
-    @staticmethod
-    def setup_progress_bar(parent: QtWidgets.QWidget, name: str,
-                           layout: Union[QtWidgets.QHBoxLayout, QtWidgets.QVBoxLayout]) -> QtWidgets.QProgressBar:
-        progress_bar = QtWidgets.QProgressBar(parent=parent)
-        progress_bar.setMinimumSize(QtCore.QSize(0, 12))
-        progress_bar.setMaximumSize(QtCore.QSize(16777215, 12))
-        progress_bar.setProperty("value", 0)
-        progress_bar.setTextVisible(False)
-        progress_bar.setObjectName(name)
-        layout.addWidget(progress_bar)
-        return progress_bar
-
-    def connect_input_widgets(self, *input_widgets: QtWidgets.QWidget):
+    def connect_input_widgets(self, *input_widgets: QtWidgets.QWidget) -> None:
         for input_widget in input_widgets:
             if isinstance(input_widget, QtWidgets.QLineEdit):
                 input_widget.textChanged.connect(lambda: self.reload_widgets())
@@ -1092,11 +924,6 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 input_widget.valueChanged.connect(lambda: self.reload_widgets())
             elif isinstance(input_widget, QtWidgets.QCheckBox):
                 input_widget.stateChanged.connect(lambda: self.reload_widgets())
-
-    @staticmethod
-    def uncheck_boxes(*checkboxes: QtWidgets.QCheckBox):
-        for checkbox in checkboxes:
-            checkbox.setCheckState(QtCore.Qt.CheckState.Unchecked)
 
     def folder_image_select(self) -> None:
         if not self.widthLineEdit.text() or not self.heightLineEdit.text():
@@ -1136,19 +963,19 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 self.mappingWidget, folder, self.exposureCheckBox_3, self.mfaceCheckBox_3, self.tiltCheckBox_3
             )
 
-    def dragEnterEvent(self, event):
+    def dragEnterEvent(self, event) -> None:
         if event.mimeData().hasUrls():
             event.accept()
         else:
             event.ignore()
 
-    def dragMoveEvent(self, event):
+    def dragMoveEvent(self, event) -> None:
         if event.mimeData().hasUrls():
             event.accept()
         else:
             event.ignore()
 
-    def dropEvent(self, event):
+    def dropEvent(self, event) -> None:
         if not event.mimeData().hasUrls():
             event.ignore()
             return
@@ -1201,7 +1028,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
     def handle_pandas_file(self, file_path: Path) -> None:
         self.function_tabWidget.setCurrentIndex(2)
         self.tableLineEdit.setText(file_path.as_posix())
-        data = utils.open_file(file_path)
+        data = open_file(file_path)
         try:
             assert isinstance(data, pd.DataFrame)
         except AssertionError:
@@ -1214,7 +1041,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         if self.data_frame is None:
             return
 
-        self.model = custom_widgets.DataFrameModel(self.data_frame)
+        self.model = DataFrameModel(self.data_frame)
         self.tableView.setModel(self.model)
         self.comboBox_1.addItems(self.data_frame.columns.to_numpy())
         self.comboBox_2.addItems(self.data_frame.columns.to_numpy())
@@ -1230,7 +1057,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         elif int(self.widthLineEdit.text()) < int(self.heightLineEdit.text()):
             self.widthLineEdit.setText(str(int(float(self.heightLineEdit.text()) / phi)))
 
-    def load_data(self, line_edit: QtWidgets.QLineEdit, image_widget: custom_widgets.ImageWidget) -> None:
+    def load_data(self, line_edit: QtWidgets.QLineEdit, image_widget: ImageWidget) -> None:
         try:
             if line_edit is self.photoLineEdit:
                 self.display_crop(image_widget, line_edit, self.exposureCheckBox_1, self.mfaceCheckBox_1,
@@ -1247,7 +1074,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         except (IndexError, FileNotFoundError, ValueError, AttributeError):
             return None
 
-    def open_folder(self, line_edit: QtWidgets.QLineEdit, image_widget: Optional[custom_widgets.ImageWidget] = None,
+    def open_folder(self, line_edit: QtWidgets.QLineEdit, image_widget: Optional[ImageWidget] = None,
                     file_model: Optional[QtGui.QFileSystemModel] = None) -> None:
         if line_edit in {self.folderLineEdit_1, self.folderLineEdit_2, self.destinationLineEdit_1, 
                          self.destinationLineEdit_2, self.destinationLineEdit_3, self.destinationLineEdit_4}:
@@ -1274,57 +1101,13 @@ class UiMainWindow(QtWidgets.QMainWindow):
         if f_name is None:
             return None
         self.tableLineEdit.setText(f_name)
-        data = utils.open_file(f_name)
+        data = open_file(f_name)
         try:
             assert isinstance(data, pd.DataFrame)
         except AssertionError:
             return None
 
         self.process_data(data)
-
-    @staticmethod
-    def load_about_form() -> None:
-        about_ui = custom_widgets.UiDialog()
-        about_ui.exec()
-
-    @staticmethod
-    def show_message_box(destination: QtWidgets.QLineEdit):
-        def message_button(answer):
-            if answer.text() == '&Yes':
-                startfile(destination.text())
-
-        def helper_function(msg_box: QtWidgets.QMessageBox):
-            msg_box.setWindowTitle('Open Destination Folder')
-            msg_box.setText('Open destination folder?')
-            msg_box.setIcon(QtWidgets.QMessageBox.Icon.Question)
-            msg_box.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
-            msg_box.buttonClicked.connect(message_button)
-            x = msg_box.exec()
-
-        msg = QtWidgets.QMessageBox()
-        helper_function(msg)
-
-    @staticmethod
-    def disable_widget(*args: QtWidgets.QWidget) -> None:
-        for arg in args:
-            arg.setDisabled(True)
-
-    @staticmethod
-    def enable_widget(*args: QtWidgets.QWidget) -> None:
-        for arg in args:
-            arg.setEnabled(True)
-
-    @staticmethod
-    def change_widget_state(boolean: bool, *args: QtWidgets.QWidget) -> None:
-        for arg in args:
-            if boolean:
-                arg.setEnabled(boolean)
-            else:
-                arg.setDisabled(not boolean)
-
-    @staticmethod
-    def terminate(cropper: Cropper):
-        cropper.end_task = True
 
     def disable_buttons(self) -> None:
         def all_filled(*line_edits: Union[QtWidgets.QLineEdit, QtWidgets.QComboBox]) -> bool:
@@ -1334,7 +1117,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
         def update_widget_state(condition: bool, *widgets) -> None:
             for widget in widgets:
-                self.change_widget_state(condition, widget)
+                change_widget_state(condition, widget)
 
         common_line_edits = (self.widthLineEdit, self.heightLineEdit)
 
@@ -1353,9 +1136,13 @@ class UiMainWindow(QtWidgets.QMainWindow):
             all_filled(self.videoLineEdit, self.destinationLineEdit_4, *common_line_edits), self.cropButton_4,
             self.videocropButton)
 
-    def display_crop(self, image_widget: custom_widgets.ImageWidget, line_edit: Union[Path, QtWidgets.QLineEdit],
-                     exposure: QtWidgets.QCheckBox, multi: QtWidgets.QCheckBox, tilt: QtWidgets.QCheckBox) -> None:
-        job = utils.Job(
+    def display_crop(self,
+                     image_widget: ImageWidget,
+                     line_edit: Union[Path, QtWidgets.QLineEdit],
+                     exposure: QtWidgets.QCheckBox,
+                     multi: QtWidgets.QCheckBox,
+                     tilt: QtWidgets.QCheckBox) -> None:
+        job = Job(
             self.widthLineEdit,
             self.heightLineEdit,
             exposure,
@@ -1374,7 +1161,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.cropper.display_crop(job, line_edit, image_widget)
 
     def crop_photo(self) -> None:
-        job = utils.Job(
+        job = Job(
             self.widthLineEdit,
             self.heightLineEdit,
             self.exposureCheckBox_1,
@@ -1395,13 +1182,13 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.cropper.crop(Path(self.photoLineEdit.text()), job, self.cropper.face_workers[0][0],
                           self.cropper.face_workers[0][1])
 
-    def run_batch_process(self, function: Callable, job: utils.Job) -> None:
+    def run_batch_process(self, function: Callable, job: Job) -> None:
         self.cropper.reset()
         process = Process(target=function, daemon=True, args=(job,))
         process.run()
 
     def folder_process(self) -> None:
-        job = utils.Job(
+        job = Job(
             self.widthLineEdit,
             self.heightLineEdit,
             self.exposureCheckBox_2,
@@ -1422,7 +1209,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.run_batch_process(self.cropper.crop_dir, job)
 
     def mapping_process(self) -> None:
-        job = utils.Job(
+        job = Job(
             self.widthLineEdit,
             self.heightLineEdit,
             self.exposureCheckBox_3,
@@ -1446,7 +1233,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.run_batch_process(self.cropper.mapping_crop, job)
 
     def crop_frame(self) -> None:
-        job = utils.Job(
+        job = Job(
             self.widthLineEdit,
             self.heightLineEdit,
             self.exposureCheckBox_4,
@@ -1467,7 +1254,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.cropper.crop_frame(job, self.positionLabel, self.timelineSlider)
 
     def video_process(self) -> None:
-        job = utils.Job(
+        job = Job(
             self.widthLineEdit,
             self.heightLineEdit,
             self.exposureCheckBox_4,
