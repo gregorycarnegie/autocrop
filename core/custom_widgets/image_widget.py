@@ -1,20 +1,22 @@
-from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QPainter, QPixmap
+from PyQt6.QtWidgets import QWidget
 
-class ImageWidget(QtWidgets.QWidget):
+class ImageWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.image = None
 
-    def setImage(self, image: QtGui.QPixmap) -> None:
+    def setImage(self, image: QPixmap) -> None:
         self.image = image
         self.update()
 
     def paintEvent(self, event) -> None:
         if self.image is not None:
-            qp = QtGui.QPainter(self)
-            qp.setRenderHint(QtGui.QPainter.RenderHint.SmoothPixmapTransform)
-            scaled_image = self.image.scaled(self.size(), QtCore.Qt.AspectRatioMode.KeepAspectRatio,
-                                             QtCore.Qt.TransformationMode.SmoothTransformation)
+            qp = QPainter(self)
+            qp.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+            scaled_image = self.image.scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatio,
+                                             Qt.TransformationMode.SmoothTransformation)
             x_offset = (self.width() - scaled_image.width()) >> 1
             y_offset = (self.height() - scaled_image.height()) >> 1
             qp.drawPixmap(x_offset, y_offset, scaled_image)

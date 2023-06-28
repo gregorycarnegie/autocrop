@@ -4,53 +4,117 @@ from typing import Optional, Tuple
 
 import numpy as np
 import pandas as pd
-from PyQt6 import QtWidgets
+from PyQt6.QtWidgets import QCheckBox, QComboBox, QDial, QLineEdit, QRadioButton
 
-# from files import IMAGE_TYPES
 from .file_types import IMAGE_TYPES
 
 
 class Job(NamedTuple):
-    width: QtWidgets.QLineEdit
-    height: QtWidgets.QLineEdit
-    fix_exposure_job: QtWidgets.QCheckBox
-    multiface_job: QtWidgets.QCheckBox
-    autotilt_job: QtWidgets.QCheckBox
-    sensitivity: QtWidgets.QDial
-    facepercent: QtWidgets.QDial
-    gamma: QtWidgets.QDial
-    top: QtWidgets.QDial
-    bottom: QtWidgets.QDial
-    left: QtWidgets.QDial
-    right: QtWidgets.QDial
-    radio_buttons: Tuple[QtWidgets.QRadioButton, ...]
+    """
+    Represents a Job in an image processing application. 
+
+    Each field represents a PyQt6 widget or a parameter required by the job. 
+    Contains several helper methods to extract information from the widgets and 
+    perform common operations.
+
+    Attributes:
+        width (QLineEdit): The width of the image specified by the user.
+        height (QLineEdit): The height of the image specified by the user.
+        fix_exposure_job (QCheckBox): Checkbox to indicate if exposure correction is needed.
+        multiface_job (QCheckBox): Checkbox to indicate if multiple faces are to be considered.
+        autotilt_job (QCheckBox): Checkbox to indicate if auto-tilting of the image is required.
+        sensitivity (QDial): Dial to adjust the sensitivity of the application.
+        facepercent (QDial): Dial to adjust the face percentage of the application.
+        gamma (QDial): Dial to adjust the gamma of the application.
+        top (QDial): Dial to adjust the top margin.
+        bottom (QDial): Dial to adjust the bottom margin.
+        left (QDial): Dial to adjust the left margin.
+        right (QDial): Dial to adjust the right margin.
+        radio_buttons (Tuple[QRadioButton, ...]): Tuple of radio buttons for image format selection.
+        radio_options (np.ndarray): Array of image format options corresponding to the radio buttons.
+        destination (Optional[QLineEdit]): The destination path where output will be saved.
+        photo_path (Optional[QLineEdit]): The path to the photo to be processed.
+        folder_path (Optional[QLineEdit]): The path to the folder containing multiple photos to be processed.
+        video_path (Optional[QLineEdit]): The path to the video to be processed.
+        start_position (Optional[float]): The start position for video processing.
+        stop_position (Optional[float]): The stop position for video processing.
+        table (Optional[pd.DataFrame]): A DataFrame for any tabular data needed for the job.
+        column1 (Optional[QComboBox]): Dropdown for selecting a column from the DataFrame.
+        column2 (Optional[QComboBox]): Dropdown for selecting another column from the DataFrame.
+    """
+    width: QLineEdit
+    height: QLineEdit
+    fix_exposure_job: QCheckBox
+    multiface_job: QCheckBox
+    autotilt_job: QCheckBox
+    sensitivity: QDial
+    facepercent: QDial
+    gamma: QDial
+    top: QDial
+    bottom: QDial
+    left: QDial
+    right: QDial
+    radio_buttons: Tuple[QRadioButton, ...]
     radio_options: np.ndarray = np.array(['No', '.bmp', '.jpg', '.png', '.tiff', '.webp'])
-    destination: Optional[QtWidgets.QLineEdit] = None
-    photo_path: Optional[QtWidgets.QLineEdit] = None
-    folder_path: Optional[QtWidgets.QLineEdit] = None
-    video_path: Optional[QtWidgets.QLineEdit] = None
+    destination: Optional[QLineEdit] = None
+    photo_path: Optional[QLineEdit] = None
+    folder_path: Optional[QLineEdit] = None
+    video_path: Optional[QLineEdit] = None
     start_position: Optional[float] = None
     stop_position: Optional[float] = None
     table: Optional[pd.DataFrame] = None
-    column1: Optional[QtWidgets.QComboBox] = None
-    column2: Optional[QtWidgets.QComboBox] = None
+    column1: Optional[QComboBox] = None
+    column2: Optional[QComboBox] = None
 
     def file_list(self):
+        """
+        Generates a list of valid image files in the folder specified by 'folder_path'.
+
+        Returns:
+            numpy.ndarray: An array of pathlib.Path objects representing the valid image files.
+        """
         x = np.fromiter(Path(self.folder_path.text()).iterdir(), Path)
         y = np.array([pic.suffix.lower() in IMAGE_TYPES for pic in x])
         return x[y]
     
     def radio_choice(self) -> str:
+        """
+        Gets the image format selected by the user via the radio buttons.
+
+        Returns:
+            str: The selected image format.
+        """
         x = np.array([r.isChecked() for r in self.radio_buttons])
         return self.radio_options[x][0]
     
     def width_value(self) -> int:
+        """
+        Gets the image width specified by the user.
+
+        Returns:
+            int: The specified image width.
+        """
         return int(self.width.text())
     
     def height_value(self) -> int:
+        """
+        Gets the image height specified by the user.
+
+        Returns:
+            int: The specified image height.
+        """
         return int(self.height.text())
     
     def get_destination(self) -> Optional[Path]:
+        """
+        Gets the destination path specified by the user.
+
+        If the path does not exist, it is created.
+
+        Returns:
+            pathlib.Path: The specified destination path
+            None: if no path was specified.
+        """
         if self.destination is None:
             return None
         x = Path(self.destination.text())
@@ -58,12 +122,23 @@ class Job(NamedTuple):
         return x
     
     def file_list_to_numpy(self) -> Optional[tuple[np.ndarray, np.ndarray]]:
+        """
+        Converts the specified DataFrame columns to numpy arrays.
+
+        Returns:
+            tuple(numpy.ndarray, numpy.ndarray): Two numpy arrays representing the specified DataFrame columns.
+            None: If 'table', 'column1', or 'column2' is not in the expected format.
+        """
+        def _table_to_numpy(table: pd.DataFrame,
+                            column_1: QComboBox,
+                            column_2: QComboBox) -> tuple[np.ndarray, np.ndarray]:
+            return table[column_1].to_numpy().astype(str), table[column_2].to_numpy().astype(str)
+        
         if (
             not isinstance(self.table, pd.DataFrame)
-            or not isinstance(self.column1, QtWidgets.QComboBox)
-            or not isinstance(self.column2, QtWidgets.QComboBox)
+            or not isinstance(self.column1, QComboBox)
+            or not isinstance(self.column2, QComboBox)
         ):
             return None
-        x = self.table[self.column1.currentText()].to_numpy().astype(str)
-        y = self.table[self.column2.currentText()].to_numpy().astype(str)
-        return x, y
+        return _table_to_numpy(self.table, self.column1, self.column2)
+    

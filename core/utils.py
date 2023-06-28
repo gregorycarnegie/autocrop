@@ -17,7 +17,6 @@ from PIL import Image
 from PyQt6 import QtGui
 
 from .custom_widgets import ImageWidget
-# from files import IMAGE_TYPES, CV2_TYPES, RAW_TYPES, PANDAS_TYPES
 from .file_types import IMAGE_TYPES, CV2_TYPES, RAW_TYPES, PANDAS_TYPES
 from .job import Job
 
@@ -65,6 +64,16 @@ def display_image_on_widget(image: Union[cv2.Mat, np.ndarray], image_widget: Ima
 
 def correct_exposure(image: Union[cv2.Mat, Image.Image, np.ndarray],
                      exposure: Optional[bool] = False) -> Union[cv2.Mat, np.ndarray]:
+    """
+    Adjust the exposure of an input image based on the alpha and beta values calculated from its grayscale histogram.
+
+    Parameters:
+        image (Union[cv2.Mat, Image.Image, np.ndarray]): The input image to correct. This can be an OpenCV matrix, a PIL image, or a numpy array.
+        exposure (Optional[bool], default=False): A flag to indicate whether exposure correction should be performed. If False or not provided, the function simply returns the original image.
+
+    Returns:
+        (Union[cv2.Mat, np.ndarray]): The exposure corrected image if exposure=True, otherwise the original image. The returned image will be a numpy array if the input was a PIL Image, otherwise, the same type as the input image.
+    """
     if not exposure:
         return np.array(image) if isinstance(image, Image.Image) else image
     image_array = np.array(image) if isinstance(image, Image.Image) else image
@@ -79,7 +88,20 @@ def open_cv2(image: Path,
              exposure: bool,
              tilt: bool,
              face_detector: Optional[dlib.fhog_object_detector] = None,
-             predictor: Optional[dlib.shape_predictor] = None) -> (cv2.Mat | np.ndarray):
+             predictor: Optional[dlib.shape_predictor] = None) -> Union[cv2.Mat, np.ndarray]:
+    """
+    Opens a image using OpenCV, performs exposure correction if needed, and optionally aligns the head in the image.
+
+    Parameters:
+        image (Path): The path to the image file to open.
+        exposure (bool): A flag to indicate whether exposure correction should be performed.
+        tilt (bool): A flag to indicate whether to align the head in the image.
+        face_detector (Optional[dlib.fhog_object_detector], default=None): A face detector for use in head alignment.
+        predictor (Optional[dlib.shape_predictor], default=None): A shape predictor for use in head alignment.
+
+    Returns:
+        (Union[cv2.Mat, np.ndarray]): The processed image. If head alignment is performed, the image will be aligned; otherwise, it is the original or exposure-corrected image.
+    """
     img = cv2.imread(image.as_posix())
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = correct_exposure(img, exposure)
@@ -89,10 +111,23 @@ def open_raw(image: Path,
              exposure: bool,
              tilt: bool,
              face_detector: Optional[dlib.fhog_object_detector] = None,
-             predictor: Optional[dlib.shape_predictor] = None) -> (cv2.Mat | np.ndarray):
+             predictor: Optional[dlib.shape_predictor] = None) -> Union[cv2.Mat, np.ndarray]:
+    """
+    Opens a raw image file, post-processes the raw image data, performs exposure correction if needed, and optionally aligns the head in the image.
+
+    Parameters:
+        image (Path): The path to the raw image file to open.
+        exposure (bool): A flag to indicate whether exposure correction should be performed.
+        tilt (bool): A flag to indicate whether to align the head in the image.
+        face_detector (Optional[dlib.fhog_object_detector], default=None): A face detector for use in head alignment.
+        predictor (Optional[dlib.shape_predictor], default=None): A shape predictor for use in head alignment.
+
+    Returns:
+        (Union[cv2.Mat, np.ndarray]): The processed image. If head alignment is performed, the image will be aligned; otherwise, it is the original or exposure-corrected image.
+    """
     with rawpy.imread(image.as_posix()) as raw:
         # Post-process the raw image data
-        img = reorient_image_from_object(raw)
+        img = reorient_raw(raw)
         img = correct_exposure(img, exposure)
         return align_head(img, face_detector, predictor) if tilt else img
 
@@ -133,7 +168,7 @@ def align_head(image: Union[cv2.Mat, np.ndarray],
     """
     Aligns the head in an image using dlib and shape_predictor_68_face_landmarks.dat.
 
-    Args:
+    Parameters:
         image: A numpy array representing the image.
         face_detector: face detector for current thread.
         predictor: predictor for current thread.
@@ -169,7 +204,7 @@ def get_angle_of_tilt(landmarks: dlib.full_object_detection) -> float:
     """
     Gets the angle of tilt of a face in an image using dlib.
 
-    Args:
+    Parameters:
         landmarks: The 68 facial landmarks for the face.
 
     Returns:
@@ -189,7 +224,7 @@ def rotate_image(image: Union[cv2.Mat, np.ndarray],
     """
     Rotates an image by a specified angle around a center point.
 
-    Args:
+    Parameters:
         image: A numpy array representing the image.
         angle: The angle to rotate the image by in degrees.
         center: The point to rotate the image around.
@@ -287,38 +322,12 @@ def reorient_image_by_exif(im: Image.Image, exif_orientation: int) -> np.ndarray
     except (KeyError, AttributeError, TypeError, IndexError):
         return np.array(im)
 
-# def reorient_image_by_exif(im: Image) -> Image:
-#     try:
-#         image_orientation = im.getexif()[274]
-#         if image_orientation in {2, '2'}:
-#             return im.transpose(Image.FLIP_LEFT_RIGHT)
-#         elif image_orientation in {3, '3'}:
-#             return im.transpose(Image.ROTATE_180)
-#         elif image_orientation in {4, '4'}:
-#             return im.transpose(Image.FLIP_TOP_BOTTOM)
-#         elif image_orientation in {5, '5'}:
-#             return im.transpose(Image.ROTATE_90).transpose(Image.FLIP_TOP_BOTTOM)
-#         elif image_orientation in {6, '6'}:
-#             return im.transpose(Image.ROTATE_270)
-#         elif image_orientation in {7, '7'}:
-#             return im.transpose(Image.ROTATE_270).transpose(Image.FLIP_TOP_BOTTOM)
-#         elif image_orientation in {8, '8'}:
-#             return im.transpose(Image.ROTATE_90)
-#         else:
-#             return im
-#     except (KeyError, AttributeError, TypeError, IndexError):
-#         return im
-
-def reorient_image_from_object(im_obj: Union[Image.Image, rawpy.RawPy]) -> np.ndarray:
+def reorient_raw(im_obj: rawpy.RawPy) -> np.ndarray:
     with contextlib.suppress(KeyError, AttributeError, TypeError, IndexError):
-        if isinstance(im_obj, Image.Image):
-            exif_orientation = im_obj.getexif()[274]
-            return reorient_image_by_exif(im_obj, exif_orientation)
-        elif isinstance(im_obj, rawpy.RawPy):
-            rgb_image = im_obj.postprocess(use_camera_wb=True)
-            im = Image.fromarray(rgb_image.raw_image_visible)
-            exif_orientation = im_obj.exif_data.get('Orientation', 1)
-            return reorient_image_by_exif(im, exif_orientation)
+        rgb_image = im_obj.postprocess(use_camera_wb=True)
+        im = Image.fromarray(rgb_image.raw_image_visible)
+        exif_orientation = im_obj.exif_data.get('Orientation', 1)
+        return reorient_image_by_exif(im, exif_orientation)
     return np.array(im_obj if isinstance(im_obj, Image.Image) else im_obj.postprocess(use_camera_wb=True))
 
 def mask_extensions(file_list: np.ndarray) -> tuple[np.ndarray, int]:

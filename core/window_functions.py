@@ -2,153 +2,133 @@ import re
 from .custom_widgets import UiDialog
 from .cropper import Cropper
 from os import startfile
-from PyQt6 import QtCore, QtWidgets
+from PyQt6.QtCore import QSize, Qt
+from PyQt6.QtWidgets import QCheckBox, QComboBox, QDial, QFrame, QHBoxLayout, QLabel, QLCDNumber, \
+     QLineEdit, QMessageBox, QProgressBar, QRadioButton, QSizePolicy, QSpacerItem, QVBoxLayout, QWidget
 from typing import Optional, Union, Tuple
 
-def setup_radio_button(parent: QtWidgets.QWidget, 
-                       layout: Union[QtWidgets.QHBoxLayout, QtWidgets.QVBoxLayout],
+def setup_radio_button(parent: QWidget, 
+                       layout: Union[QHBoxLayout, QVBoxLayout],
                        filetype: str, 
                        series: int, 
                        checked: Optional[bool] = False,
-                       spacer: Optional[bool] = False) -> QtWidgets.QRadioButton:
-    stylesheet = """QRadioButton::indicator:checked{
+                       spacer: Optional[bool] = False) -> QRadioButton:
+    radioButton = QRadioButton(parent=parent)
+    radioButton.setStyleSheet(re.sub('_string', filetype, """QRadioButton::indicator:checked{
         image: url(resources/icons/file_string_checked.svg);
         }
         QRadioButton::indicator:unchecked{
             image: url(resources/icons/file_string_unchecked.svg);
-        }"""
-    radioButton = QtWidgets.QRadioButton(parent=parent)
-    radioButton.setStyleSheet(re.sub('_string', filetype, stylesheet))
+        }"""))
     radioButton.setText("")
-    radioButton.setIconSize(QtCore.QSize(64, 64))
+    radioButton.setIconSize(QSize(64, 64))
     if checked:
         radioButton.setChecked(True)
-    radioButton.setObjectName(f"radioButton_{series}")
+    radioButton.setObjectName(f'radioButton_{series}')
     layout.addWidget(radioButton)
     if spacer:
-        spacerItem = QtWidgets.QSpacerItem(
-            40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum
+        spacerItem = QSpacerItem(
+            40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
         )
         layout.addItem(spacerItem)
     return radioButton
 
-def setup_frame(parent: QtWidgets.QWidget, 
+def setup_frame(parent: QWidget, 
                 name: str, 
-                set_size: Optional[bool] = False) -> QtWidgets.QFrame:
-    frame = QtWidgets.QFrame(parent=parent)
+                set_size: Optional[bool] = False) -> QFrame:
+    frame = QFrame(parent=parent)
     if set_size:
-        frame.setMinimumSize(QtCore.QSize(0, 40))
-        frame.setMaximumSize(QtCore.QSize(16_777_215, 40))
-    frame.setStyleSheet("background: #1f2c33")
-    frame.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
-    frame.setFrameShadow(QtWidgets.QFrame.Shadow.Raised)
+        frame.setMinimumSize(QSize(0, 40))
+        frame.setMaximumSize(QSize(16_777_215, 40))
+    frame.setStyleSheet('background: #1f2c33')
+    frame.setFrameShape(QFrame.Shape.NoFrame)
+    frame.setFrameShadow(QFrame.Shadow.Raised)
     frame.setObjectName(name)
     return frame
 
-def setup_progress_bar(parent: QtWidgets.QWidget,
+def setup_progress_bar(parent: QWidget,
                        name: str,
-                       layout: Union[QtWidgets.QHBoxLayout, QtWidgets.QVBoxLayout]) -> QtWidgets.QProgressBar:
-    progress_bar = QtWidgets.QProgressBar(parent=parent)
-    progress_bar.setMinimumSize(QtCore.QSize(0, 12))
-    progress_bar.setMaximumSize(QtCore.QSize(16_777_215, 12))
-    progress_bar.setProperty("value", 0)
+                       layout: Union[QHBoxLayout, QVBoxLayout]) -> QProgressBar:
+    progress_bar = QProgressBar(parent=parent)
+    progress_bar.setMinimumSize(QSize(0, 12))
+    progress_bar.setMaximumSize(QSize(16_777_215, 12))
+    progress_bar.setProperty('value', 0)
     progress_bar.setTextVisible(False)
     progress_bar.setObjectName(name)
     layout.addWidget(progress_bar)
     return progress_bar
 
-def setup_lcd(parent: QtWidgets.QWidget,
+def setup_lcd(parent: QWidget,
               name: str,
-              layout: Union[QtWidgets.QHBoxLayout, QtWidgets.QVBoxLayout],
-              int_val: Optional[int] = None) -> QtWidgets.QLCDNumber:
-    lcd_number = QtWidgets.QLCDNumber(parent=parent)
-    lcd_number.setStyleSheet("background : lightgreen; color : gray;")
+              layout: Union[QHBoxLayout, QVBoxLayout],
+              int_val: Optional[int] = None) -> QLCDNumber:
+    lcd_number = QLCDNumber(parent=parent)
+    lcd_number.setStyleSheet('background : lightgreen; color : gray;')
     if int_val is not None:
-        lcd_number.setProperty("intValue", int_val)
+        lcd_number.setProperty('intValue', int_val)
     lcd_number.setObjectName(name)
     layout.addWidget(lcd_number)
     return lcd_number
 
-def setup_combo(parent: QtWidgets.QWidget,
+def setup_combo(parent: QWidget,
                 name: str,
-                layout: Union[QtWidgets.QHBoxLayout, QtWidgets.QVBoxLayout]) -> QtWidgets.QComboBox:
-    combo_box = QtWidgets.QComboBox(parent=parent)
-    combo_box.setMinimumSize(QtCore.QSize(0, 22))
-    combo_box.setMaximumSize(QtCore.QSize(16_777_215, 22))
+                layout: Union[QHBoxLayout, QVBoxLayout]) -> QComboBox:
+    combo_box = QComboBox(parent=parent)
+    combo_box.setMinimumSize(QSize(0, 22))
+    combo_box.setMaximumSize(QSize(16_777_215, 22))
     combo_box.setObjectName(name)
     layout.addWidget(combo_box)
     return combo_box
 
-def setup_dial(parent: QtWidgets.QWidget, 
-               min_: Optional[int] = None, 
+def setup_dial(parent: QWidget, 
+               min_: Optional[int] = None,
                max_: Optional[int] = None,
-               snglstp: Optional[int] = None, 
-               pgstp: Optional[int] = None, 
+               snglstp: Optional[int] = None,
+               pgstp: Optional[int] = None,
                dval: Optional[int] = None,
-               position: Optional[int] = None, 
-               invapp: Optional[bool] = None, 
+               position: Optional[int] = None,
+               invapp: Optional[bool] = None,
                invctrl: Optional[bool] = None,
-               wrap: Optional[bool] = None, 
-               notchvis: Optional[bool] = None, 
+               wrap: Optional[bool] = None,
+               notchvis: Optional[bool] = None,
                name: Optional[str] = None,
-               layout: Optional[Union[QtWidgets.QHBoxLayout, QtWidgets.QVBoxLayout]] = None) -> QtWidgets.QDial:
+               layout: Optional[Union[QHBoxLayout, QVBoxLayout]] = None) -> QDial:
 
-    dial = QtWidgets.QDial(parent=parent)
-
-    parameters = {
-        'minimum': min_,
-        'maximum': max_,
-        'singleStep': snglstp,
-        'pageStep': pgstp,
-        'value': dval,
-        'sliderPosition': position,
-        'invertedAppearance': invapp,
-        'invertedControls': invctrl,
-        'wrapping': wrap,
-        'notchesVisible': notchvis,
-        'objectName': name
-    }
-
-    methods = {
-        'minimum': dial.setMinimum,
-        'maximum': dial.setMaximum,
-        'singleStep': dial.setSingleStep,
-        'pageStep': dial.setPageStep,
-        'value': dial.setValue,
-        'sliderPosition': dial.setSliderPosition,
-        'invertedAppearance': dial.setInvertedAppearance,
-        'invertedControls': dial.setInvertedControls,
-        'wrapping': dial.setWrapping,
-        'notchesVisible': dial.setNotchesVisible,
-        'objectName': dial.setObjectName,
-    }
-
-    for attr, value in parameters.items():
-        if value is not None:
-            methods[attr](value)
+    dial = QDial(parent=parent)
+    
+    if min_ is not None: dial.setMinimum(min_)
+    if max_ is not None: dial.setMaximum(max_)
+    if snglstp is not None: dial.setSingleStep(snglstp)
+    if pgstp is not None: dial.setPageStep(pgstp)
+    if dval is not None: dial.setValue(dval)
+    if position is not None: dial.setSliderPosition(position)
+    if invapp is not None: dial.setInvertedAppearance(invapp)
+    if invctrl is not None: dial.setInvertedControls(invctrl)
+    if wrap is not None: dial.setWrapping(wrap)
+    if notchvis is not None: dial.setNotchesVisible(notchvis)
+    if name is not None: dial.setObjectName(name)
 
     if layout is not None:
         layout.addWidget(dial)
 
     return dial
 
-
-def setup_dial_area(parent: QtWidgets.QWidget,
+def setup_dial_area(parent: QWidget,
                     name: str,
                     label_name:str,
                     layout_name: str,
-                    main_layout: Union[QtWidgets.QHBoxLayout, QtWidgets.QVBoxLayout]) -> Tuple[QtWidgets.QDial, QtWidgets.QLCDNumber, QtWidgets.QLabel]:
-    vertical_layout = QtWidgets.QVBoxLayout()
+                    main_layout: Union[QHBoxLayout, QVBoxLayout]) -> Tuple[QDial, QLCDNumber, QLabel]:
+    vertical_layout = QVBoxLayout()
     vertical_layout.setObjectName(layout_name)
 
     dial = setup_dial(parent, max_=100, notchvis=True, name=f'{name}Dial', layout=vertical_layout)
-    horizontal_layout = QtWidgets.QHBoxLayout()
-    horizontal_layout.setObjectName(layout_name.replace("vertical", "horizontal"))
+    horizontal_layout = QHBoxLayout()
+    horizontal_layout.setObjectName(layout_name.replace('vertical', 'horizontal'))
 
-    spacer_item = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
+    spacer_item = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
     horizontal_layout.addItem(spacer_item)
     
-    label = QtWidgets.QLabel(parent=parent)
+    label = QLabel(parent=parent)
     label.setObjectName(label_name)
     horizontal_layout.addWidget(label)
     
@@ -160,39 +140,39 @@ def setup_dial_area(parent: QtWidgets.QWidget,
     main_layout.addLayout(vertical_layout)
     return dial, lcd_number, label
 
-def uncheck_boxes(*checkboxes: QtWidgets.QCheckBox) -> None:
+def uncheck_boxes(*checkboxes: QCheckBox) -> None:
     for checkbox in checkboxes:
-        checkbox.setCheckState(QtCore.Qt.CheckState.Unchecked)
+        checkbox.setCheckState(Qt.CheckState.Unchecked)
 
 def load_about_form() -> None:
     about_ui = UiDialog()
     about_ui.exec()
 
-def show_message_box(destination: QtWidgets.QLineEdit) -> None:
+def show_message_box(destination: QLineEdit) -> None:
     def message_button(answer):
         if answer.text() == '&Yes':
             startfile(destination.text())
 
-    def helper_function(msg_box: QtWidgets.QMessageBox):
+    def helper_function(msg_box: QMessageBox):
         msg_box.setWindowTitle('Open Destination Folder')
         msg_box.setText('Open destination folder?')
-        msg_box.setIcon(QtWidgets.QMessageBox.Icon.Question)
-        msg_box.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
+        msg_box.setIcon(QMessageBox.Icon.Question)
+        msg_box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         msg_box.buttonClicked.connect(message_button)
         x = msg_box.exec()
 
-    msg = QtWidgets.QMessageBox()
+    msg = QMessageBox()
     helper_function(msg)
 
-def disable_widget(*args: QtWidgets.QWidget) -> None:
+def disable_widget(*args: QWidget) -> None:
     for arg in args:
         arg.setDisabled(True)
 
-def enable_widget(*args: QtWidgets.QWidget) -> None:
+def enable_widget(*args: QWidget) -> None:
     for arg in args:
         arg.setEnabled(True)
 
-def change_widget_state(boolean: bool, *args: QtWidgets.QWidget) -> None:
+def change_widget_state(boolean: bool, *args: QWidget) -> None:
     for arg in args:
         if boolean:
             arg.setEnabled(boolean)

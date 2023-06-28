@@ -11,7 +11,7 @@ IMAGE_TYPES = np.concatenate((CV2_TYPES, RAW_TYPES))
 
 class Photo:
     def __init__(self) -> None:
-        self.default_directory = f"{Path.home()}\\Pictures"
+        self.default_directory = f'{Path.home()}\\Pictures'
 
     @staticmethod
     def file_filter() -> np.ndarray:
@@ -19,4 +19,4 @@ class Photo:
 
     @staticmethod
     def type_string() -> str:
-        return "All Files (*);;" + ";;".join(f"{_} Files (*{_})" for _ in np.sort(IMAGE_TYPES))
+        return 'All Files (*);;' + ';;'.join(f'{_} Files (*{_})' for _ in np.sort(IMAGE_TYPES))

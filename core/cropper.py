@@ -14,8 +14,8 @@ from PyQt6 import QtCore, QtWidgets
 from .custom_widgets import ImageWidget
 from .job import Job
 from .utils import save_image, set_filename, GAMMA_THRESHOLD, reject, multi_box_positions, open_file, \
-    convert_color_space, get_first_file, adjust_gamma, multi_box, display_image_on_widget, correct_exposure, align_head, \
-    box_detect, mask_extensions, split_by_cpus
+    convert_color_space, get_first_file, adjust_gamma, multi_box, display_image_on_widget, correct_exposure, \
+    align_head, box_detect, mask_extensions, split_by_cpus
 
 
 class Cropper(QtCore.QObject):
@@ -134,7 +134,9 @@ class Cropper(QtCore.QObject):
                 save_image(image, new_file_path.as_posix(), job.gamma.value(), GAMMA_THRESHOLD,
                                  is_tiff=is_tiff)
 
-    def multi_save_detection3(self, source_image: Path, job: Job) -> None:
+    def multi_save_detection3(self,
+                              source_image: Path,
+                              job: Job) -> None:
         if (destination_path := job.get_destination()) is None:
             return None
 
@@ -149,7 +151,8 @@ class Cropper(QtCore.QObject):
                                  is_tiff=is_tiff)
 
     @staticmethod
-    def multi_crop(source_image: Union[cv2.Mat, np.ndarray, Path], job: Job) -> Optional[list[cv2.Mat]]:
+    def multi_crop(source_image: Union[cv2.Mat, np.ndarray, Path],
+                   job: Job) -> Optional[list[cv2.Mat]]:
         if isinstance(source_image, Path):
             img = open_file(source_image, job.fix_exposure_job.isChecked(), job.autotilt_job.isChecked())
         else:
@@ -163,9 +166,15 @@ class Cropper(QtCore.QObject):
         images = [Image.fromarray(img).crop(crop_position) for crop_position in crop_positions]
         image_array = [np.array(image) for image in images]
         results = [convert_color_space(image) for image in image_array]
-        return [cv2.resize(result, (job.width_value(), job.height_value()), interpolation=cv2.INTER_AREA) for result in results]
+        return [
+            cv2.resize(
+                result, (job.width_value(), job.height_value()), interpolation=cv2.INTER_AREA) for result in results]
 
-    def crop(self, image: Path, job: Job, face_detector: dlib.fhog_object_detector, predictor: dlib.shape_predictor,
+    def crop(self,
+             image: Path,
+             job: Job,
+             face_detector: dlib.fhog_object_detector,
+             predictor: dlib.shape_predictor,
              new: Optional[str] = None) -> None:
         common_widget_values = (job, face_detector, predictor)
         if job.table is not None and job.folder_path is not None and new is not None:
@@ -227,20 +236,26 @@ class Cropper(QtCore.QObject):
             self.crop_and_set(pic_array, bounding_box, job.gamma.value(), image_widget)
 
     @staticmethod
-    def _numpy_array_crop(image: np.ndarray, bounding_box: tuple[int, int, int, int]) -> np.ndarray:
+    def _numpy_array_crop(image: np.ndarray,
+                          bounding_box: tuple[int, int, int, int]) -> np.ndarray:
         picture = Image.fromarray(image)
         return np.array(picture.crop(bounding_box))
 
-    def crop_and_set(self, image: np.ndarray, bounding_box: tuple[int, int, int, int], gamma: int,
+    def crop_and_set(self,
+                     image: np.ndarray,
+                     bounding_box: tuple[int, int, int, int],
+                     gamma: int,
                      image_widget: ImageWidget) -> None:
         """
         Crop the given image using the bounding box, adjust its exposure and gamma, and set it to an image widget.
 
-        :param image: The input image as a numpy array.
-        :param bounding_box: The bounding box coordinates to crop the image.
-        :param gamma: The gamma value for gamma correction.
-        :param image_widget: The image widget to display the processed image.
-        :return: None
+        Parameters:
+            image: The input image as a numpy array.
+            bounding_box: The bounding box coordinates to crop the image.
+            gamma: The gamma value for gamma correction.
+            image_widget: The image widget to display the processed image.
+        
+        Returns: None
         """
         try:
             cropped_image = self._numpy_array_crop(image, bounding_box)
@@ -281,7 +296,9 @@ class Cropper(QtCore.QObject):
 
         return cv2.resize(result, (job.width_value(), job.height_value()), interpolation=cv2.INTER_AREA)
 
-    def _update_progress(self, file_amount: int, progress_signal):
+    def _update_progress(self,
+                         file_amount: int,
+                         progress_signal):
         self.bar_value += 1
         progress_signal.emit(int(100 * self.bar_value / file_amount))
     
@@ -351,7 +368,9 @@ class Cropper(QtCore.QObject):
             t.start()
 
     @cache
-    def grab_frame(self, position_slider: int, video_line_edit: str) -> Optional[cv2.Mat]:
+    def grab_frame(self,
+                   position_slider: int,
+                   video_line_edit: str) -> Optional[cv2.Mat]:
         # Set video frame position to timelineSlider value
         self.cap = cv2.VideoCapture(video_line_edit)
         self.cap.set(cv2.CAP_PROP_POS_MSEC, position_slider)
@@ -401,7 +420,10 @@ class Cropper(QtCore.QObject):
         return file_path, file_path.suffix in {'.tif', '.tiff'}
 
     @staticmethod
-    def save_frame(image: cv2.Mat, file_path, job: Job, is_tiff: bool) -> None:
+    def save_frame(image: cv2.Mat,
+                   file_path: Path,
+                   job: Job,
+                   is_tiff: bool) -> None:
         save_image(image, file_path.as_posix(), job.gamma.value(), GAMMA_THRESHOLD, is_tiff=is_tiff)
 
     def process_multiface_frame_job(self,
@@ -435,7 +457,7 @@ class Cropper(QtCore.QObject):
         self.save_frame(cropped_image, file_path, job, is_tiff)
 
     def frame_extraction(self,
-                         video,
+                         video: cv2.VideoCapture,
                          frame_number: int,
                          job: Job,
                          progress_callback: Callable) -> None:

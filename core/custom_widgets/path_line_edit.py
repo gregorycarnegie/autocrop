@@ -8,15 +8,15 @@ class PathLineEdit(QLineEdit):
         super(PathLineEdit, self).__init__(parent)
         self.path_type = path_type
         self.textChanged.connect(self.validate_path)
-        self.validColour = "#7fda91" # light green
-        self.invalidColour = "#ff6c6c" # rose
-        self.setStyleSheet(f"background-color: {self.invalidColour}; color: black;")
+        self.validColour = '#7fda91' # light green
+        self.invalidColour = '#ff6c6c' # rose
+        self.setStyleSheet(f'background-color: {self.invalidColour}; color: black;')
 
     def validate_path(self):
         path = self.text()
 
         if not path:
-            self.setStyleSheet(f"background-color: {self.invalidColour}; color: black;")
+            self.setStyleSheet(f'background-color: {self.invalidColour}; color: black;')
             return
 
         if self.path_type == 'image':
@@ -37,7 +37,7 @@ class PathLineEdit(QLineEdit):
         elif self.path_type == 'folder':
             color = self.validColour if QFileInfo(path).isDir() else self.invalidColour
         else:
-            self.setStyleSheet(f"background-color: {self.invalidColour}; color: black;")
+            self.setStyleSheet(f'background-color: {self.invalidColour}; color: black;')
             return
         
-        self.setStyleSheet(f"background-color: {color}; color: black;")
+        self.setStyleSheet(f'background-color: {color}; color: black;')
