@@ -1,26 +1,30 @@
 import pandas as pd
-from PyQt6.QtCore import Qt, QAbstractTableModel
+from PyQt6.QtCore import Qt, QAbstractTableModel, QModelIndex
+from PyQt6.QtWidgets import QWidget
 from typing import Optional
 
 class DataFrameModel(QAbstractTableModel):
-    def __init__(self, df: pd.DataFrame, parent=None):
+    def __init__(self, df: pd.DataFrame, parent: Optional[QWidget]=None):
         super(DataFrameModel, self).__init__(parent)
         self._df = df
 
-    def rowCount(self, parent=None):
-        if self._df is not None:
-            return self._df.shape[0]
+    def rowCount(self, parent: Optional[QModelIndex]=None):
+        # if self._df is not None:
+        return self._df.shape[0]
 
-    def columnCount(self, parent=None):
-        if self._df is not None:
-            return self._df.shape[1]
+    def columnCount(self, parent: Optional[QModelIndex]=None):
+        # if self._df is not None:
+        return self._df.shape[1]
 
-    def data(self, index, role=Qt.ItemDataRole.DisplayRole) -> Optional[str]:
+    def data(self, index: QModelIndex,
+             role: int=Qt.ItemDataRole.DisplayRole) -> Optional[str]:
         if index.isValid() and role == Qt.ItemDataRole.DisplayRole:
             return str(self._df.iloc[index.row(), index.column()])
         return None
 
-    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole) -> Optional[str]:
+    def headerData(self, section: int,
+                   orientation: Qt.Orientation,
+                   role: int=Qt.ItemDataRole.DisplayRole) -> Optional[str]:
         if role == Qt.ItemDataRole.DisplayRole:
             try:
                 if orientation == Qt.Orientation.Horizontal:

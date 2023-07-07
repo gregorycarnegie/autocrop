@@ -1,10 +1,11 @@
 from ..file_types import IMAGE_TYPES, PANDAS_TYPES, VIDEO_TYPES
+from typing import Optional
 from PyQt6.QtCore import QFileInfo
-from PyQt6.QtWidgets import QLineEdit
+from PyQt6.QtWidgets import QLineEdit, QWidget
     
 
 class PathLineEdit(QLineEdit):
-    def __init__(self, path_type: str, parent=None):
+    def __init__(self, path_type: str, parent: Optional[QWidget]=None):
         super(PathLineEdit, self).__init__(parent)
         self.path_type = path_type
         self.textChanged.connect(self.validate_path)

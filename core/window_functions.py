@@ -7,6 +7,32 @@ from PyQt6.QtWidgets import QCheckBox, QComboBox, QDial, QFrame, QHBoxLayout, QL
      QLineEdit, QMessageBox, QProgressBar, QRadioButton, QSizePolicy, QSpacerItem, QVBoxLayout, QWidget
 from typing import Optional, Union, Tuple
 
+RADIO_STYLESHEET = """QRadioButton::indicator:checked{
+        image: url(resources/icons/file_string_checked.svg);
+        }
+        QRadioButton::indicator:unchecked{
+            image: url(resources/icons/file_string_unchecked.svg);
+        }"""
+
+CHECKBOX_STYLESHEET = """QCheckBox:unchecked{color: red}
+        QCheckBox:checked{color: white}
+        QCheckBox::indicator{
+                width: 20px;
+                height: 20px;
+        }
+        QCheckBox::indicator:checked{
+                image: url(resources/icons/checkbox_checked.svg);
+        }
+        QCheckBox::indicator:unchecked{
+                image: url(resources/icons/checkbox_unchecked.svg);
+        }
+        QCheckBox::indicator:checked:hover{
+                image: url(resources/icons/checkbox_checked_hover.svg);
+        }
+        QCheckBox::indicator:unchecked:hover{
+                image: url(resources/icons/checkbox_unchecked_hover.svg);
+        }"""
+
 def setup_radio_button(parent: QWidget, 
                        layout: Union[QHBoxLayout, QVBoxLayout],
                        filetype: str, 
@@ -14,12 +40,7 @@ def setup_radio_button(parent: QWidget,
                        checked: Optional[bool] = False,
                        spacer: Optional[bool] = False) -> QRadioButton:
     radioButton = QRadioButton(parent=parent)
-    radioButton.setStyleSheet(re.sub('_string', filetype, """QRadioButton::indicator:checked{
-        image: url(resources/icons/file_string_checked.svg);
-        }
-        QRadioButton::indicator:unchecked{
-            image: url(resources/icons/file_string_unchecked.svg);
-        }"""))
+    radioButton.setStyleSheet(re.sub('_string', filetype, RADIO_STYLESHEET))
     radioButton.setText("")
     radioButton.setIconSize(QSize(64, 64))
     if checked:
@@ -46,6 +67,13 @@ def setup_frame(parent: QWidget,
     frame.setObjectName(name)
     return frame
 
+def finalize_widget(widget: QWidget,
+                    name: str,
+                    layout: Union[QHBoxLayout, QVBoxLayout]) -> QWidget:
+    widget.setObjectName(name)
+    layout.addWidget(widget)
+    return widget
+
 def setup_progress_bar(parent: QWidget,
                        name: str,
                        layout: Union[QHBoxLayout, QVBoxLayout]) -> QProgressBar:
@@ -54,9 +82,7 @@ def setup_progress_bar(parent: QWidget,
     progress_bar.setMaximumSize(QSize(16_777_215, 12))
     progress_bar.setProperty('value', 0)
     progress_bar.setTextVisible(False)
-    progress_bar.setObjectName(name)
-    layout.addWidget(progress_bar)
-    return progress_bar
+    return finalize_widget(progress_bar, name, layout)
 
 def setup_lcd(parent: QWidget,
               name: str,
@@ -66,9 +92,7 @@ def setup_lcd(parent: QWidget,
     lcd_number.setStyleSheet('background : lightgreen; color : gray;')
     if int_val is not None:
         lcd_number.setProperty('intValue', int_val)
-    lcd_number.setObjectName(name)
-    layout.addWidget(lcd_number)
-    return lcd_number
+    return finalize_widget(lcd_number, name, layout)
 
 def setup_combo(parent: QWidget,
                 name: str,
@@ -76,9 +100,7 @@ def setup_combo(parent: QWidget,
     combo_box = QComboBox(parent=parent)
     combo_box.setMinimumSize(QSize(0, 22))
     combo_box.setMaximumSize(QSize(16_777_215, 22))
-    combo_box.setObjectName(name)
-    layout.addWidget(combo_box)
-    return combo_box
+    return finalize_widget(combo_box, name, layout)
 
 def setup_dial(parent: QWidget, 
                min_: Optional[int] = None,
@@ -149,7 +171,7 @@ def load_about_form() -> None:
     about_ui.exec()
 
 def show_message_box(destination: QLineEdit) -> None:
-    def message_button(answer):
+    def message_button(answer: QMessageBox):
         if answer.text() == '&Yes':
             startfile(destination.text())
 
@@ -179,5 +201,10 @@ def change_widget_state(boolean: bool, *args: QWidget) -> None:
         else:
             arg.setDisabled(not boolean)
 
-def terminate(cropper: Cropper) -> None:
-    cropper.end_task = True
+def terminate(cropper: Cropper, series: int) -> None:
+    if series == 1:
+        cropper.end_f_task = True
+    elif series == 2:
+        cropper.end_m_task = True
+    elif series == 3:
+        cropper.end_v_task = True

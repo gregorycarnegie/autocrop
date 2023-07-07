@@ -9,7 +9,4 @@ name = "autocrop_rs"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = "0.18.3"
-# numpy = "0.18.0"
-# ndarray = "0.15.6"
-# itertools = "0.10.5"
+pyo3 = "0.19.1"

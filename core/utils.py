@@ -4,12 +4,13 @@ import pstats
 import shutil
 from functools import cache, lru_cache, wraps
 from pathlib import Path
-from typing import Callable, Optional, Union, Generator
+from typing import Any, Callable, List, Literal, Optional, Union, Generator, Tuple
 
 import autocrop_rs
 import cv2
 import dlib
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 import rawpy
 import tifffile as tiff
@@ -20,11 +21,23 @@ from .custom_widgets import ImageWidget
 from .file_types import IMAGE_TYPES, CV2_TYPES, RAW_TYPES, PANDAS_TYPES
 from .job import Job
 
+# Define constants
 GAMMA_THRESHOLD = .001
+L_EYE_START, L_EYE_END = 42, 48
+R_EYE_START, R_EYE_END = 36, 42
+EXIF_ORIENTATIONS = {
+            2: Image.Transpose.FLIP_LEFT_RIGHT,
+            3: Image.Transpose.ROTATE_180,
+            4: Image.Transpose.FLIP_TOP_BOTTOM,
+            5: Image.Transpose.ROTATE_90,  # Split combined operations
+            6: Image.Transpose.ROTATE_270,
+            7: Image.Transpose.ROTATE_270,  # Split combined operations
+            8: Image.Transpose.ROTATE_90
+        }
 
-def profile_it(func: Callable) -> Callable:
+def profile_it(func: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any):
         with cProfile.Profile() as profile:
             func(*args, **kwargs)
         result = pstats.Stats(profile)
@@ -37,7 +50,7 @@ def caffe_model() -> cv2.dnn.Net:
                                     'resources\\models\\res10_300x300_ssd_iter_140000.caffemodel')
 
 @cache
-def gamma(gam: Union[int, float] = 1.0) -> np.ndarray:
+def gamma(gam: Union[int, float] = 1.0) -> Union[npt.NDArray[np.float_], npt.NDArray[np.int8]]:
     """
     The function calculates a gamma correction curve, which is a nonlinear transformation used to correct the
     brightness of an image. The gamma value passed in through the gam argument determines the shape of the correction
@@ -50,20 +63,20 @@ def gamma(gam: Union[int, float] = 1.0) -> np.ndarray:
     """
     return np.power(np.arange(256) / 255, 1.0 / gam) * 255 if gam != 1.0 else np.arange(256)
 
-def adjust_gamma(image: np.ndarray, gam: int) -> cv2.Mat:
+def adjust_gamma(image: Union[cv2.Mat, npt.NDArray[np.int8]], gam: int) -> npt.NDArray[np.int8]:
     return cv2.LUT(image, gamma(gam * GAMMA_THRESHOLD).astype('uint8'))
 
-def convert_color_space(image: Union[cv2.Mat, np.ndarray]) -> cv2.Mat:
+def convert_color_space(image: Union[cv2.Mat, npt.NDArray[np.int8]]) -> cv2.Mat:
     return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-def display_image_on_widget(image: Union[cv2.Mat, np.ndarray], image_widget: ImageWidget) -> None:
+def display_image_on_widget(image: Union[cv2.Mat, npt.NDArray[np.int8]], image_widget: ImageWidget) -> None:
     height, width, channel = image.shape
     bytes_per_line = channel * width
     q_image = QtGui.QImage(image.data, width, height, bytes_per_line, QtGui.QImage.Format.Format_BGR888)
     image_widget.setImage(QtGui.QPixmap.fromImage(q_image))
 
-def correct_exposure(image: Union[cv2.Mat, Image.Image, np.ndarray],
-                     exposure: Optional[bool] = False) -> Union[cv2.Mat, np.ndarray]:
+def correct_exposure(image: Union[cv2.Mat, Image.Image, npt.NDArray[np.int_]],
+                     exposure: Optional[bool] = False) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
     """
     Adjust the exposure of an input image based on the alpha and beta values calculated from its grayscale histogram.
 
@@ -88,9 +101,9 @@ def open_cv2(image: Path,
              exposure: bool,
              tilt: bool,
              face_detector: Optional[dlib.fhog_object_detector] = None,
-             predictor: Optional[dlib.shape_predictor] = None) -> Union[cv2.Mat, np.ndarray]:
+             predictor: Optional[dlib.shape_predictor] = None) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
     """
-    Opens a image using OpenCV, performs exposure correction if needed, and optionally aligns the head in the image.
+    Opens an image using OpenCV, performs exposure correction if needed, and optionally aligns the head in the image.
 
     Parameters:
         image (Path): The path to the image file to open.
@@ -107,11 +120,19 @@ def open_cv2(image: Path,
     img = correct_exposure(img, exposure)
     return align_head(img, face_detector, predictor) if tilt else img
 
+def reorient_raw(im_obj: rawpy) -> npt.NDArray[np.int8]:
+    with contextlib.suppress(KeyError, AttributeError, TypeError, IndexError):
+        rgb_image = im_obj.postprocess(use_camera_wb=True)
+        im = Image.fromarray(rgb_image.raw_image_visible)
+        exif_orientation = im_obj.exif_data.get('Orientation', 1)
+        return reorient_image_by_exif(im, exif_orientation)
+    return np.array(im_obj.postprocess(use_camera_wb=True))
+
 def open_raw(image: Path,
              exposure: bool,
              tilt: bool,
              face_detector: Optional[dlib.fhog_object_detector] = None,
-             predictor: Optional[dlib.shape_predictor] = None) -> Union[cv2.Mat, np.ndarray]:
+             predictor: Optional[dlib.shape_predictor] = None) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
     """
     Opens a raw image file, post-processes the raw image data, performs exposure correction if needed, and optionally aligns the head in the image.
 
@@ -140,7 +161,7 @@ def open_file(input_file: Union[Path, str],
               exposure: Optional[bool] = None,
               tilt: Optional[bool] = None,
               face_detector: Optional[dlib.fhog_object_detector] = None,
-              predictor: Optional[dlib.shape_predictor] = None) -> Union[cv2.Mat, np.ndarray, pd.DataFrame, None]:
+              predictor: Optional[dlib.shape_predictor] = None) -> Optional[Union[cv2.Mat, npt.NDArray[np.int8], pd.DataFrame]]:
     """Given a filename, returns a numpy array or a pandas dataframe"""
     input_file = Path(input_file) if isinstance(input_file, str) else input_file
     if (extension := input_file.suffix.lower()) in CV2_TYPES:
@@ -162,9 +183,9 @@ def open_file(input_file: Union[Path, str],
 def dlib_predictor(path: str) -> dlib.shape_predictor:
     return dlib.shape_predictor(path)
 
-def align_head(image: Union[cv2.Mat, np.ndarray],
+def align_head(image: Union[cv2.Mat, npt.NDArray[np.int8]],
                face_detector: dlib.fhog_object_detector,
-               predictor: dlib.shape_predictor) -> Union[cv2.Mat, np.ndarray]:
+               predictor: dlib.shape_predictor) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
     """
     Aligns the head in an image using dlib and shape_predictor_68_face_landmarks.dat.
 
@@ -193,34 +214,31 @@ def align_head(image: Union[cv2.Mat, np.ndarray],
     face = max(faces, key=lambda face: face.area())
     # Get the 68 facial landmarks for the face.
     landmarks = predictor(image_array, face)
-    # Find the center of the face.
-    center = (sum(landmarks.part(i).x for i in range(36, 48)) / (12 * scaling_factor),
-              sum(landmarks.part(i).y for i in range(36, 48)) / (12 * scaling_factor))
-    # Find the angle of the tilt.
-    angle = get_angle_of_tilt(landmarks)
-    return rotate_image(image, angle, center)
+    landmarks_array = np.array([(p.x, p.y) for p in landmarks.parts()])
+    # Find the angle of the tilt and the center of the face
+    angle, center_x, center_y = get_angle_of_tilt(landmarks_array, scaling_factor)
+    return rotate_image(image, angle, (center_x, center_y))
 
-def get_angle_of_tilt(landmarks: dlib.full_object_detection) -> float:
+def get_angle_of_tilt(landmarks_array: npt.NDArray[np.int_], scaling_factor: float) -> Tuple[float, float, float]:
     """
     Gets the angle of tilt of a face in an image using dlib.
 
     Parameters:
-        landmarks: The 68 facial landmarks for the face.
+        landmarks_array: The 68 facial landmarks for the face.
+        scaling_factor: scaling factor
 
     Returns:
         The angle of tilt in degrees.
     """
+    # Find the eyes in the image (l_eye - r_eye).
+    eye_diff = np.mean(landmarks_array[L_EYE_START:L_EYE_END], axis=0) - np.mean(landmarks_array[R_EYE_START:R_EYE_END], axis=0)
+    # Find the center of the face.
+    center_x, center_y = np.mean(landmarks_array[R_EYE_START:L_EYE_END], axis=0) / scaling_factor
+    return np.arctan2(eye_diff[1], eye_diff[0]) * 180 / np.pi, center_x, center_y
 
-    # Find the eyes in the image.
-    l_eye = (sum(landmarks.part(i).x for i in range(42, 48)) / 6,
-             sum(landmarks.part(i).y for i in range(42, 48)) / 6)
-    r_eye = (sum(landmarks.part(i).x for i in range(36, 42)) / 6,
-             sum(landmarks.part(i).y for i in range(36, 42)) / 6)
-    return np.arctan2(l_eye[1] - r_eye[1], l_eye[0] - r_eye[0]) * 180 / np.pi
-
-def rotate_image(image: Union[cv2.Mat, np.ndarray],
+def rotate_image(image: Union[cv2.Mat, npt.NDArray[np.int8]],
                  angle: float,
-                 center: tuple[float, float]) -> cv2.Mat:
+                 center: Tuple[float, float]) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
     """
     Rotates an image by a specified angle around a center point.
 
@@ -237,7 +255,7 @@ def rotate_image(image: Union[cv2.Mat, np.ndarray],
     # Apply the rotation to the image.
     return cv2.warpAffine(image, rotation_matrix, (image.shape[1], image.shape[0]))
 
-def prepare_detections(image: Union[cv2.Mat, np.ndarray]):
+def prepare_detections(image: Union[cv2.Mat, npt.NDArray[np.int8]]) -> npt.NDArray[np.float_]:
     # Create blob from image
     # We standardize the image by scaling it and then subtracting the mean RGB values
     blob = cv2.dnn.blobFromImage(image, 1.0, (300, 300), (104.0, 177.0, 123.0), False, False)
@@ -247,22 +265,22 @@ def prepare_detections(image: Union[cv2.Mat, np.ndarray]):
     # Forward pass through the network to get detections
     return caffe.forward()
 
-def get_box_coordinates(output: np.ndarray,
+def get_box_coordinates(output: npt.NDArray[np.float_],
                         width: int,
                         height: int,
                         job: Job,
-                        x: Optional[np.ndarray] = None) -> tuple[int, int, int, int]:
+                        x: Optional[npt.NDArray[np.float_]] = None) -> Tuple[int, int, int, int]:
     box_outputs = output * np.array([width, height, width, height])
     x0, y0, x1, y1 = box_outputs.astype("int") if x is None else box_outputs[np.argmax(x)]
     return autocrop_rs.crop_positions(
-        x0, y0, x1 - x0, y1 - y0, job.facepercent.value(), job.width_value(), job.height_value(), job.top.value(),
+        x0, y0, x1 - x0, y1 - y0, job.face_percent.value(), job.width_value(), job.height_value(), job.top.value(),
         job.bottom.value(), job.left.value(), job.right.value()
         )
 
-def box(img: Union[cv2.Mat, np.ndarray],
+def box(img: Union[cv2.Mat, npt.NDArray[np.int8]],
         width: int,
         height: int,
-        job: Job) -> Optional[tuple[int, int, int, int]]:
+        job: Job) -> Optional[Tuple[int, int, int, int]]:
     # # preprocess the image: resize and performs mean subtraction
     detections = prepare_detections(img)
     output = np.squeeze(detections)
@@ -272,7 +290,7 @@ def box(img: Union[cv2.Mat, np.ndarray],
         return None
     return get_box_coordinates(output[:, 3:7], width, height, job, confidence_list)
 
-def multi_box(image: Union[cv2.Mat, np.ndarray], job: Job) -> Union[cv2.Mat, np.ndarray]:
+def multi_box(image: Union[cv2.Mat, npt.NDArray[np.int8]], job: Job) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
     height, width = image.shape[:2]
     detections = prepare_detections(image)
     for i in range(detections.shape[2]):
@@ -285,7 +303,7 @@ def multi_box(image: Union[cv2.Mat, np.ndarray], job: Job) -> Union[cv2.Mat, np.
             cv2.putText(image, text, (x0, y), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 2)
     return image
 
-def multi_box_positions(image: Union[cv2.Mat, np.ndarray], job: Job) -> tuple[np.ndarray, np.ndarray]:
+def multi_box_positions(image: Union[cv2.Mat, npt.NDArray[np.int8]], job: Job) -> Tuple[npt.NDArray[np.float_], npt.NDArray[np.int_]]:
     height, width = image.shape[:2]
     detections = prepare_detections(image)
     crop_positions = [
@@ -295,7 +313,7 @@ def multi_box_positions(image: Union[cv2.Mat, np.ndarray], job: Job) -> tuple[np
     ]
     return detections, np.array(crop_positions)
 
-def box_detect(img: Union[cv2.Mat, np.ndarray], job: Job) -> Optional[tuple[int, int, int, int]]:
+def box_detect(img: Union[cv2.Mat, npt.NDArray[np.int8]], job: Job) -> Optional[Tuple[int, int, int, int]]:
     try:
         # get width and height of the image
         height, width = img.shape[:2]
@@ -309,37 +327,22 @@ def get_first_file(img_path: Path) -> Optional[Path]:
     file = np.array([pic for pic in files if pic.suffix.lower() in IMAGE_TYPES])
     return file[0] if file.size > 0 else None
 
-def reorient_image_by_exif(im: Image.Image, exif_orientation: int) -> np.ndarray:
+def reorient_image_by_exif(im: Image.Image, exif_orientation: Literal[2, 3, 4, 5, 6, 7, 8]) -> npt.NDArray[np.int8]:
     try:
-        orientations = {2: Image.FLIP_LEFT_RIGHT,
-                        3: Image.ROTATE_180,
-                        4: Image.FLIP_TOP_BOTTOM,
-                        5: Image.ROTATE_90 | Image.FLIP_TOP_BOTTOM,
-                        6: Image.ROTATE_270,
-                        7: Image.ROTATE_270 | Image.FLIP_TOP_BOTTOM,
-                        8: Image.ROTATE_90}
-        return np.array(im.transpose(orientations[exif_orientation]))
+        if exif_orientation in {5, 7}:  # Handle FLIP_TOP_BOTTOM separately
+            im = im.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+        return np.array(im.transpose(EXIF_ORIENTATIONS[exif_orientation]))
     except (KeyError, AttributeError, TypeError, IndexError):
         return np.array(im)
 
-def reorient_raw(im_obj: rawpy.RawPy) -> np.ndarray:
-    with contextlib.suppress(KeyError, AttributeError, TypeError, IndexError):
-        rgb_image = im_obj.postprocess(use_camera_wb=True)
-        im = Image.fromarray(rgb_image.raw_image_visible)
-        exif_orientation = im_obj.exif_data.get('Orientation', 1)
-        return reorient_image_by_exif(im, exif_orientation)
-    return np.array(im_obj if isinstance(im_obj, Image.Image) else im_obj.postprocess(use_camera_wb=True))
-
-def mask_extensions(file_list: np.ndarray) -> tuple[np.ndarray, int]:
-    # Get the extensions of the file names.
-    extensions = np.char.lower([Path(file).suffix for file in file_list])
-    # Create a mask that indicates which files have supported extensions.
-    mask = np.in1d(extensions, IMAGE_TYPES)
+def mask_extensions(file_list: npt.NDArray[np.str_]) -> Tuple[npt.NDArray[np.bool_], int]:
+    # Get the extensions of the file names and Create a mask that indicates which files have supported extensions.
+    mask = np.in1d(np.char.lower([Path(file).suffix for file in file_list]), IMAGE_TYPES)
     return mask, file_list[mask].size
 
-def split_by_cpus(mask: np.ndarray,
+def split_by_cpus(mask: npt.NDArray[np.bool_],
                   cpu_count: int,
-                  *file_lists: np.ndarray) -> Generator[list[np.ndarray], None, None]:
+                  *file_lists: npt.NDArray[np.str_]) -> Generator[List[npt.NDArray[np.str_]], None, None]:
     """Split the file list and the mapping data into chunks."""
     return (np.array_split(file_list[mask], cpu_count) for file_list in file_lists)
 
@@ -347,8 +350,8 @@ def split_by_cpus(mask: np.ndarray,
 def set_filename(image_path: Path,
                  destination: Path,
                  radio_choice: str,
-                 radio_options: tuple,
-                 new: Optional[str] = None) -> tuple[Path, bool]:
+                 radio_options: Tuple[str, ...],
+                 new: Optional[str] = None) -> Tuple[Path, bool]:
     if image_path.suffix.lower() in RAW_TYPES:
         selected_extension = radio_options[2] if radio_choice == radio_options[0] else radio_choice
     else:
@@ -361,14 +364,13 @@ def reject(path: Path, destination: Path, image: Path) -> None:
     reject_folder.mkdir(exist_ok=True)
     shutil.copy(path, reject_folder.joinpath(image.name))
 
-def save_image(image: cv2.Mat,
+def save_image(image: Union[cv2.Mat, npt.NDArray[np.int8]],
                file_path: str,
                user_gam: Union[int, float],
-               gamma_threshold: Union[int, float],
                is_tiff: bool = False) -> None:
     if is_tiff:
         image = cv2.convertScaleAbs(image)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         tiff.imwrite(file_path, image)
     else:
-        cv2.imwrite(file_path, cv2.LUT(image, gamma(user_gam * gamma_threshold)))
+        cv2.imwrite(file_path, cv2.LUT(image, gamma(user_gam * GAMMA_THRESHOLD)))

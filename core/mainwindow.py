@@ -1,11 +1,11 @@
 from multiprocessing import Process
 from pathlib import Path
-from typing import Callable, List, Optional, Union, Tuple, Dict
+from typing import Any, Callable, List, Optional, Union, Tuple, Dict
 
 import numpy as np
 import pandas as pd
-from PyQt6.QtCore import QCoreApplication, QSize, Qt, QRect, QMetaObject, QDir
-from PyQt6.QtGui import QIntValidator, QFileSystemModel, QIcon, QPixmap, QAction
+from PyQt6.QtCore import QCoreApplication, QSize, Qt, QRect, QMetaObject, QDir, QUrl
+from PyQt6.QtGui import QIntValidator, QFileSystemModel, QIcon, QPixmap, QAction, QDragMoveEvent, QDropEvent, QDragEnterEvent
 from PyQt6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PyQt6.QtMultimediaWidgets import QVideoWidget
 from PyQt6.QtWidgets import QApplication, QCheckBox, QComboBox, QDial, QFileDialog, QGridLayout, QHBoxLayout, \
@@ -19,7 +19,7 @@ from .job import Job
 from .utils import open_file
 from .window_functions import setup_frame, setup_progress_bar, setup_dial, setup_lcd, setup_radio_button, \
     setup_dial_area, setup_combo, enable_widget, disable_widget, change_widget_state, uncheck_boxes, terminate, \
-    load_about_form, show_message_box
+    load_about_form, show_message_box, CHECKBOX_STYLESHEET
 
 
 class UiMainWindow(QMainWindow):
@@ -608,13 +608,13 @@ class UiMainWindow(QMainWindow):
 
         self.videocropButton.clicked.connect(lambda: self.video_process())
 
-        self.playButton.clicked.connect(lambda: self.video.play_video(self.playButton))
+        self.playButton.clicked.connect(lambda: self.change_playback_state(self.video))
         self.playButton.clicked.connect(
             lambda: change_widget_state(True, self.stopButton, self.stepbackButton,  self.stepfwdButton,
                                         self.fastfwdButton, self.rewindButton, self.goto_beginingButton,
                                         self.goto_endButton, self.startmarkerButton, self.endmarkerButton,
                                         self.selectEndMarkerButton, self.selectStartMarkerButton))
-        self.stopButton.clicked.connect(lambda: self.video.stop_btn())
+        self.stopButton.clicked.connect(lambda: self.stop_playback(self.video))
         self.stepbackButton.clicked.connect(lambda: self.video.stepback())
         self.stepfwdButton.clicked.connect(lambda: self.video.stepfwd())
         self.fastfwdButton.clicked.connect(lambda: self.video.fastfwd())
@@ -677,7 +677,6 @@ class UiMainWindow(QMainWindow):
                                    self.goto_endButton, self.startmarkerButton, self.endmarkerButton,
                                    self.selectStartMarkerButton, self.selectEndMarkerButton))
         self.crop_worker.video_started.connect(lambda: enable_widget(self.cancelButton_3))
-        self.crop_worker.video_started.connect(lambda: self.video.pause_video(self.playButton))
 
         # Folder end connection
         self.crop_worker.folder_finished.connect(
@@ -817,8 +816,21 @@ class UiMainWindow(QMainWindow):
         self.action4_5_Ratio.setText(_translate('MainWindow', '4:5 Ratio'))
         self.actionCrop_Video.setText(_translate('MainWindow', 'Crop Video'))
 
-    def setup_checkboxes(self,
-                         parent: QWidget,
+    def change_playback_state(self, video: Video):
+        if self.player.playbackState() in [QMediaPlayer.PlaybackState.PausedState, QMediaPlayer.PlaybackState.StoppedState]:
+            video.play_video()
+            self.playButton.setIcon(QIcon('resources\\icons\\multimedia_pause.svg'))
+        elif self.player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
+            self.player.pause()
+            self.playButton.setIcon(QIcon('resources\\icons\\multimedia_play.svg'))
+
+    def stop_playback(self, video: Video):
+        if self.player.playbackState() == QMediaPlayer.PlaybackState.StoppedState:
+            return None
+        video.stop_btn()
+        self.playButton.setIcon(QIcon('resources\\icons\\multimedia_play.svg'))
+
+    def setup_checkboxes(self, parent: QWidget,
                          layout: QHBoxLayout,
                          series: int,
                          fix_spacer: Optional[bool] = False) -> List[QCheckBox]:
@@ -831,26 +843,9 @@ class UiMainWindow(QMainWindow):
             spacerItem = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         layout.addItem(spacerItem)
         
-        result = []
+        result: List[QCheckBox] = []
         for prefix, checkbox in checkboxes.items():
-            checkbox.setStyleSheet("""QCheckBox:unchecked{color: red}
-        QCheckBox:checked{color: white}
-        QCheckBox::indicator{
-                width: 20px;
-                height: 20px;
-        }
-        QCheckBox::indicator:checked{
-                image: url(resources/icons/checkbox_checked.svg);
-        }
-        QCheckBox::indicator:unchecked{
-                image: url(resources/icons/checkbox_unchecked.svg);
-        }
-        QCheckBox::indicator:checked:hover{
-                image: url(resources/icons/checkbox_checked_hover.svg);
-        }
-        QCheckBox::indicator:unchecked:hover{
-                image: url(resources/icons/checkbox_unchecked_hover.svg);
-        }""")
+            checkbox.setStyleSheet(CHECKBOX_STYLESHEET)
             checkbox.setObjectName(f'{prefix}_{series}')
             layout.addWidget(checkbox)
             checkbox.clicked.connect(lambda: self.reload_widgets())
@@ -862,8 +857,7 @@ class UiMainWindow(QMainWindow):
             result.append(checkbox)
         return result
 
-    def setup_line_edit(self,
-                        parent: QWidget,
+    def setup_line_edit(self, parent: QWidget,
                         name: str,
                         layout: Optional[Union[QHBoxLayout, QVBoxLayout]] = None,
                         path_type: Optional[str] = None) -> QLineEdit:
@@ -884,8 +878,7 @@ class UiMainWindow(QMainWindow):
         layout.addWidget(line_edit)
         return line_edit
 
-    def initialize_button(self,
-                          parent: QWidget,
+    def initialize_button(self, parent: QWidget,
                           icon_: str,
                           series: int,
                           normal: Optional[bool] = True) -> Tuple[QPushButton, QIcon]:
@@ -927,11 +920,10 @@ class UiMainWindow(QMainWindow):
             button.setIconSize(QSize(32, 32))
         button.setObjectName(name)
         if icon_ == 'cancel':
-            button.clicked.connect(lambda: terminate(self.crop_worker))
+            button.clicked.connect(lambda: terminate(self.crop_worker, series))
         return button, icon
 
-    def setup_button(self,
-                     parent: QWidget,
+    def setup_button(self, parent: QWidget,
                      icon_: str,
                      series: int,
                      layout: Optional[Union[QHBoxLayout, QVBoxLayout]] = None,
@@ -941,8 +933,7 @@ class UiMainWindow(QMainWindow):
             layout.addWidget(button)
         return button
 
-    def setup_button_icon(self,
-                          parent: QWidget,
+    def setup_button_icon(self, parent: QWidget,
                           icon_: str,
                           series: int,
                           layout: Optional[Union[QHBoxLayout, QVBoxLayout]] = None,
@@ -999,36 +990,36 @@ class UiMainWindow(QMainWindow):
                 self.mappingWidget, folder, self.exposureCheckBox_3, self.mfaceCheckBox_3, self.tiltCheckBox_3
             )
 
-    def dragEnterEvent(self, event) -> None:
-        if event.mimeData().hasUrls():
-            event.accept()
+    def dragEnterEvent(self, a0: QDragEnterEvent) -> None:
+        if a0.mimeData().hasUrls():
+            a0.accept()
         else:
-            event.ignore()
+            a0.ignore()
 
-    def dragMoveEvent(self, event) -> None:
-        if event.mimeData().hasUrls():
-            event.accept()
+    def dragMoveEvent(self, a0: QDragMoveEvent) -> None:
+        if a0.mimeData().hasUrls():
+            a0.accept()
         else:
-            event.ignore()
+            a0.ignore()
 
-    def dropEvent(self, event) -> None:
-        if not event.mimeData().hasUrls():
-            event.ignore()
+    def dropEvent(self, a0: QDropEvent) -> None:
+        if not a0.mimeData().hasUrls():
+            a0.ignore()
             return
 
-        event.setDropAction(Qt.DropAction.CopyAction)
-        file_path = Path(event.mimeData().urls()[0].toLocalFile())
+        a0.setDropAction(Qt.DropAction.CopyAction)
+        file_path = Path(a0.mimeData().urls()[0].toLocalFile())
 
         if file_path.is_dir():
             self.handle_directory(file_path)
         elif file_path.is_file():
             self.handle_file(file_path)
 
-        event.accept()
+        a0.accept()
 
     def handle_directory(self, file_path: Path) -> None:
-        extentions = {y.suffix.lower() for y in file_path.iterdir()}
-        mask = [ext in extentions for ext in PANDAS_TYPES]
+        extensions = {y.suffix.lower() for y in file_path.iterdir()}
+        mask = [ext in extensions for ext in PANDAS_TYPES]
         if any(mask):
             self.function_tabWidget.setCurrentIndex(2)
             self.folderLineEdit_2.setText(file_path.as_posix())
@@ -1060,6 +1051,9 @@ class UiMainWindow(QMainWindow):
     def handle_video_file(self, file_path: Path) -> None:
         self.function_tabWidget.setCurrentIndex(3)
         self.videoLineEdit.setText(file_path.as_posix())
+        self.playButton.setEnabled(True)
+        self.playButton.setIcon(QIcon('resources\\icons\\multimedia_play.svg'))
+        self.video.player.setSource(QUrl.fromLocalFile(self.videoLineEdit.text()))
 
     def handle_pandas_file(self, file_path: Path) -> None:
         self.function_tabWidget.setCurrentIndex(2)
@@ -1074,9 +1068,6 @@ class UiMainWindow(QMainWindow):
 
     def process_data(self, data: pd.DataFrame) -> None:
         self.data_frame = data
-        if self.data_frame is None:
-            return
-
         self.model = DataFrameModel(self.data_frame)
         self.tableView.setModel(self.model)
         self.comboBox_1.addItems(self.data_frame.columns.to_numpy())
@@ -1093,8 +1084,7 @@ class UiMainWindow(QMainWindow):
         elif int(self.widthLineEdit.text()) < int(self.heightLineEdit.text()):
             self.widthLineEdit.setText(str(int(float(self.heightLineEdit.text()) / phi)))
 
-    def load_data(self,
-                  line_edit: QLineEdit,
+    def load_data(self, line_edit: QLineEdit,
                   image_widget: ImageWidget) -> None:
         try:
             if line_edit is self.photoLineEdit:
@@ -1112,8 +1102,7 @@ class UiMainWindow(QMainWindow):
         except (IndexError, FileNotFoundError, ValueError, AttributeError):
             return None
 
-    def open_folder(self,
-                    line_edit: QLineEdit,
+    def open_folder(self, line_edit: QLineEdit,
                     image_widget: Optional[ImageWidget] = None,
                     file_model: Optional[QFileSystemModel] = None) -> None:
         if line_edit in {self.folderLineEdit_1, self.folderLineEdit_2, self.destinationLineEdit_1, 
@@ -1138,8 +1127,6 @@ class UiMainWindow(QMainWindow):
     def open_table(self) -> None:
         type_string = 'All Files (*);;' + ';;'.join(f'{_} Files (*{_})' for _ in np.sort(PANDAS_TYPES))
         f_name, _ = QFileDialog.getOpenFileName(self, 'Open File', Photo().default_directory, type_string)
-        if f_name is None:
-            return None
         self.tableLineEdit.setText(f_name)
         data = open_file(f_name)
         try:
@@ -1155,7 +1142,7 @@ class UiMainWindow(QMainWindow):
             y = all(edit.currentText() for edit in line_edits if isinstance(edit, QComboBox))
             return x and y
 
-        def update_widget_state(condition: bool, *widgets) -> None:
+        def update_widget_state(condition: bool, *widgets: QWidget) -> None:
             for widget in widgets:
                 change_widget_state(condition, widget)
 
@@ -1176,8 +1163,7 @@ class UiMainWindow(QMainWindow):
             all_filled(self.videoLineEdit, self.destinationLineEdit_4, *common_line_edits), self.cropButton_4,
                        self.videocropButton)
 
-    def create_job(self,
-                   exposure: QCheckBox,
+    def create_job(self, exposure: QCheckBox,
                    multi: QCheckBox,
                    tilt: QCheckBox,
                    photo_path: Optional[QLineEdit] = None,
@@ -1190,31 +1176,30 @@ class UiMainWindow(QMainWindow):
                    start_position: Optional[float] = None,
                    stop_position: Optional[float] = None) -> Job:
         return Job(self.widthLineEdit,
-                self.heightLineEdit,
-                exposure,
-                multi,
-                tilt,
-                self.sensitivityDial,
-                self.faceDial,
-                self.gammaDial,
-                self.topDial,
-                self.bottomDial,
-                self.leftDial,
-                self.rightDial,
-                (self.radioButton_1, self.radioButton_2, self.radioButton_3,
-                 self.radioButton_4, self.radioButton_5, self.radioButton_6),
-                photo_path=photo_path,
-                destination=destination,
-                folder_path=folder_path,
-                table=table,
-                column1=column1,
-                column2=column2,
-                video_path=video_path,
-                start_position=start_position,
-                stop_position=stop_position)
+                   self.heightLineEdit,
+                   exposure,
+                   multi,
+                   tilt,
+                   self.sensitivityDial,
+                   self.faceDial,
+                   self.gammaDial,
+                   self.topDial,
+                   self.bottomDial,
+                   self.leftDial,
+                   self.rightDial,
+                   (self.radioButton_1, self.radioButton_2, self.radioButton_3,
+                    self.radioButton_4, self.radioButton_5, self.radioButton_6),
+                    photo_path=photo_path,
+                    destination=destination,
+                    folder_path=folder_path,
+                    table=table,
+                    column1=column1,
+                    column2=column2,
+                    video_path=video_path,
+                    start_position=start_position,
+                    stop_position=stop_position)
 
-    def display_crop(self,
-                     image_widget: ImageWidget,
+    def display_crop(self, image_widget: ImageWidget,
                      line_edit: Union[Path, QLineEdit],
                      exposure: QCheckBox,
                      multi: QCheckBox,
@@ -1233,49 +1218,52 @@ class UiMainWindow(QMainWindow):
                               self.crop_worker.face_workers[0][0],
                               self.crop_worker.face_workers[0][1])
 
-    def run_batch_process(self,
-                          function: Callable,
+    @staticmethod
+    def run_batch_process(function: Callable[..., Any],
+                          reset_worker_func: Callable[..., Any],
                           job: Job) -> None:
-        self.crop_worker.reset()
+        reset_worker_func()
         process = Process(target=function, daemon=True, args=(job,))
         process.run()
 
     def folder_process(self) -> None:
-        job = self.create_job(self.exposureCheckBox_1, 
-                              self.mfaceCheckBox_1, 
-                              self.tiltCheckBox_1,
+        job = self.create_job(self.exposureCheckBox_2, 
+                              self.mfaceCheckBox_2, 
+                              self.tiltCheckBox_2,
                               folder_path=self.folderLineEdit_1, 
                               destination=self.destinationLineEdit_2)
-        self.run_batch_process(self.crop_worker.crop_dir, job)
+        self.run_batch_process(self.crop_worker.crop_dir, self.crop_worker.reset_f_task, job)
 
     def mapping_process(self) -> None:
-        job = self.create_job(self.exposureCheckBox_1, 
-                              self.mfaceCheckBox_1, 
-                              self.tiltCheckBox_1,
+        job = self.create_job(self.exposureCheckBox_3, 
+                              self.mfaceCheckBox_3, 
+                              self.tiltCheckBox_3,
                               folder_path=self.folderLineEdit_2, 
                               destination=self.destinationLineEdit_3,
                               table=self.data_frame, 
                               column1=self.comboBox_1, 
                               column2=self.comboBox_2)
-        self.run_batch_process(self.crop_worker.mapping_crop, job)
+        self.run_batch_process(self.crop_worker.mapping_crop, self.crop_worker.reset_m_task, job)
 
     def crop_frame(self) -> None:
-        job = self.create_job(self.exposureCheckBox_1, 
-                              self.mfaceCheckBox_1, 
-                              self.tiltCheckBox_1,
+        job = self.create_job(self.exposureCheckBox_4, 
+                              self.mfaceCheckBox_4, 
+                              self.tiltCheckBox_4,
                               video_path=self.videoLineEdit, 
                               destination=self.destinationLineEdit_4)
         self.crop_worker.crop_frame(job, self.positionLabel, self.timelineSlider)
 
     def video_process(self) -> None:
-        job = self.create_job(self.exposureCheckBox_1, 
-                              self.mfaceCheckBox_1, 
-                              self.tiltCheckBox_1,
+        job = self.create_job(self.exposureCheckBox_4, 
+                              self.mfaceCheckBox_4, 
+                              self.tiltCheckBox_4,
                               video_path=self.videoLineEdit, 
                               destination=self.destinationLineEdit_4,
                               start_position=self.video.start_position, 
                               stop_position=self.video.stop_position)
-        self.run_batch_process(self.crop_worker.extract_frames, job)
+        self.video.pause_video()
+        self.playButton.setIcon(QIcon('resources\\icons\\multimedia_play.svg'))
+        self.run_batch_process(self.crop_worker.extract_frames, self.crop_worker.reset_v_task, job)
 
     def update_progress_1(self, value: int) -> None:
         self.progressBar_1.setValue(value)

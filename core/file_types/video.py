@@ -1,18 +1,20 @@
 import numpy as np
+import numpy.typing as npt
 from threading import Thread
 from pathlib import Path
-from typing import Union, Optional
+from typing import Union
 from PyQt6.QtCore import QTime, QTimer, QUrl
 from PyQt6.QtGui import QIcon
 from PyQt6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PyQt6.QtMultimediaWidgets import QVideoWidget
 from PyQt6.QtWidgets import QFileDialog, QLabel, QLineEdit, QMainWindow, QPushButton, QSlider
 
-VIDEO_TYPES = np.array(['.avi', '.m4v', '.mkv', '.mov', '.mp4', '.wmv'])
+from .media_state import MediaPlaybackState
+
+VIDEO_TYPES: npt.NDArray[np.int_] = np.array(['.avi', '.m4v', '.mkv', '.mov', '.mp4', '.wmv'])
 
 class Video:
-    def __init__(self,
-                 audio: QAudioOutput,
+    def __init__(self, audio: QAudioOutput,
                  video_widget: QVideoWidget,
                  media_player: QMediaPlayer,
                  timeline_slider: QSlider,
@@ -20,14 +22,13 @@ class Video:
                  position_label: QLabel,
                  duration_label: QLabel,
                  select_end_marker_button: QPushButton) -> None:
-        self.rewind_timer = Optional[QTimer()]
+        self.rewind_timer = QTimer()
         self.default_directory = f'{Path.home()}\\Videos'
-        self.muted = False
-        self.paused = False
+
+        self.audio_state = MediaPlaybackState.UNMUTED
 
         self.player, self.video_widget, self.audio = (media_player, video_widget, audio)
         self.create_mediaPlayer()
-
         self.timeline_slider = timeline_slider
         self.position_label = position_label
         self.volume_slider = volume_slider
@@ -49,8 +50,7 @@ class Video:
     def type_string() -> str:
         return 'All Files (*);;' + ';;'.join(f'{_} Files (*{_})' for _ in np.sort(VIDEO_TYPES))
 
-    def open_video(self,
-                   main_window: QMainWindow,
+    def open_video(self, main_window: QMainWindow,
                    video_line_edit: QLineEdit,
                    play_button: QPushButton) -> None:
         file_name, _ = QFileDialog.getOpenFileName(main_window, 'Open Video', self.default_directory,
@@ -64,30 +64,21 @@ class Video:
         self.player.setAudioOutput(self.audio)
         self.player.setVideoOutput(self.video_widget)
 
-    def play_video(self, play_button: QPushButton) -> None:
+    def play_video(self) -> None:
         self.timeline_slider.setEnabled(True)
-        if self.paused:
-            # Stop timer to update video frames
-            # self.timer.stop()
-            self.player.pause()
-            play_button.setIcon(QIcon('resources\\icons\\multimedia_play.svg'))
-        else:
-            # Start timer to update video frames
-            # self.timer.start(33)
-            self.player.play()
-            self.player.setPlaybackRate(1)
-            play_button.setIcon(QIcon('resources\\icons\\multimedia_pause.svg'))
-        self.paused = not self.paused
+        self.player.play()
+        self.player.setPlaybackRate(1)
 
-    def pause_video(self, play_button: QPushButton):
+    def pause_video(self):
         self.player.pause()
-        play_button.setIcon(QIcon('resources\\icons\\multimedia_play.svg'))
-        self.paused = True
 
     def stop_btn(self) -> None:
+        self.timeline_slider.setDisabled(True)
         self.player.stop()
 
     def fastfwd(self) -> None:
+        if self.player.playbackState() in [QMediaPlayer.PlaybackState.PausedState, QMediaPlayer.PlaybackState.StoppedState]:
+            return None
         VIDEO_SPEEDS = np.array([1.0, 1.25, 1.5, 1.75, 2.0])
         self.reverse = 0
         self.speed += 1
@@ -97,14 +88,15 @@ class Video:
             self.player.setPlaybackRate(VIDEO_SPEEDS[self.speed])
 
     def rewind(self) -> None:
+        if self.player.playbackState() in [QMediaPlayer.PlaybackState.PausedState, QMediaPlayer.PlaybackState.StoppedState]:
+            return None        
         # Create a QTimer if it doesn't exist yet
         if not hasattr(self, 'rewind_timer'):
             self.rewind_timer = QTimer()
             self.rewind_timer.timeout.connect(self.rewind_step)
 
         # Start the timer to call rewind_step every 100 milliseconds
-        if isinstance(self.rewind_timer, QTimer):
-            self.rewind_timer.start(100)
+        self.rewind_timer.start(100)
 
     def rewind_step(self) -> None:
         # Calculate the new position
@@ -117,7 +109,7 @@ class Video:
         self.player.setPosition(new_position)
 
         # If we're at the start of the video, stop the timer
-        if new_position == 0 and isinstance(self.rewind_timer, QTimer):
+        if new_position == 0:
             self.rewind_timer.stop()
 
     def stepfwd(self):
@@ -134,7 +126,7 @@ class Video:
         else:
             self.player.setPosition(new_position)
 
-    def position_changed(self, position) -> None:
+    def position_changed(self, position: int) -> None:
         def callback():
             if self.timeline_slider.maximum() != self.player.duration():
                 self.timeline_slider.setMaximum(self.player.duration())
@@ -168,15 +160,16 @@ class Video:
     def volume_mute(self,
                     volume_slider: QSlider,
                     mute_button: QPushButton) -> None:
-        if self.muted:
+        if self.audio_state == MediaPlaybackState.UNMUTED:
             self.audio.setMuted(True)
+            self.audio_state = MediaPlaybackState.MUTED
             volume_slider.setValue(0)
             mute_button.setIcon(QIcon('resources\\icons\\multimedia_unmute.svg'))
-        else:
+        elif self.audio_state == MediaPlaybackState.MUTED:
             self.audio.setMuted(False)
+            self.audio_state = MediaPlaybackState.UNMUTED
             volume_slider.setValue(self.vol_cache)
             mute_button.setIcon(QIcon('resources\\icons\\multimedia_mute.svg'))
-        self.muted = not self.muted
 
     def goto_begining(self) -> None:
         self.player.setPosition(0)
@@ -190,8 +183,7 @@ class Video:
         hours, minutes = divmod(minutes, 60)
         button.setText(QTime(hours, minutes, seconds).toString())
 
-    def set_startPosition(self,
-                          button: QPushButton,
+    def set_startPosition(self, button: QPushButton,
                           timeline_slider: QSlider) -> None:
         if (time_value := timeline_slider.value() / 1_000) < self.stop_position:
             self.start_position = time_value
@@ -200,8 +192,7 @@ class Video:
             self.start_position = time_value
             self.set_marker_time(button, self.start_position) 
 
-    def set_stopPosition(self,
-                         button: QPushButton,
+    def set_stopPosition(self, button: QPushButton,
                          timeline_slider: QSlider) -> None:
         if (time_value := timeline_slider.value() / 1_000) > self.start_position:
             self.stop_position = time_value

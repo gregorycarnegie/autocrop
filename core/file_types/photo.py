@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.typing as npt
 from pathlib import Path
 
 CV2_TYPES = np.array(['.bmp', '.dib', '.jpeg', '.jpg', '.jpe', '.jp2', '.png',
@@ -14,7 +15,7 @@ class Photo:
         self.default_directory = f'{Path.home()}\\Pictures'
 
     @staticmethod
-    def file_filter() -> np.ndarray:
+    def file_filter() -> npt.NDArray[np.str_]:
         return np.array([f'*{file}' for file in IMAGE_TYPES])
 
     @staticmethod

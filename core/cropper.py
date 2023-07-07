@@ -3,37 +3,47 @@ from functools import cache
 from multiprocessing import cpu_count
 from pathlib import Path
 from threading import Thread, Lock
-from typing import Callable, Union, Optional
+from typing import Any, Callable, List, Union, Optional, Tuple
 
 import cv2
 import dlib
 import numpy as np
+import numpy.typing as npt
+import pandas as pd
 from PIL import Image
-from PyQt6 import QtCore, QtWidgets
+from PyQt6.QtCore import pyqtSignal, pyqtBoundSignal, QObject
+from PyQt6.QtWidgets import QLabel, QLineEdit, QSlider
 
 from .custom_widgets import ImageWidget
 from .job import Job
-from .utils import save_image, set_filename, GAMMA_THRESHOLD, reject, multi_box_positions, open_file, \
-    convert_color_space, get_first_file, adjust_gamma, multi_box, display_image_on_widget, correct_exposure, \
-    align_head, box_detect, mask_extensions, split_by_cpus
+from .utils import save_image, set_filename, reject, multi_box_positions, open_file, convert_color_space, \
+    get_first_file, adjust_gamma, multi_box, display_image_on_widget, correct_exposure, align_head, box_detect, \
+    mask_extensions, split_by_cpus
 
 
-class Cropper(QtCore.QObject):
-    folder_started = QtCore.pyqtSignal()
-    folder_finished = QtCore.pyqtSignal()
-    mapping_started = QtCore.pyqtSignal()
-    mapping_finished = QtCore.pyqtSignal()
-    video_started = QtCore.pyqtSignal()
-    video_finished = QtCore.pyqtSignal()
-    folder_progress = QtCore.pyqtSignal(int)
-    mapping_progress = QtCore.pyqtSignal(int)
-    video_progress = QtCore.pyqtSignal(int)
+class Cropper(QObject):
+    folder_started = pyqtSignal()
+    folder_finished = pyqtSignal()
+    mapping_started = pyqtSignal()
+    mapping_finished = pyqtSignal()
+    video_started = pyqtSignal()
+    video_finished = pyqtSignal()
+    folder_progress = pyqtSignal(int)
+    mapping_progress = pyqtSignal(int)
+    video_progress = pyqtSignal(int)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[QObject]=None):
         super(Cropper, self).__init__(parent)
         self.bar_value = 0
-        self.end_task = False
-        self.message_box = True
+
+        self.end_f_task = False
+        self.end_m_task = False
+        self.end_v_task = False
+
+        self.message_box_f = True
+        self.message_box_m = True
+        self.message_box_v = True
+
         self.video_lock = Lock()
 
         self.face_workers = self.start_face_workers()
@@ -43,18 +53,25 @@ class Cropper(QtCore.QObject):
         self.start, self.stop, self.step = 0.0, 0.0, 2
 
     @staticmethod
-    def start_face_workers() -> list[tuple[dlib.fhog_object_detector, dlib.shape_predictor]]:
+    def start_face_workers() -> List[Tuple[dlib.fhog_object_detector, dlib.shape_predictor]]:
         """Load the face detectors and shape predictors"""
         x = min(cpu_count(), 8)
         return [(dlib.get_frontal_face_detector(),
                  dlib.shape_predictor('resources\\models\\shape_predictor_68_face_landmarks.dat')) for _ in range(x)]
 
-    def reset(self):
-        self.end_task = False
-        self.message_box = True
+    def reset_f_task(self):
+        self.end_f_task = False
+        self.message_box_f = True
+
+    def reset_m_task(self):
+        self.end_m_task = False
+        self.message_box_m = True
+
+    def reset_v_task(self):
+        self.end_v_task = False
+        self.message_box_v = True
     
-    def save_detection1(self,
-                        source_image: Path,
+    def save_detection1(self, source_image: Path,
                         image: Path,
                         job: Job, 
                         face_detector: dlib.fhog_object_detector,
@@ -63,15 +80,12 @@ class Cropper(QtCore.QObject):
         if (destination_path := job.get_destination()) is None:
             return None
         if (cropped_image := self.crop_image(source_image, job, face_detector, predictor)) is not None:
-            file_path, is_tiff = set_filename(image, destination_path, job.radio_choice(),
-                                                    tuple(job.radio_options), new)
-            save_image(cropped_image, file_path.as_posix(), job.gamma.value(), GAMMA_THRESHOLD,
-                             is_tiff=is_tiff)
+            file_path, is_tiff = set_filename(image, destination_path, job.radio_choice(), job.radio_tuple(), new)
+            save_image(cropped_image, file_path.as_posix(), job.gamma.value(), is_tiff=is_tiff)
         else:
             reject(source_image, destination_path, image)
 
-    def save_detection2(self,
-                        source_image: Path,
+    def save_detection2(self, source_image: Path,
                         image_name: Path,
                         job: Job, 
                         face_detector: dlib.fhog_object_detector,
@@ -79,30 +93,24 @@ class Cropper(QtCore.QObject):
         if (destination_path := job.get_destination()) is None:
             return None
         if (cropped_image := self.crop_image(source_image, job, face_detector, predictor)) is not None:
-            file_path, is_tiff = set_filename(image_name, destination_path, job.radio_choice(),
-                                                    tuple(job.radio_options))
-            save_image(cropped_image, file_path.as_posix(), job.gamma.value(), GAMMA_THRESHOLD,
-                             is_tiff=is_tiff)
+            file_path, is_tiff = set_filename(image_name, destination_path, job.radio_choice(), job.radio_tuple())
+            save_image(cropped_image, file_path.as_posix(), job.gamma.value(), is_tiff=is_tiff)
         else:
             reject(source_image, destination_path, image_name)
 
-    def save_detection3(self,
-                        source_image: Path,
+    def save_detection3(self, source_image: Path,
                         job: Job, 
                         face_detector: dlib.fhog_object_detector,
                         predictor: dlib.shape_predictor) -> None:
         if (destination_path := job.get_destination()) is None:
             return None
         if (cropped_image := self.crop_image(source_image, job, face_detector, predictor)) is not None:
-            file_path, is_tiff = set_filename(source_image, destination_path, job.radio_choice(),
-                                                    tuple(job.radio_options))
-            save_image(cropped_image, file_path.as_posix(), job.gamma.value(), GAMMA_THRESHOLD,
-                             is_tiff=is_tiff)
+            file_path, is_tiff = set_filename(source_image, destination_path, job.radio_choice(), job.radio_tuple())
+            save_image(cropped_image, file_path.as_posix(), job.gamma.value(), is_tiff=is_tiff)
         else:
             reject(source_image, destination_path, source_image)
 
-    def multi_save_detection1(self,
-                              source_image: Path,
+    def multi_save_detection1(self, source_image: Path,
                               image: Path,
                               job: Job,
                               new: str) -> None:
@@ -111,15 +119,12 @@ class Cropper(QtCore.QObject):
         if (cropped_images := self.multi_crop(source_image, job)) is None:
             reject(source_image, destination_path, image)
         else:
-            file_path, is_tiff = set_filename(image, destination_path, job.radio_choice(), 
-                                                    tuple(job.radio_options), new)
-            for i, image in enumerate(cropped_images):
+            file_path, is_tiff = set_filename(image, destination_path, job.radio_choice(), job.radio_tuple(), new)
+            for i, np_image in enumerate(cropped_images):
                 new_file_path = file_path.with_stem(f'{file_path.stem}_{i}')
-                save_image(image, new_file_path.as_posix(), job.gamma.value(), GAMMA_THRESHOLD,
-                                 is_tiff=is_tiff)
+                save_image(np_image, new_file_path.as_posix(), job.gamma.value(), is_tiff=is_tiff)
 
-    def multi_save_detection2(self,
-                              source_image: Path,
+    def multi_save_detection2(self, source_image: Path,
                               image_name: Path,
                               job: Job) -> None:
         if (destination_path := job.get_destination()) is None:
@@ -127,15 +132,12 @@ class Cropper(QtCore.QObject):
         if (cropped_images := self.multi_crop(source_image, job)) is None:
             reject(source_image, destination_path, image_name)
         else:
-            file_path, is_tiff = set_filename(image_name, destination_path, job.radio_choice(),
-                                                    tuple(job.radio_options))
+            file_path, is_tiff = set_filename(image_name, destination_path, job.radio_choice(), job.radio_tuple())
             for i, image in enumerate(cropped_images):
                 new_file_path = file_path.with_stem(f'{file_path.stem}_{i}')
-                save_image(image, new_file_path.as_posix(), job.gamma.value(), GAMMA_THRESHOLD,
-                                 is_tiff=is_tiff)
+                save_image(image, new_file_path.as_posix(), job.gamma.value(), is_tiff=is_tiff)
 
-    def multi_save_detection3(self,
-                              source_image: Path,
+    def multi_save_detection3(self, source_image: Path,
                               job: Job) -> None:
         if (destination_path := job.get_destination()) is None:
             return None
@@ -143,21 +145,21 @@ class Cropper(QtCore.QObject):
         if (cropped_images := self.multi_crop(source_image, job)) is None:
             reject(source_image, destination_path, source_image)
         else:
-            file_path, is_tiff = set_filename(source_image, destination_path, job.radio_choice(),
-                                                    tuple(job.radio_options))
+            file_path, is_tiff = set_filename(source_image, destination_path, job.radio_choice(), job.radio_tuple())
             for i, image in enumerate(cropped_images):
                 new_file_path = file_path.with_stem(f'{file_path.stem}_{i}')
-                save_image(image, new_file_path.as_posix(), job.gamma.value(), GAMMA_THRESHOLD,
-                                 is_tiff=is_tiff)
+                save_image(image, new_file_path.as_posix(), job.gamma.value(), is_tiff=is_tiff)
 
     @staticmethod
-    def multi_crop(source_image: Union[cv2.Mat, np.ndarray, Path],
-                   job: Job) -> Optional[list[cv2.Mat]]:
+    def multi_crop(source_image: Union[cv2.Mat, npt.NDArray[np.int8], Path],
+                   job: Job) -> Optional[Union[List[cv2.Mat], List[npt.NDArray[np.int8]]]]:
         if isinstance(source_image, Path):
-            img = open_file(source_image, job.fix_exposure_job.isChecked(), job.autotilt_job.isChecked())
+            img = open_file(source_image, job.fix_exposure_job.isChecked(), job.auto_tilt_job.isChecked())
         else:
             img = source_image
 
+        if isinstance(img, pd.DataFrame) or img is None:
+            return None
         detections, crop_positions = multi_box_positions(img, job)
         # Check if any faces were detected
         if not np.any(detections[0, 0, :, 2] > job.sensitivity.value() * 0.01):
@@ -170,8 +172,7 @@ class Cropper(QtCore.QObject):
             cv2.resize(
                 result, (job.width_value(), job.height_value()), interpolation=cv2.INTER_AREA) for result in results]
 
-    def crop(self,
-             image: Path,
+    def crop(self, image: Path,
              job: Job,
              face_detector: dlib.fhog_object_detector,
              predictor: dlib.shape_predictor,
@@ -180,7 +181,7 @@ class Cropper(QtCore.QObject):
         if job.table is not None and job.folder_path is not None and new is not None:
             # Data cropping
             path = Path(job.folder_path.text()).joinpath(image)
-            if job.multiface_job.isChecked():
+            if job.multi_face_job.isChecked():
                 self.multi_save_detection1(path, image, job, new)
             else:
                 self.save_detection1(path, image, *common_widget_values, new)
@@ -188,18 +189,17 @@ class Cropper(QtCore.QObject):
             # Folder cropping
             source, image_name = Path(job.folder_path.text()), image.name
             path = source.joinpath(image_name)
-            if job.multiface_job.isChecked():
+            if job.multi_face_job.isChecked():
                 self.multi_save_detection2(path, Path(image_name), job)
             else:
                 self.save_detection2(path, Path(image_name), *common_widget_values)
-        elif job.multiface_job.isChecked():
+        elif job.multi_face_job.isChecked():
             self.multi_save_detection3(image, job)
         else:
             self.save_detection3(image, *common_widget_values)
 
-    def display_crop(self,
-                     job: Job,
-                     line_edit: Union[Path, QtWidgets.QLineEdit],
+    def display_crop(self, job: Job,
+                     line_edit: Union[Path, QLineEdit],
                      image_widget: ImageWidget) -> None:
         img_path = line_edit if isinstance(line_edit, Path) else Path(line_edit.text())
         # if input field is empty, then do nothing
@@ -217,14 +217,19 @@ class Cropper(QtCore.QObject):
             img_path = first_file
 
         pic_array = open_file(
-            img_path, job.fix_exposure_job.isChecked(), job.autotilt_job.isChecked(), *self.face_workers[0]
+            img_path, job.fix_exposure_job.isChecked(), job.auto_tilt_job.isChecked(), *self.face_workers[0]
         )
         if pic_array is None:
+            return None
+        
+        try:
+            assert not isinstance(pic_array, pd.DataFrame)
+        except AssertionError:
             return None
 
         pic_array = adjust_gamma(pic_array, job.gamma.value())
 
-        if job.multiface_job.isChecked():
+        if job.multi_face_job.isChecked():
             adjusted = convert_color_space(pic_array)
             pic = multi_box(adjusted, job)
             display_image_on_widget(pic, image_widget)
@@ -236,14 +241,13 @@ class Cropper(QtCore.QObject):
             self.crop_and_set(pic_array, bounding_box, job.gamma.value(), image_widget)
 
     @staticmethod
-    def _numpy_array_crop(image: np.ndarray,
-                          bounding_box: tuple[int, int, int, int]) -> np.ndarray:
+    def _numpy_array_crop(image: npt.NDArray[np.int8],
+                          bounding_box: Tuple[int, int, int, int]) -> npt.NDArray[np.int8]:
         picture = Image.fromarray(image)
         return np.array(picture.crop(bounding_box))
 
-    def crop_and_set(self,
-                     image: np.ndarray,
-                     bounding_box: tuple[int, int, int, int],
+    def crop_and_set(self, image: npt.NDArray[np.int8],
+                     bounding_box: Tuple[int, int, int, int],
                      gamma: int,
                      image_widget: ImageWidget) -> None:
         """
@@ -267,13 +271,13 @@ class Cropper(QtCore.QObject):
         display_image_on_widget(final_image, image_widget)
 
     @staticmethod
-    def crop_image(image: Union[Path, cv2.Mat, np.ndarray],
+    def crop_image(image: Union[Path, cv2.Mat, npt.NDArray[np.int8]],
                    job: Job,
                    face_detector: dlib.fhog_object_detector,
-                   predictor: dlib.shape_predictor) -> cv2.Mat:
+                   predictor: dlib.shape_predictor) -> Optional[Union[cv2.Mat, npt.NDArray[np.int8]]]:
         if isinstance(image, Path):
-            pic_array = open_file(image, job.fix_exposure_job.isChecked(), job.autotilt_job.isChecked(),
-                                        face_detector, predictor)
+            pic_array = open_file(
+                image, job.fix_exposure_job.isChecked(), job.auto_tilt_job.isChecked(), face_detector, predictor)
             bounding_box = box_detect(pic_array, job)
             if bounding_box is None:
                 return None
@@ -283,7 +287,7 @@ class Cropper(QtCore.QObject):
             if job.fix_exposure_job.isChecked():
                 pic_array = correct_exposure(pic_array, job.fix_exposure_job.isChecked())
 
-            if job.autotilt_job.isChecked():
+            if job.auto_tilt_job.isChecked():
                 pic_array = align_head(pic_array, face_detector, predictor)
 
             bounding_box = box_detect(pic_array, job)
@@ -294,35 +298,36 @@ class Cropper(QtCore.QObject):
         else:
             result = np.array(cropped_pic)
 
+
         return cv2.resize(result, (job.width_value(), job.height_value()), interpolation=cv2.INTER_AREA)
 
-    def _update_progress(self,
-                         file_amount: int,
-                         progress_signal):
+    def _update_progress(self, file_amount: int,
+                         progress_signal: pyqtBoundSignal):
         self.bar_value += 1
         progress_signal.emit(int(100 * self.bar_value / file_amount))
     
-    def folder_worker(self,
-                      file_amount: int,
-                      file_list: np.ndarray,
+    def folder_worker(self, file_amount: int,
+                      file_list: npt.NDArray[Any],
                       job: Job,
                       face_detector: dlib.fhog_object_detector,
                       predictor: dlib.shape_predictor) -> None:
         for image in file_list:
-            if self.end_task:
+            if self.end_f_task:
                 break
             self.crop(image, job, face_detector, predictor)
             self._update_progress(file_amount, self.folder_progress)
 
-        if (self.bar_value == file_amount or self.end_task) and self.message_box:
+        if (self.bar_value == file_amount or self.end_f_task) and self.message_box_f:
             self.folder_finished.emit()
-            self.message_box = False
+            self.message_box_f = False
 
     def crop_dir(self, job: Job) -> None:
         self.folder_started.emit()
-        split_array = np.array_split(job.file_list(), min(cpu_count(), 8))
+        if (file_tuple := job.file_list()) is None:
+            return None
+        file_list, file_amount = file_tuple
+        split_array = np.array_split(file_list, min(cpu_count(), 8))
         threads = []
-        file_amount = len(job.file_list())
         self.bar_value = 0
         self.folder_progress.emit(self.bar_value)
         for i, array in enumerate(split_array):
@@ -331,22 +336,21 @@ class Cropper(QtCore.QObject):
             threads.append(t)
             t.start()
 
-    def mapping_worker(self,
-                       file_amount: int,
-                       old: np.ndarray,
-                       new: np.ndarray,
+    def mapping_worker(self, file_amount: int,
+                       old: npt.NDArray[np.str_],
+                       new: npt.NDArray[np.str_],
                        job: Job,
                        face_detector: dlib.fhog_object_detector,
                        predictor: dlib.shape_predictor) -> None:
         for i, image in enumerate(old):
-            if self.end_task:
+            if self.end_m_task:
                 break
             self.crop(Path(image), job, face_detector, predictor, new=new[i])
             self._update_progress(file_amount, self.mapping_progress)
 
-        if (self.bar_value == file_amount or self.end_task) and self.message_box:
+        if (self.bar_value == file_amount or self.end_m_task) and self.message_box_m:
             self.mapping_finished.emit()
-            self.message_box = False
+            self.message_box_m = False
 
     def mapping_crop(self, job: Job) -> None:
         if (g := job.file_list_to_numpy()) is None:
@@ -368,8 +372,7 @@ class Cropper(QtCore.QObject):
             t.start()
 
     @cache
-    def grab_frame(self,
-                   position_slider: int,
+    def grab_frame(self, position_slider: int,
                    video_line_edit: str) -> Optional[cv2.Mat]:
         # Set video frame position to timelineSlider value
         self.cap = cv2.VideoCapture(video_line_edit)
@@ -381,10 +384,9 @@ class Cropper(QtCore.QObject):
         self.cap.release()
         return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-    def crop_frame(self,
-                   job: Job,
-                   position_label: QtWidgets.QLabel,
-                   timeline_slider: QtWidgets.QSlider) -> None:
+    def crop_frame(self, job: Job,
+                   position_label: QLabel,
+                   timeline_slider: QSlider) -> None:
         if job.video_path is None or job.destination is None:
             return None
         if (frame := self.grab_frame(timeline_slider.value(), job.video_path.text())) is None:
@@ -397,7 +399,7 @@ class Cropper(QtCore.QObject):
             f'{base_name} - ({position}){job.radio_options[2] if job.radio_choice() == job.radio_options[0] else job.radio_choice()}')
         is_tiff = file_path.suffix in {'.tif', '.tiff'}        
         
-        if job.multiface_job.isChecked():
+        if job.multi_face_job.isChecked():
             if (images := self.multi_crop(frame, job)) is None:
                 return None
 
@@ -414,20 +416,19 @@ class Cropper(QtCore.QObject):
     @staticmethod
     def get_frame_path(destination: Path,
                        file_enum: str,
-                       job: Job) -> tuple[Path, bool]:
+                       job: Job) -> Tuple[Path, bool]:
         file_string = f'{file_enum}.jpg' if job.radio_choice() == job.radio_options[0] else file_enum + job.radio_choice()
         file_path = destination.joinpath(file_string)
         return file_path, file_path.suffix in {'.tif', '.tiff'}
 
     @staticmethod
-    def save_frame(image: cv2.Mat,
+    def save_frame(image: Union[cv2.Mat, npt.NDArray[np.int8]],
                    file_path: Path,
                    job: Job,
                    is_tiff: bool) -> None:
-        save_image(image, file_path.as_posix(), job.gamma.value(), GAMMA_THRESHOLD, is_tiff=is_tiff)
+        save_image(image, file_path.as_posix(), job.gamma.value(), is_tiff=is_tiff)
 
-    def process_multiface_frame_job(self,
-                                    frame: cv2.Mat,
+    def process_multiface_frame_job(self, frame: cv2.Mat,
                                     job: Job,
                                     file_enum: str,
                                     destination: Path) -> None:
@@ -441,26 +442,23 @@ class Cropper(QtCore.QObject):
                 file_path, is_tiff = self.get_frame_path(destination, f'{file_enum}_{i}', job)
                 self.save_frame(convert_color_space(image), file_path, job, is_tiff)
 
-    def process_singleface_frame_job(self,
-                                     frame: cv2.Mat,
+    def process_singleface_frame_job(self, frame: cv2.Mat,
                                      job: Job,
                                      file_enum: str,
                                      destination: Path) -> None:
         detector, predictor = self.face_workers[0]
-        if (cropped_image := self.crop_image(frame, job, detector, predictor)) is not None:        
+        if (cropped_image := self.crop_image(frame, job, detector, predictor)) is not None:
             cropped_image = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2RGB)
         else:
             cropped_image = frame
             file_enum = f'failed_{file_enum}'
-        
         file_path, is_tiff = self.get_frame_path(destination, file_enum, job)
         self.save_frame(cropped_image, file_path, job, is_tiff)
 
-    def frame_extraction(self,
-                         video: cv2.VideoCapture,
+    def frame_extraction(self, video: cv2.VideoCapture,
                          frame_number: int,
                          job: Job,
-                         progress_callback: Callable) -> None:
+                         progress_callback: Callable[..., Any]) -> None:
         video.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
         ret, frame = video.read()
 
@@ -472,7 +470,7 @@ class Cropper(QtCore.QObject):
         
         file_enum = f'frame_{frame_number:06d}'
 
-        if job.multiface_job.isChecked():
+        if job.multi_face_job.isChecked():
             self.process_multiface_frame_job(frame, job, file_enum, destination)
         else:
             self.process_singleface_frame_job(frame, job, file_enum, destination)
@@ -499,8 +497,8 @@ class Cropper(QtCore.QObject):
         
         for frame_number in frame_numbers:
             self.frame_extraction(video, frame_number, job, progress_callback)
-            if (self.bar_value == frame_numbers.size or self.end_task) and self.message_box:
+            if (self.bar_value == frame_numbers.size or self.end_v_task) and self.message_box_v:
                 self.video_finished.emit()
-                self.message_box = False
+                self.message_box_v = False
 
         video.release()
