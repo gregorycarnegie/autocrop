@@ -5,7 +5,8 @@ from typing import Any, Callable, List, Optional, Union, Tuple, Dict
 import numpy as np
 import pandas as pd
 from PyQt6.QtCore import QCoreApplication, QSize, Qt, QRect, QMetaObject, QDir, QUrl
-from PyQt6.QtGui import QIntValidator, QFileSystemModel, QIcon, QPixmap, QAction, QDragMoveEvent, QDropEvent, QDragEnterEvent
+from PyQt6.QtGui import QIntValidator, QFileSystemModel, QIcon, QPixmap, QAction, QDragMoveEvent, QDropEvent, \
+    QDragEnterEvent
 from PyQt6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PyQt6.QtMultimediaWidgets import QVideoWidget
 from PyQt6.QtWidgets import QApplication, QCheckBox, QComboBox, QDial, QFileDialog, QGridLayout, QHBoxLayout, \
@@ -13,7 +14,7 @@ from PyQt6.QtWidgets import QApplication, QCheckBox, QComboBox, QDial, QFileDial
     QTableView, QTabWidget, QTreeView, QVBoxLayout, QWidget
 
 from .cropper import Cropper
-from .custom_widgets import DataFrameModel, ImageWidget, PathLineEdit, NumberLineEdit
+from .custom_widgets import DataFrameModel, ImageWidget, PathLineEdit, NumberLineEdit, LineEditState
 from .file_types import Photo, Video, IMAGE_TYPES, VIDEO_TYPES, PANDAS_TYPES
 from .job import Job
 from .utils import open_file
@@ -1137,8 +1138,8 @@ class UiMainWindow(QMainWindow):
         self.process_data(data)
 
     def disable_buttons(self) -> None:
-        def all_filled(*line_edits: Union[QLineEdit, QComboBox]) -> bool:
-            x = all(edit.text() for edit in line_edits if isinstance(edit, QLineEdit))
+        def all_filled(*line_edits: Union[PathLineEdit, NumberLineEdit, QComboBox]) -> bool:
+            x = all(edit.state == LineEditState.VALID_INPUT for edit in line_edits)
             y = all(edit.currentText() for edit in line_edits if isinstance(edit, QComboBox))
             return x and y
 
