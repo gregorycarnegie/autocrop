@@ -75,7 +75,7 @@ def display_image_on_widget(image: Union[cv2.Mat, npt.NDArray[np.int8]], image_w
     q_image = QtGui.QImage(image.data, width, height, bytes_per_line, QtGui.QImage.Format.Format_BGR888)
     image_widget.setImage(QtGui.QPixmap.fromImage(q_image))
 
-def correct_exposure(image: Union[cv2.Mat, Image.Image, npt.NDArray[np.int_]],
+def correct_exposure(image: Union[cv2.Mat, Image.Image, npt.NDArray[np.int8]],
                      exposure: Optional[bool] = False) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
     """
     Adjust the exposure of an input image based on the alpha and beta values calculated from its grayscale histogram.
