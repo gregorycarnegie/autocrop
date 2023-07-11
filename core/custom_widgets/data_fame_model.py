@@ -1,7 +1,9 @@
+from typing import Optional
+
 import pandas as pd
 from PyQt6.QtCore import Qt, QAbstractTableModel, QModelIndex
 from PyQt6.QtWidgets import QWidget
-from typing import Optional
+
 
 class DataFrameModel(QAbstractTableModel):
     def __init__(self, df: pd.DataFrame, parent: Optional[QWidget]=None):

@@ -1,11 +1,13 @@
 import re
-from .custom_widgets import UiDialog
-from .cropper import Cropper
 from os import startfile
+from typing import Optional, Union, Tuple
+
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtWidgets import QCheckBox, QComboBox, QDial, QFrame, QHBoxLayout, QLabel, QLCDNumber, \
-     QLineEdit, QMessageBox, QProgressBar, QRadioButton, QSizePolicy, QSpacerItem, QVBoxLayout, QWidget
-from typing import Optional, Union, Tuple
+    QLineEdit, QMessageBox, QProgressBar, QRadioButton, QSizePolicy, QSpacerItem, QVBoxLayout, QWidget
+
+from .cropper import Cropper
+from .custom_widgets import UiDialog
 
 RADIO_STYLESHEET = """QRadioButton::indicator:checked{
         image: url(resources/icons/file_string_checked.svg);

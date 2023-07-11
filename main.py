@@ -1,6 +1,7 @@
 from core import UiMainWindow
 from PyQt6.QtWidgets import QApplication
 
+
 def main():
     app = QApplication([])
     app.setStyle('Fusion')

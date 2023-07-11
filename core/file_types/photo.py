@@ -1,6 +1,7 @@
+from pathlib import Path
+
 import numpy as np
 import numpy.typing as npt
-from pathlib import Path
 
 CV2_TYPES = np.array(['.bmp', '.dib', '.jpeg', '.jpg', '.jpe', '.jp2', '.png',
                       '.webp', '.pbm', '.pgm', '.ppm', '.pxm', '.pnm', '.pfm',

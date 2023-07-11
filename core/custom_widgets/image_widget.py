@@ -1,7 +1,9 @@
+from typing import Optional
+
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPainter, QPixmap, QPaintEvent
 from PyQt6.QtWidgets import QWidget
-from typing import Optional
+
 
 class ImageWidget(QWidget):
     def __init__(self, parent: Optional[QWidget]=None):

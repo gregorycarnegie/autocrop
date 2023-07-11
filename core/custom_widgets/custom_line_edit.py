@@ -1,6 +1,8 @@
 from typing import Optional
-from .line_edit_state import LineEditState
+
 from PyQt6.QtWidgets import QLineEdit, QWidget
+
+from .line_edit_state import LineEditState
 
 
 class CustomLineEdit(QLineEdit):
@@ -21,5 +23,5 @@ class CustomLineEdit(QLineEdit):
             self.state = LineEditState.INVALID_INPUT
 
     def validate_path(self):
-        """Subclasses should implement this!"""
+        """Subclasses should implement this method!"""
         return None

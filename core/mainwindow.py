@@ -14,7 +14,7 @@ from PyQt6.QtWidgets import QApplication, QCheckBox, QComboBox, QDial, QFileDial
     QTableView, QTabWidget, QTreeView, QVBoxLayout, QWidget
 
 from .cropper import Cropper
-from .custom_widgets import DataFrameModel, ImageWidget, PathLineEdit, NumberLineEdit, LineEditState
+from .custom_widgets import AnimatedButton, DataFrameModel, ImageWidget, PathLineEdit, NumberLineEdit, LineEditState
 from .file_types import Photo, Video, IMAGE_TYPES, VIDEO_TYPES, PANDAS_TYPES
 from .job import Job
 from .utils import open_file
@@ -58,7 +58,7 @@ class UiMainWindow(QMainWindow):
         self.horizontalLayout_5.setObjectName('horizontalLayout_5')
         self.photoLineEdit = self.setup_line_edit(
             self.photoTab, 'photoLineEdit', self.horizontalLayout_5, path_type='image')
-        self.photoButton, icon1 = self.setup_button_icon(self.photoTab, 'picture', 1, self.horizontalLayout_5)
+        self.photoButton, icon1 = self.setup_button_icon(self.photoTab, 'picture', 1, self.horizontalLayout_5, animated=True)
         self.verticalLayout_8.addLayout(self.horizontalLayout_5)
         self.frame_8 = setup_frame(self.photoTab, 'frame_8')
         self.verticalLayout_20 = QVBoxLayout(self.frame_8)
@@ -84,7 +84,7 @@ class UiMainWindow(QMainWindow):
         self.frame_2 = setup_frame(self.photoTab, 'frame_2', set_size=True)
         self.horizontalLayout_7 = QHBoxLayout(self.frame_2)
         self.horizontalLayout_7.setObjectName('horizontalLayout_7')
-        self.cropButton_1 = self.setup_button(self.frame_2, 'crop', 1, self.horizontalLayout_7)
+        self.cropButton_1 = self.setup_button(self.frame_2, 'crop', 1, self.horizontalLayout_7, animated=True)
         self.verticalLayout_20.addWidget(self.frame_2)
         self.verticalLayout_20.setStretch(2, 1)
         self.verticalLayout_8.addWidget(self.frame_8)
@@ -93,7 +93,7 @@ class UiMainWindow(QMainWindow):
         self.destinationLineEdit_1 = self.setup_line_edit(
             self.photoTab, 'destinationLineEdit_1', self.horizontalLayout_6, path_type='folder')
         self.destinationButton_1, icon3 = self.setup_button_icon(
-            self.photoTab, 'destination', 1, self.horizontalLayout_6)
+            self.photoTab, 'destination', 1, self.horizontalLayout_6, animated=True)
         self.verticalLayout_8.addLayout(self.horizontalLayout_6)
         self.verticalLayout_8.setStretch(0, 1)
         self.verticalLayout_8.setStretch(1, 17)
@@ -107,7 +107,7 @@ class UiMainWindow(QMainWindow):
         self.horizontalLayout_11.setObjectName('horizontalLayout_11')
         self.folderLineEdit_1 = self.setup_line_edit(
             self.folder_Tab, 'folderLineEdit_1', self.horizontalLayout_11, path_type='folder')
-        self.folderButton_1 = self.setup_button(self.folder_Tab, 'folder', 1, self.horizontalLayout_11)
+        self.folderButton_1 = self.setup_button(self.folder_Tab, 'folder', 1, self.horizontalLayout_11, animated=True)
         self.verticalLayout_15.addLayout(self.horizontalLayout_11)
         self.horizontalLayout_12 = QHBoxLayout()
         self.horizontalLayout_12.setObjectName('horizontalLayout_12')
@@ -134,8 +134,8 @@ class UiMainWindow(QMainWindow):
         self.horizontalLayout_16 = QHBoxLayout(self.frame_14)
         self.horizontalLayout_16.setContentsMargins(-1, 9, -1, 0)
         self.horizontalLayout_16.setObjectName('horizontalLayout_16')
-        self.cropButton_2 = self.setup_button(self.frame_14, 'crop', 2, self.horizontalLayout_16)
-        self.cancelButton_1 = self.setup_button(self.frame_14, 'cancel', 1, self.horizontalLayout_16)
+        self.cropButton_2 = self.setup_button(self.frame_14, 'crop', 2, self.horizontalLayout_16, animated=True)
+        self.cancelButton_1 = self.setup_button(self.frame_14, 'cancel', 1, self.horizontalLayout_16, animated=True)
         self.verticalLayout_16.addWidget(self.frame_14)
         self.frame_4 = setup_frame(self.folder_Tab, 'frame_4', set_size=True)
         self.verticalLayout_30 = QVBoxLayout(self.frame_4)
@@ -159,7 +159,7 @@ class UiMainWindow(QMainWindow):
         self.horizontalLayout_14.setObjectName('horizontalLayout_14')
         self.destinationLineEdit_2 = self.setup_line_edit(
             self.folder_Tab, 'destinationLineEdit_2', self.horizontalLayout_14, path_type='folder')
-        self.destinationButton_2 = self.setup_button(self.folder_Tab, 'destination', 2, self.horizontalLayout_14)
+        self.destinationButton_2 = self.setup_button(self.folder_Tab, 'destination', 2, self.horizontalLayout_14, animated=True)
         self.verticalLayout_15.addLayout(self.horizontalLayout_14)
         self.verticalLayout_15.setStretch(0, 1)
         self.verticalLayout_15.setStretch(1, 17)
@@ -180,9 +180,9 @@ class UiMainWindow(QMainWindow):
         self.gridLayout.addWidget(self.tableLineEdit, 1, 0, 1, 1)
         self.folderLineEdit_2 = self.setup_line_edit(self.mappingTab, 'folderLineEdit_2', path_type='folder')
         self.gridLayout.addWidget(self.folderLineEdit_2, 0, 0, 1, 1)
-        self.folderButton_2 = self.setup_button(self.mappingTab, 'folder', 2)
+        self.folderButton_2 = self.setup_button(self.mappingTab, 'folder', 2, animated=True)
         self.gridLayout.addWidget(self.folderButton_2, 0, 1, 1, 1)
-        self.tableButton, icon5 = self.setup_button_icon(self.mappingTab, 'data', 2)
+        self.tableButton, icon5 = self.setup_button_icon(self.mappingTab, 'data', 2, animated=True)
         self.gridLayout.addWidget(self.tableButton, 1, 1, 1, 1)
         self.horizontalLayout_17.addLayout(self.gridLayout)
         self.verticalLayout_17.addLayout(self.horizontalLayout_17)
@@ -211,8 +211,8 @@ class UiMainWindow(QMainWindow):
         self.horizontalLayout_13 = QHBoxLayout(self.frame_15)
         self.horizontalLayout_13.setContentsMargins(-1, 9, -1, 0)
         self.horizontalLayout_13.setObjectName('horizontalLayout_13')
-        self.cropButton_3 = self.setup_button(self.frame_15, 'crop', 3, self.horizontalLayout_13)
-        self.cancelButton_2 = self.setup_button(self.frame_15, 'cancel', 2, self.horizontalLayout_13)
+        self.cropButton_3 = self.setup_button(self.frame_15, 'crop', 3, self.horizontalLayout_13, animated=True)
+        self.cancelButton_2 = self.setup_button(self.frame_15, 'cancel', 2, self.horizontalLayout_13, animated=True)
         self.verticalLayout_18.addWidget(self.frame_15)
         self.frame_7 = setup_frame(self.mappingTab, 'frame_7')
         self.horizontalLayout_21 = QHBoxLayout(self.frame_7)
@@ -243,7 +243,7 @@ class UiMainWindow(QMainWindow):
         self.horizontalLayout_20.setObjectName('horizontalLayout_20')
         self.destinationLineEdit_3 = self.setup_line_edit(
             self.mappingTab, 'destinationLineEdit_3', self.horizontalLayout_20, path_type='folder')
-        self.destinationButton_3 = self.setup_button(self.mappingTab, 'destination', 3, self.horizontalLayout_20)
+        self.destinationButton_3 = self.setup_button(self.mappingTab, 'destination', 3, self.horizontalLayout_20, animated=True)
         self.verticalLayout_17.addLayout(self.horizontalLayout_20)
         self.verticalLayout_17.setStretch(0, 2)
         self.verticalLayout_17.setStretch(1, 15)
@@ -257,7 +257,7 @@ class UiMainWindow(QMainWindow):
         self.horizontalLayout_25.setObjectName('horizontalLayout_25')
         self.videoLineEdit = self.setup_line_edit(
             self.videoTab, 'videoLineEdit', self.horizontalLayout_25, path_type='video')
-        self.videoButton, icon6 = self.setup_button_icon(self.videoTab, 'video', 1, self.horizontalLayout_25)
+        self.videoButton, icon6 = self.setup_button_icon(self.videoTab, 'video', 1, self.horizontalLayout_25, animated=True)
         self.verticalLayout_22.addLayout(self.horizontalLayout_25)
         self.frame_9 = setup_frame(self.videoTab, 'frame_9')
         self.verticalLayout_23 = QVBoxLayout(self.frame_9)
@@ -267,7 +267,7 @@ class UiMainWindow(QMainWindow):
         self.frame_10 = setup_frame(self.frame_9, 'frame_10', set_size=True)
         self.horizontalLayout_32 = QHBoxLayout(self.frame_10)
         self.horizontalLayout_32.setObjectName('horizontalLayout_32')
-        self.muteButton = QPushButton(parent=self.frame_10)
+        self.muteButton = AnimatedButton(parent=self.frame_10)
         self.muteButton.setText('')
         icon7 = QIcon()
         icon7.addPixmap(QPixmap('resources/icons/multimedia_mute.svg'), QIcon.Mode.Normal, QIcon.State.Off)
@@ -307,9 +307,9 @@ class UiMainWindow(QMainWindow):
         self.horizontalLayout_19 = QHBoxLayout(self.frame_16)
         self.horizontalLayout_19.setContentsMargins(-1, 9, -1, 0)
         self.horizontalLayout_19.setObjectName('horizontalLayout_19')
-        self.cropButton_4 = self.setup_button(self.frame_16, 'crop', 4, self.horizontalLayout_19)
-        self.videocropButton = self.setup_button(self.frame_16, 'vcrop', 1, self.horizontalLayout_19)
-        self.cancelButton_3 = self.setup_button(self.frame_16, 'cancel', 3, self.horizontalLayout_19)
+        self.cropButton_4 = self.setup_button(self.frame_16, 'crop', 4, self.horizontalLayout_19, animated=True)
+        self.videocropButton = self.setup_button(self.frame_16, 'vcrop', 1, self.horizontalLayout_19, animated=True)
+        self.cancelButton_3 = self.setup_button(self.frame_16, 'cancel', 3, self.horizontalLayout_19, animated=True)
         self.verticalLayout_23.addWidget(self.frame_16)
         self.frame_11 = setup_frame(self.frame_9, 'frame_11', set_size=True)
         self.horizontalLayout_31 = QHBoxLayout(self.frame_11)
@@ -325,7 +325,7 @@ class UiMainWindow(QMainWindow):
         self.horizontalLayout_30.setObjectName('horizontalLayout_30')
         self.destinationLineEdit_4 = self.setup_line_edit(
             self.videoTab, 'destinationLineEdit_4', self.horizontalLayout_30, path_type='folder')
-        self.destinationButton_4 = self.setup_button(self.videoTab, 'destination', 4, self.horizontalLayout_30)
+        self.destinationButton_4 = self.setup_button(self.videoTab, 'destination', 4, self.horizontalLayout_30, animated=True)
         self.verticalLayout_22.addLayout(self.horizontalLayout_30)
         self.horizontalLayout_28 = QHBoxLayout()
         self.horizontalLayout_28.setObjectName('horizontalLayout_28')
@@ -347,7 +347,7 @@ class UiMainWindow(QMainWindow):
         self.horizontalLayout_29.addItem(spacerItem4)
         self.gridLayout_2 = QGridLayout()
         self.gridLayout_2.setObjectName('gridLayout_2')
-        self.selectStartMarkerButton = QPushButton(parent=self.videoTab)
+        self.selectStartMarkerButton = AnimatedButton(parent=self.videoTab)
         self.selectStartMarkerButton.setMinimumSize(QSize(150, 0))
         self.selectStartMarkerButton.setObjectName('selectStartMarkerButton')
         self.gridLayout_2.addWidget(self.selectStartMarkerButton, 0, 1, 1, 1)
@@ -363,7 +363,7 @@ class UiMainWindow(QMainWindow):
         self.label_15.setScaledContents(True)
         self.label_15.setObjectName('label_15')
         self.gridLayout_2.addWidget(self.label_15, 0, 0, 1, 1)
-        self.selectEndMarkerButton = QPushButton(parent=self.videoTab)
+        self.selectEndMarkerButton = AnimatedButton(parent=self.videoTab)
         self.selectEndMarkerButton.setMinimumSize(QSize(150, 0))
         self.selectEndMarkerButton.setObjectName('selectEndMarkerButton')
         self.gridLayout_2.addWidget(self.selectEndMarkerButton, 1, 1, 1, 1)
@@ -882,7 +882,8 @@ class UiMainWindow(QMainWindow):
     def initialize_button(self, parent: QWidget,
                           icon_: str,
                           series: int,
-                          normal: Optional[bool] = True) -> Tuple[QPushButton, QIcon]:
+                          normal: Optional[bool] = True,
+                          animated: Optional[bool] = False) -> Tuple[QPushButton, QIcon]:
         logo_dict: Dict[str, Tuple[QPixmap, str]] = {
             'crop': (QPixmap('resources/icons/crop.svg'), f'cropButton_{series}'),
             'picture': (QPixmap('resources/icons/picture.svg'), 'photoButton'),
@@ -903,8 +904,8 @@ class UiMainWindow(QMainWindow):
             'startmarker': (QPixmap('resources/icons/multimedia_leftmarker.svg'), 'startmarkerButton'),
             'endmarker': (QPixmap('resources/icons/multimedia_rightmarker.svg'), 'endmarkerButton')
             }
+        button = AnimatedButton(parent=parent) if animated else QPushButton(parent=parent)
         
-        button = QPushButton(parent=parent)
         if normal:
             x = (0, 24)
             y = (16_777_215, 24)
@@ -928,8 +929,9 @@ class UiMainWindow(QMainWindow):
                      icon_: str,
                      series: int,
                      layout: Optional[Union[QHBoxLayout, QVBoxLayout]] = None,
-                     normal: Optional[bool] = True) -> QPushButton:
-        button, _ = self.initialize_button(parent, icon_, series, normal)
+                     normal: Optional[bool] = True,
+                     animated: Optional[bool] = False) -> QPushButton:
+        button, _ = self.initialize_button(parent, icon_, series, normal, animated)
         if layout is not None:
             layout.addWidget(button)
         return button
@@ -938,8 +940,9 @@ class UiMainWindow(QMainWindow):
                           icon_: str,
                           series: int,
                           layout: Optional[Union[QHBoxLayout, QVBoxLayout]] = None,
-                          normal: Optional[bool] = True) -> Tuple[QPushButton, QIcon]:
-        button, icon = self.initialize_button(parent, icon_, series, normal)
+                          normal: Optional[bool] = True,
+                          animated: Optional[bool] = False) -> Tuple[QPushButton, QIcon]:
+        button, icon = self.initialize_button(parent, icon_, series, normal, animated)
         if layout is not None:
             layout.addWidget(button)
         return button, icon
@@ -963,33 +966,29 @@ class UiMainWindow(QMainWindow):
                           self.exposureCheckBox_2, self.mfaceCheckBox_2, self.tiltCheckBox_2)
 
     def reload_widgets(self) -> None:
+        def callback(widget: QWidget,
+                     input_path: Path,
+                     exposure_checkbox: QCheckBox,
+                     mface_checkbox: QCheckBox,
+                     tilt_checkbox: QCheckBox) -> None:
+            if not input_path.as_posix():
+                return None
+            self.display_crop(widget, input_path, exposure_checkbox, mface_checkbox, tilt_checkbox)
+
         if not self.widthLineEdit.text() or not self.heightLineEdit.text():
             return None
         if self.function_tabWidget.currentIndex() == 0:
             f_name = Path(self.photoLineEdit.text())
-            if not f_name.as_posix():
-                return None
-            self.display_crop(
-                self.photoWidget, f_name, self.exposureCheckBox_1, self.mfaceCheckBox_1, self.tiltCheckBox_1
-            )
+            callback(self.photoWidget, f_name, self.exposureCheckBox_1, self.mfaceCheckBox_1, self.tiltCheckBox_1)
         elif self.function_tabWidget.currentIndex() == 1:
             if self.treeView.currentIndex().isValid():
                 folder = Path(self.file_model.filePath(self.treeView.currentIndex()))
             else:
                 folder = Path(self.folderLineEdit_1.text())
-
-            if not folder.as_posix():
-                return None
-            self.display_crop(
-                self.folderWidget, folder, self.exposureCheckBox_2, self.mfaceCheckBox_2, self.tiltCheckBox_2
-            )
+            callback(self.folderWidget, folder, self.exposureCheckBox_2, self.mfaceCheckBox_2, self.tiltCheckBox_2)
         elif self.function_tabWidget.currentIndex() == 2:
             folder = Path(self.folderLineEdit_2.text())
-            if not folder.as_posix():
-                return None
-            self.display_crop(
-                self.mappingWidget, folder, self.exposureCheckBox_3, self.mfaceCheckBox_3, self.tiltCheckBox_3
-            )
+            callback(self.mappingWidget, folder, self.exposureCheckBox_3, self.mfaceCheckBox_3, self.tiltCheckBox_3)
 
     def dragEnterEvent(self, a0: QDragEnterEvent) -> None:
         if a0.mimeData().hasUrls():
@@ -1064,7 +1063,6 @@ class UiMainWindow(QMainWindow):
             assert isinstance(data, pd.DataFrame)
         except AssertionError:
             return None
-
         self.process_data(data)
 
     def process_data(self, data: pd.DataFrame) -> None:
@@ -1110,10 +1108,8 @@ class UiMainWindow(QMainWindow):
                          self.destinationLineEdit_2, self.destinationLineEdit_3, self.destinationLineEdit_4}:
             f_name = QFileDialog.getExistingDirectory(self, 'Select Directory', Photo().default_directory)
             line_edit.setText(f_name)
-
             if image_widget is None:
                 return
-
             if isinstance(file_model, QFileSystemModel):
                 self.load_data(line_edit, image_widget)
 
