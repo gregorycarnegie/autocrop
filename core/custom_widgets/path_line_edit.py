@@ -1,43 +1,38 @@
 from typing import Optional
+from pathlib import Path
 
-from PyQt6.QtCore import QFileInfo
 from PyQt6.QtWidgets import QWidget
 
 from .custom_line_edit import CustomLineEdit
+from .path_type import PathType
 from ..file_types import IMAGE_TYPES, PANDAS_TYPES, VIDEO_TYPES
 
 
 class PathLineEdit(CustomLineEdit):
-    def __init__(self, path_type: str, parent: Optional[QWidget]=None):
+    def __init__(self, path_type: PathType, parent: Optional[QWidget]=None):
         super().__init__(parent)
         self.path_type = path_type
 
-    def validate_path(self):
-        path = self.text()
-
+    def validate_path(self, path: str) -> None:
+        """Validate QLineEdit based on input and set color accordingly."""
         if not path:
-            self.setStyleSheet(f'background-color: {self.invalidColour}; color: black;')
+            self.set_invalid_color()
             return
 
-        if self.path_type == 'image':
-            if QFileInfo(path).isFile() and any(path.lower().endswith(ext) for ext in IMAGE_TYPES):
-                self.colour = self.validColour
-            else:
-                self.colour = self.invalidColour
-        elif self.path_type == 'table':
-            if QFileInfo(path).isFile() and any(path.lower().endswith(ext) for ext in PANDAS_TYPES):
-                self.colour = self.validColour
-            else:
-                self.colour = self.invalidColour
-        elif self.path_type == 'video':
-            if QFileInfo(path).isFile() and any(path.lower().endswith(ext) for ext in VIDEO_TYPES):
-                self.colour = self.validColour
-            else:
-                self.colour = self.invalidColour
-        elif self.path_type == 'folder':
-            self.colour = self.validColour if QFileInfo(path).isDir() else self.invalidColour
-        else:
-            self.setStyleSheet(f'background-color: {self.invalidColour}; color: black;')
-            return
+        path: Path = Path(path)
+        
+        if self.path_type == PathType.IMAGE: self.color_logic(self.is_valid_image(path))
+        elif self.path_type == PathType.TABLE: self.color_logic(self.is_valid_table(path))
+        elif self.path_type == PathType.VIDEO: self.color_logic(self.is_valid_video(path))
+        elif self.path_type == PathType.FOLDER: self.color_logic(path.is_dir())
 
-        self.setStyleSheet(f'background-color: {self.colour}; color: black;')
+        self.update_style()
+
+    def is_valid_image(self, path: Path) -> bool:
+        return path.is_file() and path.suffix.lower() in IMAGE_TYPES
+    
+    def is_valid_table(self, path: Path) -> bool:
+        return path.is_file() and path.suffix.lower() in PANDAS_TYPES
+    
+    def is_valid_video(self, path: Path) -> bool:
+        return path.is_file() and path.suffix.lower() in VIDEO_TYPES

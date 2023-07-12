@@ -10,11 +10,11 @@ from PyQt6.QtGui import QIntValidator, QFileSystemModel, QIcon, QPixmap, QAction
 from PyQt6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PyQt6.QtMultimediaWidgets import QVideoWidget
 from PyQt6.QtWidgets import QApplication, QCheckBox, QComboBox, QDial, QFileDialog, QGridLayout, QHBoxLayout, \
-    QLabel, QLineEdit, QMainWindow, QMenu, QMenuBar, QPushButton, QSizePolicy, QSlider, QSpacerItem, QStatusBar, \
-    QTableView, QTabWidget, QTreeView, QVBoxLayout, QWidget
+    QLabel, QMainWindow, QMenu, QMenuBar, QPushButton, QSizePolicy, QSlider, QSpacerItem, QStatusBar, QTableView, \
+    QTabWidget, QTreeView, QVBoxLayout, QWidget
 
 from .cropper import Cropper
-from .custom_widgets import AnimatedButton, DataFrameModel, ImageWidget, PathLineEdit, NumberLineEdit, LineEditState
+from .custom_widgets import AnimatedButton, DataFrameModel, ImageWidget, PathType, PathLineEdit, NumberLineEdit, LineEditState
 from .file_types import Photo, Video, IMAGE_TYPES, VIDEO_TYPES, PANDAS_TYPES
 from .job import Job
 from .utils import open_file
@@ -57,7 +57,7 @@ class UiMainWindow(QMainWindow):
         self.horizontalLayout_5 = QHBoxLayout()
         self.horizontalLayout_5.setObjectName('horizontalLayout_5')
         self.photoLineEdit = self.setup_line_edit(
-            self.photoTab, 'photoLineEdit', self.horizontalLayout_5, path_type='image')
+            self.photoTab, 'photoLineEdit', self.horizontalLayout_5, path_type=PathType.IMAGE)
         self.photoButton, icon1 = self.setup_button_icon(self.photoTab, 'picture', 1, self.horizontalLayout_5, animated=True)
         self.verticalLayout_8.addLayout(self.horizontalLayout_5)
         self.frame_8 = setup_frame(self.photoTab, 'frame_8')
@@ -91,7 +91,7 @@ class UiMainWindow(QMainWindow):
         self.horizontalLayout_6 = QHBoxLayout()
         self.horizontalLayout_6.setObjectName('horizontalLayout_6')
         self.destinationLineEdit_1 = self.setup_line_edit(
-            self.photoTab, 'destinationLineEdit_1', self.horizontalLayout_6, path_type='folder')
+            self.photoTab, 'destinationLineEdit_1', self.horizontalLayout_6, path_type=PathType.FOLDER)
         self.destinationButton_1, icon3 = self.setup_button_icon(
             self.photoTab, 'destination', 1, self.horizontalLayout_6, animated=True)
         self.verticalLayout_8.addLayout(self.horizontalLayout_6)
@@ -106,7 +106,7 @@ class UiMainWindow(QMainWindow):
         self.horizontalLayout_11 = QHBoxLayout()
         self.horizontalLayout_11.setObjectName('horizontalLayout_11')
         self.folderLineEdit_1 = self.setup_line_edit(
-            self.folder_Tab, 'folderLineEdit_1', self.horizontalLayout_11, path_type='folder')
+            self.folder_Tab, 'folderLineEdit_1', self.horizontalLayout_11, path_type=PathType.FOLDER)
         self.folderButton_1 = self.setup_button(self.folder_Tab, 'folder', 1, self.horizontalLayout_11, animated=True)
         self.verticalLayout_15.addLayout(self.horizontalLayout_11)
         self.horizontalLayout_12 = QHBoxLayout()
@@ -158,7 +158,7 @@ class UiMainWindow(QMainWindow):
         self.horizontalLayout_14 = QHBoxLayout()
         self.horizontalLayout_14.setObjectName('horizontalLayout_14')
         self.destinationLineEdit_2 = self.setup_line_edit(
-            self.folder_Tab, 'destinationLineEdit_2', self.horizontalLayout_14, path_type='folder')
+            self.folder_Tab, 'destinationLineEdit_2', self.horizontalLayout_14, path_type=PathType.FOLDER)
         self.destinationButton_2 = self.setup_button(self.folder_Tab, 'destination', 2, self.horizontalLayout_14, animated=True)
         self.verticalLayout_15.addLayout(self.horizontalLayout_14)
         self.verticalLayout_15.setStretch(0, 1)
@@ -176,9 +176,9 @@ class UiMainWindow(QMainWindow):
         self.horizontalLayout_17.addLayout(self.horizontalLayout_22)
         self.gridLayout = QGridLayout()
         self.gridLayout.setObjectName('gridLayout')
-        self.tableLineEdit = self.setup_line_edit(self.mappingTab, 'tableLineEdit', path_type='table')
+        self.tableLineEdit = self.setup_line_edit(self.mappingTab, 'tableLineEdit', path_type=PathType.TABLE)
         self.gridLayout.addWidget(self.tableLineEdit, 1, 0, 1, 1)
-        self.folderLineEdit_2 = self.setup_line_edit(self.mappingTab, 'folderLineEdit_2', path_type='folder')
+        self.folderLineEdit_2 = self.setup_line_edit(self.mappingTab, 'folderLineEdit_2', path_type=PathType.FOLDER)
         self.gridLayout.addWidget(self.folderLineEdit_2, 0, 0, 1, 1)
         self.folderButton_2 = self.setup_button(self.mappingTab, 'folder', 2, animated=True)
         self.gridLayout.addWidget(self.folderButton_2, 0, 1, 1, 1)
@@ -242,7 +242,7 @@ class UiMainWindow(QMainWindow):
         self.horizontalLayout_20 = QHBoxLayout()
         self.horizontalLayout_20.setObjectName('horizontalLayout_20')
         self.destinationLineEdit_3 = self.setup_line_edit(
-            self.mappingTab, 'destinationLineEdit_3', self.horizontalLayout_20, path_type='folder')
+            self.mappingTab, 'destinationLineEdit_3', self.horizontalLayout_20, path_type=PathType.FOLDER)
         self.destinationButton_3 = self.setup_button(self.mappingTab, 'destination', 3, self.horizontalLayout_20, animated=True)
         self.verticalLayout_17.addLayout(self.horizontalLayout_20)
         self.verticalLayout_17.setStretch(0, 2)
@@ -256,7 +256,7 @@ class UiMainWindow(QMainWindow):
         self.horizontalLayout_25 = QHBoxLayout()
         self.horizontalLayout_25.setObjectName('horizontalLayout_25')
         self.videoLineEdit = self.setup_line_edit(
-            self.videoTab, 'videoLineEdit', self.horizontalLayout_25, path_type='video')
+            self.videoTab, 'videoLineEdit', self.horizontalLayout_25, path_type=PathType.VIDEO)
         self.videoButton, icon6 = self.setup_button_icon(self.videoTab, 'video', 1, self.horizontalLayout_25, animated=True)
         self.verticalLayout_22.addLayout(self.horizontalLayout_25)
         self.frame_9 = setup_frame(self.videoTab, 'frame_9')
@@ -324,7 +324,7 @@ class UiMainWindow(QMainWindow):
         self.horizontalLayout_30 = QHBoxLayout()
         self.horizontalLayout_30.setObjectName('horizontalLayout_30')
         self.destinationLineEdit_4 = self.setup_line_edit(
-            self.videoTab, 'destinationLineEdit_4', self.horizontalLayout_30, path_type='folder')
+            self.videoTab, 'destinationLineEdit_4', self.horizontalLayout_30, path_type=PathType.FOLDER)
         self.destinationButton_4 = self.setup_button(self.videoTab, 'destination', 4, self.horizontalLayout_30, animated=True)
         self.verticalLayout_22.addLayout(self.horizontalLayout_30)
         self.horizontalLayout_28 = QHBoxLayout()
@@ -861,7 +861,7 @@ class UiMainWindow(QMainWindow):
     def setup_line_edit(self, parent: QWidget,
                         name: str,
                         layout: Optional[Union[QHBoxLayout, QVBoxLayout]] = None,
-                        path_type: Optional[str] = None) -> QLineEdit:
+                        path_type: Optional[PathType] = None) -> Union[NumberLineEdit, PathLineEdit]:
         line_edit: Union[NumberLineEdit, PathLineEdit]
         if path_type is None:
             line_edit = NumberLineEdit(parent=parent)
@@ -949,7 +949,7 @@ class UiMainWindow(QMainWindow):
 
     def connect_input_widgets(self, *input_widgets: QWidget) -> None:
         for input_widget in input_widgets:
-            if isinstance(input_widget, QLineEdit):
+            if isinstance(input_widget, (NumberLineEdit, PathLineEdit)):
                 input_widget.textChanged.connect(lambda: self.reload_widgets())
             elif isinstance(input_widget, QDial):
                 input_widget.valueChanged.connect(lambda: self.reload_widgets())
@@ -1010,10 +1010,8 @@ class UiMainWindow(QMainWindow):
         a0.setDropAction(Qt.DropAction.CopyAction)
         file_path = Path(a0.mimeData().urls()[0].toLocalFile())
 
-        if file_path.is_dir():
-            self.handle_directory(file_path)
-        elif file_path.is_file():
-            self.handle_file(file_path)
+        if file_path.is_dir(): self.handle_directory(file_path)
+        elif file_path.is_file(): self.handle_file(file_path)
 
         a0.accept()
 
@@ -1034,12 +1032,9 @@ class UiMainWindow(QMainWindow):
                                   self.tiltCheckBox_2)
 
     def handle_file(self, file_path: Path) -> None:
-        if file_path.suffix.lower() in IMAGE_TYPES:
-            self.handle_image_file(file_path)
-        elif file_path.suffix.lower() in VIDEO_TYPES:
-            self.handle_video_file(file_path)
-        elif file_path.suffix.lower() in PANDAS_TYPES:
-            self.handle_pandas_file(file_path)
+        if file_path.suffix.lower() in IMAGE_TYPES: self.handle_image_file(file_path)
+        elif file_path.suffix.lower() in VIDEO_TYPES: self.handle_video_file(file_path)
+        elif file_path.suffix.lower() in PANDAS_TYPES: self.handle_pandas_file(file_path)
 
     def handle_image_file(self, file_path: Path) -> None:
         self.function_tabWidget.setCurrentIndex(0)
@@ -1083,7 +1078,7 @@ class UiMainWindow(QMainWindow):
         elif int(self.widthLineEdit.text()) < int(self.heightLineEdit.text()):
             self.widthLineEdit.setText(str(int(float(self.heightLineEdit.text()) / phi)))
 
-    def load_data(self, line_edit: QLineEdit,
+    def load_data(self, line_edit: PathLineEdit,
                   image_widget: ImageWidget) -> None:
         try:
             if line_edit is self.photoLineEdit:
@@ -1101,7 +1096,7 @@ class UiMainWindow(QMainWindow):
         except (IndexError, FileNotFoundError, ValueError, AttributeError):
             return None
 
-    def open_folder(self, line_edit: QLineEdit,
+    def open_folder(self, line_edit: PathLineEdit,
                     image_widget: Optional[ImageWidget] = None,
                     file_model: Optional[QFileSystemModel] = None) -> None:
         if line_edit in {self.folderLineEdit_1, self.folderLineEdit_2, self.destinationLineEdit_1, 
@@ -1135,7 +1130,7 @@ class UiMainWindow(QMainWindow):
 
     def disable_buttons(self) -> None:
         def all_filled(*line_edits: Union[PathLineEdit, NumberLineEdit, QComboBox]) -> bool:
-            x = all(edit.state == LineEditState.VALID_INPUT for edit in line_edits)
+            x = all(edit.state == LineEditState.VALID_INPUT for edit in line_edits if isinstance(edit, (PathLineEdit, NumberLineEdit)))
             y = all(edit.currentText() for edit in line_edits if isinstance(edit, QComboBox))
             return x and y
 
@@ -1163,13 +1158,13 @@ class UiMainWindow(QMainWindow):
     def create_job(self, exposure: QCheckBox,
                    multi: QCheckBox,
                    tilt: QCheckBox,
-                   photo_path: Optional[QLineEdit] = None,
-                   destination: Optional[QLineEdit] = None,
-                   folder_path: Optional[QLineEdit] = None,
+                   photo_path: Optional[PathLineEdit] = None,
+                   destination: Optional[PathLineEdit] = None,
+                   folder_path: Optional[PathLineEdit] = None,
                    table: Optional[pd.DataFrame] = None,
                    column1: Optional[QComboBox] = None,
                    column2: Optional[QComboBox] = None,
-                   video_path: Optional[QLineEdit] = None,
+                   video_path: Optional[PathLineEdit] = None,
                    start_position: Optional[float] = None,
                    stop_position: Optional[float] = None) -> Job:
         return Job(self.widthLineEdit,
@@ -1197,7 +1192,7 @@ class UiMainWindow(QMainWindow):
                     stop_position=stop_position)
 
     def display_crop(self, image_widget: ImageWidget,
-                     line_edit: Union[Path, QLineEdit],
+                     line_edit: Union[Path, PathLineEdit],
                      exposure: QCheckBox,
                      multi: QCheckBox,
                      tilt: QCheckBox) -> None:

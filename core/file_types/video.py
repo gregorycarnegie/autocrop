@@ -3,7 +3,6 @@ from threading import Thread
 from typing import Union
 
 import numpy as np
-import numpy.typing as npt
 from PyQt6.QtCore import QTime, QTimer, QUrl
 from PyQt6.QtGui import QIcon
 from PyQt6.QtMultimedia import QAudioOutput, QMediaPlayer
@@ -12,7 +11,7 @@ from PyQt6.QtWidgets import QFileDialog, QLabel, QLineEdit, QMainWindow, QPushBu
 
 from .media_state import MediaPlaybackState
 
-VIDEO_TYPES: npt.NDArray[np.str_] = np.array(['.avi', '.m4v', '.mkv', '.mov', '.mp4', '.wmv'])
+VIDEO_TYPES = np.array(['.avi', '.m4v', '.mkv', '.mov', '.mp4', '.wmv'])
 
 class Video:
     def __init__(self, audio: QAudioOutput,

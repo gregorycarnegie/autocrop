@@ -131,9 +131,7 @@ def setup_dial(parent: QWidget,
     if wrap is not None: dial.setWrapping(wrap)
     if notchvis is not None: dial.setNotchesVisible(notchvis)
     if name is not None: dial.setObjectName(name)
-
-    if layout is not None:
-        layout.addWidget(dial)
+    if layout is not None: layout.addWidget(dial)
 
     return dial
 
@@ -159,7 +157,6 @@ def setup_dial_area(parent: QWidget,
     lcd_number = setup_lcd(parent, f'{name}LCDNumber', horizontal_layout)
     
     horizontal_layout.addItem(spacer_item)
-    
     vertical_layout.addLayout(horizontal_layout)
     main_layout.addLayout(vertical_layout)
     return dial, lcd_number, label
@@ -173,11 +170,11 @@ def load_about_form() -> None:
     about_ui.exec()
 
 def show_message_box(destination: QLineEdit) -> None:
-    def message_button(answer: QMessageBox):
+    def message_button(answer: QMessageBox) -> None:
         if answer.text() == '&Yes':
             startfile(destination.text())
 
-    def helper_function(msg_box: QMessageBox):
+    def helper_function(msg_box: QMessageBox) -> None:
         msg_box.setWindowTitle('Open Destination Folder')
         msg_box.setText('Open destination folder?')
         msg_box.setIcon(QMessageBox.Icon.Question)

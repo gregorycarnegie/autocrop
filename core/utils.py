@@ -25,15 +25,13 @@ from .job import Job
 GAMMA_THRESHOLD = .001
 L_EYE_START, L_EYE_END = 42, 48
 R_EYE_START, R_EYE_END = 36, 42
-EXIF_ORIENTATIONS = {
-            2: Image.Transpose.FLIP_LEFT_RIGHT,
-            3: Image.Transpose.ROTATE_180,
-            4: Image.Transpose.FLIP_TOP_BOTTOM,
-            5: Image.Transpose.ROTATE_90,  # Split combined operations
-            6: Image.Transpose.ROTATE_270,
-            7: Image.Transpose.ROTATE_270,  # Split combined operations
-            8: Image.Transpose.ROTATE_90
-        }
+EXIF_ORIENTATIONS = {2: Image.Transpose.FLIP_LEFT_RIGHT,
+                     3: Image.Transpose.ROTATE_180,
+                     4: Image.Transpose.FLIP_TOP_BOTTOM,
+                     5: Image.Transpose.ROTATE_90,  # Split combined operations
+                     6: Image.Transpose.ROTATE_270,
+                     7: Image.Transpose.ROTATE_270,  # Split combined operations
+                     8: Image.Transpose.ROTATE_90}
 
 def profile_it(func: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(func)
