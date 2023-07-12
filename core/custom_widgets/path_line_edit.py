@@ -13,18 +13,18 @@ class PathLineEdit(CustomLineEdit):
         super().__init__(parent)
         self.path_type = path_type
 
-    def validate_path(self, path: str) -> None:
+    def validate_path(self) -> None:
         """Validate QLineEdit based on input and set color accordingly."""
-        if not path:
+        if not (path := self.text()):
             self.set_invalid_color()
             return
 
-        path: Path = Path(path)
+        file_path = Path(path)
         
-        if self.path_type == PathType.IMAGE: self.color_logic(self.is_valid_image(path))
-        elif self.path_type == PathType.TABLE: self.color_logic(self.is_valid_table(path))
-        elif self.path_type == PathType.VIDEO: self.color_logic(self.is_valid_video(path))
-        elif self.path_type == PathType.FOLDER: self.color_logic(path.is_dir())
+        if self.path_type == PathType.IMAGE: self.color_logic(self.is_valid_image(file_path))
+        elif self.path_type == PathType.TABLE: self.color_logic(self.is_valid_table(file_path))
+        elif self.path_type == PathType.VIDEO: self.color_logic(self.is_valid_video(file_path))
+        elif self.path_type == PathType.FOLDER: self.color_logic(file_path.is_dir())
 
         self.update_style()
 

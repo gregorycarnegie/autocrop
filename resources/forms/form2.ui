@@ -24,7 +24,7 @@
       <item>
        <widget class="QTabWidget" name="function_tabWidget">
         <property name="currentIndex">
-         <number>0</number>
+         <number>3</number>
         </property>
         <property name="movable">
          <bool>true</bool>
@@ -2085,7 +2085,7 @@ QCheckBox::indicator:unchecked:hover{
          <enum>QTabWidget::Rounded</enum>
         </property>
         <property name="currentIndex">
-         <number>1</number>
+         <number>0</number>
         </property>
         <property name="tabsClosable">
          <bool>false</bool>

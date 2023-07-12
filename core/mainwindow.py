@@ -14,7 +14,8 @@ from PyQt6.QtWidgets import QApplication, QCheckBox, QComboBox, QDial, QFileDial
     QTabWidget, QTreeView, QVBoxLayout, QWidget
 
 from .cropper import Cropper
-from .custom_widgets import AnimatedButton, DataFrameModel, ImageWidget, PathType, PathLineEdit, NumberLineEdit, LineEditState
+from .custom_widgets import AnimatedButton, DataFrameModel, ImageWidget, PathType, PathLineEdit, NumberLineEdit, \
+    LineEditState
 from .file_types import Photo, Video, IMAGE_TYPES, VIDEO_TYPES, PANDAS_TYPES
 from .job import Job
 from .utils import open_file
@@ -567,6 +568,9 @@ class UiMainWindow(QMainWindow):
         self.menubar.addAction(self.menuInfo.menuAction())
 
         # CONNECTIONS
+        self.comboBox_1.currentTextChanged.connect(lambda: self.disable_buttons())
+        self.comboBox_2.currentTextChanged.connect(lambda: self.disable_buttons())
+
         self.gammaDial.valueChanged['int'].connect(self.gammaLCDNumber.display)
         self.faceDial.valueChanged['int'].connect(self.faceLCDNumber.display)
         self.sensitivityDial.valueChanged['int'].connect(self.sensitivityLCDNumber.display)
@@ -818,7 +822,8 @@ class UiMainWindow(QMainWindow):
         self.actionCrop_Video.setText(_translate('MainWindow', 'Crop Video'))
 
     def change_playback_state(self, video: Video):
-        if self.player.playbackState() in [QMediaPlayer.PlaybackState.PausedState, QMediaPlayer.PlaybackState.StoppedState]:
+        if self.player.playbackState() in \
+                [QMediaPlayer.PlaybackState.PausedState, QMediaPlayer.PlaybackState.StoppedState]:
             video.play_video()
             self.playButton.setIcon(QIcon('resources\\icons\\multimedia_pause.svg'))
         elif self.player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
@@ -1009,27 +1014,32 @@ class UiMainWindow(QMainWindow):
 
         a0.setDropAction(Qt.DropAction.CopyAction)
         file_path = Path(a0.mimeData().urls()[0].toLocalFile())
-
-        if file_path.is_dir(): self.handle_directory(file_path)
+        if file_path.is_dir(): self.handle_path_main(file_path)
         elif file_path.is_file(): self.handle_file(file_path)
 
         a0.accept()
 
-    def handle_directory(self, file_path: Path) -> None:
+    def handle_path(self, file_path: Path,
+                    tab_index: int,
+                    line_edit: Union[PathLineEdit],
+                    image_widget: ImageWidget,
+                    exposure_check_box: QCheckBox,
+                    mface_check_box: QCheckBox,
+                    tilt_check_box: QCheckBox) -> None:
+        if self.widthLineEdit.text() and self.heightLineEdit.text():
+            self.display_crop(image_widget, file_path, exposure_check_box, mface_check_box, tilt_check_box)
+        self.function_tabWidget.setCurrentIndex(tab_index)
+        line_edit.setText(file_path.as_posix())
+
+    def handle_path_main(self, file_path: Path) -> None:
         extensions = {y.suffix.lower() for y in file_path.iterdir()}
         mask = [ext in extensions for ext in PANDAS_TYPES]
         if any(mask):
-            self.function_tabWidget.setCurrentIndex(2)
-            self.folderLineEdit_2.setText(file_path.as_posix())
-            if self.widthLineEdit.text() and self.heightLineEdit.text():
-                self.display_crop(self.mappingWidget, file_path, self.exposureCheckBox_3, self.mfaceCheckBox_3,
-                                  self.tiltCheckBox_3)  
+            self.handle_path(file_path, 2, self.folderLineEdit_2, self.mappingWidget, self.exposureCheckBox_3,
+                             self.mfaceCheckBox_3, self.tiltCheckBox_3)
         else:
-            self.function_tabWidget.setCurrentIndex(1)
-            self.folderLineEdit_1.setText(file_path.as_posix())
-            if self.widthLineEdit.text() and self.heightLineEdit.text():
-                self.display_crop(self.folderWidget, file_path, self.exposureCheckBox_2, self.mfaceCheckBox_2,
-                                  self.tiltCheckBox_2)
+            self.handle_path(file_path, 1, self.folderLineEdit_1, self.folderWidget, self.exposureCheckBox_2,
+                             self.mfaceCheckBox_2, self.tiltCheckBox_2)
 
     def handle_file(self, file_path: Path) -> None:
         if file_path.suffix.lower() in IMAGE_TYPES: self.handle_image_file(file_path)
@@ -1037,11 +1047,8 @@ class UiMainWindow(QMainWindow):
         elif file_path.suffix.lower() in PANDAS_TYPES: self.handle_pandas_file(file_path)
 
     def handle_image_file(self, file_path: Path) -> None:
-        self.function_tabWidget.setCurrentIndex(0)
-        self.photoLineEdit.setText(file_path.as_posix())
-        if self.widthLineEdit.text() and self.heightLineEdit.text():
-            self.display_crop(self.photoWidget, file_path, self.exposureCheckBox_1, self.mfaceCheckBox_1,
-                              self.tiltCheckBox_1)
+        self.handle_path(file_path, 0, self.photoLineEdit, self.photoWidget, self.exposureCheckBox_1,
+                         self.mfaceCheckBox_1, self.tiltCheckBox_1)
 
     def handle_video_file(self, file_path: Path) -> None:
         self.function_tabWidget.setCurrentIndex(3)
@@ -1054,6 +1061,9 @@ class UiMainWindow(QMainWindow):
         self.function_tabWidget.setCurrentIndex(2)
         self.tableLineEdit.setText(file_path.as_posix())
         data = open_file(file_path)
+        self.validate_pandas_file(data)
+
+    def validate_pandas_file(self, data) -> None:
         try:
             assert isinstance(data, pd.DataFrame)
         except AssertionError:
@@ -1121,16 +1131,12 @@ class UiMainWindow(QMainWindow):
         f_name, _ = QFileDialog.getOpenFileName(self, 'Open File', Photo().default_directory, type_string)
         self.tableLineEdit.setText(f_name)
         data = open_file(f_name)
-        try:
-            assert isinstance(data, pd.DataFrame)
-        except AssertionError:
-            return None
-
-        self.process_data(data)
+        self.validate_pandas_file(data)
 
     def disable_buttons(self) -> None:
         def all_filled(*line_edits: Union[PathLineEdit, NumberLineEdit, QComboBox]) -> bool:
-            x = all(edit.state == LineEditState.VALID_INPUT for edit in line_edits if isinstance(edit, (PathLineEdit, NumberLineEdit)))
+            x = all(edit.state == LineEditState.VALID_INPUT
+                    for edit in line_edits if isinstance(edit, (PathLineEdit, NumberLineEdit)))
             y = all(edit.currentText() for edit in line_edits if isinstance(edit, QComboBox))
             return x and y
 

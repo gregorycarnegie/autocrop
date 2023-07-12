@@ -4,8 +4,9 @@ from typing import Any, NamedTuple, Optional, Tuple
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-from PyQt6.QtWidgets import QCheckBox, QComboBox, QDial, QLineEdit, QRadioButton
+from PyQt6.QtWidgets import QCheckBox, QComboBox, QDial, QRadioButton
 
+from .custom_widgets import NumberLineEdit, PathLineEdit
 from .file_types import IMAGE_TYPES
 
 
@@ -42,8 +43,8 @@ class Job(NamedTuple):
         column1 (Optional[QComboBox]): Dropdown for selecting a column from the DataFrame.
         column2 (Optional[QComboBox]): Dropdown for selecting another column from the DataFrame.
     """
-    width: QLineEdit
-    height: QLineEdit
+    width: NumberLineEdit
+    height: NumberLineEdit
     fix_exposure_job: QCheckBox
     multi_face_job: QCheckBox
     auto_tilt_job: QCheckBox
@@ -56,10 +57,10 @@ class Job(NamedTuple):
     right: QDial
     radio_buttons: Tuple[QRadioButton, ...]
     radio_options: npt.NDArray[np.str_] = np.array(['No', '.bmp', '.jpg', '.png', '.tiff', '.webp'])
-    destination: Optional[QLineEdit] = None
-    photo_path: Optional[QLineEdit] = None
-    folder_path: Optional[QLineEdit] = None
-    video_path: Optional[QLineEdit] = None
+    destination: Optional[PathLineEdit] = None
+    photo_path: Optional[PathLineEdit] = None
+    folder_path: Optional[PathLineEdit] = None
+    video_path: Optional[PathLineEdit] = None
     start_position: Optional[float] = None
     stop_position: Optional[float] = None
     table: Optional[pd.DataFrame] = None

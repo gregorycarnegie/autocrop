@@ -98,8 +98,7 @@ def correct_exposure(image: Union[cv2.Mat, Image.Image, npt.NDArray[np.int8]],
 def open_cv2(image: Path,
              exposure: bool,
              tilt: bool,
-             face_detector: Optional[dlib.fhog_object_detector] = None,
-             predictor: Optional[dlib.shape_predictor] = None) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
+             face_worker: Tuple[dlib.fhog_object_detector, dlib.shape_predictor]) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
     """
     Opens an image using OpenCV, performs exposure correction if needed, and optionally aligns the head in the image.
 
@@ -107,8 +106,7 @@ def open_cv2(image: Path,
         image (Path): The path to the image file to open.
         exposure (bool): A flag to indicate whether exposure correction should be performed.
         tilt (bool): A flag to indicate whether to align the head in the image.
-        face_detector (Optional[dlib.fhog_object_detector], default=None): A face detector for use in head alignment.
-        predictor (Optional[dlib.shape_predictor], default=None): A shape predictor for use in head alignment.
+        face_worker: tuple of face detector and predictor for current thread.
 
     Returns:
         (Union[cv2.Mat, np.ndarray]): The processed image. If head alignment is performed, the image will be aligned; otherwise, it is the original or exposure-corrected image.
@@ -116,7 +114,7 @@ def open_cv2(image: Path,
     img = cv2.imread(image.as_posix())
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = correct_exposure(img, exposure)
-    return align_head(img, face_detector, predictor) if tilt else img
+    return align_head(img, face_worker) if tilt else img
 
 def reorient_raw(im_obj: rawpy) -> npt.NDArray[np.int8]:
     with contextlib.suppress(KeyError, AttributeError, TypeError, IndexError):
@@ -129,8 +127,7 @@ def reorient_raw(im_obj: rawpy) -> npt.NDArray[np.int8]:
 def open_raw(image: Path,
              exposure: bool,
              tilt: bool,
-             face_detector: Optional[dlib.fhog_object_detector] = None,
-             predictor: Optional[dlib.shape_predictor] = None) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
+             face_worker: Tuple[dlib.fhog_object_detector, dlib.shape_predictor]) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
     """
     Opens a raw image file, post-processes the raw image data, performs exposure correction if needed, and optionally aligns the head in the image.
 
@@ -138,8 +135,7 @@ def open_raw(image: Path,
         image (Path): The path to the raw image file to open.
         exposure (bool): A flag to indicate whether exposure correction should be performed.
         tilt (bool): A flag to indicate whether to align the head in the image.
-        face_detector (Optional[dlib.fhog_object_detector], default=None): A face detector for use in head alignment.
-        predictor (Optional[dlib.shape_predictor], default=None): A shape predictor for use in head alignment.
+        face_worker: tuple of face detector and predictor for current thread.
 
     Returns:
         (Union[cv2.Mat, np.ndarray]): The processed image. If head alignment is performed, the image will be aligned; otherwise, it is the original or exposure-corrected image.
@@ -148,7 +144,7 @@ def open_raw(image: Path,
         # Post-process the raw image data
         img = reorient_raw(raw)
         img = correct_exposure(img, exposure)
-        return align_head(img, face_detector, predictor) if tilt else img
+        return align_head(img, face_worker) if tilt else img
 
 @cache
 def open_table(input_file: Path, extension: str) -> pd.DataFrame:
@@ -158,20 +154,19 @@ def open_table(input_file: Path, extension: str) -> pd.DataFrame:
 def open_file(input_file: Union[Path, str],
               exposure: Optional[bool] = None,
               tilt: Optional[bool] = None,
-              face_detector: Optional[dlib.fhog_object_detector] = None,
-              predictor: Optional[dlib.shape_predictor] = None) -> Optional[Union[cv2.Mat, npt.NDArray[np.int8], pd.DataFrame]]:
+              face_worker: Optional[Tuple[dlib.fhog_object_detector, dlib.shape_predictor]] = None) -> Optional[Union[cv2.Mat, npt.NDArray[np.int8], pd.DataFrame]]:
     """Given a filename, returns a numpy array or a pandas dataframe"""
     input_file = Path(input_file) if isinstance(input_file, str) else input_file
     if (extension := input_file.suffix.lower()) in CV2_TYPES:
         # Try with OpenCV
         if exposure is None or tilt is None:
             return None
-        return open_cv2(input_file, exposure, tilt, face_detector, predictor)
+        return open_cv2(input_file, exposure, tilt, face_worker)
     elif extension in RAW_TYPES:
         # Try with rawpy
         if exposure is None or tilt is None:
             return None
-        return open_raw(input_file, exposure, tilt, face_detector, predictor)
+        return open_raw(input_file, exposure, tilt, face_worker)
     elif extension in PANDAS_TYPES:
         # Try pandas
         return open_table(input_file, extension)
@@ -182,19 +177,18 @@ def dlib_predictor(path: str) -> dlib.shape_predictor:
     return dlib.shape_predictor(path)
 
 def align_head(image: Union[cv2.Mat, npt.NDArray[np.int8]],
-               face_detector: dlib.fhog_object_detector,
-               predictor: dlib.shape_predictor) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
+               face_worker: Tuple[dlib.fhog_object_detector, dlib.shape_predictor]) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
     """
     Aligns the head in an image using dlib and shape_predictor_68_face_landmarks.dat.
 
     Parameters:
         image: A numpy array representing the image.
-        face_detector: face detector for current thread.
-        predictor: predictor for current thread.
+        face_worker: tuple of face detector and predictor for current thread.
 
     Returns:
         A numpy array representing the aligned image.
     """
+    face_detector, predictor = face_worker
 
     height, _ = image.shape[:2]
     scaling_factor = 256 / height
@@ -229,7 +223,8 @@ def get_angle_of_tilt(landmarks_array: npt.NDArray[np.int_], scaling_factor: flo
         The angle of tilt in degrees.
     """
     # Find the eyes in the image (l_eye - r_eye).
-    eye_diff = np.mean(landmarks_array[L_EYE_START:L_EYE_END], axis=0) - np.mean(landmarks_array[R_EYE_START:R_EYE_END], axis=0)
+    eye_diff = np.mean(landmarks_array[L_EYE_START:L_EYE_END], axis=0) - \
+               np.mean(landmarks_array[R_EYE_START:R_EYE_END], axis=0)
     # Find the center of the face.
     center_x, center_y = np.mean(landmarks_array[R_EYE_START:L_EYE_END], axis=0) / scaling_factor
     return np.arctan2(eye_diff[1], eye_diff[0]) * 180 / np.pi, center_x, center_y
@@ -301,7 +296,8 @@ def multi_box(image: Union[cv2.Mat, npt.NDArray[np.int8]], job: Job) -> Union[cv
             cv2.putText(image, text, (x0, y), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 2)
     return image
 
-def multi_box_positions(image: Union[cv2.Mat, npt.NDArray[np.int8]], job: Job) -> Tuple[npt.NDArray[np.float_], npt.NDArray[np.int_]]:
+def multi_box_positions(image: Union[cv2.Mat, npt.NDArray[np.int8]],
+                        job: Job) -> Tuple[npt.NDArray[np.float_], npt.NDArray[np.int_]]:
     height, width = image.shape[:2]
     detections = prepare_detections(image)
     crop_positions = [
