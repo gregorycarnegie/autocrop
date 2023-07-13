@@ -74,7 +74,7 @@ def display_image_on_widget(image: Union[cv2.Mat, npt.NDArray[np.int8]], image_w
     image_widget.setImage(QtGui.QPixmap.fromImage(q_image))
 
 def correct_exposure(image: Union[cv2.Mat, Image.Image, npt.NDArray[np.int8]],
-                     exposure: Optional[bool] = False) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
+                     exposure: bool) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
     """
     Adjust the exposure of an input image based on the alpha and beta values calculated from its grayscale histogram.
 
@@ -85,9 +85,9 @@ def correct_exposure(image: Union[cv2.Mat, Image.Image, npt.NDArray[np.int8]],
     Returns:
         (Union[cv2.Mat, np.ndarray]): The exposure corrected image if exposure=True, otherwise the original image. The returned image will be a numpy array if the input was a PIL Image, otherwise, the same type as the input image.
     """
-    if not exposure:
-        return np.array(image) if isinstance(image, Image.Image) else image
     image_array = np.array(image) if isinstance(image, Image.Image) else image
+    if not exposure:
+        return image_array
     gray = cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY) if len(image_array.shape) > 2 else image_array
     # Grayscale histogram
     hist = cv2.calcHist([gray], [0], None, [256], [0, 256]).ravel()
@@ -114,7 +114,7 @@ def open_cv2(image: Path,
     img = cv2.imread(image.as_posix())
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = correct_exposure(img, exposure)
-    return align_head(img, face_worker) if tilt else img
+    return align_head(img, face_worker, tilt)
 
 def reorient_raw(im_obj: rawpy) -> npt.NDArray[np.int8]:
     with contextlib.suppress(KeyError, AttributeError, TypeError, IndexError):
@@ -144,7 +144,7 @@ def open_raw(image: Path,
         # Post-process the raw image data
         img = reorient_raw(raw)
         img = correct_exposure(img, exposure)
-        return align_head(img, face_worker) if tilt else img
+        return align_head(img, face_worker, tilt)
 
 @cache
 def open_table(input_file: Path, extension: str) -> pd.DataFrame:
@@ -172,22 +172,22 @@ def open_file(input_file: Union[Path, str],
         return open_table(input_file, extension)
     return None
 
-@cache
-def dlib_predictor(path: str) -> dlib.shape_predictor:
-    return dlib.shape_predictor(path)
-
 def align_head(image: Union[cv2.Mat, npt.NDArray[np.int8]],
-               face_worker: Tuple[dlib.fhog_object_detector, dlib.shape_predictor]) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
+               face_worker: Tuple[dlib.fhog_object_detector, dlib.shape_predictor],
+               tilt: bool) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
     """
     Aligns the head in an image using dlib and shape_predictor_68_face_landmarks.dat.
 
     Parameters:
         image: A numpy array representing the image.
         face_worker: tuple of face detector and predictor for current thread.
+        tilt: boolean value. determines weather or not to perform alignment
 
     Returns:
         A numpy array representing the aligned image.
     """
+    if not tilt:
+        return image
     face_detector, predictor = face_worker
 
     height, _ = image.shape[:2]

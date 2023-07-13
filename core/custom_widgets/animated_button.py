@@ -10,7 +10,6 @@ class AnimatedButton(QPushButton):
         self.animation.setEasingCurve(QEasingCurve.Type.InOutSine)
 
     def enterEvent(self, event):
-        self.original_geometry = self.geometry()
         start_rect = self.geometry()
         end_rect = QRect(start_rect.x() + 1, start_rect.y() - 1, start_rect.width(), start_rect.height())
         self.animation.setStartValue(start_rect)

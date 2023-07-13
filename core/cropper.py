@@ -56,7 +56,7 @@ class Cropper(QObject):
     @staticmethod
     def start_face_workers() -> List[Tuple[dlib.fhog_object_detector, dlib.shape_predictor]]:
         """Load the face detectors and shape predictors"""
-        return [FaceWorker() for _ in range(min(cpu_count(), 8))]
+        return [FaceWorker().worker_tuple for _ in range(min(cpu_count(), 8))]
 
     def reset_f_task(self):
         self.end_f_task = False
@@ -278,12 +278,8 @@ class Cropper(QObject):
 
         else:
             pic_array = image
-            if job.fix_exposure_job.isChecked():
-                pic_array = correct_exposure(pic_array, job.fix_exposure_job.isChecked())
-
-            if job.auto_tilt_job.isChecked():
-                pic_array = align_head(pic_array, face_worker)
-
+            pic_array = correct_exposure(pic_array, job.fix_exposure_job.isChecked())
+            pic_array = align_head(pic_array, face_worker, job.auto_tilt_job.isChecked())
             bounding_box = box_detect(pic_array, job)
 
         cropped_pic = Image.fromarray(pic_array).crop(bounding_box)

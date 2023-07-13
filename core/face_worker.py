@@ -1,7 +1,8 @@
-from typing import Tuple
 import dlib
 
 
-class FaceWorker(Tuple):
-    FACE_DETECTOR = dlib.get_frontal_face_detector()
-    SHAPE_PREDICTOR = dlib.shape_predictor('resources\\models\\shape_predictor_68_face_landmarks.dat')
+class FaceWorker:
+    def __init__(self):
+        self.face_detector = dlib.get_frontal_face_detector()
+        self.shape_predictor = dlib.shape_predictor('resources\\models\\shape_predictor_68_face_landmarks.dat')
+        self.worker_tuple = (self.face_detector, self.shape_predictor)
