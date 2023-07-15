@@ -1,10 +1,9 @@
 import cProfile
-import contextlib
 import pstats
 import shutil
 from functools import cache, lru_cache, wraps
 from pathlib import Path
-from typing import Any, Callable, List, Literal, Optional, Union, Generator, Tuple
+from typing import Any, Callable, List, Optional, Union, Generator, Tuple
 
 import autocrop_rs
 import cv2
@@ -15,7 +14,7 @@ import pandas as pd
 import rawpy
 import tifffile as tiff
 from PIL import Image
-from PyQt6 import QtGui
+from PyQt6.QtGui import QImage, QPixmap
 
 from .custom_widgets import ImageWidget
 from .file_types import IMAGE_TYPES, CV2_TYPES, RAW_TYPES, PANDAS_TYPES
@@ -25,13 +24,6 @@ from .job import Job
 GAMMA_THRESHOLD = .001
 L_EYE_START, L_EYE_END = 42, 48
 R_EYE_START, R_EYE_END = 36, 42
-EXIF_ORIENTATIONS = {2: Image.Transpose.FLIP_LEFT_RIGHT,
-                     3: Image.Transpose.ROTATE_180,
-                     4: Image.Transpose.FLIP_TOP_BOTTOM,
-                     5: Image.Transpose.ROTATE_90,  # Split combined operations
-                     6: Image.Transpose.ROTATE_270,
-                     7: Image.Transpose.ROTATE_270,  # Split combined operations
-                     8: Image.Transpose.ROTATE_90}
 
 def profile_it(func: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(func)
@@ -70,8 +62,8 @@ def convert_color_space(image: Union[cv2.Mat, npt.NDArray[np.int8]]) -> cv2.Mat:
 def display_image_on_widget(image: Union[cv2.Mat, npt.NDArray[np.int8]], image_widget: ImageWidget) -> None:
     height, width, channel = image.shape
     bytes_per_line = channel * width
-    q_image = QtGui.QImage(image.data, width, height, bytes_per_line, QtGui.QImage.Format.Format_BGR888)
-    image_widget.setImage(QtGui.QPixmap.fromImage(q_image))
+    q_image = QImage(image.data, width, height, bytes_per_line, QImage.Format.Format_BGR888)
+    image_widget.setImage(QPixmap.fromImage(q_image))
 
 def correct_exposure(image: Union[cv2.Mat, Image.Image, npt.NDArray[np.int8]],
                      exposure: bool) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
@@ -95,10 +87,10 @@ def correct_exposure(image: Union[cv2.Mat, Image.Image, npt.NDArray[np.int8]],
     alpha, beta = autocrop_rs.calc_alpha_beta(hist)
     return cv2.convertScaleAbs(image, alpha=alpha, beta=beta)
 
-def open_cv2(image: Path,
-             exposure: bool,
-             tilt: bool,
-             face_worker: Tuple[dlib.fhog_object_detector, dlib.shape_predictor]) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
+def open_image(image: Path,
+               exposure: bool,
+               tilt: bool,
+               face_worker: Tuple[dlib.fhog_object_detector, dlib.shape_predictor]) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
     """
     Opens an image using OpenCV, performs exposure correction if needed, and optionally aligns the head in the image.
 
@@ -115,14 +107,6 @@ def open_cv2(image: Path,
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = correct_exposure(img, exposure)
     return align_head(img, face_worker, tilt)
-
-def reorient_raw(im_obj: rawpy) -> npt.NDArray[np.int8]:
-    with contextlib.suppress(KeyError, AttributeError, TypeError, IndexError):
-        rgb_image = im_obj.postprocess(use_camera_wb=True)
-        im = Image.fromarray(rgb_image.raw_image_visible)
-        exif_orientation = im_obj.exif_data.get('Orientation', 1)
-        return reorient_image_by_exif(im, exif_orientation)
-    return np.array(im_obj.postprocess(use_camera_wb=True))
 
 def open_raw(image: Path,
              exposure: bool,
@@ -142,7 +126,7 @@ def open_raw(image: Path,
     """
     with rawpy.imread(image.as_posix()) as raw:
         # Post-process the raw image data
-        img = reorient_raw(raw)
+        img = raw.postprocess(use_camera_wb=True)
         img = correct_exposure(img, exposure)
         return align_head(img, face_worker, tilt)
 
@@ -157,18 +141,14 @@ def open_file(input_file: Union[Path, str],
               face_worker: Optional[Tuple[dlib.fhog_object_detector, dlib.shape_predictor]] = None) -> Optional[Union[cv2.Mat, npt.NDArray[np.int8], pd.DataFrame]]:
     """Given a filename, returns a numpy array or a pandas dataframe"""
     input_file = Path(input_file) if isinstance(input_file, str) else input_file
-    if (extension := input_file.suffix.lower()) in CV2_TYPES:
-        # Try with OpenCV
-        if exposure is None or tilt is None:
+    if (extension := input_file.suffix.lower()) in IMAGE_TYPES:
+        if (exposure is None) | (tilt is None) | (face_worker is None):
             return None
-        return open_cv2(input_file, exposure, tilt, face_worker)
+    if extension in CV2_TYPES:
+        return open_image(input_file, exposure, tilt, face_worker)
     elif extension in RAW_TYPES:
-        # Try with rawpy
-        if exposure is None or tilt is None:
-            return None
         return open_raw(input_file, exposure, tilt, face_worker)
     elif extension in PANDAS_TYPES:
-        # Try pandas
         return open_table(input_file, extension)
     return None
 
@@ -188,7 +168,6 @@ def align_head(image: Union[cv2.Mat, npt.NDArray[np.int8]],
     """
     if not tilt:
         return image
-    face_detector, predictor = face_worker
 
     height, _ = image.shape[:2]
     scaling_factor = 256 / height
@@ -197,6 +176,8 @@ def align_head(image: Union[cv2.Mat, npt.NDArray[np.int8]],
     if len(image_array.shape) >= 3:
         image_array = cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY)
     
+    face_detector, predictor = face_worker
+
     faces = face_detector(image_array, 1)
     # If no faces are detected, return the original image.
     if len(faces) == 0:
@@ -265,10 +246,10 @@ def get_box_coordinates(output: npt.NDArray[np.float_],
                         x: Optional[npt.NDArray[np.float_]] = None) -> Tuple[int, int, int, int]:
     box_outputs = output * np.array([width, height, width, height])
     x0, y0, x1, y1 = box_outputs.astype("int") if x is None else box_outputs[np.argmax(x)]
-    return autocrop_rs.crop_positions(
-        x0, y0, x1 - x0, y1 - y0, job.face_percent.value(), job.width_value(), job.height_value(), job.top.value(),
-        job.bottom.value(), job.left.value(), job.right.value()
-        )
+    return autocrop_rs.crop_positions(x0, y0, x1 - x0, y1 - y0,
+                                      job.face_percent.value(), job.width_value(), job.height_value(),
+                                      job.top.value(), job.bottom.value(), job.left.value(),
+                                      job.right.value())
 
 def box(img: Union[cv2.Mat, npt.NDArray[np.int8]],
         width: int,
@@ -320,14 +301,6 @@ def get_first_file(img_path: Path) -> Optional[Path]:
     files = np.fromiter(img_path.iterdir(), Path)
     file = np.array([pic for pic in files if pic.suffix.lower() in IMAGE_TYPES])
     return file[0] if file.size > 0 else None
-
-def reorient_image_by_exif(im: Image.Image, exif_orientation: Literal[2, 3, 4, 5, 6, 7, 8]) -> npt.NDArray[np.int8]:
-    try:
-        if exif_orientation in {5, 7}:  # Handle FLIP_TOP_BOTTOM separately
-            im = im.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
-        return np.array(im.transpose(EXIF_ORIENTATIONS[exif_orientation]))
-    except (KeyError, AttributeError, TypeError, IndexError):
-        return np.array(im)
 
 def mask_extensions(file_list: npt.NDArray[np.str_]) -> Tuple[npt.NDArray[np.bool_], int]:
     # Get the extensions of the file names and Create a mask that indicates which files have supported extensions.
