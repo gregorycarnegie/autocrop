@@ -7,7 +7,6 @@ from typing import Any, Callable, List, Optional, Union, Generator, Tuple
 
 import autocrop_rs
 import cv2
-import dlib
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
@@ -17,6 +16,7 @@ from PIL import Image
 from PyQt6.QtGui import QImage, QPixmap
 
 from .custom_widgets import ImageWidget
+from .face_worker import FaceWorker
 from .file_types import IMAGE_TYPES, CV2_TYPES, RAW_TYPES, PANDAS_TYPES
 from .job import Job
 
@@ -34,10 +34,6 @@ def profile_it(func: Callable[..., Any]) -> Callable[..., Any]:
         result.sort_stats(pstats.SortKey.CUMULATIVE)
         result.print_stats()
     return wrapper
-
-def caffe_model() -> cv2.dnn.Net:
-    return cv2.dnn.readNetFromCaffe('resources\\weights\\deploy.prototxt.txt',
-                                    'resources\\models\\res10_300x300_ssd_iter_140000.caffemodel')
 
 @cache
 def gamma(gam: Union[int, float] = 1.0) -> Union[npt.NDArray[np.float_], npt.NDArray[np.int8]]:
@@ -90,7 +86,7 @@ def correct_exposure(image: Union[cv2.Mat, Image.Image, npt.NDArray[np.int8]],
 def open_image(image: Path,
                exposure: bool,
                tilt: bool,
-               face_worker: Tuple[dlib.fhog_object_detector, dlib.shape_predictor]) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
+               face_worker: FaceWorker) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
     """
     Opens an image using OpenCV, performs exposure correction if needed, and optionally aligns the head in the image.
 
@@ -111,7 +107,7 @@ def open_image(image: Path,
 def open_raw(image: Path,
              exposure: bool,
              tilt: bool,
-             face_worker: Tuple[dlib.fhog_object_detector, dlib.shape_predictor]) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
+             face_worker: FaceWorker) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
     """
     Opens a raw image file, post-processes the raw image data, performs exposure correction if needed, and optionally aligns the head in the image.
 
@@ -138,22 +134,24 @@ def open_table(input_file: Path, extension: str) -> pd.DataFrame:
 def open_file(input_file: Union[Path, str],
               exposure: Optional[bool] = None,
               tilt: Optional[bool] = None,
-              face_worker: Optional[Tuple[dlib.fhog_object_detector, dlib.shape_predictor]] = None) -> Optional[Union[cv2.Mat, npt.NDArray[np.int8], pd.DataFrame]]:
+              face_worker: Optional[FaceWorker] = None) -> Optional[Union[cv2.Mat, npt.NDArray[np.int8], pd.DataFrame]]:
     """Given a filename, returns a numpy array or a pandas dataframe"""
     input_file = Path(input_file) if isinstance(input_file, str) else input_file
     if (extension := input_file.suffix.lower()) in IMAGE_TYPES:
         if (exposure is None) | (tilt is None) | (face_worker is None):
+            print('no worker')
+            print(type(face_worker))
             return None
-    if extension in CV2_TYPES:
+    if extension in CV2_TYPES and (exposure is not None) and (tilt is not None) and (face_worker is not None):
         return open_image(input_file, exposure, tilt, face_worker)
-    elif extension in RAW_TYPES:
+    elif extension in RAW_TYPES and (exposure is not None) and (tilt is not None) and (face_worker is not None):
         return open_raw(input_file, exposure, tilt, face_worker)
     elif extension in PANDAS_TYPES:
         return open_table(input_file, extension)
     return None
 
 def align_head(image: Union[cv2.Mat, npt.NDArray[np.int8]],
-               face_worker: Tuple[dlib.fhog_object_detector, dlib.shape_predictor],
+               face_worker: FaceWorker,
                tilt: bool) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
     """
     Aligns the head in an image using dlib and shape_predictor_68_face_landmarks.dat.
@@ -176,7 +174,7 @@ def align_head(image: Union[cv2.Mat, npt.NDArray[np.int8]],
     if len(image_array.shape) >= 3:
         image_array = cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY)
     
-    face_detector, predictor = face_worker
+    face_detector, predictor = face_worker.worker_tuple
 
     faces = face_detector(image_array, 1)
     # If no faces are detected, return the original image.
@@ -229,12 +227,13 @@ def rotate_image(image: Union[cv2.Mat, npt.NDArray[np.int8]],
     # Apply the rotation to the image.
     return cv2.warpAffine(image, rotation_matrix, (image.shape[1], image.shape[0]))
 
-def prepare_detections(image: Union[cv2.Mat, npt.NDArray[np.int8]]) -> npt.NDArray[np.float_]:
+def prepare_detections(image: Union[cv2.Mat, npt.NDArray[np.int8]],
+                       face_worker: FaceWorker) -> npt.NDArray[np.float_]:
     # Create blob from image
     # We standardize the image by scaling it and then subtracting the mean RGB values
     blob = cv2.dnn.blobFromImage(image, 1.0, (300, 300), (104.0, 177.0, 123.0), False, False)
     # Set the input for the neural network
-    caffe = caffe_model()
+    caffe = face_worker.caffe_model()
     caffe.setInput(blob)
     # Forward pass through the network to get detections
     return caffe.forward()
@@ -251,12 +250,14 @@ def get_box_coordinates(output: npt.NDArray[np.float_],
                                       job.top.value(), job.bottom.value(), job.left.value(),
                                       job.right.value())
 
+
 def box(img: Union[cv2.Mat, npt.NDArray[np.int8]],
         width: int,
         height: int,
-        job: Job) -> Optional[Tuple[int, int, int, int]]:
+        job: Job,
+        face_worker: FaceWorker,) -> Optional[Tuple[int, int, int, int]]:
     # # preprocess the image: resize and performs mean subtraction
-    detections = prepare_detections(img)
+    detections = prepare_detections(img, face_worker)
     output = np.squeeze(detections)
     # get the confidence
     confidence_list = output[:, 2]
@@ -264,9 +265,11 @@ def box(img: Union[cv2.Mat, npt.NDArray[np.int8]],
         return None
     return get_box_coordinates(output[:, 3:7], width, height, job, confidence_list)
 
-def multi_box(image: Union[cv2.Mat, npt.NDArray[np.int8]], job: Job) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
+def multi_box(image: Union[cv2.Mat, npt.NDArray[np.int8]],
+              job: Job,
+              face_worker: FaceWorker) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
     height, width = image.shape[:2]
-    detections = prepare_detections(image)
+    detections = prepare_detections(image, face_worker)
     for i in range(detections.shape[2]):
         # Confidence in the detection
         if (confidence := detections[0, 0, i, 2]) > job.sensitivity.value() * .01: # Threshold
@@ -278,9 +281,10 @@ def multi_box(image: Union[cv2.Mat, npt.NDArray[np.int8]], job: Job) -> Union[cv
     return image
 
 def multi_box_positions(image: Union[cv2.Mat, npt.NDArray[np.int8]],
-                        job: Job) -> Tuple[npt.NDArray[np.float_], npt.NDArray[np.int_]]:
+                        job: Job,
+                        face_worker: FaceWorker) -> Tuple[npt.NDArray[np.float_], npt.NDArray[np.int_]]:
     height, width = image.shape[:2]
-    detections = prepare_detections(image)
+    detections = prepare_detections(image, face_worker)
     crop_positions = [
         get_box_coordinates(detections[0, 0, i, 3:7], width, height, job)
         for i in range(detections.shape[2])
@@ -288,13 +292,15 @@ def multi_box_positions(image: Union[cv2.Mat, npt.NDArray[np.int8]],
     ]
     return detections, np.array(crop_positions)
 
-def box_detect(img: Union[cv2.Mat, npt.NDArray[np.int8]], job: Job) -> Optional[Tuple[int, int, int, int]]:
+def box_detect(img: Union[cv2.Mat, npt.NDArray[np.int8]],
+               job: Job,
+               face_worker: FaceWorker) -> Optional[Tuple[int, int, int, int]]:
     try:
         # get width and height of the image
         height, width = img.shape[:2]
     except AttributeError:
         return None
-    return box(img, width, height, job)
+    return box(img, width, height, job, face_worker)
 
 @cache
 def get_first_file(img_path: Path) -> Optional[Path]:

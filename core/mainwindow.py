@@ -1213,8 +1213,7 @@ class UiMainWindow(QMainWindow):
                               destination=self.destinationLineEdit_1)
         self.crop_worker.crop(Path(self.photoLineEdit.text()), 
                               job, 
-                              self.crop_worker.face_workers[0][0],
-                              self.crop_worker.face_workers[0][1])
+                              self.crop_worker.face_workers[0])
 
     @staticmethod
     def run_batch_process(function: Callable[..., Any],
