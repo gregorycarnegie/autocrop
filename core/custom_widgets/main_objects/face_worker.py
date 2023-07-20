@@ -1,5 +1,5 @@
-import dlib
 import cv2
+import dlib
 
 
 class FaceWorker:

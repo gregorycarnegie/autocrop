@@ -149,9 +149,11 @@ class UiMainWindow(QMainWindow):
         self.verticalLayout_16.setStretch(2, 1)
         self.verticalLayout_16.setStretch(3, 1)
         self.horizontalLayout_12.addLayout(self.verticalLayout_16)
+
         self.treeView = QTreeView(parent=self.folder_Tab)
         self.treeView.setObjectName('treeView')
         self.treeView.setModel(self.file_model)
+
         self.horizontalLayout_12.addWidget(self.treeView)
         self.horizontalLayout_12.setStretch(0, 4)
         self.horizontalLayout_12.setStretch(1, 3)

@@ -15,9 +15,10 @@ import tifffile as tiff
 from PIL import Image
 from PyQt6.QtGui import QImage, QPixmap
 
-from .custom_widgets import ImageWidget
+from .f_type_photo import IMAGE_TYPES, CV2_TYPES, RAW_TYPES
+from .f_type_table import PANDAS_TYPES
 from .face_worker import FaceWorker
-from .file_types import IMAGE_TYPES, CV2_TYPES, RAW_TYPES, PANDAS_TYPES
+from .image_widget import ImageWidget
 from .job import Job
 
 # Define constants

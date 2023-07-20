@@ -6,8 +6,8 @@ import numpy.typing as npt
 import pandas as pd
 from PyQt6.QtWidgets import QCheckBox, QComboBox, QDial, QRadioButton
 
-from .custom_widgets import NumberLineEdit, PathLineEdit
-from .file_types import IMAGE_TYPES
+from .f_type_photo import IMAGE_TYPES
+from ..line_edits import NumberLineEdit, PathLineEdit
 
 
 class Job(NamedTuple):

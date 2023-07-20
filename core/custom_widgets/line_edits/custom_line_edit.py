@@ -2,7 +2,7 @@ from typing import Optional, ClassVar
 
 from PyQt6.QtWidgets import QLineEdit, QWidget
 
-from .line_edit_state import LineEditState
+from .enums import LineEditState
 
 
 class CustomLineEdit(QLineEdit):

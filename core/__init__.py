@@ -1,1 +1,1 @@
-from .mainwindow import UiMainWindow
+from .custom_widgets import UiMainWindow

@@ -1,0 +1,274 @@
+from pathlib import Path
+from typing import Optional, Union
+
+from PyQt6 import QtCore, QtGui, QtWidgets
+
+from .cropper import Cropper
+from .custom_crop_widget import CustomCropWidget
+from .custom_dial_widget import CustomDialWidget
+from .enums import FunctionTabSelectionState, Terminator
+from .ext_widget import ExtWidget
+from .f_type_photo import Photo
+from .image_widget import ImageWidget
+from .window_functions import disable_widget, enable_widget, show_message_box, change_widget_state, terminate, \
+    uncheck_boxes
+from ..line_edits import PathLineEdit, NumberLineEdit, LineEditState
+
+
+class CropFolderWidget(CustomCropWidget):
+    def __init__(self, crop_worker: Cropper,
+                 widthLineEdit: NumberLineEdit,
+                 heightLineEdit: NumberLineEdit,
+                 extWidget: ExtWidget,
+                 sensitivity_dialArea: CustomDialWidget,
+                 face_dialArea: CustomDialWidget,
+                 gamma_dialArea: CustomDialWidget,
+                 top_dialArea: CustomDialWidget,
+                 bottom_dialArea: CustomDialWidget,
+                 left_dialArea: CustomDialWidget,
+                 right_dialArea: CustomDialWidget,
+                 parent: Optional[QtWidgets.QWidget] = None) -> None:
+        super().__init__(crop_worker, widthLineEdit, heightLineEdit, extWidget,
+                         sensitivity_dialArea, face_dialArea, gamma_dialArea, top_dialArea,
+                         bottom_dialArea, left_dialArea, right_dialArea, parent)
+        self.file_model = QtGui.QFileSystemModel(self)
+        self.file_model.setFilter(QtCore.QDir.Filter.NoDotAndDotDot | QtCore.QDir.Filter.Files)
+        self.file_model.setNameFilters(Photo().file_filter())
+        self.setObjectName("Form")
+        self.verticalLayout_2 = QtWidgets.QVBoxLayout(self)
+        self.verticalLayout_2.setObjectName("verticalLayout_2")
+        self.horizontalLayout_1 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_1.setObjectName("horizontalLayout_1")
+        self.folderLineEdit = PathLineEdit(parent=self)
+        self.folderLineEdit.setMinimumSize(QtCore.QSize(0, 24))
+        self.folderLineEdit.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.folderLineEdit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
+        self.folderLineEdit.setObjectName("folderLineEdit")
+        self.horizontalLayout_1.addWidget(self.folderLineEdit)
+        self.folderButton = QtWidgets.QPushButton(parent=self)
+        self.folderButton.setMinimumSize(QtCore.QSize(124, 24))
+        self.folderButton.setMaximumSize(QtCore.QSize(16777215, 24))
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap("resources/icons/folder.svg"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        self.folderButton.setIcon(icon)
+        self.folderButton.setObjectName("folderButton")
+        self.horizontalLayout_1.addWidget(self.folderButton)
+        self.verticalLayout_2.addLayout(self.horizontalLayout_1)
+        self.horizontalLayout_3 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
+        self.frame = QtWidgets.QFrame(parent=self)
+        self.frame.setStyleSheet("background: #1f2c33")
+        self.frame.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)
+        self.frame.setFrameShadow(QtWidgets.QFrame.Shadow.Raised)
+        self.frame.setObjectName("frame")
+        self.verticalLayout = QtWidgets.QVBoxLayout(self.frame)
+        self.verticalLayout.setObjectName("verticalLayout")
+        self.horizontalLayout_4 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_4.setObjectName("horizontalLayout_4")
+        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding,
+                                           QtWidgets.QSizePolicy.Policy.Minimum)
+        self.horizontalLayout_4.addItem(spacerItem)
+        self.mfaceCheckBox = QtWidgets.QCheckBox(parent=self.frame)
+        self.mfaceCheckBox.setStyleSheet(self.CHECKBOX_STYLESHEET)
+        self.mfaceCheckBox.setObjectName("mfaceCheckBox")
+        self.horizontalLayout_4.addWidget(self.mfaceCheckBox)
+        self.tiltCheckBox = QtWidgets.QCheckBox(parent=self.frame)
+        self.tiltCheckBox.setStyleSheet(self.CHECKBOX_STYLESHEET)
+        self.tiltCheckBox.setObjectName("tiltCheckBox")
+        self.horizontalLayout_4.addWidget(self.tiltCheckBox)
+        self.exposureCheckBox = QtWidgets.QCheckBox(parent=self.frame)
+        self.exposureCheckBox.setStyleSheet(self.CHECKBOX_STYLESHEET)
+        self.exposureCheckBox.setObjectName("exposureCheckBox")
+        self.horizontalLayout_4.addWidget(self.exposureCheckBox)
+        self.verticalLayout.addLayout(self.horizontalLayout_4)
+        self.imageWidget = ImageWidget(parent=self.frame)
+        self.imageWidget.setStyleSheet("")
+        self.imageWidget.setObjectName("imageWidget")
+        self.verticalLayout.addWidget(self.imageWidget)
+        self.horizontalLayout_5 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_5.setObjectName("horizontalLayout_5")
+        self.cropButton = QtWidgets.QPushButton(parent=self.frame)
+        self.cropButton.setMinimumSize(QtCore.QSize(0, 24))
+        self.cropButton.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.cropButton.setText("")
+        icon1 = QtGui.QIcon()
+        icon1.addPixmap(QtGui.QPixmap("resources/icons/crop.svg"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        self.cropButton.setIcon(icon1)
+        self.cropButton.setObjectName("cropButton")
+        self.horizontalLayout_5.addWidget(self.cropButton)
+        self.cancelButton = QtWidgets.QPushButton(parent=self.frame)
+        self.cancelButton.setMinimumSize(QtCore.QSize(0, 24))
+        self.cancelButton.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.cancelButton.setText("")
+        icon2 = QtGui.QIcon()
+        icon2.addPixmap(QtGui.QPixmap("resources/icons/cancel.svg"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        self.cancelButton.setIcon(icon2)
+        self.cancelButton.setObjectName("cancelButton")
+        self.horizontalLayout_5.addWidget(self.cancelButton)
+        self.verticalLayout.addLayout(self.horizontalLayout_5)
+        self.progressBar = QtWidgets.QProgressBar(parent=self.frame)
+        self.progressBar.setMinimumSize(QtCore.QSize(0, 12))
+        self.progressBar.setMaximumSize(QtCore.QSize(16777215, 12))
+        self.progressBar.setProperty("value", 0)
+        self.progressBar.setTextVisible(False)
+        self.progressBar.setObjectName("progressBar")
+        self.verticalLayout.addWidget(self.progressBar)
+        self.verticalLayout.setStretch(0, 1)
+        self.verticalLayout.setStretch(1, 10)
+        self.verticalLayout.setStretch(2, 1)
+        self.verticalLayout.setStretch(3, 1)
+        self.horizontalLayout_3.addWidget(self.frame)
+        self.treeView = QtWidgets.QTreeView(parent=self)
+        self.treeView.setObjectName("treeView")
+        self.treeView.setModel(self.file_model)
+        self.horizontalLayout_3.addWidget(self.treeView)
+        self.horizontalLayout_3.setStretch(0, 4)
+        self.horizontalLayout_3.setStretch(1, 3)
+        self.verticalLayout_2.addLayout(self.horizontalLayout_3)
+        self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
+        self.destinationLineEdit = PathLineEdit(parent=self)
+        self.destinationLineEdit.setMinimumSize(QtCore.QSize(0, 24))
+        self.destinationLineEdit.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.destinationLineEdit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
+        self.destinationLineEdit.setObjectName("destinationLineEdit")
+        self.horizontalLayout_2.addWidget(self.destinationLineEdit)
+        self.destinationButton = QtWidgets.QPushButton(parent=self)
+        self.destinationButton.setMinimumSize(QtCore.QSize(124, 24))
+        self.destinationButton.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.destinationButton.setIcon(icon)
+        self.destinationButton.setObjectName("destinationButton")
+        self.horizontalLayout_2.addWidget(self.destinationButton)
+        self.verticalLayout_2.addLayout(self.horizontalLayout_2)
+
+        # Connections
+        self.folderButton.clicked.connect(lambda: self.open_folder(self.folderLineEdit))
+        self.destinationButton.clicked.connect(lambda: self.open_folder(self.destinationLineEdit))
+        self.treeView.selectionModel().selectionChanged.connect(lambda: self.reload_widgets())
+        self.cropButton.clicked.connect(lambda: self.folder_process())
+        self.cancelButton.clicked.connect(lambda: terminate(self.crop_worker, Terminator.END_FOLDER_TASK))
+        self.connect_input_widgets(self.widthLineEdit, self.heightLineEdit, self.destinationLineEdit,
+                                   self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox,
+                                   self.sensitivity_dialArea.dial, self.face_dialArea.dial, self.gamma_dialArea.dial,
+                                   self.top_dialArea.dial, self.bottom_dialArea.dial,
+                                   self.left_dialArea.dial, self.right_dialArea.dial)
+        # Folder start connection
+        self.crop_worker.folder_started.connect(
+            lambda: disable_widget(self.widthLineEdit, self.heightLineEdit, self.sensitivity_dialArea.dial,
+                                   self.face_dialArea.dial, self.gamma_dialArea.dial, self.top_dialArea.dial,
+                                   self.bottom_dialArea.dial, self.left_dialArea.dial, self.right_dialArea.dial,
+                                   self.folderLineEdit, self.destinationLineEdit, self.destinationButton,
+                                   self.folderButton, self.extWidget.radioButton_1, self.extWidget.radioButton_2,
+                                   self.extWidget.radioButton_3, self.extWidget.radioButton_4,
+                                   self.extWidget.radioButton_5, self.extWidget.radioButton_6, self.cropButton,
+                                   self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox))
+        self.crop_worker.folder_started.connect(lambda: enable_widget(self.cancelButton))
+
+        # Folder end connection
+        self.crop_worker.folder_finished.connect(
+            lambda: enable_widget(self.widthLineEdit, self.heightLineEdit, self.sensitivity_dialArea.dial,
+                                  self.face_dialArea.dial, self.gamma_dialArea.dial, self.top_dialArea.dial,
+                                  self.bottom_dialArea.dial, self.left_dialArea.dial, self.right_dialArea.dial,
+                                  self.folderLineEdit, self.destinationLineEdit, self.destinationButton,
+                                  self.folderButton, self.extWidget.radioButton_1, self.extWidget.radioButton_2,
+                                  self.extWidget.radioButton_3, self.extWidget.radioButton_4,
+                                  self.extWidget.radioButton_5, self.extWidget.radioButton_6, self.cropButton,
+                                  self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox))
+        self.crop_worker.folder_finished.connect(lambda: disable_widget(self.cancelButton))
+        self.crop_worker.folder_finished.connect(lambda: show_message_box(self.destinationLineEdit))
+        self.crop_worker.folder_progress.connect(self.update_progress)
+
+        self.retranslateUi()
+        self.disable_buttons()
+        change_widget_state(False, self.cropButton, self.cancelButton)
+        QtCore.QMetaObject.connectSlotsByName(self)
+
+    def retranslateUi(self):
+        _translate = QtCore.QCoreApplication.translate
+        self.setWindowTitle(_translate("Form", "Form"))
+        self.folderLineEdit.setPlaceholderText(_translate("Form", "Choose the folder you want to crop"))
+        self.folderButton.setText(_translate("Form", "Select Folder"))
+        self.mfaceCheckBox.setText(_translate("Form", "Multi-Face"))
+        self.tiltCheckBox.setText(_translate("Form", "Autotilt"))
+        self.exposureCheckBox.setText(_translate("Form", "Autocorrect"))
+        self.destinationLineEdit.setPlaceholderText(
+            _translate("Form", "Choose where you want to save the cropped images"))
+        self.destinationButton.setText(_translate("Form", "Destination Folder"))
+
+    def display_crop(self, selection: Optional[Path] = None) -> None:
+        job = self.create_job(self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox)
+        if selection is None:
+            self.crop_worker.display_crop(job, self.folderLineEdit, self.imageWidget)
+        else:
+            self.crop_worker.display_crop(job, selection, self.imageWidget)
+
+    def open_folder(self, line_edit: PathLineEdit) -> None:
+        f_name = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Directory', Photo().default_directory)
+        line_edit.setText(f_name)
+        if line_edit is self.folderLineEdit:
+            self.load_data()
+
+    def load_data(self) -> None:
+        try:
+             f_name =  self.folderLineEdit.text()
+             self.file_model.setRootPath(f_name)
+             self.treeView.setRootIndex(self.file_model.index(f_name))
+             self.display_crop()
+        except (IndexError, FileNotFoundError, ValueError, AttributeError):
+            return None
+
+    def reload_widgets(self) -> None:
+        def callback(input_path: Path) -> None:
+            if not input_path.as_posix():
+                return None
+            self.display_crop(input_path)
+        if not self.widthLineEdit.text() or not self.heightLineEdit.text():
+            return None
+        print(self.selection_state)
+        if self.selection_state == FunctionTabSelectionState.NOT_SELECTED:
+            return None
+        if self.treeView.currentIndex().isValid():
+            f_name = Path(self.file_model.filePath(self.treeView.currentIndex()))
+        else:
+            f_name = Path(self.folderLineEdit.text())
+        print(f_name)
+        callback(f_name)
+
+    def disable_buttons(self) -> None:
+        def all_filled(*line_edits: Union[PathLineEdit, NumberLineEdit, QtWidgets.QComboBox]) -> bool:
+            x = all(edit.state == LineEditState.VALID_INPUT
+                    for edit in line_edits if isinstance(edit, (PathLineEdit, NumberLineEdit)))
+            y = all(edit.currentText() for edit in line_edits if isinstance(edit, QtWidgets.QComboBox))
+            return x and y
+
+        def update_widget_state(condition: bool, *widgets: QtWidgets.QWidget) -> None:
+            for widget in widgets:
+                change_widget_state(condition, widget)
+
+        # Folder logic
+        update_widget_state(
+            all_filled(self.folderLineEdit, self.destinationLineEdit, self.widthLineEdit, self.heightLineEdit),
+            self.cropButton)
+
+    def connect_input_widgets(self, *input_widgets: QtWidgets.QWidget) -> None:
+        for input_widget in input_widgets:
+            if isinstance(input_widget, (NumberLineEdit, PathLineEdit)):
+                if input_widget is self.folderLineEdit:
+                    input_widget.textChanged.connect(lambda: self.reload_widgets())
+                input_widget.textChanged.connect(lambda: self.disable_buttons())
+            elif isinstance(input_widget, QtWidgets.QDial):
+                input_widget.valueChanged.connect(lambda: self.reload_widgets())
+            elif isinstance(input_widget, QtWidgets.QCheckBox):
+                input_widget.stateChanged.connect(lambda: self.reload_widgets())
+                if input_widget is self.mfaceCheckBox:
+                    input_widget.clicked.connect(lambda: uncheck_boxes(self.exposureCheckBox, self.tiltCheckBox))
+                else:
+                    input_widget.clicked.connect(lambda: uncheck_boxes(self.mfaceCheckBox))
+
+    def folder_process(self) -> None:
+        job = self.create_job(self.exposureCheckBox, 
+                              self.mfaceCheckBox, 
+                              self.tiltCheckBox,
+                              folder_path=self.folderLineEdit, 
+                              destination=self.destinationLineEdit)
+        self.run_batch_process(self.crop_worker.crop_dir, self.crop_worker.reset_f_task, job)

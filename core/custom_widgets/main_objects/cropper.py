@@ -13,7 +13,7 @@ from PIL import Image
 from PyQt6.QtCore import pyqtSignal, pyqtBoundSignal, QObject
 from PyQt6.QtWidgets import QLabel, QLineEdit, QSlider
 
-from .custom_widgets import ImageWidget
+from .image_widget import ImageWidget
 from .face_worker import FaceWorker
 from .job import Job
 from .utils import save_image, set_filename, reject, multi_box_positions, open_file, convert_color_space, \
@@ -90,12 +90,14 @@ class Cropper(QObject):
                 reject(source_image, destination_path, image_name)
         elif image_name is not None:
             if (cropped_image := self.crop_image(source_image, job, face_worker)) is not None:
-                file_path, is_tiff = set_filename(image_name, destination_path, job.radio_choice(), job.radio_tuple(), new)
+                file_path, is_tiff = set_filename(
+                    image_name, destination_path, job.radio_choice(), job.radio_tuple(), new)
                 save_image(cropped_image, file_path.as_posix(), job.gamma.value(), is_tiff=is_tiff)
             else:
                 reject(source_image, destination_path, image_name)
 
-    def multi_save_loop(self, cropped_images: Union[List[cv2.Mat], List[npt.NDArray[np.int8]]],
+    @staticmethod
+    def multi_save_loop(cropped_images: Union[List[cv2.Mat], List[npt.NDArray[np.int8]]],
                         file_path: Path,
                         gamma: int,
                         is_tiff: bool) -> None:
@@ -126,7 +128,8 @@ class Cropper(QObject):
             if (cropped_images := self.multi_crop(source_image, job, face_worker)) is None:
                 reject(source_image, destination_path, image_name)
             else:
-                file_path, is_tiff = set_filename(image_name, destination_path, job.radio_choice(), job.radio_tuple(), new)
+                file_path, is_tiff = set_filename(
+                    image_name, destination_path, job.radio_choice(), job.radio_tuple(), new)
                 self.multi_save_loop(cropped_images, file_path, job.gamma.value(), is_tiff)
 
     @staticmethod
@@ -206,7 +209,6 @@ class Cropper(QObject):
             return None
 
         pic_array = adjust_gamma(pic_array, job.gamma.value())
-
         if job.multi_face_job.isChecked():
             adjusted = convert_color_space(pic_array)
             pic = multi_box(adjusted, job, self.face_workers[0])

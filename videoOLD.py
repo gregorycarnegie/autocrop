@@ -9,7 +9,7 @@ from PyQt6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PyQt6.QtMultimediaWidgets import QVideoWidget
 from PyQt6.QtWidgets import QFileDialog, QLabel, QLineEdit, QMainWindow, QPushButton, QSlider
 
-from .media_state import MediaPlaybackState
+from core.custom_widgets.main_objects.enums.media_state import MediaPlaybackState
 
 VIDEO_TYPES = np.array(['.avi', '.m4v', '.mkv', '.mov', '.mp4', '.wmv'])
 

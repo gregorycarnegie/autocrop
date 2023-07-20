@@ -1,12 +1,13 @@
-from core import UiMainWindow
 from PyQt6.QtWidgets import QApplication
+
+from core import UiMainWindow
 
 
 def main():
     app = QApplication([])
     app.setStyle('Fusion')
-    main_window = UiMainWindow()
-    main_window.show()
+    window = UiMainWindow()
+    window.show()
     app.exec()
 
 if __name__ == "__main__":
