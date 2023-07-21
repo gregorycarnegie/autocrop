@@ -3,11 +3,11 @@ from typing import Optional
 
 from PyQt6.QtWidgets import QWidget
 
+from main_objects.f_type_photo import IMAGE_TYPES
+from main_objects.f_type_table import PANDAS_TYPES
+from main_objects.f_type_video import VIDEO_TYPES
 from .custom_line_edit import CustomLineEdit
 from .enums import PathType
-from ..main_objects.f_type_photo import IMAGE_TYPES
-from ..main_objects.f_type_table import PANDAS_TYPES
-from ..main_objects.f_type_video import VIDEO_TYPES
 
 
 class PathLineEdit(CustomLineEdit):

@@ -1,7 +1,9 @@
 from os import startfile
+from typing import Optional, Union
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QCheckBox, QLineEdit, QMessageBox, QWidget
+from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtGui import QIcon, QPixmap
+from PyQt6.QtWidgets import QCheckBox, QLineEdit, QMessageBox, QWidget, QPushButton, QHBoxLayout, QVBoxLayout
 
 from .cropper import Cropper
 from .enums import Terminator
@@ -30,6 +32,27 @@ def show_message_box(destination: QLineEdit) -> None:
 
     msg = QMessageBox()
     helper_function(msg)
+
+def create_media_button(name: str,
+                        icon_resource: str,
+                        layout: Union[QHBoxLayout, QVBoxLayout],
+                        size: int = 48,
+                        icon_size: int = 32,
+                        icon_mode: QIcon.Mode = QIcon.Mode.Normal,
+                        icon_state: QIcon.State = QIcon.State.Off,
+                        parent: Optional[QWidget] = None) -> QPushButton:
+    playButton = QPushButton(parent=parent)
+    playButton.setEnabled(True)
+    playButton.setMinimumSize(QSize(size, size))
+    playButton.setMaximumSize(QSize(size, size))
+    playButton.setText('')
+    icon = QIcon()
+    icon.addPixmap(QPixmap(f'resources\\icons\\multimedia_{icon_resource}.svg'), icon_mode, icon_state)
+    playButton.setIcon(icon)
+    playButton.setIconSize(QSize(icon_size, icon_size))
+    playButton.setObjectName(name)
+    layout.addWidget(playButton)
+    return playButton
 
 def disable_widget(*args: QWidget) -> None:
     for arg in args:

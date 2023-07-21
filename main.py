@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QApplication
 
-from core import UiMainWindow
+from main_objects import UiMainWindow
 
 
 def main():

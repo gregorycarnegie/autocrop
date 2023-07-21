@@ -5,6 +5,6 @@ opencv-python>=4.8.0.74
 openpyxl>=3.1.2
 pandas>=2.0.3
 rawpy>=0.18.1
-tifffile>=2023.7.4
+tifffile>=2023.7.18
 maturin>=1.1.0
 dlib>=19.24.2
