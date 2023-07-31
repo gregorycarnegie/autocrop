@@ -33,30 +33,30 @@ CHECKBOX_STYLESHEET = """QCheckBox:unchecked{color: red}
 
 class CustomCropWidget(QtWidgets.QWidget):
     def __init__(self, crop_worker: Cropper,
-                 widthLineEdit: NumberLineEdit,
-                 heightLineEdit: NumberLineEdit,
-                 extWidget: ExtWidget,
-                 sensitivity_dialArea: CustomDialWidget,
-                 face_dialArea: CustomDialWidget,
-                 gamma_dialArea: CustomDialWidget,
-                 top_dialArea: CustomDialWidget,
-                 bottom_dialArea: CustomDialWidget,
-                 left_dialArea: CustomDialWidget,
-                 right_dialArea: CustomDialWidget,
+                 width_line_edit: NumberLineEdit,
+                 height_line_edit: NumberLineEdit,
+                 ext_widget: ExtWidget,
+                 sensitivity_dial_area: CustomDialWidget,
+                 face_dial_area: CustomDialWidget,
+                 gamma_dial_area: CustomDialWidget,
+                 top_dial_area: CustomDialWidget,
+                 bottom_dial_area: CustomDialWidget,
+                 left_dial_area: CustomDialWidget,
+                 right_dial_area: CustomDialWidget,
                  parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
         self.progressBar = QtWidgets.QProgressBar()
         self.crop_worker = crop_worker
-        self.widthLineEdit = widthLineEdit
-        self.heightLineEdit = heightLineEdit
-        self.extWidget = extWidget
-        self.sensitivity_dialArea = sensitivity_dialArea
-        self.face_dialArea = face_dialArea
-        self.gamma_dialArea = gamma_dialArea
-        self.top_dialArea = top_dialArea
-        self.bottom_dialArea = bottom_dialArea
-        self.left_dialArea = left_dialArea
-        self.right_dialArea = right_dialArea
+        self.widthLineEdit = width_line_edit
+        self.heightLineEdit = height_line_edit
+        self.extWidget = ext_widget
+        self.sensitivity_dialArea = sensitivity_dial_area
+        self.face_dialArea = face_dial_area
+        self.gamma_dialArea = gamma_dial_area
+        self.top_dialArea = top_dial_area
+        self.bottom_dialArea = bottom_dial_area
+        self.left_dialArea = left_dial_area
+        self.right_dialArea = right_dial_area
         self.CHECKBOX_STYLESHEET = CHECKBOX_STYLESHEET
         self.selection_state = FunctionTabSelectionState.NOT_SELECTED
 
@@ -108,3 +108,9 @@ class CustomCropWidget(QtWidgets.QWidget):
                     video_path=video_path,
                     start_position=start_position,
                     stop_position=stop_position)
+
+    @staticmethod
+    def cancel_button_operation(cancel_button: QtWidgets.QPushButton, *crop_buttons: QtWidgets.QPushButton):
+        cancel_button.setDisabled(True)
+        for crop_button in crop_buttons:
+            crop_button.setEnabled(True)

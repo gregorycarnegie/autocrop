@@ -10,28 +10,29 @@ from line_edits import PathLineEdit, PathType, NumberLineEdit, LineEditState
 from .cropper import Cropper
 from .custom_crop_widget import CustomCropWidget
 from .custom_dial_widget import CustomDialWidget
-from .enums import MediaPlaybackState, Terminator
+from .enums import MediaPlaybackState, FunctionType
 from .ext_widget import ExtWidget
 from .f_type_photo import Photo
-from .window_functions import change_widget_state, disable_widget, enable_widget, show_message_box, terminate, \
-    uncheck_boxes, create_media_button
+from .window_functions import change_widget_state, disable_widget, enable_widget, show_message_box, uncheck_boxes, \
+    create_media_button
 
 
 class CropVideoWidget(CustomCropWidget):
     def __init__(self, crop_worker: Cropper,
-                 widthLineEdit: NumberLineEdit,
-                 heightLineEdit: NumberLineEdit,
-                 extWidget: ExtWidget,
-                 sensitivity_dialArea: CustomDialWidget,
-                 face_dialArea: CustomDialWidget,
-                 gamma_dialArea: CustomDialWidget,
-                 top_dialArea: CustomDialWidget,
-                 bottom_dialArea: CustomDialWidget,
-                 left_dialArea: CustomDialWidget,
-                 right_dialArea: CustomDialWidget,
+                 width_line_edit: NumberLineEdit,
+                 height_line_edit: NumberLineEdit,
+                 ext_widget: ExtWidget,
+                 sensitivity_dial_area: CustomDialWidget,
+                 face_dial_area: CustomDialWidget,
+                 gamma_dial_area: CustomDialWidget,
+                 top_dial_area: CustomDialWidget,
+                 bottom_dial_area: CustomDialWidget,
+                 left_dial_area: CustomDialWidget,
+                 right_dial_area: CustomDialWidget,
                  parent: Optional[QtWidgets.QWidget] = None) -> None:
-        super().__init__(crop_worker, widthLineEdit, heightLineEdit, extWidget, sensitivity_dialArea, face_dialArea,
-                         gamma_dialArea, top_dialArea, bottom_dialArea, left_dialArea, right_dialArea, parent)
+        super().__init__(crop_worker, width_line_edit, height_line_edit, ext_widget, sensitivity_dial_area,
+                         face_dial_area, gamma_dial_area, top_dial_area, bottom_dial_area, left_dial_area,
+                         right_dial_area, parent)
         self.vol_cache = 70
         self.rewind_timer = QtCore.QTimer()
         self.default_directory = f'{Path.home()}\\Videos'
@@ -248,7 +249,9 @@ class CropVideoWidget(CustomCropWidget):
         self.destinationButton.clicked.connect(lambda: self.open_folder(self.destinationLineEdit))
         self.cropButton.clicked.connect(lambda: self.crop_frame())
         self.videocropButton.clicked.connect(lambda: self.video_process())
-        self.cancelButton.clicked.connect(lambda: terminate(self.crop_worker, Terminator.END_VIDEO_TASK))
+        self.cancelButton.clicked.connect(lambda: self.crop_worker.terminate(FunctionType.VIDEO))
+        self.cancelButton.clicked.connect(lambda: self.cancel_button_operation(self.cancelButton, self.videocropButton, self.cropButton))
+
         self.connect_input_widgets(self.widthLineEdit, self.heightLineEdit, self.destinationLineEdit,
                                    self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox)
 
@@ -284,6 +287,7 @@ class CropVideoWidget(CustomCropWidget):
                                   self.selectStartMarkerButton, self.selectEndMarkerButton))
         self.crop_worker.video_finished.connect(lambda: disable_widget(self.cancelButton))
         self.crop_worker.video_finished.connect(lambda: show_message_box(self.destinationLineEdit))
+        self.crop_worker.video_progress.connect(lambda: self.update_progress(self.crop_worker.bar_value_v))
 
         self.playButton.clicked.connect(lambda: self.change_playback_state())
         self.playButton.clicked.connect(
@@ -292,11 +296,11 @@ class CropVideoWidget(CustomCropWidget):
                                         self.goto_endButton, self.startmarkerButton, self.endmarkerButton,
                                         self.selectEndMarkerButton, self.selectStartMarkerButton))
         self.stopButton.clicked.connect(lambda: self.stop_playback())
-        self.stepbackButton.clicked.connect(lambda: self.stepback())
-        self.stepfwdButton.clicked.connect(lambda: self.stepfwd())
-        self.fastfwdButton.clicked.connect(lambda: self.fastfwd())
+        self.stepbackButton.clicked.connect(lambda: self.step_back())
+        self.stepfwdButton.clicked.connect(lambda: self.step_forward())
+        self.fastfwdButton.clicked.connect(lambda: self.fast_forward())
         self.rewindButton.clicked.connect(lambda: self.rewind())
-        self.goto_beginingButton.clicked.connect(lambda: self.goto_begining())
+        self.goto_beginingButton.clicked.connect(lambda: self.goto_beginning())
         self.goto_endButton.clicked.connect(lambda: self.goto_end())
         self.startmarkerButton.clicked.connect(lambda: self.set_startPosition(self.selectStartMarkerButton))
         self.endmarkerButton.clicked.connect(lambda: self.set_stopPosition(self.selectEndMarkerButton))
@@ -378,7 +382,7 @@ class CropVideoWidget(CustomCropWidget):
         elif self.player.playbackState() == QtMultimedia.QMediaPlayer.PlaybackState.StoppedState:
             return None
 
-    def fastfwd(self) -> None:
+    def fast_forward(self) -> None:
         if self.player.playbackState() in {QtMultimedia.QMediaPlayer.PlaybackState.PausedState,
                                            QtMultimedia.QMediaPlayer.PlaybackState.StoppedState}:
             return None
@@ -416,14 +420,14 @@ class CropVideoWidget(CustomCropWidget):
         if new_position == 0:
             self.rewind_timer.stop()
 
-    def stepfwd(self):
+    def step_forward(self):
         new_position = self.player.position() + 10_000
         if new_position >= self.player.duration():
             self.player.setPosition(self.player.duration())
         else:
             self.player.setPosition(new_position)
     
-    def stepback(self):
+    def step_back(self):
         new_position = self.player.position() - 10_000
         if new_position <= 0:
             self.player.setPosition(0)
@@ -472,7 +476,7 @@ class CropVideoWidget(CustomCropWidget):
             self.volumeSlider.setValue(self.vol_cache)
             self.muteButton.setIcon(QtGui.QIcon('resources\\icons\\multimedia_mute.svg'))
 
-    def goto_begining(self) -> None:
+    def goto_beginning(self) -> None:
         self.player.setPosition(0)
 
     def goto_end(self) -> None:

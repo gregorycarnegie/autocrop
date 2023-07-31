@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Union
+from typing import Union, Tuple
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 
@@ -11,12 +11,12 @@ from .crop_vid_widget import CropVideoWidget
 from .cropper import Cropper
 from .custom_crop_widget import CustomCropWidget
 from .custom_dial_widget import CustomDialWidget
-from .enums import FunctionTabSelectionState
+from .enums import FunctionTabSelectionState, FunctionType
 from .ext_widget import ExtWidget
 from .f_type_photo import IMAGE_TYPES
 from .f_type_table import PANDAS_TYPES
 from .f_type_video import VIDEO_TYPES
-from .utils import open_file
+from .utils import open_table
 from .window_functions import change_widget_state, load_about_form
 
 
@@ -126,42 +126,10 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.horizontalLayout_27.addWidget(self.extWidget)
 
         # Tab Widgets
-        self.photoTab = CropPhotoWidget(self.crop_worker, self.widthLineEdit, self.heightLineEdit,
-                                        self.extWidget, self.sensitivity_dialArea, self.face_dialArea,
-                                        self.gamma_dialArea, self.top_dialArea, self.bottom_dialArea,
-                                        self.left_dialArea, self.right_dialArea, self)
-        self.photoTab.setObjectName('photoTab')
-        icon1 = QtGui.QIcon()
-        icon1.addPixmap(QtGui.QPixmap('resources\\icons\\picture.svg'), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        self.function_tabWidget.addTab(self.photoTab, icon1, '')
-
-        self.folder_Tab = CropFolderWidget(self.crop_worker, self.widthLineEdit, self.heightLineEdit,
-                                           self.extWidget, self.sensitivity_dialArea, self.face_dialArea,
-                                           self.gamma_dialArea, self.top_dialArea, self.bottom_dialArea,
-                                           self.left_dialArea, self.right_dialArea, self)
-        self.folder_Tab.setObjectName('folder_Tab')
-        icon2 = QtGui.QIcon()
-        icon2.addPixmap(QtGui.QPixmap('resources\\icons\\folder.svg'), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        self.function_tabWidget.addTab(self.folder_Tab, icon2, '')
-
-        self.mappingTab = CropMapWidget(self.crop_worker, self.widthLineEdit, self.heightLineEdit,
-                                        self.extWidget, self.sensitivity_dialArea, self.face_dialArea,
-                                        self.gamma_dialArea, self.top_dialArea, self.bottom_dialArea,
-                                        self.left_dialArea, self.right_dialArea, self)
-        self.mappingTab.setObjectName('mappingTab')
-        icon3 = QtGui.QIcon()
-        icon3.addPixmap(QtGui.QPixmap('resources\\icons\\excel.svg'), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        self.function_tabWidget.addTab(self.mappingTab, icon3, '')
-
-        self.videoTab = CropVideoWidget(self.crop_worker, self.widthLineEdit, self.heightLineEdit,
-                                        self.extWidget, self.sensitivity_dialArea, self.face_dialArea,
-                                        self.gamma_dialArea, self.top_dialArea, self.bottom_dialArea,
-                                        self.left_dialArea, self.right_dialArea, self)
-        self.videoTab.setObjectName("videoTab")
-        icon4 = QtGui.QIcon()
-        icon4.addPixmap(QtGui.QPixmap('resources\\icons\\clapperboard.svg'),
-                        QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        self.function_tabWidget.addTab(self.videoTab, icon4, '')
+        self.photoTab, icon1 = self.setup_custom_crop_widget(self.function_tabWidget, FunctionType.PHOTO)
+        self.folder_Tab, icon2 = self.setup_custom_crop_widget(self.function_tabWidget, FunctionType.FOLDER)
+        self.mappingTab, icon3 = self.setup_custom_crop_widget(self.function_tabWidget, FunctionType.MAPPING)
+        self.videoTab, icon4 = self.setup_custom_crop_widget(self.function_tabWidget, FunctionType.VIDEO)
 
         icon6 = QtGui.QIcon()
         icon6.addPixmap(QtGui.QPixmap('resources\\icons\\memory_card.svg'),
@@ -224,8 +192,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.menubar.addAction(self.menuInfo.menuAction())
 
         # CONNECTIONS
-        self.mappingTab.comboBox_1.currentTextChanged.connect(lambda: self.disable_buttons())
-        self.mappingTab.comboBox_2.currentTextChanged.connect(lambda: self.disable_buttons())
+        self.connect_combo_boxes(self.mappingTab)
 
         self.actionAbout_Face_Cropper.triggered.connect(lambda: load_about_form())
         self.actionGolden_Ratio.triggered.connect(lambda: self.load_preset(0.5 * (1 + 5 ** 0.5)))
@@ -238,6 +205,8 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.actionCrop_Folder.triggered.connect(lambda: self.function_tabWidget.setCurrentIndex(1))
         self.actionUse_Mapping.triggered.connect(lambda: self.function_tabWidget.setCurrentIndex(2))
         self.actionCrop_Video.triggered.connect(lambda: self.function_tabWidget.setCurrentIndex(3))
+
+        self.function_tabWidget.currentChanged.connect(lambda: self.check_tab_selection())
 
         self.retranslateUi()
         self.function_tabWidget.setCurrentIndex(0)
@@ -309,20 +278,32 @@ class UiMainWindow(QtWidgets.QMainWindow):
                     line_edit: PathLineEdit) -> None:
         self.function_tabWidget.setCurrentIndex(tab_index)
         line_edit.setText(file_path.as_posix())
-        if self.widthLineEdit.text() and self.heightLineEdit.text():
-            if self.function_tabWidget.currentIndex() == 0:
-                self.handle_function_tab_state(self.photoTab, self.folder_Tab, self.mappingTab, self.videoTab)
-                self.photoTab.display_crop()
-            elif self.function_tabWidget.currentIndex() == 1:
-                self.handle_function_tab_state(self.folder_Tab, self.photoTab, self.mappingTab, self.videoTab)
-                self.folder_Tab.load_data()
-            elif self.function_tabWidget.currentIndex() == 2:
-                self.handle_function_tab_state(self.mappingTab, self.photoTab, self.folder_Tab, self.videoTab)
-                self.mappingTab.display_crop()
+
+        try:
+            assert isinstance(self.mappingTab, CropMapWidget)
+            assert isinstance(self.folder_Tab, CropFolderWidget)
+            assert isinstance(self.photoTab, CropPhotoWidget)
+        except AssertionError:
+            return None
+        
+        if self.photoTab.selection_state == FunctionTabSelectionState.SELECTED:
+            self.handle_function_tab_state(self.photoTab, self.folder_Tab, self.mappingTab, self.videoTab)
+            self.photoTab.display_crop()
+        elif self.folder_Tab.selection_state == FunctionTabSelectionState.SELECTED:
+            self.handle_function_tab_state(self.folder_Tab, self.photoTab, self.mappingTab, self.videoTab)
+            self.folder_Tab.load_data()
+        elif self.mappingTab.selection_state == FunctionTabSelectionState.SELECTED:
+            self.handle_function_tab_state(self.mappingTab, self.photoTab, self.folder_Tab, self.videoTab)
+            self.mappingTab.display_crop()
 
     def handle_path_main(self, file_path: Path) -> None:
         extensions = {y.suffix.lower() for y in file_path.iterdir()}
-        mask = [ext in extensions for ext in PANDAS_TYPES]
+        mask = {ext in extensions for ext in PANDAS_TYPES}
+        try:
+            assert isinstance(self.mappingTab, CropMapWidget)
+            assert isinstance(self.folder_Tab, CropFolderWidget)
+        except AssertionError:
+            return None
         if any(mask):
             self.handle_path(file_path, 2, self.mappingTab.folderLineEdit)
         else:
@@ -334,11 +315,19 @@ class UiMainWindow(QtWidgets.QMainWindow):
         elif file_path.suffix.lower() in PANDAS_TYPES: self.handle_pandas_file(file_path)
 
     def handle_image_file(self, file_path: Path) -> None:
+        try:
+            assert isinstance(self.photoTab, CropPhotoWidget)
+        except AssertionError:
+            return None
         self.handle_path(file_path, 0, self.photoTab.photoLineEdit)
 
     def handle_video_file(self, file_path: Path) -> None:
         self.handle_function_tab_state(self.videoTab, self.folder_Tab, self.photoTab, self.mappingTab)
         self.function_tabWidget.setCurrentIndex(3)
+        try:
+            assert isinstance(self.videoTab, CropVideoWidget)
+        except AssertionError:
+            return None
         self.videoTab.videoLineEdit.setText(file_path.as_posix())
         self.videoTab.playButton.setEnabled(True)
         self.videoTab.playButton.setIcon(QtGui.QIcon('resources\\icons\\multimedia_play.svg'))
@@ -346,9 +335,23 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
     def handle_pandas_file(self, file_path: Path) -> None:
         self.function_tabWidget.setCurrentIndex(2)
+        try:
+            assert isinstance(self.mappingTab, CropMapWidget)
+        except AssertionError:
+            return None
         self.mappingTab.tableLineEdit.setText(file_path.as_posix())
-        data = open_file(file_path)
+        data = open_table(file_path)
         self.mappingTab.validate_pandas_file(data)
+
+    def check_tab_selection(self) -> None:
+        if self.function_tabWidget.currentIndex() == 0:
+            self.handle_function_tab_state(self.photoTab, self.folder_Tab, self.mappingTab, self.videoTab)
+        elif self.function_tabWidget.currentIndex() == 1:
+            self.handle_function_tab_state(self.folder_Tab, self.photoTab, self.mappingTab, self.videoTab)
+        elif self.function_tabWidget.currentIndex() == 2:
+            self.handle_function_tab_state(self.mappingTab, self.photoTab, self.folder_Tab, self.videoTab)
+        elif self.function_tabWidget.currentIndex() == 3:
+            self.handle_function_tab_state(self.videoTab, self.photoTab, self.folder_Tab, self.mappingTab)
 
     @staticmethod
     def handle_function_tab_state(selected_tab: CustomCropWidget, *other_tabs: CustomCropWidget):
@@ -379,7 +382,13 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 change_widget_state(condition, widget)
 
         common_line_edits = (self.widthLineEdit, self.heightLineEdit)
-
+        try:
+            assert isinstance(self.mappingTab, CropMapWidget)
+            assert isinstance(self.folder_Tab, CropFolderWidget)
+            assert isinstance(self.photoTab, CropPhotoWidget)
+            assert isinstance(self.videoTab, CropVideoWidget)
+        except AssertionError:
+            return None
         # Photo logic
         update_widget_state(
             all_filled(self.photoTab.photoLineEdit, self.photoTab.destinationLineEdit, *common_line_edits),
@@ -398,3 +407,29 @@ class UiMainWindow(QtWidgets.QMainWindow):
         update_widget_state(
             all_filled(self.videoTab.videoLineEdit, self.videoTab.destinationLineEdit, *common_line_edits),
             self.videoTab.cropButton, self.videoTab.videocropButton)
+
+    def setup_custom_crop_widget(self, tab_widget: QtWidgets.QTabWidget,
+                                 function: FunctionType) -> Tuple[CustomCropWidget, QtGui.QIcon]:
+        crop_widget_dict = {FunctionType.PHOTO: (CropPhotoWidget, 'photoTab', 'picture'),
+                            FunctionType.FOLDER: (CropFolderWidget, 'folder_Tab', 'folder'),
+                            FunctionType.MAPPING: (CropMapWidget, 'mappingTab', 'excel'),
+                            FunctionType.VIDEO: (CropVideoWidget, 'videoTab', 'clapperboard')}
+        tab = crop_widget_dict[function][0](
+            self.crop_worker, self.widthLineEdit, self.heightLineEdit, self.extWidget, 
+            self.sensitivity_dialArea, self.face_dialArea, self.gamma_dialArea, 
+            self.top_dialArea, self.bottom_dialArea, self.left_dialArea, self.right_dialArea, self)
+        tab.setObjectName(crop_widget_dict[function][1])
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(f'resources\\icons\\{crop_widget_dict[function][2]}.svg'),
+                       QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        tab_widget.addTab(tab, icon, '')
+        return tab, icon
+
+    def connect_combo_boxes(self, tab_widget: CustomCropWidget) -> None:
+        try:
+            assert isinstance(tab_widget, CropMapWidget)
+        except AssertionError:
+            return None
+        tab_widget.comboBox_1.currentTextChanged.connect(lambda: self.disable_buttons())
+        tab_widget.comboBox_2.currentTextChanged.connect(lambda: self.disable_buttons())

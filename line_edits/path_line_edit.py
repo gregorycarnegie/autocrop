@@ -14,6 +14,15 @@ class PathLineEdit(CustomLineEdit):
     def __init__(self, path_type: PathType=PathType.FOLDER, parent: Optional[QWidget]=None):
         super().__init__(parent)
         self.path_type = path_type
+        self.textChanged.connect(self.insert_clipboard_path)
+
+    def insert_clipboard_path(self, text: str) -> None:
+        # Remove quotation marks
+        if text.startswith('"') and text.endswith('"'):
+            text = text[1:-1]
+        elif text.startswith("'") and text.endswith("'"):
+            text = text[1:-1]
+        self.setText(text)
 
     def validate_path(self) -> None:
         """Validate QLineEdit based on input and set color accordingly."""

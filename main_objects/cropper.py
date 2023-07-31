@@ -10,15 +10,16 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 from PIL import Image
-from PyQt6.QtCore import pyqtSignal, pyqtBoundSignal, QObject
+from PyQt6.QtCore import pyqtSignal, QObject
 from PyQt6.QtWidgets import QLabel, QLineEdit, QSlider
 
 from .image_widget import ImageWidget
+from .enums import FunctionType
 from .face_worker import FaceWorker
 from .job import Job
-from .utils import save_image, set_filename, reject, multi_box_positions, open_file, convert_color_space, \
-    get_first_file, adjust_gamma, multi_box, display_image_on_widget, correct_exposure, align_head, box_detect, \
-    mask_extensions, split_by_cpus
+from .utils import save_image, set_filename, reject, multi_box_positions, open_pic, convert_color_space, \
+    get_first_file, adjust_gamma, multi_box, display_image_on_widget, box_detect, mask_extensions, \
+    split_by_cpus
 
 
 class Cropper(QObject):
@@ -34,7 +35,9 @@ class Cropper(QObject):
 
     def __init__(self, parent: Optional[QObject]=None):
         super(Cropper, self).__init__(parent)
-        self.bar_value = 0
+        self.bar_value_f = 0
+        self.bar_value_m = 0
+        self.bar_value_v = 0
 
         self.end_f_task = False
         self.end_m_task = False
@@ -58,14 +61,17 @@ class Cropper(QObject):
         return [FaceWorker() for _ in range(min(cpu_count(), 8))]
 
     def reset_f_task(self):
+        self.bar_value_f = 0
         self.end_f_task = False
         self.message_box_f = True
 
     def reset_m_task(self):
+        self.bar_value_m = 0
         self.end_m_task = False
         self.message_box_m = True
 
     def reset_v_task(self):
+        self.bar_value_v = 0
         self.end_v_task = False
         self.message_box_v = True
     
@@ -136,16 +142,12 @@ class Cropper(QObject):
     def multi_crop(source_image: Union[cv2.Mat, npt.NDArray[np.int8], Path],
                    job: Job,
                    face_worker: FaceWorker) -> Optional[Union[List[cv2.Mat], List[npt.NDArray[np.int8]]]]:
-        if isinstance(source_image, Path):
-            img = open_file(source_image, job.fix_exposure_job.isChecked(), job.auto_tilt_job.isChecked(), face_worker)
-        else:
-            img = source_image
+        img = open_pic(source_image, job.fix_exposure_job.isChecked(), job.auto_tilt_job.isChecked(), face_worker) \
+            if isinstance(source_image, Path) else source_image
 
-        if isinstance(img, pd.DataFrame) or img is None:
-            return None
         detections, crop_positions = multi_box_positions(img, job, face_worker)
         # Check if any faces were detected
-        if not np.any(detections[0, 0, :, 2] > job.sensitivity.value() * .01):
+        if not np.any(100 * detections[0, 0, :, 2] > job.sensitivity.value()):
             return None
 
         images = [Image.fromarray(img).crop(crop_position) for crop_position in crop_positions]
@@ -197,7 +199,7 @@ class Cropper(QObject):
                 return None
             img_path = first_file
 
-        pic_array = open_file(
+        pic_array = open_pic(
             img_path, job.fix_exposure_job.isChecked(), job.auto_tilt_job.isChecked(), self.face_workers[0]
         )
         if pic_array is None:
@@ -254,19 +256,12 @@ class Cropper(QObject):
     def crop_image(image: Union[Path, cv2.Mat, npt.NDArray[np.int8]],
                    job: Job,
                    face_worker: FaceWorker) -> Optional[Union[cv2.Mat, npt.NDArray[np.int8]]]:
-        if isinstance(image, Path):
-            pic_array = open_file(
-                image, job.fix_exposure_job.isChecked(), job.auto_tilt_job.isChecked(), face_worker)
-            bounding_box = box_detect(pic_array, job, face_worker)
-            if bounding_box is None:
-                return None
-
-        else:
-            pic_array = image
-            pic_array = correct_exposure(pic_array, job.fix_exposure_job.isChecked())
-            pic_array = align_head(pic_array, face_worker, job.auto_tilt_job.isChecked())
-            bounding_box = box_detect(pic_array, job, face_worker)
-
+        pic_array = open_pic(image, job.fix_exposure_job.isChecked(), job.auto_tilt_job.isChecked(), face_worker) \
+            if isinstance(image, Path) else image
+        
+        if (bounding_box := box_detect(pic_array, job, face_worker)) is None:
+            return None  
+        
         cropped_pic = Image.fromarray(pic_array).crop(bounding_box)
         if len(cropped_pic.getbands()) >= 3:
             result = convert_color_space(np.array(cropped_pic))
@@ -276,9 +271,16 @@ class Cropper(QObject):
         return cv2.resize(result, (job.width_value(), job.height_value()), interpolation=cv2.INTER_AREA)
 
     def _update_progress(self, file_amount: int,
-                         progress_signal: pyqtBoundSignal):
-        self.bar_value += 1
-        progress_signal.emit(int(100 * self.bar_value / file_amount))
+                         process_type: FunctionType) -> None:
+        if process_type == FunctionType.FOLDER:
+            self.bar_value_f += 1
+            self.folder_progress.emit(100 * self.bar_value_f // file_amount)
+        elif process_type == FunctionType.MAPPING:
+            self.bar_value_m += 1
+            self.mapping_progress.emit(100 * self.bar_value_m // file_amount)
+        elif process_type == FunctionType.VIDEO:
+            self.bar_value_v += 1
+            self.video_progress.emit(100 * self.bar_value_v // file_amount)
     
     def folder_worker(self, file_amount: int,
                       file_list: npt.NDArray[Any],
@@ -288,9 +290,9 @@ class Cropper(QObject):
             if self.end_f_task:
                 break
             self.crop(image, job, face_worker)
-            self._update_progress(file_amount, self.folder_progress)
+            self._update_progress(file_amount, FunctionType.FOLDER)
 
-        if (self.bar_value == file_amount or self.end_f_task) and self.message_box_f:
+        if self.bar_value_f == file_amount or self.end_f_task:
             self.folder_finished.emit()
             self.message_box_f = False
 
@@ -301,13 +303,14 @@ class Cropper(QObject):
         file_list, file_amount = file_tuple
         split_array = np.array_split(file_list, min(cpu_count(), 8))
         threads = []
-        self.bar_value = 0
-        self.folder_progress.emit(self.bar_value)
+        self.bar_value_f = 0
+        self.folder_progress.emit(self.bar_value_f)
 
         for i, array in enumerate(split_array):
             t = Thread(target=self.folder_worker, args=(file_amount, array, job, self.face_workers[i]))
             threads.append(t)
             t.start()
+
 
     def mapping_worker(self, file_amount: int,
                        old: npt.NDArray[np.str_],
@@ -318,9 +321,9 @@ class Cropper(QObject):
             if self.end_m_task:
                 break
             self.crop(Path(image), job, face_worker, new=new[i])
-            self._update_progress(file_amount, self.mapping_progress)
+            self._update_progress(file_amount, FunctionType.MAPPING)
 
-        if (self.bar_value == file_amount or self.end_m_task) and self.message_box_m:
+        if self.bar_value_m == file_amount or self.end_m_task:
             self.mapping_finished.emit()
             self.message_box_m = False
 
@@ -334,8 +337,8 @@ class Cropper(QObject):
         # Split the file lists and the mapping data into chunks.
         old_file_list, new_file_list = split_by_cpus(mask, min(cpu_count(), 8), file_list1, file_list2)
         self.mapping_started.emit()
-        self.bar_value = 0
-        self.folder_progress.emit(self.bar_value)
+        self.bar_value_m = 0
+        self.folder_progress.emit(self.bar_value_m)
         threads = []
         for i, _ in enumerate(old_file_list):
             t = Thread(target=self.mapping_worker, args=(file_amount, _, new_file_list[i], job, self.face_workers[i]))
@@ -405,8 +408,7 @@ class Cropper(QObject):
         if (images := self.multi_crop(frame, job, self.face_workers[0])) is None:
             file_enum = f'failed_{file_enum}'
             file_path, is_tiff = self.get_frame_path(destination, file_enum, job)
-            frame = convert_color_space(frame)
-            self.save_frame(frame, file_path, job, is_tiff)
+            self.save_frame(convert_color_space(frame), file_path, job, is_tiff)
         else:
             for i, image in enumerate(images):
                 file_path, is_tiff = self.get_frame_path(destination, f'{file_enum}_{i}', job)
@@ -416,11 +418,12 @@ class Cropper(QObject):
                                      job: Job,
                                      file_enum: str,
                                      destination: Path) -> None:
-        if (cropped_image := self.crop_image(frame, job, self.face_workers[0])) is not None:
-            cropped_image = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2RGB)
-        else:
+        if (cropped_image := self.crop_image(frame, job, self.face_workers[0])) is None:
             cropped_image = frame
-            file_enum = f'failed_{file_enum}'
+            file_enum = f'failed_{file_enum}'           
+        else:
+            cropped_image = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2RGB)
+
         file_path, is_tiff = self.get_frame_path(destination, file_enum, job)
         self.save_frame(cropped_image, file_path, job, is_tiff)
 
@@ -458,16 +461,21 @@ class Cropper(QObject):
 
         frame_numbers = np.arange(start_frame, end_frame + 1)
 
-        self.bar_value = 0
         def progress_callback() -> None:
-            self.bar_value += 1
-            x = 100 * self.bar_value // frame_numbers.size
-            self.video_progress.emit(x)
+            self._update_progress(frame_numbers.size, FunctionType.VIDEO)
         
         for frame_number in frame_numbers:
             self.frame_extraction(video, frame_number, job, progress_callback)
-            if (self.bar_value == frame_numbers.size or self.end_v_task) and self.message_box_v:
+            if self.bar_value_v == frame_numbers.size or self.end_v_task:
                 self.video_finished.emit()
                 self.message_box_v = False
 
         video.release()
+
+    def terminate(self, series: FunctionType) -> None:
+        if series == FunctionType.FOLDER:
+            self.end_f_task = True
+        elif series == FunctionType.MAPPING:
+            self.end_m_task = True
+        elif series == FunctionType.VIDEO:
+            self.end_v_task = True

@@ -118,7 +118,13 @@
          </widget>
         </item>
         <item>
-         <widget class="QSlider" name="timelineSlider">
+         <widget class="QScrollBar" name="horizontalScrollBar">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
           </property>

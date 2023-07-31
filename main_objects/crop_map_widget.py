@@ -10,31 +10,31 @@ from .cropper import Cropper
 from .custom_crop_widget import CustomCropWidget
 from .custom_dial_widget import CustomDialWidget
 from .data_fame_model import DataFrameModel
-from .enums import FunctionTabSelectionState, Terminator
+from .enums import FunctionTabSelectionState, FunctionType
 from .ext_widget import ExtWidget
 from .f_type_photo import Photo
 from .f_type_table import PANDAS_TYPES
 from .image_widget import ImageWidget
-from .utils import open_file
-from .window_functions import disable_widget, enable_widget, show_message_box, change_widget_state, terminate, \
-    uncheck_boxes
+from .utils import open_table
+from .window_functions import disable_widget, enable_widget, show_message_box, change_widget_state, uncheck_boxes
 
 
 class CropMapWidget(CustomCropWidget):
     def __init__(self, crop_worker: Cropper,
-                 widthLineEdit: NumberLineEdit,
-                 heightLineEdit: NumberLineEdit,
-                 extWidget: ExtWidget,
-                 sensitivity_dialArea: CustomDialWidget,
-                 face_dialArea: CustomDialWidget,
-                 gamma_dialArea: CustomDialWidget,
-                 top_dialArea: CustomDialWidget,
-                 bottom_dialArea: CustomDialWidget,
-                 left_dialArea: CustomDialWidget,
-                 right_dialArea: CustomDialWidget,
+                 width_line_edit: NumberLineEdit,
+                 height_line_edit: NumberLineEdit,
+                 ext_widget: ExtWidget,
+                 sensitivity_dial_area: CustomDialWidget,
+                 face_dial_area: CustomDialWidget,
+                 gamma_dial_area: CustomDialWidget,
+                 top_dial_area: CustomDialWidget,
+                 bottom_dial_area: CustomDialWidget,
+                 left_dial_area: CustomDialWidget,
+                 right_dial_area: CustomDialWidget,
                  parent: Optional[QtWidgets.QWidget] = None) -> None:
-        super().__init__(crop_worker, widthLineEdit, heightLineEdit, extWidget, sensitivity_dialArea, face_dialArea,
-                         gamma_dialArea, top_dialArea, bottom_dialArea, left_dialArea, right_dialArea, parent)
+        super().__init__(crop_worker, width_line_edit, height_line_edit, ext_widget, sensitivity_dial_area,
+                         face_dial_area, gamma_dial_area, top_dial_area, bottom_dial_area, left_dial_area,
+                         right_dial_area, parent)
         self.model: Optional[DataFrameModel] = None
         self.data_frame: Optional[pd.DataFrame] = None
         self.setObjectName('Form')
@@ -178,13 +178,14 @@ class CropMapWidget(CustomCropWidget):
         self.destinationButton.clicked.connect(lambda: self.open_folder(self.destinationLineEdit))
         self.tableButton.clicked.connect(lambda: self.open_table())
         self.cropButton.clicked.connect(lambda: self.mapping_process())
-        self.cancelButton.clicked.connect(lambda: terminate(self.crop_worker, Terminator.END_MAPPING_TASK))
+        self.cancelButton.clicked.connect(lambda: self.crop_worker.terminate(FunctionType.MAPPING))
+        self.cancelButton.clicked.connect(lambda: self.cancel_button_operation(self.cancelButton, self.cropButton))
 
-        self.connect_input_widgets(self.widthLineEdit, self.heightLineEdit, self.destinationLineEdit,
-                                   self.comboBox_1, self.comboBox_2, self.exposureCheckBox, self.mfaceCheckBox,
-                                   self.tiltCheckBox, self.sensitivity_dialArea.dial, self.face_dialArea.dial,
-                                   self.gamma_dialArea.dial, self.top_dialArea.dial, self.bottom_dialArea.dial,
-                                   self.left_dialArea.dial, self.right_dialArea.dial)
+        self.connect_input_widgets(self.folderLineEdit, self.widthLineEdit, self.heightLineEdit,
+                                   self.destinationLineEdit, self.comboBox_1, self.comboBox_2, self.exposureCheckBox,
+                                   self.mfaceCheckBox, self.tiltCheckBox, self.sensitivity_dialArea.dial,
+                                   self.face_dialArea.dial, self.gamma_dialArea.dial, self.top_dialArea.dial,
+                                   self.bottom_dialArea.dial, self.left_dialArea.dial, self.right_dialArea.dial)
         # Maping start connection
         self.crop_worker.mapping_started.connect(
             lambda: disable_widget(self.widthLineEdit, self.heightLineEdit, self.sensitivity_dialArea.dial,
@@ -211,7 +212,7 @@ class CropMapWidget(CustomCropWidget):
                                   self.cropButton, self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox))
         self.crop_worker.mapping_finished.connect(lambda: disable_widget(self.cancelButton))
         self.crop_worker.mapping_finished.connect(lambda: show_message_box(self.destinationLineEdit))
-        self.crop_worker.mapping_progress.connect(self.update_progress)
+        self.crop_worker.mapping_progress.connect(lambda: self.update_progress(self.crop_worker.bar_value_m))
 
         self.retranslateUi()
         self.disable_buttons()
@@ -265,8 +266,7 @@ class CropMapWidget(CustomCropWidget):
     def connect_input_widgets(self, *input_widgets: QtWidgets.QWidget) -> None:
         for input_widget in input_widgets:
             if isinstance(input_widget, (NumberLineEdit, PathLineEdit)):
-                if input_widget is self.folderLineEdit:
-                    input_widget.textChanged.connect(lambda: self.reload_widgets())
+                input_widget.textChanged.connect(lambda: self.reload_widgets())
                 input_widget.textChanged.connect(lambda: self.disable_buttons())
             elif isinstance(input_widget, QtWidgets.QDial):
                 input_widget.valueChanged.connect(lambda: self.reload_widgets())
@@ -300,7 +300,7 @@ class CropMapWidget(CustomCropWidget):
         type_string = 'All Files (*);;' + ';;'.join(f'{_} Files (*{_})' for _ in np.sort(PANDAS_TYPES))
         f_name, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', Photo().default_directory, type_string)
         self.tableLineEdit.setText(f_name)
-        data = open_file(f_name)
+        data = open_table((Path(f_name)))
         self.validate_pandas_file(data)
 
     def mapping_process(self) -> None:

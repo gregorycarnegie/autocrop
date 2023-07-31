@@ -16,19 +16,20 @@ from .window_functions import change_widget_state, uncheck_boxes
 
 class CropPhotoWidget(CustomCropWidget):
     def __init__(self, crop_worker: Cropper,
-                 widthLineEdit: NumberLineEdit,
-                 heightLineEdit: NumberLineEdit,
-                 extWidget: ExtWidget,
-                 sensitivity_dialArea: CustomDialWidget,
-                 face_dialArea: CustomDialWidget,
-                 gamma_dialArea: CustomDialWidget,
-                 top_dialArea: CustomDialWidget,
-                 bottom_dialArea: CustomDialWidget,
-                 left_dialArea: CustomDialWidget,
-                 right_dialArea: CustomDialWidget,
+                 width_line_edit: NumberLineEdit,
+                 height_line_edit: NumberLineEdit,
+                 ext_widget: ExtWidget,
+                 sensitivity_dial_area: CustomDialWidget,
+                 face_dial_area: CustomDialWidget,
+                 gamma_dial_area: CustomDialWidget,
+                 top_dial_area: CustomDialWidget,
+                 bottom_dial_area: CustomDialWidget,
+                 left_dial_area: CustomDialWidget,
+                 right_dial_area: CustomDialWidget,
                  parent: Optional[QtWidgets.QWidget] = None) -> None:
-        super().__init__(crop_worker, widthLineEdit, heightLineEdit, extWidget, sensitivity_dialArea, face_dialArea,
-                         gamma_dialArea, top_dialArea, bottom_dialArea, left_dialArea, right_dialArea, parent)
+        super().__init__(crop_worker, width_line_edit, height_line_edit, ext_widget, sensitivity_dial_area,
+                         face_dial_area, gamma_dial_area, top_dial_area, bottom_dial_area, left_dial_area,
+                         right_dial_area, parent)
         self.selection_state = FunctionTabSelectionState.SELECTED
         self.setObjectName('Form')
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self)
@@ -113,10 +114,10 @@ class CropPhotoWidget(CustomCropWidget):
         self.photoButton.clicked.connect(lambda: self.open_folder(self.photoLineEdit))
         self.destinationButton.clicked.connect(lambda: self.open_folder(self.destinationLineEdit))
         self.cropButton.clicked.connect(lambda: self.crop_photo())
-        self.connect_input_widgets(self.widthLineEdit, self.heightLineEdit, self.destinationLineEdit,
-                                   self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox,
-                                   self.sensitivity_dialArea.dial, self.face_dialArea.dial, self.gamma_dialArea.dial,
-                                   self.top_dialArea.dial, self.bottom_dialArea.dial,
+        self.connect_input_widgets(self.photoLineEdit, self.widthLineEdit, self.heightLineEdit,
+                                   self.destinationLineEdit, self.exposureCheckBox, self.mfaceCheckBox,
+                                   self.tiltCheckBox, self.sensitivity_dialArea.dial, self.face_dialArea.dial,
+                                   self.gamma_dialArea.dial, self.top_dialArea.dial, self.bottom_dialArea.dial,
                                    self.left_dialArea.dial, self.right_dialArea.dial)
         self.retranslateUi()
         self.disable_buttons()
@@ -170,8 +171,7 @@ class CropPhotoWidget(CustomCropWidget):
     def connect_input_widgets(self, *input_widgets: QtWidgets.QWidget) -> None:
         for input_widget in input_widgets:
             if isinstance(input_widget, (NumberLineEdit, PathLineEdit)):
-                if input_widget is self.photoLineEdit:
-                    input_widget.textChanged.connect(lambda: self.reload_widgets())
+                input_widget.textChanged.connect(lambda: self.reload_widgets())
                 input_widget.textChanged.connect(lambda: self.disable_buttons())
             elif isinstance(input_widget, QtWidgets.QDial):
                 input_widget.valueChanged.connect(lambda: self.reload_widgets())

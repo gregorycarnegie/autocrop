@@ -16,7 +16,6 @@ from PIL import Image
 from PyQt6.QtGui import QImage, QPixmap
 
 from .f_type_photo import IMAGE_TYPES, CV2_TYPES, RAW_TYPES
-from .f_type_table import PANDAS_TYPES
 from .face_worker import FaceWorker
 from .image_widget import ImageWidget
 from .job import Job
@@ -128,27 +127,20 @@ def open_raw(image: Path,
         return align_head(img, face_worker, tilt)
 
 @cache
-def open_table(input_file: Path, extension: str) -> pd.DataFrame:
-    return pd.read_csv(input_file) if extension == '.csv' else pd.read_excel(input_file)
+def open_table(input_file: Path) -> pd.DataFrame:
+    return pd.read_csv(input_file) if input_file.suffix.lower() == '.csv' else pd.read_excel(input_file)
 
 @lru_cache(5, True)
-def open_file(input_file: Union[Path, str],
-              exposure: Optional[bool] = None,
-              tilt: Optional[bool] = None,
-              face_worker: Optional[FaceWorker] = None) -> Optional[Union[cv2.Mat, npt.NDArray[np.int8], pd.DataFrame]]:
+def open_pic(input_file: Union[Path, str],
+              exposure: bool,
+              tilt: bool,
+              face_worker: FaceWorker) -> Optional[Union[cv2.Mat, npt.NDArray[np.int8]]]:
     """Given a filename, returns a numpy array or a pandas dataframe"""
     input_file = Path(input_file) if isinstance(input_file, str) else input_file
-    if (extension := input_file.suffix.lower()) in IMAGE_TYPES:
-        if (exposure is None) | (tilt is None) | (face_worker is None):
-            print('no worker')
-            print(type(face_worker))
-            return None
-    if extension in CV2_TYPES and (exposure is not None) and (tilt is not None) and (face_worker is not None):
+    if (extension := input_file.suffix.lower()) in CV2_TYPES:
         return open_image(input_file, exposure, tilt, face_worker)
-    elif extension in RAW_TYPES and (exposure is not None) and (tilt is not None) and (face_worker is not None):
+    elif extension in RAW_TYPES:
         return open_raw(input_file, exposure, tilt, face_worker)
-    elif extension in PANDAS_TYPES:
-        return open_table(input_file, extension)
     return None
 
 def align_head(image: Union[cv2.Mat, npt.NDArray[np.int8]],
@@ -183,7 +175,7 @@ def align_head(image: Union[cv2.Mat, npt.NDArray[np.int8]],
         return image
 
     # Find the face with the highest confidence score.
-    face = max(faces, key=lambda face: face.area())
+    face = max(faces, key=lambda x: x.area())
     # Get the 68 facial landmarks for the face.
     landmarks = predictor(image_array, face)
     landmarks_array = np.array([(p.x, p.y) for p in landmarks.parts()])
@@ -245,12 +237,11 @@ def get_box_coordinates(output: npt.NDArray[np.float_],
                         job: Job,
                         x: Optional[npt.NDArray[np.float_]] = None) -> Tuple[int, int, int, int]:
     box_outputs = output * np.array([width, height, width, height])
-    x0, y0, x1, y1 = box_outputs.astype("int") if x is None else box_outputs[np.argmax(x)]
+    x0, y0, x1, y1 = box_outputs.astype(np.int_) if x is None else box_outputs[np.argmax(x)]
     return autocrop_rs.crop_positions(x0, y0, x1 - x0, y1 - y0,
                                       job.face_percent.value(), job.width_value(), job.height_value(),
                                       job.top.value(), job.bottom.value(), job.left.value(),
                                       job.right.value())
-
 
 def box(img: Union[cv2.Mat, npt.NDArray[np.int8]],
         width: int,
@@ -286,11 +277,9 @@ def multi_box_positions(image: Union[cv2.Mat, npt.NDArray[np.int8]],
                         face_worker: FaceWorker) -> Tuple[npt.NDArray[np.float_], npt.NDArray[np.int_]]:
     height, width = image.shape[:2]
     detections = prepare_detections(image, face_worker)
-    crop_positions = [
-        get_box_coordinates(detections[0, 0, i, 3:7], width, height, job)
-        for i in range(detections.shape[2])
-        if detections[0, 0, i, 2] > job.sensitivity.value() * .01
-    ]
+    crop_positions = [get_box_coordinates(detections[0, 0, i, 3:7], width, height, job)
+                      for i in range(detections.shape[2])
+                      if detections[0, 0, i, 2] * 100 > job.sensitivity.value()]
     return detections, np.array(crop_positions)
 
 def box_detect(img: Union[cv2.Mat, npt.NDArray[np.int8]],

@@ -1,6 +1,8 @@
 from typing import Optional, ClassVar
 
-from PyQt6.QtWidgets import QLineEdit, QWidget
+from PyQt6.QtWidgets import QLineEdit, QWidget, QToolButton, QStyle
+from PyQt6.QtGui import QIcon, QPixmap, QResizeEvent
+from PyQt6.QtCore import Qt
 
 from .enums import LineEditState
 
@@ -10,12 +12,30 @@ class CustomLineEdit(QLineEdit):
     INVALID_COLOR: ClassVar[str] = '#ff6c6c'  # rose
     def __init__(self, parent: Optional[QWidget] = None):
         super(CustomLineEdit, self).__init__(parent)
+        self.clearButton = QToolButton(self)
+        self.clearButton.setIcon(QIcon(QPixmap('resources\\icons\\clear.svg')))
+        self.clearButton.setCursor(Qt.CursorShape.ArrowCursor)
+        self.clearButton.setStyleSheet('QToolButton { border: none; padding: 0px; }')
+        self.clearButton.hide()
+        self.clearButton.clicked.connect(self.clear)
+        self.textChanged.connect(self.updateClearButton)
+
         self.state = LineEditState.INVALID_INPUT
         self.textChanged.connect(self.validate_path)
         self.colour = self.INVALID_COLOR
         self.update_style()
 
-    def validate_path(self):
+    def resizeEvent(self, a0: QResizeEvent):
+        buttonSize = self.clearButton.sizeHint()
+        frameWidth = self.style().pixelMetric(QStyle.PixelMetric.PM_DefaultFrameWidth)
+        self.clearButton.move(self.rect().right() - frameWidth - buttonSize.width(),
+                              (self.rect().bottom() - buttonSize.height() + 1) >> 1)
+        super(CustomLineEdit, self).resizeEvent(a0)
+
+    def updateClearButton(self, text: str) -> None:
+        self.clearButton.setVisible(bool(text))
+
+    def validate_path(self) -> None:
         """Validate path based on input and set color accordingly.
         Subclasses should implement this method!"""
         return None

@@ -1,9 +1,11 @@
-from PyQt6.QtWidgets import QPushButton
+from typing import Optional
+
+from PyQt6.QtWidgets import QPushButton, QWidget
 from PyQt6.QtCore import QPropertyAnimation, QRect, QEasingCurve
 
 
 class AnimatedButton(QPushButton):
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[QWidget]=None):
         super().__init__(parent)
         self.animation = QPropertyAnimation(self, b'geometry')
         self.animation.setDuration(10)  # duration in milliseconds

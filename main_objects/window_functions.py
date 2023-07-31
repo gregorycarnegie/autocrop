@@ -5,8 +5,6 @@ from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtWidgets import QCheckBox, QLineEdit, QMessageBox, QWidget, QPushButton, QHBoxLayout, QVBoxLayout
 
-from .cropper import Cropper
-from .enums import Terminator
 from .dialog import UiDialog
 
 def uncheck_boxes(*checkboxes: QCheckBox) -> None:
@@ -68,11 +66,3 @@ def change_widget_state(boolean: bool, *args: QWidget) -> None:
             arg.setEnabled(boolean)
         else:
             arg.setDisabled(not boolean)
-
-def terminate(cropper: Cropper, series: Terminator) -> None:
-    if series == Terminator.END_FOLDER_TASK:
-        cropper.end_f_task = True
-    elif series == Terminator.END_MAPPING_TASK:
-        cropper.end_m_task = True
-    elif series == Terminator.END_VIDEO_TASK:
-        cropper.end_v_task = True
