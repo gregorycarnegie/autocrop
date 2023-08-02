@@ -305,7 +305,6 @@ class CropVideoWidget(CustomCropWidget):
         self.stepbackButton.clicked.connect(lambda: self.step_back())
         self.stepfwdButton.clicked.connect(lambda: self.step_forward())
         self.fastfwdButton.clicked.connect(lambda: self.fast_forward())
-        # self.rewindButton.clicked.connect(lambda: self.rewind())
         self.goto_beginingButton.clicked.connect(lambda: self.goto_beginning())
         self.goto_endButton.clicked.connect(lambda: self.goto_end())
         self.startmarkerButton.clicked.connect(lambda: self.set_startPosition(self.selectStartMarkerButton))
