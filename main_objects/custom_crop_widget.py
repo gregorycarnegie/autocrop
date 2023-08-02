@@ -9,6 +9,7 @@ from .cropper import Cropper
 from .custom_dial_widget import CustomDialWidget
 from .enums import FunctionTabSelectionState
 from .ext_widget import ExtWidget
+from .f_type_photo import Photo
 from .job import Job
 
 CHECKBOX_STYLESHEET = """QCheckBox:unchecked{color: red}
@@ -45,6 +46,8 @@ class CustomCropWidget(QtWidgets.QWidget):
                  right_dial_area: CustomDialWidget,
                  parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
+        self.folderLineEdit: Optional[PathLineEdit] = None
+        
         self.progressBar = QtWidgets.QProgressBar()
         self.crop_worker = crop_worker
         self.widthLineEdit = width_line_edit
@@ -114,3 +117,13 @@ class CustomCropWidget(QtWidgets.QWidget):
         cancel_button.setDisabled(True)
         for crop_button in crop_buttons:
             crop_button.setEnabled(True)
+
+    def open_folder(self, line_edit: PathLineEdit) -> None:
+        f_name = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Directory', Photo().default_directory)
+        line_edit.setText(f_name)
+        if line_edit is self.folderLineEdit:
+                self.load_data()
+
+    def load_data(self) -> None:
+        """Only sublasses of this class should implement this method"""
+        pass

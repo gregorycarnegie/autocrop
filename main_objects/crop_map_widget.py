@@ -42,7 +42,7 @@ class CropMapWidget(CustomCropWidget):
         self.verticalLayout_3.setObjectName('verticalLayout_3')
         self.gridLayout = QtWidgets.QGridLayout()
         self.gridLayout.setObjectName('gridLayout')
-        self.folderLineEdit = PathLineEdit(parent=self)
+        self.folderLineEdit: PathLineEdit = PathLineEdit(parent=self)
         self.folderLineEdit.setMinimumSize(QtCore.QSize(0, 24))
         self.folderLineEdit.setMaximumSize(QtCore.QSize(16777215, 24))
         self.folderLineEdit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
@@ -238,12 +238,6 @@ class CropMapWidget(CustomCropWidget):
     def display_crop(self) -> None:
         job = self.create_job(self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox)
         self.crop_worker.display_crop(job, self.folderLineEdit, self.imageWidget)
-
-    def open_folder(self, line_edit: PathLineEdit) -> None:
-        f_name = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Directory', Photo().default_directory)
-        line_edit.setText(f_name)
-        if line_edit is self.folderLineEdit:
-                self.load_data()
 
     def load_data(self) -> None:
         try:

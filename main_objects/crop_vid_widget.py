@@ -10,7 +10,7 @@ from line_edits import PathLineEdit, PathType, NumberLineEdit, LineEditState
 from .cropper import Cropper
 from .custom_crop_widget import CustomCropWidget
 from .custom_dial_widget import CustomDialWidget
-from .enums import MediaPlaybackState, FunctionType
+from .enums import FunctionType
 from .ext_widget import ExtWidget
 from .f_type_photo import Photo
 from .window_functions import change_widget_state, disable_widget, enable_widget, show_message_box, uncheck_boxes, \
@@ -36,7 +36,6 @@ class CropVideoWidget(CustomCropWidget):
         self.vol_cache = 70
         self.rewind_timer = QtCore.QTimer()
         self.default_directory = f'{Path.home()}\\Videos'
-        self.audio_state = MediaPlaybackState.UNMUTED
         self.player = QtMultimedia.QMediaPlayer()
         self.audio = QtMultimedia.QAudioOutput()
         self.start_position, self.stop_position, self.step = 0.0, 0.0, 2
@@ -254,6 +253,14 @@ class CropVideoWidget(CustomCropWidget):
 
         self.connect_input_widgets(self.widthLineEdit, self.heightLineEdit, self.destinationLineEdit,
                                    self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox)
+        
+        # Media connections
+        self.audio.mutedChanged.connect(lambda: self.check_audio_icons())
+        self.player.playbackStateChanged.connect(
+            lambda: self.change_media_widget_state(self.stopButton, self.stepbackButton, self.stepfwdButton, self.rewindButton,
+                                                   self.fastfwdButton, self.goto_beginingButton, self.goto_endButton, self.startmarkerButton,
+                                                   self.endmarkerButton, self.selectStartMarkerButton, self.selectEndMarkerButton,))
+        self.player.playbackStateChanged.connect(lambda: self.check_playback_icons())
 
         # Video start connection
         self.crop_worker.video_started.connect(
@@ -347,36 +354,47 @@ class CropVideoWidget(CustomCropWidget):
             self.videoLineEdit.setText(file_name)
             self.playButton.setEnabled(True)
 
+    def check_audio_icons(self) -> None:
+        if self.audio.isMuted():
+            self.muteButton.setIcon(QtGui.QIcon('resources\\icons\\multimedia_unmute.svg'))
+        else:
+            self.muteButton.setIcon(QtGui.QIcon('resources\\icons\\multimedia_mute.svg'))
+
     def check_playback_state(self) -> None:
         if self.player.playbackState()  in {QtMultimedia.QMediaPlayer.PlaybackState.PausedState,
                                             QtMultimedia.QMediaPlayer.PlaybackState.StoppedState}:
             self.stop_playback()
 
     def change_playback_state(self):
-        if self.player.playbackState() in {QtMultimedia.QMediaPlayer.PlaybackState.PausedState,
-                                           QtMultimedia.QMediaPlayer.PlaybackState.StoppedState}:
-            self.play_video()
-        elif self.player.playbackState() == QtMultimedia.QMediaPlayer.PlaybackState.PlayingState:
+        if self.player.playbackState() == QtMultimedia.QMediaPlayer.PlaybackState.PlayingState:
             self.player.pause()
+        else:
+            self.player.play()
+
+    def check_playback_icons(self):
+        if self.player.playbackState() == QtMultimedia.QMediaPlayer.PlaybackState.PlayingState:
+            self.playButton.setIcon(QtGui.QIcon('resources\\icons\\multimedia_pause.svg'))
+            self.timelineSlider.setEnabled(True)
+            self.player.setPlaybackRate(1)
+        else:
+            self.playButton.setIcon(QtGui.QIcon('resources\\icons\\multimedia_play.svg'))
+
+    def change_media_widget_state(self, *buttons: QtWidgets.QPushButton):
+        x = self.player.playbackState() == QtMultimedia.QMediaPlayer.PlaybackState.PausedState
+        y = self.player.playbackState() == QtMultimedia.QMediaPlayer.PlaybackState.StoppedState
+        for button in buttons:
+            button.setDisabled(x ^ y)
+        
+        for button in (self.stopButton, self.fastfwdButton, self.rewindButton):
+            button.setEnabled(x)
 
     def create_mediaPlayer(self) -> None:
         self.player.setAudioOutput(self.audio)
         self.player.setVideoOutput(self.videoWidget)
 
-    def play_video(self) -> None:
-        self.playButton.setIcon(QtGui.QIcon('resources\\icons\\multimedia_pause.svg'))
-        self.timelineSlider.setEnabled(True)
-        self.player.play()
-        self.player.setPlaybackRate(1)
-
-    def pause_video(self):
-        self.playButton.setIcon(QtGui.QIcon('resources\\icons\\multimedia_play.svg'))
-        self.player.pause()
-
     def stop_playback(self):
         if self.player.playbackState() in {QtMultimedia.QMediaPlayer.PlaybackState.PlayingState,
                                            QtMultimedia.QMediaPlayer.PlaybackState.PausedState}:
-            self.playButton.setIcon(QtGui.QIcon('resources\\icons\\multimedia_play.svg'))
             self.timelineSlider.setDisabled(True)
             self.player.stop()
         elif self.player.playbackState() == QtMultimedia.QMediaPlayer.PlaybackState.StoppedState:
@@ -441,7 +459,7 @@ class CropVideoWidget(CustomCropWidget):
 
             self.timelineSlider.blockSignals(True)
             self.timelineSlider.setValue(position)
-            minutes, seconds = divmod(round(position / 1_000), 60)
+            minutes, seconds = divmod(round(position * 0.001), 60)
             hours, minutes = divmod(minutes, 60)
             self.timelineSlider.blockSignals(False)
             self.positionLabel.setText(QtCore.QTime(hours, minutes, seconds).toString())
@@ -452,7 +470,7 @@ class CropVideoWidget(CustomCropWidget):
     def duration_changed(self, duration: int) -> None:
         self.timelineSlider.setMaximum(duration)
         if duration >= 0:
-            minutes, seconds = divmod(round(self.player.duration() / 1_000), 60)
+            minutes, seconds = divmod(round(self.player.duration() * 0.001), 60)
             hours, minutes = divmod(minutes, 60)
             self.durationLabel.setText(QtCore.QTime(hours, minutes, seconds).toString())
             self.selectEndMarkerButton.setText(QtCore.QTime(hours, minutes, seconds).toString())
@@ -465,16 +483,12 @@ class CropVideoWidget(CustomCropWidget):
         self.vol_cache = position
 
     def volume_mute(self) -> None:
-        if self.audio_state == MediaPlaybackState.UNMUTED:
-            self.audio.setMuted(True)
-            self.audio_state = MediaPlaybackState.MUTED
-            self.volumeSlider.setValue(0)
-            self.muteButton.setIcon(QtGui.QIcon('resources\\icons\\multimedia_unmute.svg'))
-        elif self.audio_state == MediaPlaybackState.MUTED:
+        if self.audio.isMuted():
             self.audio.setMuted(False)
-            self.audio_state = MediaPlaybackState.UNMUTED
             self.volumeSlider.setValue(self.vol_cache)
-            self.muteButton.setIcon(QtGui.QIcon('resources\\icons\\multimedia_mute.svg'))
+        else:
+            self.audio.setMuted(True)
+            self.volumeSlider.setValue(0)
 
     def goto_beginning(self) -> None:
         self.player.setPosition(0)
@@ -489,7 +503,7 @@ class CropVideoWidget(CustomCropWidget):
         button.setText(QtCore.QTime(hours, minutes, seconds).toString())
 
     def set_startPosition(self, button: QtWidgets.QPushButton) -> None:
-        if (time_value := self.timelineSlider.value() / 1_000) < self.stop_position:
+        if (time_value := self.timelineSlider.value() * 0.001) < self.stop_position:
             self.start_position = time_value
             self.set_marker_time(button, self.start_position)
         elif self.start_position == 0 and self.stop_position == 0:
@@ -497,7 +511,7 @@ class CropVideoWidget(CustomCropWidget):
             self.set_marker_time(button, self.start_position) 
 
     def set_stopPosition(self, button: QtWidgets.QPushButton) -> None:
-        if (time_value := self.timelineSlider.value() / 1_000) > self.start_position:
+        if (time_value := self.timelineSlider.value() * 0.001) > self.start_position:
             self.stop_position = time_value
             self.set_marker_time(button, self.stop_position)
         elif self.start_position == 0 and self.stop_position == 0:
@@ -555,6 +569,5 @@ class CropVideoWidget(CustomCropWidget):
                               destination=self.destinationLineEdit,
                               start_position=self.start_position, 
                               stop_position=self.stop_position)
-        self.pause_video()
-        self.playButton.setIcon(QtGui.QIcon('resources\\icons\\multimedia_play.svg'))
+        self.player.pause()
         self.run_batch_process(self.crop_worker.extract_frames, self.crop_worker.reset_v_task, job)

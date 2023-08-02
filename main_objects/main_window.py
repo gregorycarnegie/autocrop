@@ -347,9 +347,9 @@ class UiMainWindow(QtWidgets.QMainWindow):
         if self.function_tabWidget.currentIndex() == 0:
             self.handle_function_tab_state(self.photoTab, self.folder_Tab, self.mappingTab, self.videoTab)
         elif self.function_tabWidget.currentIndex() == 1:
-            self.handle_function_tab_state(self.folder_Tab, self.photoTab, self.mappingTab, self.videoTab)
+            self.handle_function_tab_state(self.folder_Tab, self.mappingTab, self.videoTab, self.photoTab)
         elif self.function_tabWidget.currentIndex() == 2:
-            self.handle_function_tab_state(self.mappingTab, self.photoTab, self.folder_Tab, self.videoTab)
+            self.handle_function_tab_state(self.mappingTab, self.videoTab, self.photoTab, self.folder_Tab)
         elif self.function_tabWidget.currentIndex() == 3:
             self.handle_function_tab_state(self.videoTab, self.photoTab, self.folder_Tab, self.mappingTab)
 

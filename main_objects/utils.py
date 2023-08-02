@@ -157,9 +157,7 @@ def align_head(image: Union[cv2.Mat, npt.NDArray[np.int8]],
     Returns:
         A numpy array representing the aligned image.
     """
-    if not tilt:
-        return image
-
+    if not tilt: return image
     height, _ = image.shape[:2]
     scaling_factor = 256 / height
     image_array = cv2.resize(image, None, fx=scaling_factor, fy=scaling_factor, interpolation=cv2.INTER_AREA)
@@ -171,8 +169,7 @@ def align_head(image: Union[cv2.Mat, npt.NDArray[np.int8]],
 
     faces = face_detector(image_array, 1)
     # If no faces are detected, return the original image.
-    if len(faces) == 0:
-        return image
+    if len(faces) == 0: return image
 
     # Find the face with the highest confidence score.
     face = max(faces, key=lambda x: x.area())
@@ -238,10 +235,10 @@ def get_box_coordinates(output: npt.NDArray[np.float_],
                         x: Optional[npt.NDArray[np.float_]] = None) -> Tuple[int, int, int, int]:
     box_outputs = output * np.array([width, height, width, height])
     x0, y0, x1, y1 = box_outputs.astype(np.int_) if x is None else box_outputs[np.argmax(x)]
-    return autocrop_rs.crop_positions(x0, y0, x1 - x0, y1 - y0,
-                                      job.face_percent.value(), job.width_value(), job.height_value(),
-                                      job.top.value(), job.bottom.value(), job.left.value(),
-                                      job.right.value())
+    return autocrop_rs.crop_positions(
+        x0, y0, x1 - x0, y1 - y0, job.face_percent.value(), job.width_value(),
+        job.height_value(), job.top.value(), job.bottom.value(), job.left.value(),
+        job.right.value())
 
 def box(img: Union[cv2.Mat, npt.NDArray[np.int8]],
         width: int,
@@ -253,8 +250,7 @@ def box(img: Union[cv2.Mat, npt.NDArray[np.int8]],
     output = np.squeeze(detections)
     # get the confidence
     confidence_list = output[:, 2]
-    if np.max(confidence_list) < job.sensitivity.value() * .01:
-        return None
+    if np.max(confidence_list) * 100 < job.sensitivity.value(): return None
     return get_box_coordinates(output[:, 3:7], width, height, job, confidence_list)
 
 def multi_box(image: Union[cv2.Mat, npt.NDArray[np.int8]],
@@ -264,9 +260,9 @@ def multi_box(image: Union[cv2.Mat, npt.NDArray[np.int8]],
     detections = prepare_detections(image, face_worker)
     for i in range(detections.shape[2]):
         # Confidence in the detection
-        if (confidence := detections[0, 0, i, 2]) > job.sensitivity.value() * .01: # Threshold
+        if (confidence := detections[0, 0, i, 2]) * 100 > job.sensitivity.value(): # Threshold
             x0, y0, x1, y1 = get_box_coordinates(detections[0, 0, i, 3:7], width, height, job)
-            text = "{:.2f}%".format(confidence * 100)
+            text = "{:.2f}%".format(confidence)
             y = y0 - 10 if y0 > 20 else y0 + 10
             cv2.rectangle(image, (x0, y0), (x1, y1), (0, 0, 255), 2)
             cv2.putText(image, text, (x0, y), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 2)
@@ -322,7 +318,9 @@ def set_filename(image_path: Path,
     final_path = destination.joinpath(f'{new or image_path.stem}{selected_extension}')
     return final_path, final_path.suffix in {'.tif', '.tiff'}
 
-def reject(path: Path, destination: Path, image: Path) -> None:
+def reject(path: Path,
+           destination: Path,
+           image: Path) -> None:
     reject_folder = destination.joinpath('rejects')
     reject_folder.mkdir(exist_ok=True)
     shutil.copy(path, reject_folder.joinpath(image.name))

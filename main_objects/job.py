@@ -111,6 +111,9 @@ class Job(NamedTuple):
         """
         return int(self.height.text())
     
+    def size(self) -> Tuple[int, int]:
+        return (int(self.width.text()), int(self.height.text()))
+
     def get_destination(self) -> Optional[Path]:
         """
         Gets the destination path specified by the user.
@@ -121,8 +124,7 @@ class Job(NamedTuple):
             pathlib.Path: The specified destination path
             None: if no path was specified.
         """
-        if self.destination is None:
-            return None
+        if self.destination is None: return None
         x = Path(self.destination.text())
         x.mkdir(exist_ok=True)
         return x
@@ -140,11 +142,8 @@ class Job(NamedTuple):
                             column_2: str) -> Tuple[npt.NDArray[np.str_], npt.NDArray[np.str_]]:
             return table[column_1].to_numpy().astype(str), table[column_2].to_numpy().astype(str) # type: ignore
         
-        if (
-            not isinstance(self.table, pd.DataFrame)
+        if (not isinstance(self.table, pd.DataFrame)
             or not isinstance(self.column1, QComboBox)
-            or not isinstance(self.column2, QComboBox)
-        ):
+            or not isinstance(self.column2, QComboBox)):
             return None
         return _table_to_numpy(self.table, self.column1.currentText(), self.column2.currentText())
-    
