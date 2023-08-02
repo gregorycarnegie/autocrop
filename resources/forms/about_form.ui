@@ -31,37 +31,9 @@
   <property name="windowTitle">
    <string>About Face Cropper</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
+  <layout class="QVBoxLayout" name="verticalLayout" stretch="7,1,1,2">
    <item>
-    <widget class="QLabel" name="label">
-     <property name="enabled">
-      <bool>true</bool>
-     </property>
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="minimumSize">
-      <size>
-       <width>329</width>
-       <height>329</height>
-      </size>
-     </property>
-     <property name="text">
-      <string/>
-     </property>
-     <property name="pixmap">
-      <pixmap resource="../resources.qrc">:/logos/logos/logo.png</pixmap>
-     </property>
-     <property name="scaledContents">
-      <bool>true</bool>
-     </property>
-     <property name="alignment">
-      <set>Qt::AlignCenter</set>
-     </property>
-    </widget>
+    <widget class="QWidget" name="widget" native="true"/>
    </item>
    <item>
     <widget class="QFrame" name="frame">
@@ -71,42 +43,24 @@
      <property name="frameShadow">
       <enum>QFrame::Raised</enum>
      </property>
-     <property name="lineWidth">
-      <number>0</number>
-     </property>
-     <layout class="QHBoxLayout" name="horizontalLayout">
+     <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="1,2">
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
+       <number>0</number>
+      </property>
       <item>
-       <widget class="QLabel" name="label_7">
-        <property name="minimumSize">
-         <size>
-          <width>50</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>50</width>
-          <height>16777215</height>
-         </size>
-        </property>
+       <widget class="QLabel" name="label">
         <property name="text">
          <string>Version:</string>
-        </property>
-        <property name="textFormat">
-         <enum>Qt::AutoText</enum>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QLabel" name="label_8">
+       <widget class="QLabel" name="label_5">
         <property name="text">
          <string>2.0.0</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
         </property>
        </widget>
       </item>
@@ -121,39 +75,24 @@
      <property name="frameShadow">
       <enum>QFrame::Raised</enum>
      </property>
-     <property name="lineWidth">
-      <number>0</number>
-     </property>
-     <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="1,2">
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
+       <number>0</number>
+      </property>
       <item>
-       <widget class="QLabel" name="label_4">
-        <property name="minimumSize">
-         <size>
-          <width>50</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>50</width>
-          <height>16777215</height>
-         </size>
-        </property>
+       <widget class="QLabel" name="label_2">
         <property name="text">
-         <string>Creator:</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+         <string>Creator</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QLabel" name="label_3">
+       <widget class="QLabel" name="label_6">
         <property name="text">
          <string>Gregory Carnegie</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
         </property>
        </widget>
       </item>
@@ -168,16 +107,7 @@
      <property name="frameShadow">
       <enum>QFrame::Raised</enum>
      </property>
-     <property name="lineWidth">
-      <number>0</number>
-     </property>
-     <layout class="QHBoxLayout" name="horizontalLayout_3">
-      <property name="spacing">
-       <number>0</number>
-      </property>
-      <property name="leftMargin">
-       <number>0</number>
-      </property>
+     <layout class="QHBoxLayout" name="horizontalLayout" stretch="1,2">
       <property name="topMargin">
        <number>0</number>
       </property>
@@ -185,71 +115,35 @@
        <number>0</number>
       </property>
       <item>
-       <widget class="QFrame" name="frame_5">
-        <property name="minimumSize">
-         <size>
-          <width>50</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>50</width>
-          <height>16777215</height>
-         </size>
-        </property>
+       <widget class="QFrame" name="frame_4">
         <property name="frameShape">
          <enum>QFrame::NoFrame</enum>
         </property>
         <property name="frameShadow">
          <enum>QFrame::Raised</enum>
         </property>
-        <property name="lineWidth">
-         <number>0</number>
-        </property>
-        <layout class="QVBoxLayout" name="verticalLayout_3">
+        <layout class="QVBoxLayout" name="verticalLayout_2">
+         <property name="spacing">
+          <number>0</number>
+         </property>
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
          <property name="rightMargin">
           <number>0</number>
          </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
          <item>
-          <widget class="QLabel" name="label_5">
-           <property name="minimumSize">
-            <size>
-             <width>50</width>
-             <height>0</height>
-            </size>
-           </property>
-           <property name="maximumSize">
-            <size>
-             <width>50</width>
-             <height>16777215</height>
-            </size>
-           </property>
-           <property name="lineWidth">
-            <number>0</number>
-           </property>
+          <widget class="QLabel" name="label_3">
            <property name="text">
-            <string>Credits:</string>
+            <string>Inspiration:</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QLabel" name="label_9">
-           <property name="minimumSize">
-            <size>
-             <width>50</width>
-             <height>0</height>
-            </size>
-           </property>
-           <property name="maximumSize">
-            <size>
-             <width>50</width>
-             <height>16777215</height>
-            </size>
-           </property>
-           <property name="lineWidth">
-            <number>0</number>
-           </property>
+          <widget class="QLabel" name="label_4">
            <property name="text">
             <string/>
            </property>
@@ -259,52 +153,37 @@
        </widget>
       </item>
       <item>
-       <widget class="QFrame" name="frame_4">
+       <widget class="QFrame" name="frame_5">
         <property name="frameShape">
          <enum>QFrame::NoFrame</enum>
         </property>
         <property name="frameShadow">
          <enum>QFrame::Raised</enum>
         </property>
-        <property name="lineWidth">
-         <number>0</number>
-        </property>
-        <layout class="QVBoxLayout" name="verticalLayout_2">
+        <layout class="QVBoxLayout" name="verticalLayout_3">
+         <property name="spacing">
+          <number>0</number>
+         </property>
          <property name="leftMargin">
-          <number>14</number>
+          <number>0</number>
          </property>
          <property name="rightMargin">
           <number>0</number>
          </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
          <item>
-          <widget class="QLabel" name="label_6">
-           <property name="styleSheet">
-            <string notr="true"/>
-           </property>
-           <property name="lineWidth">
-            <number>0</number>
-           </property>
+          <widget class="QLabel" name="label_7">
            <property name="text">
-            <string>&lt;a href=&quot;https://leblancfg.com/autocrop/&quot;&gt;François (leblancfg) Leblanc's autocrop library&lt;/a&gt;</string>
-           </property>
-           <property name="openExternalLinks">
-            <bool>true</bool>
+            <string>&lt;a href=&quot;https://leblancfg.com/autocrop/&quot;&gt;François Leblanc's autocrop library&lt;/a&gt;</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QLabel" name="label_2">
-           <property name="lineWidth">
-            <number>0</number>
-           </property>
+          <widget class="QLabel" name="label_8">
            <property name="text">
-            <string>&lt;a href=&quot;https://bleedai.com/5-easy-effective-face-detection-algorithms-in-python/&quot;&gt;Bleed AI's 'Effective Face Detection' article&lt;/a&gt;</string>
-           </property>
-           <property name="alignment">
-            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-           </property>
-           <property name="openExternalLinks">
-            <bool>true</bool>
+            <string>&lt;a href=&quot;https://bleedaiacademy.com/5-easy-effective-face-detection-algorithms-in-python/&quot;&gt;Bleed AI's Face Detection article&lt;/a&gt;</string>
            </property>
           </widget>
          </item>
