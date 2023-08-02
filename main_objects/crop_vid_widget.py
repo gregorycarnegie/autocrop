@@ -1,6 +1,6 @@
 from pathlib import Path
 from threading import Thread
-from typing import Optional, Union
+from typing import Optional, Tuple, Union
 
 import numpy as np
 from PyQt6 import QtCore, QtGui, QtWidgets, QtMultimedia
@@ -187,7 +187,6 @@ class CropVideoWidget(CustomCropWidget):
         self.stopButton = create_media_button('stopButton', 'stop', self.horizontalLayout_5, parent=self)
         self.stepbackButton = create_media_button('stepbackButton', 'left', self.horizontalLayout_5, parent=self)
         self.stepfwdButton = create_media_button('stepfwdButton', 'right', self.horizontalLayout_5, parent=self)
-        self.rewindButton = create_media_button('rewindButton', 'rewind', self.horizontalLayout_5, parent=self)
         self.fastfwdButton = create_media_button('fastfwdButton', 'fastfwd', self.horizontalLayout_5, parent=self)
         self.goto_beginingButton = create_media_button('goto_beginingButton', 'begining', self.horizontalLayout_5, parent=self)
         self.goto_endButton = create_media_button("goto_endButton", "end", self.horizontalLayout_5, parent=self)
@@ -255,12 +254,12 @@ class CropVideoWidget(CustomCropWidget):
                                    self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox)
         
         # Media connections
-        self.audio.mutedChanged.connect(lambda: self.check_audio_icons())
+        self.audio.mutedChanged.connect(lambda: self.change_audio_icon())
         self.player.playbackStateChanged.connect(
-            lambda: self.change_media_widget_state(self.stopButton, self.stepbackButton, self.stepfwdButton, self.rewindButton,
+            lambda: self.change_media_widget_state(self.stopButton, self.stepbackButton, self.stepfwdButton,
                                                    self.fastfwdButton, self.goto_beginingButton, self.goto_endButton, self.startmarkerButton,
                                                    self.endmarkerButton, self.selectStartMarkerButton, self.selectEndMarkerButton,))
-        self.player.playbackStateChanged.connect(lambda: self.check_playback_icons())
+        self.player.playbackStateChanged.connect(lambda: self.change_playback_icons())
 
         # Video start connection
         self.crop_worker.video_started.connect(
@@ -273,7 +272,7 @@ class CropVideoWidget(CustomCropWidget):
                                    self.extWidget.radioButton_5, self.extWidget.radioButton_6, self.cropButton,
                                    self.videocropButton, self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox,
                                    self.videocropButton, self.playButton, self.stopButton, self.stepbackButton,
-                                   self.stepfwdButton, self.fastfwdButton, self.rewindButton, self.goto_beginingButton,
+                                   self.stepfwdButton, self.fastfwdButton, self.goto_beginingButton,
                                    self.goto_endButton, self.startmarkerButton, self.endmarkerButton,
                                    self.selectStartMarkerButton, self.selectEndMarkerButton))
         self.crop_worker.video_started.connect(lambda: enable_widget(self.cancelButton))
@@ -289,7 +288,7 @@ class CropVideoWidget(CustomCropWidget):
                                   self.extWidget.radioButton_5, self.extWidget.radioButton_6, self.cropButton,
                                   self.videocropButton, self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox,
                                   self.videocropButton, self.playButton, self.stopButton, self.stepbackButton,
-                                  self.stepfwdButton, self.fastfwdButton, self.rewindButton, self.goto_beginingButton,
+                                  self.stepfwdButton, self.fastfwdButton, self.goto_beginingButton,
                                   self.goto_endButton, self.startmarkerButton, self.endmarkerButton,
                                   self.selectStartMarkerButton, self.selectEndMarkerButton))
         self.crop_worker.video_finished.connect(lambda: disable_widget(self.cancelButton))
@@ -299,14 +298,14 @@ class CropVideoWidget(CustomCropWidget):
         self.playButton.clicked.connect(lambda: self.change_playback_state())
         self.playButton.clicked.connect(
             lambda: change_widget_state(True, self.stopButton, self.stepbackButton,  self.stepfwdButton,
-                                        self.fastfwdButton, self.rewindButton, self.goto_beginingButton,
+                                        self.fastfwdButton, self.goto_beginingButton,
                                         self.goto_endButton, self.startmarkerButton, self.endmarkerButton,
                                         self.selectEndMarkerButton, self.selectStartMarkerButton))
         self.stopButton.clicked.connect(lambda: self.stop_playback())
         self.stepbackButton.clicked.connect(lambda: self.step_back())
         self.stepfwdButton.clicked.connect(lambda: self.step_forward())
         self.fastfwdButton.clicked.connect(lambda: self.fast_forward())
-        self.rewindButton.clicked.connect(lambda: self.rewind())
+        # self.rewindButton.clicked.connect(lambda: self.rewind())
         self.goto_beginingButton.clicked.connect(lambda: self.goto_beginning())
         self.goto_endButton.clicked.connect(lambda: self.goto_end())
         self.startmarkerButton.clicked.connect(lambda: self.set_startPosition(self.selectStartMarkerButton))
@@ -318,7 +317,7 @@ class CropVideoWidget(CustomCropWidget):
         self.retranslateUi()
         self.disable_buttons()
         change_widget_state(False, self.cropButton, self.videocropButton, self.cancelButton, self.playButton,
-                            self.stopButton, self.stepbackButton, self.stepfwdButton, self.rewindButton,
+                            self.stopButton, self.stepbackButton, self.stepfwdButton,
                             self.fastfwdButton, self.goto_beginingButton, self.goto_endButton, self.startmarkerButton,
                             self.endmarkerButton, self.selectStartMarkerButton, self.selectEndMarkerButton,
                             self.timelineSlider)
@@ -354,24 +353,32 @@ class CropVideoWidget(CustomCropWidget):
             self.videoLineEdit.setText(file_name)
             self.playButton.setEnabled(True)
 
-    def check_audio_icons(self) -> None:
+    def change_audio_icon(self) -> None:
         if self.audio.isMuted():
             self.muteButton.setIcon(QtGui.QIcon('resources\\icons\\multimedia_unmute.svg'))
         else:
             self.muteButton.setIcon(QtGui.QIcon('resources\\icons\\multimedia_mute.svg'))
 
+    def playback_bool(self,
+                      a0: QtMultimedia.QMediaPlayer.PlaybackState = QtMultimedia.QMediaPlayer.PlaybackState.PausedState,
+                      a1: QtMultimedia.QMediaPlayer.PlaybackState = QtMultimedia.QMediaPlayer.PlaybackState.StoppedState) -> Tuple[bool, bool]:
+        """Returns a tuple of bools comparing the playback state to the Class attributes of PyQt6.QtMultimedia.QMediaPlayer.PlaybackState"""
+        return self.player.playbackState() == a0, self.player.playbackState() == a1
+
     def check_playback_state(self) -> None:
-        if self.player.playbackState()  in {QtMultimedia.QMediaPlayer.PlaybackState.PausedState,
-                                            QtMultimedia.QMediaPlayer.PlaybackState.StoppedState}:
+        """Stops playback if in the paused state or playing state"""
+        x, y = self.playback_bool(a1=QtMultimedia.QMediaPlayer.PlaybackState.PlayingState)
+        if x ^ y:
             self.stop_playback()
 
     def change_playback_state(self):
         if self.player.playbackState() == QtMultimedia.QMediaPlayer.PlaybackState.PlayingState:
             self.player.pause()
+            self.speed = 0
         else:
             self.player.play()
 
-    def check_playback_icons(self):
+    def change_playback_icons(self):
         if self.player.playbackState() == QtMultimedia.QMediaPlayer.PlaybackState.PlayingState:
             self.playButton.setIcon(QtGui.QIcon('resources\\icons\\multimedia_pause.svg'))
             self.timelineSlider.setEnabled(True)
@@ -380,30 +387,25 @@ class CropVideoWidget(CustomCropWidget):
             self.playButton.setIcon(QtGui.QIcon('resources\\icons\\multimedia_play.svg'))
 
     def change_media_widget_state(self, *buttons: QtWidgets.QPushButton):
-        x = self.player.playbackState() == QtMultimedia.QMediaPlayer.PlaybackState.PausedState
-        y = self.player.playbackState() == QtMultimedia.QMediaPlayer.PlaybackState.StoppedState
+        x, y = self.playback_bool()
         for button in buttons:
             button.setDisabled(x ^ y)
         
-        for button in (self.stopButton, self.fastfwdButton, self.rewindButton):
+        for button in (self.stopButton, self.fastfwdButton):
             button.setEnabled(x)
 
     def create_mediaPlayer(self) -> None:
         self.player.setAudioOutput(self.audio)
         self.player.setVideoOutput(self.videoWidget)
 
-    def stop_playback(self):
-        if self.player.playbackState() in {QtMultimedia.QMediaPlayer.PlaybackState.PlayingState,
-                                           QtMultimedia.QMediaPlayer.PlaybackState.PausedState}:
-            self.timelineSlider.setDisabled(True)
-            self.player.stop()
-        elif self.player.playbackState() == QtMultimedia.QMediaPlayer.PlaybackState.StoppedState:
-            return None
+    def stop_playback(self) -> None:
+        self.timelineSlider.setDisabled(True)
+        x, y = self.playback_bool(a1=QtMultimedia.QMediaPlayer.PlaybackState.PlayingState)
+        if x ^ y: self.player.stop()
 
     def fast_forward(self) -> None:
-        if self.player.playbackState() in {QtMultimedia.QMediaPlayer.PlaybackState.PausedState,
-                                           QtMultimedia.QMediaPlayer.PlaybackState.StoppedState}:
-            return None
+        x, y = self.playback_bool()
+        if x ^ y: return None
         VIDEO_SPEEDS = np.array([1.0, 1.25, 1.5, 1.75, 2.0])
         self.reverse = 0
         self.speed += 1
@@ -411,32 +413,6 @@ class CropVideoWidget(CustomCropWidget):
             self.player.setPlaybackRate(VIDEO_SPEEDS[-1])
         else:
             self.player.setPlaybackRate(VIDEO_SPEEDS[self.speed])
-
-    def rewind(self) -> None:
-        if self.player.playbackState() in {QtMultimedia.QMediaPlayer.PlaybackState.PausedState,
-                                           QtMultimedia.QMediaPlayer.PlaybackState.StoppedState}:
-            return None        
-        # Create a QTimer if it doesn't exist yet
-        if not hasattr(self, 'rewind_timer'):
-            self.rewind_timer = QtCore.QTimer()
-            self.rewind_timer.timeout.connect(self.rewind_step)
-
-        # Start the timer to call rewind_step every 100 milliseconds
-        self.rewind_timer.start(100)
-
-    def rewind_step(self) -> None:
-        # Calculate the new position
-        new_position = self.player.position() - 1_000  # Amount to rewind in milliseconds
-
-        # Make sure we don't go past the start of the video
-        new_position = max(new_position, 0)
-
-        # Set the new position
-        self.player.setPosition(new_position)
-
-        # If we're at the start of the video, stop the timer
-        if new_position == 0:
-            self.rewind_timer.stop()
 
     def step_forward(self):
         new_position = self.player.position() + 10_000

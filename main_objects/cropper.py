@@ -412,8 +412,14 @@ class Cropper(QObject):
         video.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
         ret, frame = video.read()
         if not ret: return None
+        
+        try:
+            assert job.video_path is not None
+        except AssertionError:
+            return None
+        
         if (destination := job.get_destination()) is None: return None
-        file_enum = f'frame_{frame_number:06d}'
+        file_enum = f'{Path(job.video_path.text()).stem}_frame_{frame_number:06d}'
         if job.multi_face_job.isChecked():
             self.process_multiface_frame_job(frame, job, file_enum, destination)
         else:
