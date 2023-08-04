@@ -4,13 +4,11 @@ from typing import Optional, Callable, Any
 import pandas as pd
 from PyQt6 import QtWidgets
 
+from core import CustomDialWidget, ExtWidget, Job
+from file_types import Photo
 from line_edits import PathLineEdit, NumberLineEdit
 from .cropper import Cropper
-from .custom_dial_widget import CustomDialWidget
 from .enums import FunctionTabSelectionState
-from .ext_widget import ExtWidget
-from .f_type_photo import Photo
-from .job import Job
 
 CHECKBOX_STYLESHEET = """QCheckBox:unchecked{color: red}
         QCheckBox:checked{color: white}

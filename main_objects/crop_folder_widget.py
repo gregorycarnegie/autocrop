@@ -3,15 +3,12 @@ from typing import Optional, Union
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 
+from core import CustomDialWidget, ExtWidget, ImageWidget, window_functions
+from file_types import Photo
 from line_edits import PathLineEdit, NumberLineEdit, LineEditState
 from .cropper import Cropper
 from .custom_crop_widget import CustomCropWidget
-from .custom_dial_widget import CustomDialWidget
 from .enums import FunctionTabSelectionState, FunctionType
-from .ext_widget import ExtWidget
-from .f_type_photo import Photo
-from .image_widget import ImageWidget
-from .window_functions import disable_widget, enable_widget, show_message_box, change_widget_state, uncheck_boxes
 
 
 class CropFolderWidget(CustomCropWidget):
@@ -32,7 +29,7 @@ class CropFolderWidget(CustomCropWidget):
                          right_dial_area, parent)
         self.file_model = QtGui.QFileSystemModel(self)
         self.file_model.setFilter(QtCore.QDir.Filter.NoDotAndDotDot | QtCore.QDir.Filter.Files)
-        self.file_model.setNameFilters(Photo().file_filter())
+        self.file_model.setNameFilters(Photo().file_filter)
         self.setObjectName('Form')
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self)
         self.verticalLayout_2.setObjectName('verticalLayout_2')
@@ -155,7 +152,7 @@ class CropFolderWidget(CustomCropWidget):
                                    self.left_dialArea.dial, self.right_dialArea.dial)
         # Folder start connection
         self.crop_worker.folder_started.connect(
-            lambda: disable_widget(self.widthLineEdit, self.heightLineEdit, self.sensitivity_dialArea.dial,
+            lambda: window_functions.disable_widget(self.widthLineEdit, self.heightLineEdit, self.sensitivity_dialArea.dial,
                                    self.face_dialArea.dial, self.gamma_dialArea.dial, self.top_dialArea.dial,
                                    self.bottom_dialArea.dial, self.left_dialArea.dial, self.right_dialArea.dial,
                                    self.folderLineEdit, self.destinationLineEdit, self.destinationButton,
@@ -163,11 +160,11 @@ class CropFolderWidget(CustomCropWidget):
                                    self.extWidget.radioButton_3, self.extWidget.radioButton_4,
                                    self.extWidget.radioButton_5, self.extWidget.radioButton_6, self.cropButton,
                                    self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox))
-        self.crop_worker.folder_started.connect(lambda: enable_widget(self.cancelButton))
+        self.crop_worker.folder_started.connect(lambda: window_functions.enable_widget(self.cancelButton))
 
         # Folder end connection
         self.crop_worker.folder_finished.connect(
-            lambda: enable_widget(self.widthLineEdit, self.heightLineEdit, self.sensitivity_dialArea.dial,
+            lambda: window_functions.enable_widget(self.widthLineEdit, self.heightLineEdit, self.sensitivity_dialArea.dial,
                                   self.face_dialArea.dial, self.gamma_dialArea.dial, self.top_dialArea.dial,
                                   self.bottom_dialArea.dial, self.left_dialArea.dial, self.right_dialArea.dial,
                                   self.folderLineEdit, self.destinationLineEdit, self.destinationButton,
@@ -175,13 +172,13 @@ class CropFolderWidget(CustomCropWidget):
                                   self.extWidget.radioButton_3, self.extWidget.radioButton_4,
                                   self.extWidget.radioButton_5, self.extWidget.radioButton_6, self.cropButton,
                                   self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox))
-        self.crop_worker.folder_finished.connect(lambda: disable_widget(self.cancelButton))
-        self.crop_worker.folder_finished.connect(lambda: show_message_box(self.destinationLineEdit))
+        self.crop_worker.folder_finished.connect(lambda: window_functions.disable_widget(self.cancelButton))
+        self.crop_worker.folder_finished.connect(lambda: window_functions.show_message_box(self.destinationLineEdit))
         self.crop_worker.folder_progress.connect(lambda: self.update_progress(self.crop_worker.bar_value_f))
 
         self.retranslateUi()
         self.disable_buttons()
-        change_widget_state(False, self.cropButton, self.cancelButton)
+        window_functions.change_widget_state(False, self.cropButton, self.cancelButton)
         QtCore.QMetaObject.connectSlotsByName(self)
 
     def retranslateUi(self):
@@ -236,7 +233,7 @@ class CropFolderWidget(CustomCropWidget):
 
         def update_widget_state(condition: bool, *widgets: QtWidgets.QWidget) -> None:
             for widget in widgets:
-                change_widget_state(condition, widget)
+                window_functions.change_widget_state(condition, widget)
 
         # Folder logic
         update_widget_state(
@@ -253,9 +250,9 @@ class CropFolderWidget(CustomCropWidget):
             elif isinstance(input_widget, QtWidgets.QCheckBox):
                 input_widget.stateChanged.connect(lambda: self.reload_widgets())
                 if input_widget is self.mfaceCheckBox:
-                    input_widget.clicked.connect(lambda: uncheck_boxes(self.exposureCheckBox, self.tiltCheckBox))
+                    input_widget.clicked.connect(lambda: window_functions.uncheck_boxes(self.exposureCheckBox, self.tiltCheckBox))
                 else:
-                    input_widget.clicked.connect(lambda: uncheck_boxes(self.mfaceCheckBox))
+                    input_widget.clicked.connect(lambda: window_functions.uncheck_boxes(self.mfaceCheckBox))
 
     def folder_process(self) -> None:
         job = self.create_job(self.exposureCheckBox, 

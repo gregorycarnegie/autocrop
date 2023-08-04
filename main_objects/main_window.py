@@ -3,6 +3,8 @@ from typing import Union, Tuple
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 
+from core import CustomDialWidget, ExtWidget, utils, window_functions
+from file_types import Photo, Table, Video
 from line_edits import NumberLineEdit, PathLineEdit, LineEditState
 from .crop_folder_widget import CropFolderWidget
 from .crop_map_widget import CropMapWidget
@@ -10,14 +12,7 @@ from .crop_photo_widget import CropPhotoWidget
 from .crop_vid_widget import CropVideoWidget
 from .cropper import Cropper
 from .custom_crop_widget import CustomCropWidget
-from .custom_dial_widget import CustomDialWidget
 from .enums import FunctionTabSelectionState, FunctionType
-from .ext_widget import ExtWidget
-from .f_type_photo import IMAGE_TYPES
-from .f_type_table import PANDAS_TYPES
-from .f_type_video import VIDEO_TYPES
-from .utils import open_table
-from .window_functions import change_widget_state, load_about_form
 
 
 class UiMainWindow(QtWidgets.QMainWindow):
@@ -194,7 +189,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         # CONNECTIONS
         self.connect_combo_boxes(self.mappingTab)
 
-        self.actionAbout_Face_Cropper.triggered.connect(lambda: load_about_form())
+        self.actionAbout_Face_Cropper.triggered.connect(lambda: window_functions.load_about_form())
         self.actionGolden_Ratio.triggered.connect(lambda: self.load_preset(0.5 * (1 + 5 ** 0.5)))
         self.action2_3_Ratio.triggered.connect(lambda: self.load_preset(1.5))
         self.action3_4_Ratio.triggered.connect(lambda: self.load_preset(4 / 3))
@@ -207,6 +202,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.actionCrop_Video.triggered.connect(lambda: self.function_tabWidget.setCurrentIndex(3))
 
         self.function_tabWidget.currentChanged.connect(lambda: self.check_tab_selection())
+        self.function_tabWidget.currentChanged.connect(lambda: self.videoTab.player.pause())
 
         self.retranslateUi()
         self.function_tabWidget.setCurrentIndex(0)
@@ -298,7 +294,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
     def handle_path_main(self, file_path: Path) -> None:
         extensions = {y.suffix.lower() for y in file_path.iterdir()}
-        mask = {ext in extensions for ext in PANDAS_TYPES}
+        mask = {ext in extensions for ext in Table().file_types}
         try:
             assert isinstance(self.mappingTab, CropMapWidget)
             assert isinstance(self.folder_Tab, CropFolderWidget)
@@ -310,9 +306,9 @@ class UiMainWindow(QtWidgets.QMainWindow):
             self.handle_path(file_path, 1, self.folder_Tab.folderLineEdit)
 
     def handle_file(self, file_path: Path) -> None:
-        if file_path.suffix.lower() in IMAGE_TYPES: self.handle_image_file(file_path)
-        elif file_path.suffix.lower() in VIDEO_TYPES: self.handle_video_file(file_path)
-        elif file_path.suffix.lower() in PANDAS_TYPES: self.handle_pandas_file(file_path)
+        if file_path.suffix.lower() in Photo().file_types: self.handle_image_file(file_path)
+        elif file_path.suffix.lower() in Video().file_types: self.handle_video_file(file_path)
+        elif file_path.suffix.lower() in Table().file_types: self.handle_pandas_file(file_path)
 
     def handle_image_file(self, file_path: Path) -> None:
         try:
@@ -340,7 +336,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         except AssertionError:
             return None
         self.mappingTab.tableLineEdit.setText(file_path.as_posix())
-        data = open_table(file_path)
+        data = utils.open_table(file_path)
         self.mappingTab.validate_pandas_file(data)
 
     def check_tab_selection(self) -> None:
@@ -379,7 +375,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
         def update_widget_state(condition: bool, *widgets: QtWidgets.QWidget) -> None:
             for widget in widgets:
-                change_widget_state(condition, widget)
+                window_functions.change_widget_state(condition, widget)
 
         common_line_edits = (self.widthLineEdit, self.heightLineEdit)
         try:

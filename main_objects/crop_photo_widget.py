@@ -3,15 +3,12 @@ from typing import Optional, Union
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 
+from core import CustomDialWidget, ExtWidget, ImageWidget, window_functions
+from file_types import Photo
 from line_edits import PathLineEdit, PathType, NumberLineEdit, LineEditState
 from .cropper import Cropper
 from .custom_crop_widget import CustomCropWidget
-from .custom_dial_widget import CustomDialWidget
 from .enums import FunctionTabSelectionState
-from .ext_widget import ExtWidget
-from .f_type_photo import Photo
-from .image_widget import ImageWidget
-from .window_functions import change_widget_state, uncheck_boxes
 
 
 class CropPhotoWidget(CustomCropWidget):
@@ -121,7 +118,7 @@ class CropPhotoWidget(CustomCropWidget):
                                    self.left_dialArea.dial, self.right_dialArea.dial)
         self.retranslateUi()
         self.disable_buttons()
-        change_widget_state(False, self.cropButton)
+        window_functions.change_widget_state(False, self.cropButton)
         QtCore.QMetaObject.connectSlotsByName(self)
 
     def retranslateUi(self):
@@ -143,7 +140,7 @@ class CropPhotoWidget(CustomCropWidget):
     def open_folder(self, line_edit: PathLineEdit) -> None:
         if line_edit is self.photoLineEdit:
                 f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
-                    self, 'Open File', Photo().default_directory, Photo().type_string())
+                    self, 'Open File', Photo().default_directory, Photo().type_string)
                 line_edit.setText(f_name)
                 self.load_data()
         elif line_edit is self.destinationLineEdit:
@@ -178,9 +175,10 @@ class CropPhotoWidget(CustomCropWidget):
             elif isinstance(input_widget, QtWidgets.QCheckBox):
                 input_widget.stateChanged.connect(lambda: self.reload_widgets())
                 if input_widget is self.mfaceCheckBox:
-                    input_widget.clicked.connect(lambda: uncheck_boxes(self.exposureCheckBox, self.tiltCheckBox))
+                    input_widget.clicked.connect(
+                        lambda: window_functions.uncheck_boxes(self.exposureCheckBox, self.tiltCheckBox))
                 else:
-                    input_widget.clicked.connect(lambda: uncheck_boxes(self.mfaceCheckBox))
+                    input_widget.clicked.connect(lambda: window_functions.uncheck_boxes(self.mfaceCheckBox))
  
     def disable_buttons(self) -> None:
         def all_filled(*line_edits: Union[PathLineEdit, NumberLineEdit, QtWidgets.QComboBox]) -> bool:
@@ -191,7 +189,7 @@ class CropPhotoWidget(CustomCropWidget):
 
         def update_widget_state(condition: bool, *widgets: QtWidgets.QWidget) -> None:
             for widget in widgets:
-                change_widget_state(condition, widget)
+                window_functions.change_widget_state(condition, widget)
 
         # Photo logic
         update_widget_state(

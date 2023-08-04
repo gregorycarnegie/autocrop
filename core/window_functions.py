@@ -6,6 +6,7 @@ from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtWidgets import QCheckBox, QLineEdit, QMessageBox, QWidget, QPushButton, QHBoxLayout, QVBoxLayout
 
 from .dialog import UiDialog
+from .literals import MediaIconAlias
 
 def uncheck_boxes(*checkboxes: QCheckBox) -> None:
     for checkbox in checkboxes:
@@ -32,7 +33,7 @@ def show_message_box(destination: QLineEdit) -> None:
     helper_function(msg)
 
 def create_media_button(name: str,
-                        icon_resource: str,
+                        icon_resource: MediaIconAlias,
                         layout: Union[QHBoxLayout, QVBoxLayout],
                         size: int = 48,
                         icon_size: int = 32,

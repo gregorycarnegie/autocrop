@@ -1,4 +1,3 @@
-from pathlib import Path
 from threading import Thread
 from typing import Optional, Tuple, Union
 
@@ -6,15 +5,12 @@ import numpy as np
 from PyQt6 import QtCore, QtGui, QtWidgets, QtMultimedia
 from PyQt6.QtMultimediaWidgets import QVideoWidget
 
+from core import CustomDialWidget, ExtWidget, window_functions
+from file_types import Photo, Video
 from line_edits import PathLineEdit, PathType, NumberLineEdit, LineEditState
 from .cropper import Cropper
 from .custom_crop_widget import CustomCropWidget
-from .custom_dial_widget import CustomDialWidget
 from .enums import FunctionType
-from .ext_widget import ExtWidget
-from .f_type_photo import Photo
-from .window_functions import change_widget_state, disable_widget, enable_widget, show_message_box, uncheck_boxes, \
-    create_media_button
 
 
 class CropVideoWidget(CustomCropWidget):
@@ -35,7 +31,7 @@ class CropVideoWidget(CustomCropWidget):
                          right_dial_area, parent)
         self.vol_cache = 70
         self.rewind_timer = QtCore.QTimer()
-        self.default_directory = f'{Path.home()}\\Videos'
+        self.default_directory = Video().default_directory
         self.player = QtMultimedia.QMediaPlayer()
         self.audio = QtMultimedia.QAudioOutput()
         self.start_position, self.stop_position, self.step = 0.0, 0.0, 2
@@ -183,15 +179,15 @@ class CropVideoWidget(CustomCropWidget):
         self.verticalLayout_3.addLayout(self.horizontalLayout_4)
         self.horizontalLayout_5 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_5.setObjectName('horizontalLayout_5')
-        self.playButton = create_media_button('playButton', 'play', self.horizontalLayout_5, parent=self)
-        self.stopButton = create_media_button('stopButton', 'stop', self.horizontalLayout_5, parent=self)
-        self.stepbackButton = create_media_button('stepbackButton', 'left', self.horizontalLayout_5, parent=self)
-        self.stepfwdButton = create_media_button('stepfwdButton', 'right', self.horizontalLayout_5, parent=self)
-        self.fastfwdButton = create_media_button('fastfwdButton', 'fastfwd', self.horizontalLayout_5, parent=self)
-        self.goto_beginingButton = create_media_button('goto_beginingButton', 'begining', self.horizontalLayout_5, parent=self)
-        self.goto_endButton = create_media_button("goto_endButton", "end", self.horizontalLayout_5, parent=self)
-        self.startmarkerButton = create_media_button('startmarkerButton', 'leftmarker', self.horizontalLayout_5, parent=self)
-        self.endmarkerButton = create_media_button('endmarkerButton', 'rightmarker', self.horizontalLayout_5, parent=self)
+        self.playButton = window_functions.create_media_button('playButton', 'play', self.horizontalLayout_5, parent=self)
+        self.stopButton = window_functions.create_media_button('stopButton', 'stop', self.horizontalLayout_5, parent=self)
+        self.stepbackButton = window_functions.create_media_button('stepbackButton', 'left', self.horizontalLayout_5, parent=self)
+        self.stepfwdButton = window_functions.create_media_button('stepfwdButton', 'right', self.horizontalLayout_5, parent=self)
+        self.fastfwdButton = window_functions.create_media_button('fastfwdButton', 'fastfwd', self.horizontalLayout_5, parent=self)
+        self.goto_beginingButton = window_functions.create_media_button('goto_beginingButton', 'begining', self.horizontalLayout_5, parent=self)
+        self.goto_endButton = window_functions.create_media_button("goto_endButton", "end", self.horizontalLayout_5, parent=self)
+        self.startmarkerButton = window_functions.create_media_button('startmarkerButton', 'leftmarker', self.horizontalLayout_5, parent=self)
+        self.endmarkerButton = window_functions.create_media_button('endmarkerButton', 'rightmarker', self.horizontalLayout_5, parent=self)
         spacerItem1 = QtWidgets.QSpacerItem(
             40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
         self.horizontalLayout_5.addItem(spacerItem1)
@@ -248,7 +244,8 @@ class CropVideoWidget(CustomCropWidget):
         self.cropButton.clicked.connect(lambda: self.crop_frame())
         self.videocropButton.clicked.connect(lambda: self.video_process())
         self.cancelButton.clicked.connect(lambda: self.crop_worker.terminate(FunctionType.VIDEO))
-        self.cancelButton.clicked.connect(lambda: self.cancel_button_operation(self.cancelButton, self.videocropButton, self.cropButton))
+        self.cancelButton.clicked.connect(
+            lambda: self.cancel_button_operation(self.cancelButton, self.videocropButton, self.cropButton))
 
         self.connect_input_widgets(self.widthLineEdit, self.heightLineEdit, self.destinationLineEdit,
                                    self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox)
@@ -256,51 +253,48 @@ class CropVideoWidget(CustomCropWidget):
         # Media connections
         self.audio.mutedChanged.connect(lambda: self.change_audio_icon())
         self.player.playbackStateChanged.connect(
-            lambda: self.change_media_widget_state(self.stopButton, self.stepbackButton, self.stepfwdButton,
-                                                   self.fastfwdButton, self.goto_beginingButton, self.goto_endButton, self.startmarkerButton,
-                                                   self.endmarkerButton, self.selectStartMarkerButton, self.selectEndMarkerButton,))
+            lambda: self.change_media_widget_state(
+                self.stopButton, self.stepbackButton, self.stepfwdButton, self.fastfwdButton, self.goto_beginingButton,
+                self.goto_endButton, self.startmarkerButton, self.endmarkerButton, self.selectStartMarkerButton,
+                self.selectEndMarkerButton,))
         self.player.playbackStateChanged.connect(lambda: self.change_playback_icons())
 
         # Video start connection
         self.crop_worker.video_started.connect(
-            lambda: disable_widget(self.widthLineEdit, self.heightLineEdit, self.sensitivity_dialArea.dial,
-                                   self.face_dialArea.dial, self.gamma_dialArea.dial, self.top_dialArea.dial,
-                                   self.bottom_dialArea.dial, self.left_dialArea.dial, self.right_dialArea.dial,
-                                   self.videoLineEdit, self.destinationLineEdit, self.destinationButton,
-                                   self.extWidget.radioButton_1, self.extWidget.radioButton_2,
-                                   self.extWidget.radioButton_3, self.extWidget.radioButton_4,
-                                   self.extWidget.radioButton_5, self.extWidget.radioButton_6, self.cropButton,
-                                   self.videocropButton, self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox,
-                                   self.videocropButton, self.playButton, self.stopButton, self.stepbackButton,
-                                   self.stepfwdButton, self.fastfwdButton, self.goto_beginingButton,
-                                   self.goto_endButton, self.startmarkerButton, self.endmarkerButton,
-                                   self.selectStartMarkerButton, self.selectEndMarkerButton))
-        self.crop_worker.video_started.connect(lambda: enable_widget(self.cancelButton))
+            lambda: window_functions.disable_widget(
+                self.widthLineEdit, self.heightLineEdit, self.sensitivity_dialArea.dial, self.face_dialArea.dial,
+                self.gamma_dialArea.dial, self.top_dialArea.dial, self.bottom_dialArea.dial, self.left_dialArea.dial,
+                self.right_dialArea.dial, self.videoLineEdit, self.destinationLineEdit, self.destinationButton,
+                self.extWidget.radioButton_1, self.extWidget.radioButton_2, self.extWidget.radioButton_3,
+                self.extWidget.radioButton_4, self.extWidget.radioButton_5, self.extWidget.radioButton_6,
+                self.cropButton, self.videocropButton, self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox,
+                self.videocropButton, self.playButton, self.stopButton, self.stepbackButton, self.stepfwdButton,
+                self.fastfwdButton, self.goto_beginingButton, self.goto_endButton, self.startmarkerButton,
+                self.endmarkerButton, self.selectStartMarkerButton, self.selectEndMarkerButton))
+        self.crop_worker.video_started.connect(lambda: window_functions.enable_widget(self.cancelButton))
 
         # Video end connection
         self.crop_worker.video_finished.connect(
-            lambda: enable_widget(self.widthLineEdit, self.heightLineEdit, self.sensitivity_dialArea.dial,
-                                  self.face_dialArea.dial, self.gamma_dialArea.dial, self.top_dialArea.dial,
-                                  self.bottom_dialArea.dial, self.left_dialArea.dial, self.right_dialArea.dial,
-                                  self.videoLineEdit, self.destinationLineEdit, self.destinationButton,
-                                  self.extWidget.radioButton_1, self.extWidget.radioButton_2,
-                                  self.extWidget.radioButton_3, self.extWidget.radioButton_4,
-                                  self.extWidget.radioButton_5, self.extWidget.radioButton_6, self.cropButton,
-                                  self.videocropButton, self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox,
-                                  self.videocropButton, self.playButton, self.stopButton, self.stepbackButton,
-                                  self.stepfwdButton, self.fastfwdButton, self.goto_beginingButton,
-                                  self.goto_endButton, self.startmarkerButton, self.endmarkerButton,
-                                  self.selectStartMarkerButton, self.selectEndMarkerButton))
-        self.crop_worker.video_finished.connect(lambda: disable_widget(self.cancelButton))
-        self.crop_worker.video_finished.connect(lambda: show_message_box(self.destinationLineEdit))
+            lambda: window_functions.enable_widget(
+                self.widthLineEdit, self.heightLineEdit, self.sensitivity_dialArea.dial, self.face_dialArea.dial,
+                self.gamma_dialArea.dial, self.top_dialArea.dial, self.bottom_dialArea.dial, self.left_dialArea.dial,
+                self.right_dialArea.dial, self.videoLineEdit, self.destinationLineEdit, self.destinationButton,
+                self.extWidget.radioButton_1, self.extWidget.radioButton_2, self.extWidget.radioButton_3,
+                self.extWidget.radioButton_4, self.extWidget.radioButton_5, self.extWidget.radioButton_6,
+                self.cropButton, self.videocropButton, self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox,
+                self.videocropButton, self.playButton, self.stopButton, self.stepbackButton, self.stepfwdButton,
+                self.fastfwdButton, self.goto_beginingButton, self.goto_endButton, self.startmarkerButton,
+                self.endmarkerButton, self.selectStartMarkerButton, self.selectEndMarkerButton))
+        self.crop_worker.video_finished.connect(lambda: window_functions.disable_widget(self.cancelButton))
+        self.crop_worker.video_finished.connect(lambda: window_functions.show_message_box(self.destinationLineEdit))
         self.crop_worker.video_progress.connect(lambda: self.update_progress(self.crop_worker.bar_value_v))
 
         self.playButton.clicked.connect(lambda: self.change_playback_state())
         self.playButton.clicked.connect(
-            lambda: change_widget_state(True, self.stopButton, self.stepbackButton,  self.stepfwdButton,
-                                        self.fastfwdButton, self.goto_beginingButton,
-                                        self.goto_endButton, self.startmarkerButton, self.endmarkerButton,
-                                        self.selectEndMarkerButton, self.selectStartMarkerButton))
+            lambda: window_functions.change_widget_state(
+                True, self.stopButton, self.stepbackButton,  self.stepfwdButton, self.fastfwdButton,
+                self.goto_beginingButton, self.goto_endButton, self.startmarkerButton, self.endmarkerButton,
+                self.selectEndMarkerButton, self.selectStartMarkerButton))
         self.stopButton.clicked.connect(lambda: self.stop_playback())
         self.stepbackButton.clicked.connect(lambda: self.step_back())
         self.stepfwdButton.clicked.connect(lambda: self.step_forward())
@@ -315,11 +309,11 @@ class CropVideoWidget(CustomCropWidget):
 
         self.retranslateUi()
         self.disable_buttons()
-        change_widget_state(False, self.cropButton, self.videocropButton, self.cancelButton, self.playButton,
-                            self.stopButton, self.stepbackButton, self.stepfwdButton,
-                            self.fastfwdButton, self.goto_beginingButton, self.goto_endButton, self.startmarkerButton,
-                            self.endmarkerButton, self.selectStartMarkerButton, self.selectEndMarkerButton,
-                            self.timelineSlider)
+        window_functions.change_widget_state(
+            False, self.cropButton, self.videocropButton, self.cancelButton, self.playButton,
+            self.stopButton, self.stepbackButton, self.stepfwdButton, self.fastfwdButton, self.goto_beginingButton,
+            self.goto_endButton, self.startmarkerButton, self.endmarkerButton, self.selectStartMarkerButton,
+            self.selectEndMarkerButton, self.timelineSlider)
         QtCore.QMetaObject.connectSlotsByName(self)
 
     def retranslateUi(self):
@@ -346,7 +340,7 @@ class CropVideoWidget(CustomCropWidget):
     def open_video(self) -> None:
         self.check_playback_state()
         file_name, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open Video', self.default_directory,
-                                                            'Video files (*.mp4 *.avi)')
+                                                             Video().type_string)
         if file_name != '':
             self.player.setSource(QtCore.QUrl.fromLocalFile(file_name))
             self.videoLineEdit.setText(file_name)
@@ -508,9 +502,10 @@ class CropVideoWidget(CustomCropWidget):
                 input_widget.textChanged.connect(lambda: self.disable_buttons())
             elif isinstance(input_widget, QtWidgets.QCheckBox):
                 if input_widget is self.mfaceCheckBox:
-                    input_widget.clicked.connect(lambda: uncheck_boxes(self.exposureCheckBox, self.tiltCheckBox))
+                    input_widget.clicked.connect(
+                        lambda: window_functions.uncheck_boxes(self.exposureCheckBox, self.tiltCheckBox))
                 else:
-                    input_widget.clicked.connect(lambda: uncheck_boxes(self.mfaceCheckBox))
+                    input_widget.clicked.connect(lambda: window_functions.uncheck_boxes(self.mfaceCheckBox))
  
     def disable_buttons(self) -> None:
         def all_filled(*line_edits: Union[PathLineEdit, NumberLineEdit, QtWidgets.QComboBox]) -> bool:
@@ -521,7 +516,7 @@ class CropVideoWidget(CustomCropWidget):
 
         def update_widget_state(condition: bool, *widgets: QtWidgets.QWidget) -> None:
             for widget in widgets:
-                change_widget_state(condition, widget)
+                window_functions.change_widget_state(condition, widget)
 
         # Video logic
         update_widget_state(

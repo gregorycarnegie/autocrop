@@ -6,8 +6,8 @@ import numpy.typing as npt
 import pandas as pd
 from PyQt6.QtWidgets import QCheckBox, QComboBox, QDial, QRadioButton
 
+from file_types import Photo
 from line_edits import NumberLineEdit, PathLineEdit
-from .f_type_photo import IMAGE_TYPES
 
 
 class Job(NamedTuple):
@@ -76,7 +76,7 @@ class Job(NamedTuple):
         """
         if self.folder_path is not None:
             x = np.fromiter(Path(self.folder_path.text()).iterdir(), Path)
-            y = np.array([pic.suffix.lower() in IMAGE_TYPES for pic in x])
+            y = np.array([pic.suffix.lower() in Photo().file_types for pic in x])
             result = x[y]
             return result, len(result)
 
@@ -112,7 +112,7 @@ class Job(NamedTuple):
         return int(self.height.text())
     
     def size(self) -> Tuple[int, int]:
-        return (int(self.width.text()), int(self.height.text()))
+        return int(self.width.text()), int(self.height.text())
 
     def get_destination(self) -> Optional[Path]:
         """

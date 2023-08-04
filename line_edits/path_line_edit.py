@@ -3,9 +3,9 @@ from typing import Optional
 
 from PyQt6.QtWidgets import QWidget
 
-from main_objects.f_type_photo import IMAGE_TYPES
-from main_objects.f_type_table import PANDAS_TYPES
-from main_objects.f_type_video import VIDEO_TYPES
+from file_types import Photo, Table, Video
+# from file_types.f_type_table import PANDAS_TYPES
+# from file_types.f_type_video import VIDEO_TYPES
 from .custom_line_edit import CustomLineEdit
 from .enums import PathType
 
@@ -17,7 +17,7 @@ class PathLineEdit(CustomLineEdit):
         self.textChanged.connect(self.insert_clipboard_path)
 
     def insert_clipboard_path(self, text: str) -> None:
-        # Remove quotation marks
+        """Remove quotation marks from the path"""
         if text.startswith('"') and text.endswith('"'):
             text = text[1:-1]
         elif text.startswith("'") and text.endswith("'"):
@@ -41,12 +41,12 @@ class PathLineEdit(CustomLineEdit):
 
     @staticmethod
     def is_valid_image(path: Path) -> bool:
-        return path.is_file() and path.suffix.lower() in IMAGE_TYPES
+        return path.is_file() and path.suffix.lower() in Photo().file_types
     
     @staticmethod
     def is_valid_table(path: Path) -> bool:
-        return path.is_file() and path.suffix.lower() in PANDAS_TYPES
+        return path.is_file() and path.suffix.lower() in Table().file_types
     
     @staticmethod
     def is_valid_video(path: Path) -> bool:
-        return path.is_file() and path.suffix.lower() in VIDEO_TYPES
+        return path.is_file() and path.suffix.lower() in Video().file_types

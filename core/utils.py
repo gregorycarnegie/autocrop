@@ -15,7 +15,7 @@ import tifffile as tiff
 from PIL import Image
 from PyQt6.QtGui import QImage, QPixmap
 
-from .f_type_photo import IMAGE_TYPES, CV2_TYPES, RAW_TYPES
+from file_types import Photo
 from .face_worker import FaceWorker
 from .image_widget import ImageWidget
 from .job import Job
@@ -137,9 +137,9 @@ def open_pic(input_file: Union[Path, str],
               face_worker: FaceWorker) -> Optional[Union[cv2.Mat, npt.NDArray[np.int8]]]:
     """Given a filename, returns a numpy array or a pandas dataframe"""
     input_file = Path(input_file) if isinstance(input_file, str) else input_file
-    if (extension := input_file.suffix.lower()) in CV2_TYPES:
+    if (extension := input_file.suffix.lower()) in Photo().CV2_TYPES:
         return open_image(input_file, exposure, tilt, face_worker)
-    elif extension in RAW_TYPES:
+    elif extension in Photo().RAW_TYPES:
         return open_raw(input_file, exposure, tilt, face_worker)
     return None
 
@@ -291,12 +291,12 @@ def box_detect(img: Union[cv2.Mat, npt.NDArray[np.int8]],
 @cache
 def get_first_file(img_path: Path) -> Optional[Path]:
     files = np.fromiter(img_path.iterdir(), Path)
-    file = np.array([pic for pic in files if pic.suffix.lower() in IMAGE_TYPES])
+    file = np.array([pic for pic in files if pic.suffix.lower() in Photo().file_types])
     return file[0] if file.size > 0 else None
 
 def mask_extensions(file_list: npt.NDArray[np.str_]) -> Tuple[npt.NDArray[np.bool_], int]:
-    # Get the extensions of the file names and Create a mask that indicates which files have supported extensions.
-    mask = np.in1d(np.char.lower([Path(file).suffix for file in file_list]), IMAGE_TYPES)
+    """Get the extensions of the file names and Create a mask that indicates which files have supported extensions."""
+    mask = np.in1d(np.char.lower([Path(file).suffix for file in file_list]), Photo().file_types)
     return mask, file_list[mask].size
 
 def split_by_cpus(mask: npt.NDArray[np.bool_],
@@ -311,7 +311,7 @@ def set_filename(image_path: Path,
                  radio_choice: str,
                  radio_options: Tuple[str, ...],
                  new: Optional[str] = None) -> Tuple[Path, bool]:
-    if image_path.suffix.lower() in RAW_TYPES:
+    if image_path.suffix.lower() in Photo().RAW_TYPES:
         selected_extension = radio_options[2] if radio_choice == radio_options[0] else radio_choice
     else:
         selected_extension = image_path.suffix if radio_choice == radio_options[0] else radio_choice
