@@ -132,16 +132,17 @@ def open_table(input_file: Path) -> pd.DataFrame:
 
 @lru_cache(5, True)
 def open_pic(input_file: Union[Path, str],
-              exposure: bool,
-              tilt: bool,
-              face_worker: FaceWorker) -> Optional[Union[cv2.Mat, npt.NDArray[np.int8]]]:
+             exposure: bool,
+             tilt: bool,
+             face_worker: FaceWorker) -> Optional[Union[cv2.Mat, npt.NDArray[np.int8]]]:
     """Given a filename, returns a numpy array or a pandas dataframe"""
     input_file = Path(input_file) if isinstance(input_file, str) else input_file
-    if (extension := input_file.suffix.lower()) in Photo().CV2_TYPES:
-        return open_image(input_file, exposure, tilt, face_worker)
-    elif extension in Photo().RAW_TYPES:
-        return open_raw(input_file, exposure, tilt, face_worker)
-    return None
+    match (extension := input_file.suffix.lower()):
+        case extension if extension in Photo().CV2_TYPES:
+            return open_image(input_file, exposure, tilt, face_worker)
+        case extension if extension in Photo().RAW_TYPES:
+            return open_raw(input_file, exposure, tilt, face_worker)
+        case _: return None
 
 def align_head(image: Union[cv2.Mat, npt.NDArray[np.int8]],
                face_worker: FaceWorker,

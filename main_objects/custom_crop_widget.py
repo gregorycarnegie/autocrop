@@ -2,11 +2,11 @@ from multiprocessing import Process
 from typing import Optional, Callable, Any
 
 import pandas as pd
-from PyQt6 import QtWidgets
+from PyQt6 import QtWidgets, QtCore, QtGui
 
-from core import CustomDialWidget, ExtWidget, Job
+from core import CustomDialWidget, ExtWidget, Job, window_functions
 from file_types import Photo
-from line_edits import PathLineEdit, NumberLineEdit, LineEditState
+from line_edits import PathLineEdit, NumberLineEdit
 from .cropper import Cropper
 from .enums import FunctionTabSelectionState
 
@@ -44,8 +44,49 @@ class CustomCropWidget(QtWidgets.QWidget):
                  right_dial_area: CustomDialWidget,
                  parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
+        self.frame = QtWidgets.QFrame(parent=self)
+        self.frame.setStyleSheet('background: #1f2c33')
+        self.frame.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)
+        self.frame.setFrameShadow(QtWidgets.QFrame.Shadow.Raised)
+        self.frame.setObjectName('frame')
+
         self.folderLineEdit: Optional[PathLineEdit] = None
-        
+        self.CHECKBOX_STYLESHEET = CHECKBOX_STYLESHEET
+        self.exposureCheckBox = QtWidgets.QCheckBox()
+        self.mfaceCheckBox = QtWidgets.QCheckBox()
+        self.tiltCheckBox = QtWidgets.QCheckBox()
+
+        self.mfaceCheckBox.setObjectName('mfaceCheckBox')
+        self.tiltCheckBox.setObjectName('tiltCheckBox')
+        self.exposureCheckBox.setObjectName('exposureCheckBox')
+
+        self.exposureCheckBox.setStyleSheet(self.CHECKBOX_STYLESHEET)
+        self.mfaceCheckBox.setStyleSheet(self.CHECKBOX_STYLESHEET)
+        self.tiltCheckBox.setStyleSheet(self.CHECKBOX_STYLESHEET)
+
+        self.cropButton = QtWidgets.QPushButton()
+        self.cropButton.setMinimumSize(QtCore.QSize(0, 24))
+        self.cropButton.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.cropButton.setText('')
+        crop_icon = QtGui.QIcon()
+        crop_icon.addPixmap(QtGui.QPixmap('resources\\icons\\crop.svg'), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        self.cropButton.setIcon(crop_icon)
+        self.cropButton.setObjectName('cropButton')
+
+        self.destinationLineEdit = PathLineEdit()
+        self.destinationLineEdit.setMinimumSize(QtCore.QSize(0, 24))
+        self.destinationLineEdit.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.destinationLineEdit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
+        self.destinationLineEdit.setObjectName('destinationLineEdit')
+
+        self.destinationButton = QtWidgets.QPushButton(parent=self)
+        self.destinationButton.setMinimumSize(QtCore.QSize(124, 24))
+        self.destinationButton.setMaximumSize(QtCore.QSize(16777215, 24))
+        destination_icon = QtGui.QIcon()
+        destination_icon.addPixmap(QtGui.QPixmap('resources\\icons\\folder.svg'), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        self.destinationButton.setIcon(destination_icon)
+        self.destinationButton.setObjectName('destinationButton')
+
         self.progressBar = QtWidgets.QProgressBar()
         self.crop_worker = crop_worker
         self.widthLineEdit = width_line_edit
@@ -58,8 +99,39 @@ class CustomCropWidget(QtWidgets.QWidget):
         self.bottom_dialArea = bottom_dial_area
         self.left_dialArea = left_dial_area
         self.right_dialArea = right_dial_area
-        self.CHECKBOX_STYLESHEET = CHECKBOX_STYLESHEET
+        
         self.selection_state = FunctionTabSelectionState.NOT_SELECTED
+
+    def reload_widgets(self) -> None:
+        """Only sublasses of this class should implement this method"""
+        pass 
+    
+    def disable_buttons(self) -> None:
+        """Only sublasses of this class should implement this method"""
+        pass 
+
+    def connect_checkboxs(self, input_widget: QtWidgets.QCheckBox):
+        input_widget.stateChanged.connect(lambda: self.reload_widgets())
+        match input_widget:
+            case self.mfaceCheckBox:
+                input_widget.clicked.connect(
+                    lambda: window_functions.uncheck_boxes(self.exposureCheckBox, self.tiltCheckBox))
+            case self.exposureCheckBox | self.tiltCheckBox:
+                input_widget.clicked.connect(lambda: window_functions.uncheck_boxes(self.mfaceCheckBox))
+            case _: pass
+
+    def connect_input_widgets(self, *input_widgets: QtWidgets.QWidget) -> None:
+        """Only sublasses of this class should implement this method"""
+        for input_widget in input_widgets:
+            match input_widget:
+                case NumberLineEdit() | PathLineEdit():
+                    input_widget.textChanged.connect(lambda: self.reload_widgets())
+                    input_widget.textChanged.connect(lambda: self.disable_buttons())
+                case QtWidgets.QDial():
+                    input_widget.valueChanged.connect(lambda: self.reload_widgets())
+                case QtWidgets.QCheckBox():
+                    self.connect_checkboxs(input_widget)
+                case _: pass
 
     def update_progress(self, value: int) -> None:
         self.progressBar.setValue(value)

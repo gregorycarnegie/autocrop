@@ -30,10 +30,16 @@ class PathLineEdit(CustomLineEdit):
 
         file_path = Path(path)
         
-        if self.path_type == PathType.IMAGE: self.color_logic(self.is_valid_image(file_path))
-        elif self.path_type == PathType.TABLE: self.color_logic(self.is_valid_table(file_path))
-        elif self.path_type == PathType.VIDEO: self.color_logic(self.is_valid_video(file_path))
-        elif self.path_type == PathType.FOLDER: self.color_logic(file_path.is_dir())
+        match self.path_type:
+            case PathType.IMAGE:
+                self.color_logic(self.is_valid_image(file_path))
+            case PathType.TABLE:
+                self.color_logic(self.is_valid_table(file_path))
+            case PathType.VIDEO:
+                self.color_logic(self.is_valid_video(file_path))
+            case PathType.FOLDER:
+                self.color_logic(file_path.is_dir())
+                
 
         self.update_style()
 

@@ -445,6 +445,15 @@ class Cropper(QObject):
         video.release()
 
     def terminate(self, series: FunctionType) -> None:
-        if series == FunctionType.FOLDER: self.end_f_task = True
-        elif series == FunctionType.MAPPING: self.end_m_task = True
-        elif series == FunctionType.VIDEO: self.end_v_task = True
+        match series:
+            case FunctionType.FOLDER:
+                self.end_f_task = True
+                self.folder_finished.emit()
+            case FunctionType.MAPPING:
+                self.end_m_task = True
+                self.mapping_finished.emit()
+            case FunctionType.VIDEO:
+                self.end_v_task = True
+                self.video_finished.emit()
+            case FunctionType.PHOTO:
+                return None

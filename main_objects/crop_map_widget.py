@@ -66,11 +66,6 @@ class CropMapWidget(CustomCropWidget):
         self.verticalLayout_3.addLayout(self.gridLayout)
         self.horizontalLayout_1 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_1.setObjectName('horizontalLayout_1')
-        self.frame = QtWidgets.QFrame(parent=self)
-        self.frame.setStyleSheet('background: #1f2c33')
-        self.frame.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)
-        self.frame.setFrameShadow(QtWidgets.QFrame.Shadow.Raised)
-        self.frame.setObjectName('frame')
         self.verticalLayout = QtWidgets.QVBoxLayout(self.frame)
         self.verticalLayout.setObjectName('verticalLayout')
         self.horizontalLayout_3 = QtWidgets.QHBoxLayout()
@@ -78,17 +73,11 @@ class CropMapWidget(CustomCropWidget):
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding,
                                            QtWidgets.QSizePolicy.Policy.Minimum)
         self.horizontalLayout_3.addItem(spacerItem)
-        self.mfaceCheckBox = QtWidgets.QCheckBox(parent=self.frame)
-        self.mfaceCheckBox.setStyleSheet(self.CHECKBOX_STYLESHEET)
-        self.mfaceCheckBox.setObjectName('mfaceCheckBox')
+        self.mfaceCheckBox.setParent(self.frame)
         self.horizontalLayout_3.addWidget(self.mfaceCheckBox)
-        self.tiltCheckBox = QtWidgets.QCheckBox(parent=self.frame)
-        self.tiltCheckBox.setStyleSheet(self.CHECKBOX_STYLESHEET)
-        self.tiltCheckBox.setObjectName('tiltCheckBox')
+        self.tiltCheckBox.setParent(self.frame)
         self.horizontalLayout_3.addWidget(self.tiltCheckBox)
-        self.exposureCheckBox = QtWidgets.QCheckBox(parent=self.frame)
-        self.exposureCheckBox.setStyleSheet(self.CHECKBOX_STYLESHEET)
-        self.exposureCheckBox.setObjectName('exposureCheckBox')
+        self.exposureCheckBox.setParent(self.frame)
         self.horizontalLayout_3.addWidget(self.exposureCheckBox)
         self.verticalLayout.addLayout(self.horizontalLayout_3)
         self.imageWidget = ImageWidget(parent=self.frame)
@@ -97,14 +86,7 @@ class CropMapWidget(CustomCropWidget):
         self.verticalLayout.addWidget(self.imageWidget)
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_2.setObjectName('horizontalLayout_2')
-        self.cropButton = QtWidgets.QPushButton(parent=self.frame)
-        self.cropButton.setMinimumSize(QtCore.QSize(0, 24))
-        self.cropButton.setMaximumSize(QtCore.QSize(16777215, 24))
-        self.cropButton.setText('')
-        icon2 = QtGui.QIcon()
-        icon2.addPixmap(QtGui.QPixmap('resources\\icons\\crop.svg'), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        self.cropButton.setIcon(icon2)
-        self.cropButton.setObjectName('cropButton')
+        self.cropButton.setParent(self.frame)
         self.horizontalLayout_2.addWidget(self.cropButton)
         self.cancelButton = QtWidgets.QPushButton(parent=self.frame)
         self.cancelButton.setMinimumSize(QtCore.QSize(0, 24))
@@ -152,17 +134,9 @@ class CropMapWidget(CustomCropWidget):
         self.verticalLayout_3.addLayout(self.horizontalLayout_1)
         self.horizontalLayout_5 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_5.setObjectName('horizontalLayout_5')
-        self.destinationLineEdit = PathLineEdit(parent=self)
-        self.destinationLineEdit.setMinimumSize(QtCore.QSize(0, 24))
-        self.destinationLineEdit.setMaximumSize(QtCore.QSize(16777215, 24))
-        self.destinationLineEdit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
-        self.destinationLineEdit.setObjectName('destinationLineEdit')
+        self.destinationLineEdit.setParent(self)
         self.horizontalLayout_5.addWidget(self.destinationLineEdit)
-        self.destinationButton = QtWidgets.QPushButton(parent=self)
-        self.destinationButton.setMinimumSize(QtCore.QSize(124, 24))
-        self.destinationButton.setMaximumSize(QtCore.QSize(16777215, 24))
-        self.destinationButton.setIcon(icon)
-        self.destinationButton.setObjectName('destinationButton')
+        self.destinationButton.setParent(self)
         self.horizontalLayout_5.addWidget(self.destinationButton)
         self.verticalLayout_3.addLayout(self.horizontalLayout_5)
 
@@ -251,21 +225,18 @@ class CropMapWidget(CustomCropWidget):
 
     def connect_input_widgets(self, *input_widgets: QtWidgets.QWidget) -> None:
         for input_widget in input_widgets:
-            if isinstance(input_widget, (NumberLineEdit, PathLineEdit)):
-                input_widget.textChanged.connect(lambda: self.reload_widgets())
-                input_widget.textChanged.connect(lambda: self.disable_buttons())
-            elif isinstance(input_widget, QtWidgets.QDial):
-                input_widget.valueChanged.connect(lambda: self.reload_widgets())
-            elif isinstance(input_widget, QtWidgets.QCheckBox):
-                input_widget.stateChanged.connect(lambda: self.reload_widgets())
-                if input_widget is self.mfaceCheckBox:
-                    input_widget.clicked.connect(
-                        lambda: window_functions.uncheck_boxes(self.exposureCheckBox, self.tiltCheckBox))
-                else:
-                    input_widget.clicked.connect(lambda: window_functions.uncheck_boxes(self.mfaceCheckBox))
-            elif isinstance(input_widget, QtWidgets.QComboBox):
-                input_widget.currentTextChanged.connect(lambda: self.disable_buttons())
-
+            match input_widget:
+                case NumberLineEdit() | PathLineEdit():
+                    input_widget.textChanged.connect(lambda: self.reload_widgets())
+                    input_widget.textChanged.connect(lambda: self.disable_buttons())
+                case QtWidgets.QDial():
+                    input_widget.valueChanged.connect(lambda: self.reload_widgets())
+                case QtWidgets.QComboBox():
+                    input_widget.currentTextChanged.connect(lambda: self.disable_buttons())
+                case QtWidgets.QCheckBox():
+                    self.connect_checkboxs(input_widget)
+                case _: pass
+                    
     def disable_buttons(self) -> None:
         def all_filled(*line_edits: Union[PathLineEdit, NumberLineEdit, QtWidgets.QComboBox]) -> bool:
             x = all(edit.state == LineEditState.VALID_INPUT

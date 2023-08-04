@@ -306,9 +306,14 @@ class UiMainWindow(QtWidgets.QMainWindow):
             self.handle_path(file_path, 1, self.folder_Tab.folderLineEdit)
 
     def handle_file(self, file_path: Path) -> None:
-        if file_path.suffix.lower() in Photo().file_types: self.handle_image_file(file_path)
-        elif file_path.suffix.lower() in Video().file_types: self.handle_video_file(file_path)
-        elif file_path.suffix.lower() in Table().file_types: self.handle_pandas_file(file_path)
+        match (suffix := file_path.suffix.lower()):
+            case suffix if suffix in Photo().file_types:
+                self.handle_image_file(file_path)
+            case suffix if suffix in Video().file_types:
+                self.handle_video_file(file_path)
+            case suffix if suffix in Table().file_types:
+                self.handle_pandas_file(file_path)
+            case _: pass
 
     def handle_image_file(self, file_path: Path) -> None:
         try:
@@ -340,14 +345,16 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.mappingTab.validate_pandas_file(data)
 
     def check_tab_selection(self) -> None:
-        if self.function_tabWidget.currentIndex() == 0:
-            self.handle_function_tab_state(self.photoTab, self.folder_Tab, self.mappingTab, self.videoTab)
-        elif self.function_tabWidget.currentIndex() == 1:
-            self.handle_function_tab_state(self.folder_Tab, self.mappingTab, self.videoTab, self.photoTab)
-        elif self.function_tabWidget.currentIndex() == 2:
-            self.handle_function_tab_state(self.mappingTab, self.videoTab, self.photoTab, self.folder_Tab)
-        elif self.function_tabWidget.currentIndex() == 3:
-            self.handle_function_tab_state(self.videoTab, self.photoTab, self.folder_Tab, self.mappingTab)
+        match self.function_tabWidget.currentIndex():
+            case 0:
+                self.handle_function_tab_state(self.photoTab, self.folder_Tab, self.mappingTab, self.videoTab)
+            case 1:
+                self.handle_function_tab_state(self.folder_Tab, self.mappingTab, self.videoTab, self.photoTab)
+            case 2:
+                self.handle_function_tab_state(self.mappingTab, self.videoTab, self.photoTab, self.folder_Tab)
+            case 3:
+                self.handle_function_tab_state(self.videoTab, self.photoTab, self.folder_Tab, self.mappingTab)
+            case _: pass
 
     @staticmethod
     def handle_function_tab_state(selected_tab: CustomCropWidget, *other_tabs: CustomCropWidget):
@@ -405,20 +412,26 @@ class UiMainWindow(QtWidgets.QMainWindow):
             self.videoTab.cropButton, self.videoTab.videocropButton)
 
     def setup_custom_crop_widget(self, tab_widget: QtWidgets.QTabWidget,
-                                 function: FunctionType) -> Tuple[CustomCropWidget, QtGui.QIcon]:
-        crop_widget_dict = {FunctionType.PHOTO: (CropPhotoWidget, 'photoTab', 'picture'),
-                            FunctionType.FOLDER: (CropFolderWidget, 'folder_Tab', 'folder'),
-                            FunctionType.MAPPING: (CropMapWidget, 'mappingTab', 'excel'),
-                            FunctionType.VIDEO: (CropVideoWidget, 'videoTab', 'clapperboard')}
-        tab = crop_widget_dict[function][0](
-            self.crop_worker, self.widthLineEdit, self.heightLineEdit, self.extWidget, 
-            self.sensitivity_dialArea, self.face_dialArea, self.gamma_dialArea, 
-            self.top_dialArea, self.bottom_dialArea, self.left_dialArea, self.right_dialArea, self)
-        tab.setObjectName(crop_widget_dict[function][1])
-
+                                 function_type: FunctionType) -> Tuple[CustomCropWidget, QtGui.QIcon]:
+        widget_list = (self.crop_worker, self.widthLineEdit, self.heightLineEdit, self.extWidget, 
+                       self.sensitivity_dialArea, self.face_dialArea, self.gamma_dialArea,
+                       self.top_dialArea, self.bottom_dialArea, self.left_dialArea, self.right_dialArea)
+        match function_type:
+            case FunctionType.PHOTO:
+                tab = CropPhotoWidget(*widget_list, parent=self)
+                tab_name, icon_name = 'photoTab', 'picture'
+            case FunctionType.FOLDER:
+                tab = CropFolderWidget(*widget_list, parent=self)
+                tab_name, icon_name = 'folder_Tab', 'folder'
+            case FunctionType.MAPPING:
+                tab = CropMapWidget(*widget_list, parent=self)
+                tab_name, icon_name = 'mappingTab', 'excel'
+            case FunctionType.VIDEO:
+                tab = CropVideoWidget(*widget_list, parent=self)
+                tab_name, icon_name = 'videoTab', 'clapperboard'
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(f'resources\\icons\\{crop_widget_dict[function][2]}.svg'),
-                       QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        tab.setObjectName(tab_name)
+        icon.addPixmap(QtGui.QPixmap(f'resources\\icons\\{icon_name}.svg'), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         tab_widget.addTab(tab, icon, '')
         return tab, icon
 
