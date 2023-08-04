@@ -139,17 +139,19 @@ class CropPhotoWidget(CustomCropWidget):
 
     def open_folder(self, line_edit: PathLineEdit) -> None:
         if line_edit is self.photoLineEdit:
-                f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
+            f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
                     self, 'Open File', Photo().default_directory, Photo().type_string)
-                line_edit.setText(f_name)
-                self.load_data()
+            line_edit.setText(f_name)
+            if self.photoLineEdit.state is LineEditState.INVALID_INPUT:
+                return None
+            self.load_data()
         elif line_edit is self.destinationLineEdit:
-             f_name = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Directory', Photo().default_directory)
-             line_edit.setText(f_name)
+            f_name = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Directory', Photo().default_directory)
+            line_edit.setText(f_name)
 
     def load_data(self) -> None:
         try:
-             self.display_crop()
+            self.display_crop()
         except (IndexError, FileNotFoundError, ValueError, AttributeError):
             return None
 

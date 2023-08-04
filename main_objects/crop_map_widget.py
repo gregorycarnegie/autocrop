@@ -287,6 +287,8 @@ class CropMapWidget(CustomCropWidget):
         f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
             self, 'Open File', Photo().default_directory, Table().type_string)
         self.tableLineEdit.setText(f_name)
+        if self.tableLineEdit.state is LineEditState.INVALID_INPUT:
+            return None
         data = utils.open_table((Path(f_name)))
         self.validate_pandas_file(data)
 

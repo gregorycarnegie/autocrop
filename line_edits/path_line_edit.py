@@ -4,8 +4,6 @@ from typing import Optional
 from PyQt6.QtWidgets import QWidget
 
 from file_types import Photo, Table, Video
-# from file_types.f_type_table import PANDAS_TYPES
-# from file_types.f_type_video import VIDEO_TYPES
 from .custom_line_edit import CustomLineEdit
 from .enums import PathType
 

@@ -6,7 +6,7 @@ from PyQt6 import QtWidgets
 
 from core import CustomDialWidget, ExtWidget, Job
 from file_types import Photo
-from line_edits import PathLineEdit, NumberLineEdit
+from line_edits import PathLineEdit, NumberLineEdit, LineEditState
 from .cropper import Cropper
 from .enums import FunctionTabSelectionState
 

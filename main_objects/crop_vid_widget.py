@@ -341,10 +341,11 @@ class CropVideoWidget(CustomCropWidget):
         self.check_playback_state()
         file_name, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open Video', self.default_directory,
                                                              Video().type_string)
-        if file_name != '':
-            self.player.setSource(QtCore.QUrl.fromLocalFile(file_name))
-            self.videoLineEdit.setText(file_name)
-            self.playButton.setEnabled(True)
+        self.videoLineEdit.setText(file_name)
+        if self.videoLineEdit.state is LineEditState.INVALID_INPUT:
+            return None
+        self.player.setSource(QtCore.QUrl.fromLocalFile(file_name))
+        self.playButton.setEnabled(True)
 
     def change_audio_icon(self) -> None:
         if self.audio.isMuted():
@@ -408,15 +409,13 @@ class CropVideoWidget(CustomCropWidget):
             self.player.setPlaybackRate(VIDEO_SPEEDS[self.speed])
 
     def step_forward(self):
-        new_position = self.player.position() + 10_000
-        if new_position >= self.player.duration():
+        if (new_position := self.player.position() + 10_000) >= self.player.duration():
             self.player.setPosition(self.player.duration())
         else:
             self.player.setPosition(new_position)
     
     def step_back(self):
-        new_position = self.player.position() - 10_000
-        if new_position <= 0:
+        if (new_position := self.player.position() - 10_000) <= 0:
             self.player.setPosition(0)
         else:
             self.player.setPosition(new_position)
