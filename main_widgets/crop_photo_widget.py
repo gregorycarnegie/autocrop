@@ -3,12 +3,10 @@ from typing import Optional, Union
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-from core import CustomDialWidget, ExtWidget, ImageWidget, window_functions
+from core import Cropper, CustomDialWidget, ExtWidget, FunctionTabSelectionState, ImageWidget, window_functions
 from file_types import Photo
 from line_edits import PathLineEdit, PathType, NumberLineEdit, LineEditState
-from .cropper import Cropper
 from .custom_crop_widget import CustomCropWidget
-from .enums import FunctionTabSelectionState
 
 
 class CropPhotoWidget(CustomCropWidget):
@@ -138,7 +136,7 @@ class CropPhotoWidget(CustomCropWidget):
         if self.selection_state == FunctionTabSelectionState.SELECTED:
             f_name = Path(self.photoLineEdit.text())
             callback(f_name)
-           
+
     def disable_buttons(self) -> None:
         def all_filled(*line_edits: Union[PathLineEdit, NumberLineEdit, QtWidgets.QComboBox]) -> bool:
             x = all(edit.state == LineEditState.VALID_INPUT

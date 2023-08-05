@@ -13,8 +13,11 @@ from PIL import Image
 from PyQt6.QtCore import pyqtSignal, QObject
 from PyQt6.QtWidgets import QLabel, QLineEdit, QSlider
 
-from core import FaceWorker, ImageWidget, Job, utils
+from . import utils
 from .enums import FunctionType
+from .face_worker import FaceWorker
+from .image_widget import ImageWidget
+from .job import Job
 
 
 class Cropper(QObject):

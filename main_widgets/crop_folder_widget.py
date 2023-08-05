@@ -3,15 +3,14 @@ from typing import Optional, Union
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-from core import CustomDialWidget, ExtWidget, ImageWidget, window_functions
+from core import Cropper, CustomDialWidget, ExtWidget, FunctionTabSelectionState, FunctionType, ImageWidget, \
+    window_functions
 from file_types import Photo
 from line_edits import PathLineEdit, NumberLineEdit, LineEditState
-from .cropper import Cropper
-from .custom_crop_widget import CustomCropWidget
-from .enums import FunctionTabSelectionState, FunctionType
+from .crop_batch_widget import CropBatchWidget
 
 
-class CropFolderWidget(CustomCropWidget):
+class CropFolderWidget(CropBatchWidget):
     def __init__(self, crop_worker: Cropper,
                  width_line_edit: NumberLineEdit,
                  height_line_edit: NumberLineEdit,
@@ -35,19 +34,9 @@ class CropFolderWidget(CustomCropWidget):
         self.verticalLayout_2.setObjectName('verticalLayout_2')
         self.horizontalLayout_1 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_1.setObjectName('horizontalLayout_1')
-        self.folderLineEdit: PathLineEdit = PathLineEdit(parent=self)
-        self.folderLineEdit.setMinimumSize(QtCore.QSize(0, 24))
-        self.folderLineEdit.setMaximumSize(QtCore.QSize(16777215, 24))
-        self.folderLineEdit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
-        self.folderLineEdit.setObjectName('folderLineEdit')
+        self.folderLineEdit.setParent(self)
         self.horizontalLayout_1.addWidget(self.folderLineEdit)
-        self.folderButton = QtWidgets.QPushButton(parent=self)
-        self.folderButton.setMinimumSize(QtCore.QSize(124, 24))
-        self.folderButton.setMaximumSize(QtCore.QSize(16777215, 24))
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap('resources\\icons\\folder.svg'), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        self.folderButton.setIcon(icon)
-        self.folderButton.setObjectName('folderButton')
+        self.folderButton.setParent(self)
         self.horizontalLayout_1.addWidget(self.folderButton)
         self.verticalLayout_2.addLayout(self.horizontalLayout_1)
         self.horizontalLayout_3 = QtWidgets.QHBoxLayout()
@@ -74,22 +63,10 @@ class CropFolderWidget(CustomCropWidget):
         self.horizontalLayout_5.setObjectName('horizontalLayout_5')
         self.cropButton.setParent(self.frame)
         self.horizontalLayout_5.addWidget(self.cropButton)
-        self.cancelButton = QtWidgets.QPushButton(parent=self.frame)
-        self.cancelButton.setMinimumSize(QtCore.QSize(0, 24))
-        self.cancelButton.setMaximumSize(QtCore.QSize(16777215, 24))
-        self.cancelButton.setText("")
-        icon2 = QtGui.QIcon()
-        icon2.addPixmap(QtGui.QPixmap('resources\\icons\\cancel.svg'), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        self.cancelButton.setIcon(icon2)
-        self.cancelButton.setObjectName('cancelButton')
+        self.cancelButton.setParent(self.frame)
         self.horizontalLayout_5.addWidget(self.cancelButton)
         self.verticalLayout.addLayout(self.horizontalLayout_5)
-        self.progressBar = QtWidgets.QProgressBar(parent=self.frame)
-        self.progressBar.setMinimumSize(QtCore.QSize(0, 12))
-        self.progressBar.setMaximumSize(QtCore.QSize(16777215, 12))
-        self.progressBar.setProperty('value', 0)
-        self.progressBar.setTextVisible(False)
-        self.progressBar.setObjectName('progressBar')
+        self.progressBar.setParent(self.frame)
         self.verticalLayout.addWidget(self.progressBar)
         self.verticalLayout.setStretch(0, 1)
         self.verticalLayout.setStretch(1, 10)

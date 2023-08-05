@@ -4,15 +4,15 @@ from typing import Optional, Any, Union
 import pandas as pd
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-from core import CustomDialWidget, DataFrameModel, ExtWidget, ImageWidget, utils, window_functions
+from core import CustomDialWidget, DataFrameModel, ExtWidget, FunctionTabSelectionState, FunctionType, ImageWidget, \
+    utils, window_functions
 from file_types import Photo, Table
 from line_edits import PathLineEdit, PathType, NumberLineEdit, LineEditState
-from .cropper import Cropper
-from .custom_crop_widget import CustomCropWidget
-from .enums import FunctionTabSelectionState, FunctionType
+from core.cropper import Cropper
+from .crop_batch_widget import CropBatchWidget
 
 
-class CropMapWidget(CustomCropWidget):
+class CropMapWidget(CropBatchWidget):
     def __init__(self, crop_worker: Cropper,
                  width_line_edit: NumberLineEdit,
                  height_line_edit: NumberLineEdit,
@@ -35,19 +35,9 @@ class CropMapWidget(CustomCropWidget):
         self.verticalLayout_3.setObjectName('verticalLayout_3')
         self.gridLayout = QtWidgets.QGridLayout()
         self.gridLayout.setObjectName('gridLayout')
-        self.folderLineEdit: PathLineEdit = PathLineEdit(parent=self)
-        self.folderLineEdit.setMinimumSize(QtCore.QSize(0, 24))
-        self.folderLineEdit.setMaximumSize(QtCore.QSize(16777215, 24))
-        self.folderLineEdit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
-        self.folderLineEdit.setObjectName('folderLineEdit')
+        self.folderLineEdit.setParent(self)
         self.gridLayout.addWidget(self.folderLineEdit, 0, 0, 1, 1)
-        self.folderButton = QtWidgets.QPushButton(parent=self)
-        self.folderButton.setMinimumSize(QtCore.QSize(124, 24))
-        self.folderButton.setMaximumSize(QtCore.QSize(16777215, 24))
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap('resources\\icons\\folder.svg'), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        self.folderButton.setIcon(icon)
-        self.folderButton.setObjectName('folderButton')
+        self.folderButton.setParent(self)
         self.gridLayout.addWidget(self.folderButton, 0, 1, 1, 1)
         self.tableLineEdit = PathLineEdit(path_type=PathType.TABLE, parent=self)
         self.tableLineEdit.setMinimumSize(QtCore.QSize(0, 24))
@@ -88,22 +78,10 @@ class CropMapWidget(CustomCropWidget):
         self.horizontalLayout_2.setObjectName('horizontalLayout_2')
         self.cropButton.setParent(self.frame)
         self.horizontalLayout_2.addWidget(self.cropButton)
-        self.cancelButton = QtWidgets.QPushButton(parent=self.frame)
-        self.cancelButton.setMinimumSize(QtCore.QSize(0, 24))
-        self.cancelButton.setMaximumSize(QtCore.QSize(16777215, 24))
-        self.cancelButton.setText('')
-        icon3 = QtGui.QIcon()
-        icon3.addPixmap(QtGui.QPixmap('resources\\icons\\cancel.svg'), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        self.cancelButton.setIcon(icon3)
-        self.cancelButton.setObjectName('cancelButton')
+        self.cancelButton.setParent(self.frame)
         self.horizontalLayout_2.addWidget(self.cancelButton)
         self.verticalLayout.addLayout(self.horizontalLayout_2)
-        self.progressBar = QtWidgets.QProgressBar(parent=self.frame)
-        self.progressBar.setMinimumSize(QtCore.QSize(0, 12))
-        self.progressBar.setMaximumSize(QtCore.QSize(16777215, 12))
-        self.progressBar.setProperty('value', 0)
-        self.progressBar.setTextVisible(False)
-        self.progressBar.setObjectName('progressBar')
+        self.progressBar.setParent(self.frame)
         self.verticalLayout.addWidget(self.progressBar)
         self.verticalLayout.setStretch(0, 1)
         self.verticalLayout.setStretch(1, 10)
@@ -236,7 +214,7 @@ class CropMapWidget(CustomCropWidget):
                 case QtWidgets.QCheckBox():
                     self.connect_checkboxs(input_widget)
                 case _: pass
-                    
+
     def disable_buttons(self) -> None:
         def all_filled(*line_edits: Union[PathLineEdit, NumberLineEdit, QtWidgets.QComboBox]) -> bool:
             x = all(edit.state == LineEditState.VALID_INPUT

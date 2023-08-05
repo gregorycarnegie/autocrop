@@ -1,14 +1,11 @@
-from multiprocessing import Process
-from typing import Optional, Callable, Any
+from typing import Optional
 
 import pandas as pd
 from PyQt6 import QtWidgets, QtCore, QtGui
 
-from core import CustomDialWidget, ExtWidget, Job, window_functions
+from core import CustomDialWidget, Cropper, ExtWidget, FunctionTabSelectionState, Job, window_functions
 from file_types import Photo
 from line_edits import PathLineEdit, NumberLineEdit
-from .cropper import Cropper
-from .enums import FunctionTabSelectionState
 
 CHECKBOX_STYLESHEET = """QCheckBox:unchecked{color: red}
         QCheckBox:checked{color: white}
@@ -82,9 +79,9 @@ class CustomCropWidget(QtWidgets.QWidget):
         self.destinationButton = QtWidgets.QPushButton(parent=self)
         self.destinationButton.setMinimumSize(QtCore.QSize(124, 24))
         self.destinationButton.setMaximumSize(QtCore.QSize(16777215, 24))
-        destination_icon = QtGui.QIcon()
-        destination_icon.addPixmap(QtGui.QPixmap('resources\\icons\\folder.svg'), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        self.destinationButton.setIcon(destination_icon)
+        folder_icon = QtGui.QIcon()
+        folder_icon.addPixmap(QtGui.QPixmap('resources\\icons\\folder.svg'), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        self.destinationButton.setIcon(folder_icon)
         self.destinationButton.setObjectName('destinationButton')
 
         self.progressBar = QtWidgets.QProgressBar()
@@ -99,16 +96,16 @@ class CustomCropWidget(QtWidgets.QWidget):
         self.bottom_dialArea = bottom_dial_area
         self.left_dialArea = left_dial_area
         self.right_dialArea = right_dial_area
-        
+
         self.selection_state = FunctionTabSelectionState.NOT_SELECTED
 
     def reload_widgets(self) -> None:
         """Only sublasses of this class should implement this method"""
-        pass 
-    
+        pass
+
     def disable_buttons(self) -> None:
         """Only sublasses of this class should implement this method"""
-        pass 
+        pass
 
     def connect_checkboxs(self, input_widget: QtWidgets.QCheckBox):
         input_widget.stateChanged.connect(lambda: self.reload_widgets())
@@ -132,18 +129,6 @@ class CustomCropWidget(QtWidgets.QWidget):
                 case QtWidgets.QCheckBox():
                     self.connect_checkboxs(input_widget)
                 case _: pass
-
-    def update_progress(self, value: int) -> None:
-        self.progressBar.setValue(value)
-        QtWidgets.QApplication.processEvents()
-
-    @staticmethod
-    def run_batch_process(function: Callable[..., Any],
-                          reset_worker_func: Callable[..., Any],
-                          job: Job) -> None:
-        reset_worker_func()
-        process = Process(target=function, daemon=True, args=(job,))
-        process.run()
 
     def create_job(self, exposure: QtWidgets.QCheckBox,
                    multi: QtWidgets.QCheckBox,
@@ -181,12 +166,6 @@ class CustomCropWidget(QtWidgets.QWidget):
                     video_path=video_path,
                     start_position=start_position,
                     stop_position=stop_position)
-
-    @staticmethod
-    def cancel_button_operation(cancel_button: QtWidgets.QPushButton, *crop_buttons: QtWidgets.QPushButton):
-        cancel_button.setDisabled(True)
-        for crop_button in crop_buttons:
-            crop_button.setEnabled(True)
 
     def open_folder(self, line_edit: PathLineEdit) -> None:
         f_name = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Directory', Photo().default_directory)

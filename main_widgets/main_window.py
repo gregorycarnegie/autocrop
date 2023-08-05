@@ -3,16 +3,14 @@ from typing import Union, Tuple
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-from core import CustomDialWidget, ExtWidget, utils, window_functions
+from core import Cropper, CustomDialWidget, ExtWidget, FunctionTabSelectionState, FunctionType, utils, window_functions
 from file_types import Photo, Table, Video
 from line_edits import NumberLineEdit, PathLineEdit, LineEditState
 from .crop_folder_widget import CropFolderWidget
 from .crop_map_widget import CropMapWidget
 from .crop_photo_widget import CropPhotoWidget
 from .crop_vid_widget import CropVideoWidget
-from .cropper import Cropper
 from .custom_crop_widget import CustomCropWidget
-from .enums import FunctionTabSelectionState, FunctionType
 
 
 class UiMainWindow(QtWidgets.QMainWindow):
@@ -363,6 +361,10 @@ class UiMainWindow(QtWidgets.QMainWindow):
             tab.selection_state = FunctionTabSelectionState.NOT_SELECTED
 
     def load_preset(self, phi: Union[int, float]) -> None:
+        if self.widthLineEdit.state is LineEditState.INVALID_INPUT or self.heightLineEdit.state is LineEditState.INVALID_INPUT:
+            self.widthLineEdit.setText('1000')
+            self.heightLineEdit.setText('1000')
+
         if phi == 1:
             if int(self.widthLineEdit.text()) > int(self.heightLineEdit.text()):
                 self.heightLineEdit.setText(self.widthLineEdit.text())
@@ -413,7 +415,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
     def setup_custom_crop_widget(self, tab_widget: QtWidgets.QTabWidget,
                                  function_type: FunctionType) -> Tuple[CustomCropWidget, QtGui.QIcon]:
-        widget_list = (self.crop_worker, self.widthLineEdit, self.heightLineEdit, self.extWidget, 
+        widget_list = (self.crop_worker, self.widthLineEdit, self.heightLineEdit, self.extWidget,
                        self.sensitivity_dialArea, self.face_dialArea, self.gamma_dialArea,
                        self.top_dialArea, self.bottom_dialArea, self.left_dialArea, self.right_dialArea)
         match function_type:

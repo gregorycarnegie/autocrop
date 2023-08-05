@@ -5,15 +5,13 @@ import numpy as np
 from PyQt6 import QtCore, QtGui, QtWidgets, QtMultimedia
 from PyQt6.QtMultimediaWidgets import QVideoWidget
 
-from core import CustomDialWidget, ExtWidget, window_functions
+from core import Cropper, CustomDialWidget, ExtWidget, FunctionType, window_functions
 from file_types import Photo, Video
 from line_edits import PathLineEdit, PathType, NumberLineEdit, LineEditState
-from .cropper import Cropper
-from .custom_crop_widget import CustomCropWidget
-from .enums import FunctionType
+from .crop_batch_widget import CropBatchWidget
 
 
-class CropVideoWidget(CustomCropWidget):
+class CropVideoWidget(CropBatchWidget):
     def __init__(self, crop_worker: Cropper,
                  width_line_edit: NumberLineEdit,
                  height_line_edit: NumberLineEdit,
@@ -120,22 +118,10 @@ class CropVideoWidget(CustomCropWidget):
         self.videocropButton.setIcon(icon3)
         self.videocropButton.setObjectName('videocropButton')
         self.horizontalLayout_2.addWidget(self.videocropButton)
-        self.cancelButton = QtWidgets.QPushButton(parent=self.frame)
-        self.cancelButton.setMinimumSize(QtCore.QSize(0, 24))
-        self.cancelButton.setMaximumSize(QtCore.QSize(16777215, 24))
-        self.cancelButton.setText('')
-        icon4 = QtGui.QIcon()
-        icon4.addPixmap(QtGui.QPixmap('resources\\icons\\cancel.svg'), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        self.cancelButton.setIcon(icon4)
-        self.cancelButton.setObjectName('cancelButton')
+        self.cancelButton.setParent(self.frame)
         self.horizontalLayout_2.addWidget(self.cancelButton)
         self.verticalLayout_2.addLayout(self.horizontalLayout_2)
-        self.progressBar = QtWidgets.QProgressBar(parent=self.frame)
-        self.progressBar.setMinimumSize(QtCore.QSize(0, 12))
-        self.progressBar.setMaximumSize(QtCore.QSize(16777215, 12))
-        self.progressBar.setProperty('value', 0)
-        self.progressBar.setTextVisible(False)
-        self.progressBar.setObjectName('progressBar')
+        self.progressBar.setParent(self.frame)
         self.verticalLayout_2.addWidget(self.progressBar)
         self.verticalLayout_2.setStretch(0, 1)
         self.verticalLayout_2.setStretch(1, 10)
