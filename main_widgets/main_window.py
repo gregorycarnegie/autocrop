@@ -421,24 +421,35 @@ class UiMainWindow(QtWidgets.QMainWindow):
         widget_list = (self.crop_worker, self.widthLineEdit, self.heightLineEdit, self.extWidget,
                        self.sensitivity_dialArea, self.face_dialArea, self.gamma_dialArea,
                        self.top_dialArea, self.bottom_dialArea, self.left_dialArea, self.right_dialArea)
+        icon = QtGui.QIcon()
+
+        def callback(_tab: CustomCropWidget, _tab_name: str, _icon_name: str):
+            _tab.setObjectName(_tab_name)
+            icon.addPixmap(QtGui.QPixmap(f'resources\\icons\\{_icon_name}.svg'), QtGui.QIcon.Mode.Normal,
+                           QtGui.QIcon.State.Off)
+            tab_widget.addTab(_tab, icon, '')
+
         match function_type:
             case FunctionType.PHOTO:
                 tab = CropPhotoWidget(*widget_list, parent=self)
                 tab_name, icon_name = 'photoTab', 'picture'
+                callback(tab, tab_name, icon_name)
+                return tab, icon
             case FunctionType.FOLDER:
                 tab = CropFolderWidget(*widget_list, parent=self)
                 tab_name, icon_name = 'folder_Tab', 'folder'
+                callback(tab, tab_name, icon_name)
+                return tab, icon
             case FunctionType.MAPPING:
                 tab = CropMapWidget(*widget_list, parent=self)
                 tab_name, icon_name = 'mappingTab', 'excel'
+                callback(tab, tab_name, icon_name)
+                return tab, icon
             case FunctionType.VIDEO:
                 tab = CropVideoWidget(*widget_list, parent=self)
                 tab_name, icon_name = 'videoTab', 'clapperboard'
-        icon = QtGui.QIcon()
-        tab.setObjectName(tab_name)
-        icon.addPixmap(QtGui.QPixmap(f'resources\\icons\\{icon_name}.svg'), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        tab_widget.addTab(tab, icon, '')
-        return tab, icon
+                callback(tab, tab_name, icon_name)
+                return tab, icon
 
     def connect_combo_boxes(self, tab_widget: CustomCropWidget) -> None:
         try:
