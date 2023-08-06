@@ -3,7 +3,8 @@ from typing import Union, Tuple
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-from core import Cropper, CustomDialWidget, ExtWidget, FunctionTabSelectionState, FunctionType, utils, window_functions
+from core import Cropper, CustomDialWidget, ExtWidget, FunctionTabSelectionState, FunctionType, utils, window_functions, \
+    Preset
 from file_types import Photo, Table, Video
 from line_edits import NumberLineEdit, PathLineEdit, LineEditState
 from .crop_folder_widget import CropFolderWidget
@@ -11,7 +12,6 @@ from .crop_map_widget import CropMapWidget
 from .crop_photo_widget import CropPhotoWidget
 from .crop_vid_widget import CropVideoWidget
 from .custom_crop_widget import CustomCropWidget
-from .function_tab_enum import FunctionTabIndex
 
 
 class UiMainWindow(QtWidgets.QMainWindow):
@@ -189,22 +189,22 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.connect_combo_boxes(self.mappingTab)
 
         self.actionAbout_Face_Cropper.triggered.connect(lambda: window_functions.load_about_form())
-        self.actionGolden_Ratio.triggered.connect(lambda: self.load_preset(0.5 * (1 + 5 ** 0.5)))
-        self.action2_3_Ratio.triggered.connect(lambda: self.load_preset(1.5))
-        self.action3_4_Ratio.triggered.connect(lambda: self.load_preset(4 / 3))
-        self.action4_5_Ratio.triggered.connect(lambda: self.load_preset(1.25))
-        self.actionSquare.triggered.connect(lambda: self.load_preset(1))
+        self.actionGolden_Ratio.triggered.connect(lambda: self.load_preset(Preset.GOLDEN_RATIO))
+        self.action2_3_Ratio.triggered.connect(lambda: self.load_preset(Preset.TWO_THIRDS))
+        self.action3_4_Ratio.triggered.connect(lambda: self.load_preset(Preset.THREE_QUARTERS))
+        self.action4_5_Ratio.triggered.connect(lambda: self.load_preset(Preset.FOUR_FIFTHS))
+        self.actionSquare.triggered.connect(lambda: self.load_preset(Preset.SQUARE))
 
-        self.actionCrop_File.triggered.connect(lambda: self.function_tabWidget.setCurrentIndex(FunctionTabIndex.PHOTO_TAB.value))
-        self.actionCrop_Folder.triggered.connect(lambda: self.function_tabWidget.setCurrentIndex(FunctionTabIndex.FOLDER_TAB.value))
-        self.actionUse_Mapping.triggered.connect(lambda: self.function_tabWidget.setCurrentIndex(FunctionTabIndex.MAPPING_TAB.value))
-        self.actionCrop_Video.triggered.connect(lambda: self.function_tabWidget.setCurrentIndex(FunctionTabIndex.VIDEO_TAB.value))
+        self.actionCrop_File.triggered.connect(lambda: self.function_tabWidget.setCurrentIndex(FunctionType.PHOTO.value))
+        self.actionCrop_Folder.triggered.connect(lambda: self.function_tabWidget.setCurrentIndex(FunctionType.FOLDER.value))
+        self.actionUse_Mapping.triggered.connect(lambda: self.function_tabWidget.setCurrentIndex(FunctionType.MAPPING.value))
+        self.actionCrop_Video.triggered.connect(lambda: self.function_tabWidget.setCurrentIndex(FunctionType.VIDEO.value))
 
         self.function_tabWidget.currentChanged.connect(lambda: self.check_tab_selection())
         self.function_tabWidget.currentChanged.connect(lambda: self.videoTab.player.pause())
 
         self.retranslateUi()
-        self.function_tabWidget.setCurrentIndex(0)
+        self.function_tabWidget.setCurrentIndex(FunctionType.PHOTO.value)
         self.settings_tabWidget.setCurrentIndex(0)
         self.actionCrop_File.triggered.connect(self.function_tabWidget.setFocus) # type: ignore
         self.actionCrop_Folder.triggered.connect(self.function_tabWidget.setFocus) # type: ignore
@@ -269,7 +269,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         a0.accept()
 
     def handle_path(self, file_path: Path,
-                    tab_index: FunctionTabIndex,
+                    tab_index: FunctionType,
                     line_edit: PathLineEdit) -> None:
         self.function_tabWidget.setCurrentIndex(tab_index.value)
         line_edit.setText(file_path.as_posix())
@@ -300,12 +300,12 @@ class UiMainWindow(QtWidgets.QMainWindow):
         except AssertionError:
             return None
         if any(mask):
-            self.handle_path(file_path, FunctionTabIndex.MAPPING_TAB, self.mappingTab.folderLineEdit)
+            self.handle_path(file_path, FunctionType.MAPPING, self.mappingTab.folderLineEdit)
         else:
-            self.handle_path(file_path, FunctionTabIndex.FOLDER_TAB, self.folder_Tab.folderLineEdit)
+            self.handle_path(file_path, FunctionType.FOLDER, self.folder_Tab.folderLineEdit)
 
     def handle_file(self, file_path: Path) -> None:
-        match (suffix := file_path.suffix.lower()):
+        match file_path.suffix.lower():
             case suffix if suffix in Photo().file_types:
                 self.handle_image_file(file_path)
             case suffix if suffix in Video().file_types:
@@ -319,11 +319,11 @@ class UiMainWindow(QtWidgets.QMainWindow):
             assert isinstance(self.photoTab, CropPhotoWidget)
         except AssertionError:
             return None
-        self.handle_path(file_path, FunctionTabIndex.PHOTO_TAB, self.photoTab.photoLineEdit)
+        self.handle_path(file_path, FunctionType.PHOTO, self.photoTab.photoLineEdit)
 
     def handle_video_file(self, file_path: Path) -> None:
         self.handle_function_tab_state(self.videoTab, self.folder_Tab, self.photoTab, self.mappingTab)
-        self.function_tabWidget.setCurrentIndex(FunctionTabIndex.VIDEO_TAB.value)
+        self.function_tabWidget.setCurrentIndex(FunctionType.VIDEO.value)
         try:
             assert isinstance(self.videoTab, CropVideoWidget)
         except AssertionError:
@@ -334,7 +334,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.videoTab.player.setSource(QtCore.QUrl.fromLocalFile(self.videoTab.videoLineEdit.text()))
 
     def handle_pandas_file(self, file_path: Path) -> None:
-        self.function_tabWidget.setCurrentIndex(FunctionTabIndex.MAPPING_TAB.value)
+        self.function_tabWidget.setCurrentIndex(FunctionType.MAPPING.value)
         try:
             assert isinstance(self.mappingTab, CropMapWidget)
         except AssertionError:
@@ -345,13 +345,13 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
     def check_tab_selection(self) -> None:
         match self.function_tabWidget.currentIndex():
-            case FunctionTabIndex.PHOTO_TAB:
+            case FunctionType.PHOTO.value:
                 self.handle_function_tab_state(self.photoTab, self.folder_Tab, self.mappingTab, self.videoTab)
-            case FunctionTabIndex.FOLDER_TAB:
+            case FunctionType.FOLDER.value:
                 self.handle_function_tab_state(self.folder_Tab, self.mappingTab, self.videoTab, self.photoTab)
-            case FunctionTabIndex.MAPPING_TAB:
+            case FunctionType.MAPPING.value:
                 self.handle_function_tab_state(self.mappingTab, self.videoTab, self.photoTab, self.folder_Tab)
-            case FunctionTabIndex.VIDEO_TAB:
+            case FunctionType.VIDEO.value:
                 self.handle_function_tab_state(self.videoTab, self.photoTab, self.folder_Tab, self.mappingTab)
             case _: pass
 
@@ -361,20 +361,22 @@ class UiMainWindow(QtWidgets.QMainWindow):
         for tab in other_tabs:
             tab.selection_state = FunctionTabSelectionState.NOT_SELECTED
 
-    def load_preset(self, phi: Union[int, float]) -> None:
-        if self.widthLineEdit.state is LineEditState.INVALID_INPUT or self.heightLineEdit.state is LineEditState.INVALID_INPUT:
+    def load_preset(self, phi: Preset) -> None:
+        if any(line.state is LineEditState.INVALID_INPUT for line in (self.widthLineEdit, self.heightLineEdit)):
             self.widthLineEdit.setText('1000')
             self.heightLineEdit.setText('1000')
 
-        if phi == 1:
-            if int(self.widthLineEdit.text()) > int(self.heightLineEdit.text()):
-                self.heightLineEdit.setText(self.widthLineEdit.text())
-            elif int(self.widthLineEdit.text()) < int(self.heightLineEdit.text()):
-                self.widthLineEdit.setText(self.heightLineEdit.text())
-        elif int(self.widthLineEdit.text()) >= int(self.heightLineEdit.text()):
-            self.heightLineEdit.setText(str(int(float(self.widthLineEdit.text()) * phi)))
-        elif int(self.widthLineEdit.text()) < int(self.heightLineEdit.text()):
-            self.widthLineEdit.setText(str(int(float(self.heightLineEdit.text()) / phi)))
+        match phi:
+            case Preset.SQUARE:
+                if self.widthLineEdit.value() > self.heightLineEdit.value():
+                    self.heightLineEdit.setText(self.widthLineEdit.text())
+                elif self.widthLineEdit.value() < self.heightLineEdit.value():
+                    self.widthLineEdit.setText(self.heightLineEdit.text())
+            case Preset.GOLDEN_RATIO | Preset.TWO_THIRDS | Preset.THREE_QUARTERS | Preset.FOUR_FIFTHS:
+                if self.widthLineEdit.value() >= self.heightLineEdit.value():
+                    self.heightLineEdit.setText(str(int(self.widthLineEdit.value() * phi.value)))
+                else:
+                    self.widthLineEdit.setText(str(int(self.heightLineEdit.value() / phi.value)))
 
     def disable_buttons(self) -> None:
         def all_filled(*line_edits: Union[PathLineEdit, NumberLineEdit, QtWidgets.QComboBox]) -> bool:

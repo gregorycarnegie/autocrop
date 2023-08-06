@@ -100,7 +100,7 @@ class Job(NamedTuple):
         Returns:
             int: The specified image width.
         """
-        return int(self.width.text())
+        return self.width.value()
     
     def height_value(self) -> int:
         """
@@ -109,10 +109,10 @@ class Job(NamedTuple):
         Returns:
             int: The specified image height.
         """
-        return int(self.height.text())
+        return self.height.value()
     
     def size(self) -> Tuple[int, int]:
-        return int(self.width.text()), int(self.height.text())
+        return self.width.value(), self.height.value()
 
     def get_destination(self) -> Optional[Path]:
         """

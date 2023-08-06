@@ -153,10 +153,10 @@ class CropFolderWidget(CropBatchWidget):
 
     def load_data(self) -> None:
         try:
-             f_name =  self.folderLineEdit.text()
-             self.file_model.setRootPath(f_name)
-             self.treeView.setRootIndex(self.file_model.index(f_name))
-             self.display_crop()
+            f_name =  self.folderLineEdit.text()
+            self.file_model.setRootPath(f_name)
+            self.treeView.setRootIndex(self.file_model.index(f_name))
+            self.display_crop()
         except (IndexError, FileNotFoundError, ValueError, AttributeError):
             return None
 

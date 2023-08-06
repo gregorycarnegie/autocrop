@@ -1,9 +1,8 @@
-from enum import auto, Enum, unique
+from enum import Enum
 
 
-@unique
 class FunctionType(Enum):
-    PHOTO = auto()
-    FOLDER = auto()
-    MAPPING = auto()
-    VIDEO = auto()
+    PHOTO = 0
+    FOLDER = 1
+    MAPPING = 2
+    VIDEO = 3
