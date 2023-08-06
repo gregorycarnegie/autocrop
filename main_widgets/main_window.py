@@ -11,6 +11,7 @@ from .crop_map_widget import CropMapWidget
 from .crop_photo_widget import CropPhotoWidget
 from .crop_vid_widget import CropVideoWidget
 from .custom_crop_widget import CustomCropWidget
+from .function_tab_enum import FunctionTabIndex
 
 
 class UiMainWindow(QtWidgets.QMainWindow):
@@ -194,10 +195,10 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.action4_5_Ratio.triggered.connect(lambda: self.load_preset(1.25))
         self.actionSquare.triggered.connect(lambda: self.load_preset(1))
 
-        self.actionCrop_File.triggered.connect(lambda: self.function_tabWidget.setCurrentIndex(0))
-        self.actionCrop_Folder.triggered.connect(lambda: self.function_tabWidget.setCurrentIndex(1))
-        self.actionUse_Mapping.triggered.connect(lambda: self.function_tabWidget.setCurrentIndex(2))
-        self.actionCrop_Video.triggered.connect(lambda: self.function_tabWidget.setCurrentIndex(3))
+        self.actionCrop_File.triggered.connect(lambda: self.function_tabWidget.setCurrentIndex(FunctionTabIndex.PHOTO_TAB.value))
+        self.actionCrop_Folder.triggered.connect(lambda: self.function_tabWidget.setCurrentIndex(FunctionTabIndex.FOLDER_TAB.value))
+        self.actionUse_Mapping.triggered.connect(lambda: self.function_tabWidget.setCurrentIndex(FunctionTabIndex.MAPPING_TAB.value))
+        self.actionCrop_Video.triggered.connect(lambda: self.function_tabWidget.setCurrentIndex(FunctionTabIndex.VIDEO_TAB.value))
 
         self.function_tabWidget.currentChanged.connect(lambda: self.check_tab_selection())
         self.function_tabWidget.currentChanged.connect(lambda: self.videoTab.player.pause())
@@ -268,9 +269,9 @@ class UiMainWindow(QtWidgets.QMainWindow):
         a0.accept()
 
     def handle_path(self, file_path: Path,
-                    tab_index: int,
+                    tab_index: FunctionTabIndex,
                     line_edit: PathLineEdit) -> None:
-        self.function_tabWidget.setCurrentIndex(tab_index)
+        self.function_tabWidget.setCurrentIndex(tab_index.value)
         line_edit.setText(file_path.as_posix())
 
         try:
@@ -299,9 +300,9 @@ class UiMainWindow(QtWidgets.QMainWindow):
         except AssertionError:
             return None
         if any(mask):
-            self.handle_path(file_path, 2, self.mappingTab.folderLineEdit)
+            self.handle_path(file_path, FunctionTabIndex.MAPPING_TAB, self.mappingTab.folderLineEdit)
         else:
-            self.handle_path(file_path, 1, self.folder_Tab.folderLineEdit)
+            self.handle_path(file_path, FunctionTabIndex.FOLDER_TAB, self.folder_Tab.folderLineEdit)
 
     def handle_file(self, file_path: Path) -> None:
         match (suffix := file_path.suffix.lower()):
@@ -318,11 +319,11 @@ class UiMainWindow(QtWidgets.QMainWindow):
             assert isinstance(self.photoTab, CropPhotoWidget)
         except AssertionError:
             return None
-        self.handle_path(file_path, 0, self.photoTab.photoLineEdit)
+        self.handle_path(file_path, FunctionTabIndex.PHOTO_TAB, self.photoTab.photoLineEdit)
 
     def handle_video_file(self, file_path: Path) -> None:
         self.handle_function_tab_state(self.videoTab, self.folder_Tab, self.photoTab, self.mappingTab)
-        self.function_tabWidget.setCurrentIndex(3)
+        self.function_tabWidget.setCurrentIndex(FunctionTabIndex.VIDEO_TAB.value)
         try:
             assert isinstance(self.videoTab, CropVideoWidget)
         except AssertionError:
@@ -333,7 +334,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.videoTab.player.setSource(QtCore.QUrl.fromLocalFile(self.videoTab.videoLineEdit.text()))
 
     def handle_pandas_file(self, file_path: Path) -> None:
-        self.function_tabWidget.setCurrentIndex(2)
+        self.function_tabWidget.setCurrentIndex(FunctionTabIndex.MAPPING_TAB.value)
         try:
             assert isinstance(self.mappingTab, CropMapWidget)
         except AssertionError:
@@ -344,13 +345,13 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
     def check_tab_selection(self) -> None:
         match self.function_tabWidget.currentIndex():
-            case 0:
+            case FunctionTabIndex.PHOTO_TAB:
                 self.handle_function_tab_state(self.photoTab, self.folder_Tab, self.mappingTab, self.videoTab)
-            case 1:
+            case FunctionTabIndex.FOLDER_TAB:
                 self.handle_function_tab_state(self.folder_Tab, self.mappingTab, self.videoTab, self.photoTab)
-            case 2:
+            case FunctionTabIndex.MAPPING_TAB:
                 self.handle_function_tab_state(self.mappingTab, self.videoTab, self.photoTab, self.folder_Tab)
-            case 3:
+            case FunctionTabIndex.VIDEO_TAB:
                 self.handle_function_tab_state(self.videoTab, self.photoTab, self.folder_Tab, self.mappingTab)
             case _: pass
 
