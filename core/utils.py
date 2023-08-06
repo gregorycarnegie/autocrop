@@ -312,10 +312,10 @@ def set_filename(image_path: Path,
                  radio_choice: str,
                  radio_options: Tuple[str, ...],
                  new: Optional[str] = None) -> Tuple[Path, bool]:
-    if image_path.suffix.lower() in Photo().RAW_TYPES:
+    if (suffix := image_path.suffix.lower()) in Photo().RAW_TYPES:
         selected_extension = radio_options[2] if radio_choice == radio_options[0] else radio_choice
     else:
-        selected_extension = image_path.suffix if radio_choice == radio_options[0] else radio_choice
+        selected_extension = suffix if radio_choice == radio_options[0] else radio_choice
     final_path = destination.joinpath(f'{new or image_path.stem}{selected_extension}')
     return final_path, final_path.suffix in {'.tif', '.tiff'}
 

@@ -23,9 +23,10 @@ def show_message_box(destination: QLineEdit) -> None:
     msg_box.setIcon(QMessageBox.Icon.Question)
     msg_box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
     
-    if (_ := msg_box.exec()) == QMessageBox.StandardButton.Yes:
-        startfile(destination.text())
-
+    match msg_box.exec():
+        case QMessageBox.StandardButton.Yes:
+            startfile(destination.text())
+        case _: pass
 
 def create_media_button(name: str,
                         icon_resource: MediaIconAlias,

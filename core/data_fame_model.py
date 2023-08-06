@@ -11,11 +11,9 @@ class DataFrameModel(QAbstractTableModel):
         self._df = df
 
     def rowCount(self, parent: Optional[QModelIndex]=None):
-        # if self._df is not None:
         return self._df.shape[0]
 
     def columnCount(self, parent: Optional[QModelIndex]=None):
-        # if self._df is not None:
         return self._df.shape[1]
 
     def data(self, index: QModelIndex,
@@ -24,16 +22,21 @@ class DataFrameModel(QAbstractTableModel):
             return str(self._df.iloc[index.row(), index.column()])
         return None
 
+    def load_dataframe(self, section: int, orientation: Qt.Orientation) -> Optional[str]:
+        try:
+            match orientation:
+                case Qt.Orientation.Horizontal:
+                    return str(self._df.columns[section])
+                case Qt.Orientation.Vertical:
+                    return str(self._df.index[section])
+        except IndexError:
+            return None
+    
     def headerData(self, section: int,
                    orientation: Qt.Orientation,
                    role: int=Qt.ItemDataRole.DisplayRole) -> Optional[str]:
-        if role == Qt.ItemDataRole.DisplayRole:
-            try:
-                if orientation == Qt.Orientation.Horizontal:
-                    return str(self._df.columns[section])
-                if orientation == Qt.Orientation.Vertical:
-                    return str(self._df.index[section])
-            except IndexError:
+        match role:
+            case Qt.ItemDataRole.DisplayRole:
+                return self.load_dataframe(section, orientation)
+            case _:
                 return None
-        return None
-    
