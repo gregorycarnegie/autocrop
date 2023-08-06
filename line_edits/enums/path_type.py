@@ -1,8 +1,9 @@
-from enum import Enum
+from enum import auto, Enum, unique
 
 
+@unique
 class PathType(Enum):
-    IMAGE = 'image'
-    TABLE = 'table' 
-    VIDEO = 'video'
-    FOLDER = 'folder'
+    IMAGE = auto()
+    TABLE = auto()
+    VIDEO = auto()
+    FOLDER = auto()
