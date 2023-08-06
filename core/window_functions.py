@@ -17,20 +17,15 @@ def load_about_form() -> None:
     about_ui.exec()
 
 def show_message_box(destination: QLineEdit) -> None:
-    def message_button(answer: QMessageBox) -> None:
-        if answer.text() == '&Yes':
-            startfile(destination.text())
+    msg_box = QMessageBox()
+    msg_box.setWindowTitle('Open Destination Folder')
+    msg_box.setText('Open destination folder?')
+    msg_box.setIcon(QMessageBox.Icon.Question)
+    msg_box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+    
+    if (_ := msg_box.exec()) == QMessageBox.StandardButton.Yes:
+        startfile(destination.text())
 
-    def helper_function(msg_box: QMessageBox) -> None:
-        msg_box.setWindowTitle('Open Destination Folder')
-        msg_box.setText('Open destination folder?')
-        msg_box.setIcon(QMessageBox.Icon.Question)
-        msg_box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-        msg_box.buttonClicked.connect(message_button)
-        x = msg_box.exec()
-
-    msg = QMessageBox()
-    helper_function(msg)
 
 def create_media_button(name: str,
                         icon_resource: MediaIconAlias,
