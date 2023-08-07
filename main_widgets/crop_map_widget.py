@@ -35,6 +35,7 @@ class CropMapWidget(CropBatchWidget):
         self.verticalLayout_3.setObjectName('verticalLayout_3')
         self.gridLayout = QtWidgets.QGridLayout()
         self.gridLayout.setObjectName('gridLayout')
+        self.folderLineEdit = self.setup_path_line_edit('folderLineEdit')
         self.folderLineEdit.setParent(self)
         self.gridLayout.addWidget(self.folderLineEdit, 0, 0, 1, 1)
         self.folderButton.setParent(self)

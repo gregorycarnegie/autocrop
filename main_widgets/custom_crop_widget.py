@@ -49,17 +49,9 @@ class CustomCropWidget(QtWidgets.QWidget):
 
         self.folderLineEdit: Optional[PathLineEdit] = None
         self.CHECKBOX_STYLESHEET = CHECKBOX_STYLESHEET
-        self.exposureCheckBox = QtWidgets.QCheckBox()
-        self.mfaceCheckBox = QtWidgets.QCheckBox()
-        self.tiltCheckBox = QtWidgets.QCheckBox()
-
-        self.mfaceCheckBox.setObjectName('mfaceCheckBox')
-        self.tiltCheckBox.setObjectName('tiltCheckBox')
-        self.exposureCheckBox.setObjectName('exposureCheckBox')
-
-        self.exposureCheckBox.setStyleSheet(self.CHECKBOX_STYLESHEET)
-        self.mfaceCheckBox.setStyleSheet(self.CHECKBOX_STYLESHEET)
-        self.tiltCheckBox.setStyleSheet(self.CHECKBOX_STYLESHEET)
+        self.exposureCheckBox = self.setup_checkbox('exposureCheckBox')
+        self.mfaceCheckBox = self.setup_checkbox('mfaceCheckBox')
+        self.tiltCheckBox = self.setup_checkbox('tiltCheckBox')
 
         self.cropButton = QtWidgets.QPushButton()
         self.cropButton.setMinimumSize(QtCore.QSize(0, 24))
@@ -70,11 +62,7 @@ class CustomCropWidget(QtWidgets.QWidget):
         self.cropButton.setIcon(crop_icon)
         self.cropButton.setObjectName('cropButton')
 
-        self.destinationLineEdit = PathLineEdit()
-        self.destinationLineEdit.setMinimumSize(QtCore.QSize(0, 24))
-        self.destinationLineEdit.setMaximumSize(QtCore.QSize(16777215, 24))
-        self.destinationLineEdit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
-        self.destinationLineEdit.setObjectName('destinationLineEdit')
+        self.destinationLineEdit = self.setup_path_line_edit('destinationLineEdit')
 
         self.destinationButton = QtWidgets.QPushButton(parent=self)
         self.destinationButton.setMinimumSize(QtCore.QSize(124, 24))
@@ -99,6 +87,21 @@ class CustomCropWidget(QtWidgets.QWidget):
 
         self.selection_state = FunctionTabSelectionState.NOT_SELECTED
 
+    @staticmethod
+    def setup_path_line_edit(name: str) -> PathLineEdit:
+        line_edit = PathLineEdit()
+        line_edit.setMinimumSize(QtCore.QSize(0, 24))
+        line_edit.setMaximumSize(QtCore.QSize(16777215, 24))
+        line_edit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
+        line_edit.setObjectName(name)
+        return line_edit
+
+    def setup_checkbox(self, name: str) -> QtWidgets.QCheckBox:
+        checkbox = QtWidgets.QCheckBox()
+        checkbox.setObjectName(name)
+        checkbox.setStyleSheet(self.CHECKBOX_STYLESHEET)
+        return checkbox
+
     def reload_widgets(self) -> None:
         """Only sublasses of this class should implement this method"""
         pass
@@ -107,7 +110,7 @@ class CustomCropWidget(QtWidgets.QWidget):
         """Only sublasses of this class should implement this method"""
         pass
 
-    def connect_checkboxs(self, input_widget: QtWidgets.QCheckBox):
+    def connect_checkboxs(self, input_widget: QtWidgets.QCheckBox) -> None:
         input_widget.stateChanged.connect(lambda: self.reload_widgets())
         match input_widget:
             case self.mfaceCheckBox:
@@ -171,7 +174,7 @@ class CustomCropWidget(QtWidgets.QWidget):
         f_name = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Directory', Photo().default_directory)
         line_edit.setText(f_name)
         if line_edit is self.folderLineEdit:
-                self.load_data()
+            self.load_data()
 
     def load_data(self) -> None:
         """Only sublasses of this class should implement this method"""

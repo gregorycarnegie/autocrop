@@ -4,7 +4,7 @@ from typing import Optional, Callable, Any
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from core import Cropper, CustomDialWidget, ExtWidget, Job
-from line_edits import NumberLineEdit, PathLineEdit
+from line_edits import NumberLineEdit
 from .custom_crop_widget import CustomCropWidget
 
 
@@ -37,12 +37,6 @@ class CropBatchWidget(CustomCropWidget):
         self.progressBar.setMaximumSize(QtCore.QSize(16777215, 12))
         self.progressBar.setProperty('value', 0)
         self.progressBar.setTextVisible(False)
-
-        self.folderLineEdit: PathLineEdit = PathLineEdit()
-        self.folderLineEdit.setMinimumSize(QtCore.QSize(0, 24))
-        self.folderLineEdit.setMaximumSize(QtCore.QSize(16777215, 24))
-        self.folderLineEdit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
-        self.folderLineEdit.setObjectName('folderLineEdit')
         self.folderButton = QtWidgets.QPushButton()
         self.folderButton.setMinimumSize(QtCore.QSize(124, 24))
         self.folderButton.setMaximumSize(QtCore.QSize(16777215, 24))

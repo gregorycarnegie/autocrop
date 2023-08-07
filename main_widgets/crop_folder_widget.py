@@ -34,6 +34,7 @@ class CropFolderWidget(CropBatchWidget):
         self.verticalLayout_2.setObjectName('verticalLayout_2')
         self.horizontalLayout_1 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_1.setObjectName('horizontalLayout_1')
+        self.folderLineEdit = self.setup_path_line_edit('folderLineEdit')
         self.folderLineEdit.setParent(self)
         self.horizontalLayout_1.addWidget(self.folderLineEdit)
         self.folderButton.setParent(self)
