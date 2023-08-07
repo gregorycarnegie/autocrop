@@ -99,7 +99,7 @@ class Cropper(QObject):
                 utils.reject(source_image, destination_path, image_name)
 
     @staticmethod
-    def multi_save_loop(cropped_images: Union[List[cv2.Mat], List[npt.NDArray[np.int8]]],
+    def multi_save_loop(cropped_images: Union[List[cv2.Mat], List[npt.NDArray[np.uint8]]],
                         file_path: Path,
                         gamma: int,
                         is_tiff: bool) -> None:
@@ -134,17 +134,19 @@ class Cropper(QObject):
                 self.multi_save_loop(cropped_images, file_path, job.gamma.value(), is_tiff)
 
     @staticmethod
-    def multi_crop(source_image: Union[cv2.Mat, npt.NDArray[np.int8], Path],
+    def multi_crop(source_image: Union[cv2.Mat, npt.NDArray[np.uint8], Path],
                    job: Job,
-                   face_worker: FaceWorker) -> Optional[Union[List[cv2.Mat], List[npt.NDArray[np.int8]]]]:
+                   face_worker: FaceWorker) -> Optional[Union[List[cv2.Mat], List[npt.NDArray[np.uint8]]]]:
         img = utils.open_pic(source_image, job.fix_exposure_job.isChecked(), job.auto_tilt_job.isChecked(), face_worker) \
-            if isinstance(source_image, Path) else source_image
+                if isinstance(source_image, Path) else source_image
         detections, crop_positions = utils.multi_box_positions(img, job, face_worker)
         # Check if any faces were detected
         if not np.any(100 * detections[0, 0, :, 2] > job.sensitivity.value()): return None
         images = [Image.fromarray(img).crop(crop_position) for crop_position in crop_positions]
-        image_array = [np.array(image) for image in images]
-        results = [utils.convert_color_space(image) for image in image_array]
+
+        image_array = [utils.pillow_to_numpy(image) for image in images]
+
+        results = [utils.convert_color_space(array) for array in image_array]
         return [cv2.resize(result, job.size(), interpolation=cv2.INTER_AREA) for result in results]
 
     def crop(self, image: Path,
@@ -207,12 +209,13 @@ class Cropper(QObject):
             self.crop_and_set(pic_array, bounding_box, job.gamma.value(), image_widget)
 
     @staticmethod
-    def _numpy_array_crop(image: npt.NDArray[np.int8],
-                          bounding_box: Tuple[int, int, int, int]) -> npt.NDArray[np.int8]:
-        picture = Image.fromarray(image)
-        return np.array(picture.crop(bounding_box))
+    def _numpy_array_crop(image: npt.NDArray[np.uint8],
+                          bounding_box: Tuple[int, int, int, int]) -> npt.NDArray[np.uint8]:
+        # Load and crop image using PIL
+        picture = Image.fromarray(image).crop(bounding_box)
+        return utils.pillow_to_numpy(picture)
 
-    def crop_and_set(self, image: npt.NDArray[np.int8],
+    def crop_and_set(self, image: npt.NDArray[np.uint8],
                      bounding_box: Tuple[int, int, int, int],
                      gamma: int,
                      image_widget: ImageWidget) -> None:
@@ -235,19 +238,17 @@ class Cropper(QObject):
             return None
         utils.display_image_on_widget(final_image, image_widget)
 
-    @staticmethod
-    def crop_image(image: Union[Path, cv2.Mat, npt.NDArray[np.int8]],
+    # @staticmethod
+    def crop_image(self, image: Union[Path, cv2.Mat, npt.NDArray[np.uint8]],
                    job: Job,
-                   face_worker: FaceWorker) -> Optional[Union[cv2.Mat, npt.NDArray[np.int8]]]:
+                   face_worker: FaceWorker) -> Optional[Union[cv2.Mat, npt.NDArray[np.uint8]]]:
         pic_array = utils.open_pic(image, job.fix_exposure_job.isChecked(), job.auto_tilt_job.isChecked(), face_worker) \
             if isinstance(image, Path) else image
         if pic_array is None: return None
         if (bounding_box := utils.box_detect(pic_array, job, face_worker)) is None: return None
-        cropped_pic = Image.fromarray(pic_array).crop(bounding_box)
-        if len(cropped_pic.getbands()) >= 3:
-            result = utils.convert_color_space(np.array(cropped_pic))
-        else:
-            result = np.array(cropped_pic)
+        cropped_pic = self._numpy_array_crop(pic_array, bounding_box)
+        result = utils.convert_color_space(np.array(cropped_pic)) \
+            if len(cropped_pic.shape) >= 3 else np.array(cropped_pic)
         return cv2.resize(result, job.size(), interpolation=cv2.INTER_AREA)
 
     def _update_progress(self, file_amount: int,
@@ -372,7 +373,7 @@ class Cropper(QObject):
         return file_path, file_path.suffix in {'.tif', '.tiff'}
 
     @staticmethod
-    def save_frame(image: Union[cv2.Mat, npt.NDArray[np.int8]],
+    def save_frame(image: Union[cv2.Mat, npt.NDArray[np.uint8]],
                    file_path: Path,
                    job: Job,
                    is_tiff: bool) -> None:

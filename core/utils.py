@@ -35,8 +35,14 @@ def profile_it(func: Callable[..., Any]) -> Callable[..., Any]:
         result.print_stats()
     return wrapper
 
+def pillow_to_numpy(image: Image.Image) -> npt.NDArray[np.uint8]:
+    # Convert PIL image to byte array
+    image_bytes = image.tobytes()
+    # Convert byte data to numpy array
+    return np.frombuffer(image_bytes, dtype=np.uint8).reshape((image.size[1], image.size[0], len(image.getbands())))
+
 @cache
-def gamma(gam: Union[int, float] = 1.0) -> Union[npt.NDArray[np.float_], npt.NDArray[np.int8]]:
+def gamma(gam: Union[int, float] = 1.0) -> Union[npt.NDArray[np.float_], npt.NDArray[np.uint8]]:
     """
     The function calculates a gamma correction curve, which is a nonlinear transformation used to correct the
     brightness of an image. The gamma value passed in through the gam argument determines the shape of the correction
@@ -49,20 +55,20 @@ def gamma(gam: Union[int, float] = 1.0) -> Union[npt.NDArray[np.float_], npt.NDA
     """
     return np.power(np.arange(256) / 255, 1.0 / gam) * 255 if gam != 1.0 else np.arange(256)
 
-def adjust_gamma(image: Union[cv2.Mat, npt.NDArray[np.int8]], gam: int) -> npt.NDArray[np.int8]:
+def adjust_gamma(image: Union[cv2.Mat, npt.NDArray[np.uint8]], gam: int) -> npt.NDArray[np.uint8]:
     return cv2.LUT(image, gamma(gam * GAMMA_THRESHOLD).astype('uint8'))
 
-def convert_color_space(image: Union[cv2.Mat, npt.NDArray[np.int8]]) -> cv2.Mat:
+def convert_color_space(image: Union[cv2.Mat, npt.NDArray[np.uint8]]) -> cv2.Mat:
     return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-def display_image_on_widget(image: Union[cv2.Mat, npt.NDArray[np.int8]], image_widget: ImageWidget) -> None:
+def display_image_on_widget(image: Union[cv2.Mat, npt.NDArray[np.uint8]], image_widget: ImageWidget) -> None:
     height, width, channel = image.shape
     bytes_per_line = channel * width
     q_image = QImage(image.data, width, height, bytes_per_line, QImage.Format.Format_BGR888)
     image_widget.setImage(QPixmap.fromImage(q_image))
 
-def correct_exposure(image: Union[cv2.Mat, Image.Image, npt.NDArray[np.int8]],
-                     exposure: bool) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
+def correct_exposure(image: Union[cv2.Mat, Image.Image, npt.NDArray[np.uint8]],
+                     exposure: bool) -> Union[cv2.Mat, npt.NDArray[np.uint8]]:
     """
     Adjust the exposure of an input image based on the alpha and beta values calculated from its grayscale histogram.
 
@@ -73,7 +79,7 @@ def correct_exposure(image: Union[cv2.Mat, Image.Image, npt.NDArray[np.int8]],
     Returns:
         (Union[cv2.Mat, np.ndarray]): The exposure corrected image if exposure=True, otherwise the original image. The returned image will be a numpy array if the input was a PIL Image, otherwise, the same type as the input image.
     """
-    image_array = np.array(image) if isinstance(image, Image.Image) else image
+    image_array = pillow_to_numpy(image) if isinstance(image, Image.Image) else image
     if not exposure:
         return image_array
     gray = cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY) if len(image_array.shape) > 2 else image_array
@@ -86,7 +92,7 @@ def correct_exposure(image: Union[cv2.Mat, Image.Image, npt.NDArray[np.int8]],
 def open_image(image: Path,
                exposure: bool,
                tilt: bool,
-               face_worker: FaceWorker) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
+               face_worker: FaceWorker) -> Union[cv2.Mat, npt.NDArray[np.uint8]]:
     """
     Opens an image using OpenCV, performs exposure correction if needed, and optionally aligns the head in the image.
 
@@ -107,7 +113,7 @@ def open_image(image: Path,
 def open_raw(image: Path,
              exposure: bool,
              tilt: bool,
-             face_worker: FaceWorker) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
+             face_worker: FaceWorker) -> Union[cv2.Mat, npt.NDArray[np.uint8]]:
     """
     Opens a raw image file, post-processes the raw image data, performs exposure correction if needed, and optionally aligns the head in the image.
 
@@ -134,7 +140,7 @@ def open_table(input_file: Path) -> pd.DataFrame:
 def open_pic(input_file: Union[Path, str],
              exposure: bool,
              tilt: bool,
-             face_worker: FaceWorker) -> Optional[Union[cv2.Mat, npt.NDArray[np.int8]]]:
+             face_worker: FaceWorker) -> Optional[Union[cv2.Mat, npt.NDArray[np.uint8]]]:
     """Given a filename, returns a numpy array or a pandas dataframe"""
     input_file = Path(input_file) if isinstance(input_file, str) else input_file
     match (extension := input_file.suffix.lower()):
@@ -144,9 +150,9 @@ def open_pic(input_file: Union[Path, str],
             return open_raw(input_file, exposure, tilt, face_worker)
         case _: return None
 
-def align_head(image: Union[cv2.Mat, npt.NDArray[np.int8]],
+def align_head(image: Union[cv2.Mat, npt.NDArray[np.uint8]],
                face_worker: FaceWorker,
-               tilt: bool) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
+               tilt: bool) -> Union[cv2.Mat, npt.NDArray[np.uint8]]:
     """
     Aligns the head in an image using dlib and shape_predictor_68_face_landmarks.dat.
 
@@ -199,9 +205,9 @@ def get_angle_of_tilt(landmarks_array: npt.NDArray[np.int_], scaling_factor: flo
     center_x, center_y = np.mean(landmarks_array[R_EYE_START:L_EYE_END], axis=0) / scaling_factor
     return np.arctan2(eye_diff[1], eye_diff[0]) * 180 / np.pi, center_x, center_y
 
-def rotate_image(image: Union[cv2.Mat, npt.NDArray[np.int8]],
+def rotate_image(image: Union[cv2.Mat, npt.NDArray[np.uint8]],
                  angle: float,
-                 center: Tuple[float, float]) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
+                 center: Tuple[float, float]) -> Union[cv2.Mat, npt.NDArray[np.uint8]]:
     """
     Rotates an image by a specified angle around a center point.
 
@@ -218,7 +224,7 @@ def rotate_image(image: Union[cv2.Mat, npt.NDArray[np.int8]],
     # Apply the rotation to the image.
     return cv2.warpAffine(image, rotation_matrix, (image.shape[1], image.shape[0]))
 
-def prepare_detections(image: Union[cv2.Mat, npt.NDArray[np.int8]],
+def prepare_detections(image: Union[cv2.Mat, npt.NDArray[np.uint8]],
                        face_worker: FaceWorker) -> npt.NDArray[np.float_]:
     # Create blob from image
     # We standardize the image by scaling it and then subtracting the mean RGB values
@@ -241,7 +247,7 @@ def get_box_coordinates(output: npt.NDArray[np.float_],
         job.height_value(), job.top.value(), job.bottom.value(), job.left.value(),
         job.right.value())
 
-def box(img: Union[cv2.Mat, npt.NDArray[np.int8]],
+def box(img: Union[cv2.Mat, npt.NDArray[np.uint8]],
         width: int,
         height: int,
         job: Job,
@@ -254,9 +260,9 @@ def box(img: Union[cv2.Mat, npt.NDArray[np.int8]],
     if np.max(confidence_list) * 100 < job.sensitivity.value(): return None
     return get_box_coordinates(output[:, 3:7], width, height, job, confidence_list)
 
-def multi_box(image: Union[cv2.Mat, npt.NDArray[np.int8]],
+def multi_box(image: Union[cv2.Mat, npt.NDArray[np.uint8]],
               job: Job,
-              face_worker: FaceWorker) -> Union[cv2.Mat, npt.NDArray[np.int8]]:
+              face_worker: FaceWorker) -> Union[cv2.Mat, npt.NDArray[np.uint8]]:
     height, width = image.shape[:2]
     detections = prepare_detections(image, face_worker)
     for i in range(detections.shape[2]):
@@ -269,7 +275,7 @@ def multi_box(image: Union[cv2.Mat, npt.NDArray[np.int8]],
             cv2.putText(image, text, (x0, y), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 2)
     return image
 
-def multi_box_positions(image: Union[cv2.Mat, npt.NDArray[np.int8]],
+def multi_box_positions(image: Union[cv2.Mat, npt.NDArray[np.uint8]],
                         job: Job,
                         face_worker: FaceWorker) -> Tuple[npt.NDArray[np.float_], npt.NDArray[np.int_]]:
     height, width = image.shape[:2]
@@ -279,7 +285,7 @@ def multi_box_positions(image: Union[cv2.Mat, npt.NDArray[np.int8]],
                       if detections[0, 0, i, 2] * 100 > job.sensitivity.value()]
     return detections, np.array(crop_positions)
 
-def box_detect(img: Union[cv2.Mat, npt.NDArray[np.int8]],
+def box_detect(img: Union[cv2.Mat, npt.NDArray[np.uint8]],
                job: Job,
                face_worker: FaceWorker) -> Optional[Tuple[int, int, int, int]]:
     try:
@@ -326,7 +332,7 @@ def reject(path: Path,
     reject_folder.mkdir(exist_ok=True)
     shutil.copy(path, reject_folder.joinpath(image.name))
 
-def save_image(image: Union[cv2.Mat, npt.NDArray[np.int8]],
+def save_image(image: Union[cv2.Mat, npt.NDArray[np.uint8]],
                file_path: str,
                user_gam: Union[int, float],
                is_tiff: bool = False) -> None:
