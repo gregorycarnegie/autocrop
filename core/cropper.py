@@ -253,18 +253,20 @@ class Cropper(QObject):
 
     def _update_progress(self, file_amount: int,
                          process_type: FunctionType) -> None:
-        if process_type == FunctionType.FOLDER:
-            self.bar_value_f += 1
-            self.folder_progress.emit(int(100 * self.bar_value_f / file_amount))
-            if self.bar_value_f == file_amount: self.folder_finished.emit()
-        elif process_type == FunctionType.MAPPING:
-            self.bar_value_m += 1
-            self.mapping_progress.emit(int(100 * self.bar_value_m / file_amount))
-            if self.bar_value_m == file_amount: self.mapping_finished.emit()
-        elif process_type == FunctionType.VIDEO:
-            self.bar_value_v += 1
-            self.video_progress.emit(int(100 * self.bar_value_v / file_amount))
-            if self.bar_value_v == file_amount: self.video_finished.emit()
+        match process_type:
+            case FunctionType.FOLDER:
+                self.bar_value_f += 1
+                self.folder_progress.emit(int(100 * self.bar_value_f / file_amount))
+                if self.bar_value_f == file_amount: self.folder_finished.emit()
+            case FunctionType.MAPPING:
+                self.bar_value_m += 1
+                self.mapping_progress.emit(int(100 * self.bar_value_m / file_amount))
+                if self.bar_value_m == file_amount: self.mapping_finished.emit()
+            case FunctionType.VIDEO:
+                self.bar_value_v += 1
+                self.video_progress.emit(int(100 * self.bar_value_v / file_amount))
+                if self.bar_value_v == file_amount: self.video_finished.emit()
+            case _: pass
     
     def folder_worker(self, file_amount: int,
                       file_list: npt.NDArray[Any],
@@ -459,5 +461,4 @@ class Cropper(QObject):
             case FunctionType.VIDEO:
                 self.end_v_task = True
                 self.video_finished.emit()
-            case FunctionType.PHOTO:
-                return None
+            case _: return None
