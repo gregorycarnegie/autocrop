@@ -252,7 +252,7 @@ def box(img: Union[cv2.Mat, npt.NDArray[np.uint8]],
         height: int,
         job: Job,
         face_worker: FaceWorker,) -> Optional[Tuple[int, int, int, int]]:
-    # # preprocess the image: resize and performs mean subtraction
+    # preprocess the image: resize and performs mean subtraction
     detections = prepare_detections(img, face_worker)
     output = np.squeeze(detections)
     # get the confidence
