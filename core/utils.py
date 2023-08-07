@@ -36,10 +36,8 @@ def profile_it(func: Callable[..., Any]) -> Callable[..., Any]:
     return wrapper
 
 def pillow_to_numpy(image: Image.Image) -> npt.NDArray[np.uint8]:
-    # Convert PIL image to byte array
-    image_bytes = image.tobytes()
-    # Convert byte data to numpy array
-    return np.frombuffer(image_bytes, dtype=np.uint8).reshape((image.size[1], image.size[0], len(image.getbands())))
+    """Convert PIL image to numpy array"""
+    return np.frombuffer(image.tobytes(), dtype=np.uint8).reshape((image.size[1], image.size[0], len(image.getbands())))
 
 @cache
 def gamma(gam: Union[int, float] = 1.0) -> Union[npt.NDArray[np.float_], npt.NDArray[np.uint8]]:
@@ -143,7 +141,7 @@ def open_pic(input_file: Union[Path, str],
              face_worker: FaceWorker) -> Optional[Union[cv2.Mat, npt.NDArray[np.uint8]]]:
     """Given a filename, returns a numpy array or a pandas dataframe"""
     input_file = Path(input_file) if isinstance(input_file, str) else input_file
-    match (extension := input_file.suffix.lower()):
+    match input_file.suffix.lower():
         case extension if extension in Photo().CV2_TYPES:
             return open_image(input_file, exposure, tilt, face_worker)
         case extension if extension in Photo().RAW_TYPES:
