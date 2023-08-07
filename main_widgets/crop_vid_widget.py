@@ -114,7 +114,8 @@ class CropVideoWidget(CropBatchWidget):
         self.videocropButton.setMaximumSize(QtCore.QSize(16777215, 24))
         self.videocropButton.setText('')
         icon3 = QtGui.QIcon()
-        icon3.addPixmap(QtGui.QPixmap('resources\\icons\\crop_video.svg'), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon3.addPixmap(
+            QtGui.QPixmap('resources\\icons\\crop_video.svg'), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         self.videocropButton.setIcon(icon3)
         self.videocropButton.setObjectName('videocropButton')
         self.horizontalLayout_2.addWidget(self.videocropButton)
@@ -138,15 +139,24 @@ class CropVideoWidget(CropBatchWidget):
         self.verticalLayout_3.addLayout(self.horizontalLayout_4)
         self.horizontalLayout_5 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_5.setObjectName('horizontalLayout_5')
-        self.playButton = window_functions.create_media_button('playButton', 'play', self.horizontalLayout_5, parent=self)
-        self.stopButton = window_functions.create_media_button('stopButton', 'stop', self.horizontalLayout_5, parent=self)
-        self.stepbackButton = window_functions.create_media_button('stepbackButton', 'left', self.horizontalLayout_5, parent=self)
-        self.stepfwdButton = window_functions.create_media_button('stepfwdButton', 'right', self.horizontalLayout_5, parent=self)
-        self.fastfwdButton = window_functions.create_media_button('fastfwdButton', 'fastfwd', self.horizontalLayout_5, parent=self)
-        self.goto_beginingButton = window_functions.create_media_button('goto_beginingButton', 'begining', self.horizontalLayout_5, parent=self)
-        self.goto_endButton = window_functions.create_media_button("goto_endButton", "end", self.horizontalLayout_5, parent=self)
-        self.startmarkerButton = window_functions.create_media_button('startmarkerButton', 'leftmarker', self.horizontalLayout_5, parent=self)
-        self.endmarkerButton = window_functions.create_media_button('endmarkerButton', 'rightmarker', self.horizontalLayout_5, parent=self)
+        self.playButton = window_functions.create_media_button(
+            'playButton', 'play', self.horizontalLayout_5, parent=self)
+        self.stopButton = window_functions.create_media_button(
+            'stopButton', 'stop', self.horizontalLayout_5, parent=self)
+        self.stepbackButton = window_functions.create_media_button(
+            'stepbackButton', 'left', self.horizontalLayout_5, parent=self)
+        self.stepfwdButton = window_functions.create_media_button(
+            'stepfwdButton', 'right', self.horizontalLayout_5, parent=self)
+        self.fastfwdButton = window_functions.create_media_button(
+            'fastfwdButton', 'fastfwd', self.horizontalLayout_5, parent=self)
+        self.goto_beginingButton = window_functions.create_media_button(
+            'goto_beginingButton', 'begining', self.horizontalLayout_5, parent=self)
+        self.goto_endButton = window_functions.create_media_button(
+            "goto_endButton", "end", self.horizontalLayout_5, parent=self)
+        self.startmarkerButton = window_functions.create_media_button(
+            'startmarkerButton', 'leftmarker', self.horizontalLayout_5, parent=self)
+        self.endmarkerButton = window_functions.create_media_button(
+            'endmarkerButton', 'rightmarker', self.horizontalLayout_5, parent=self)
         spacerItem1 = QtWidgets.QSpacerItem(
             40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
         self.horizontalLayout_5.addItem(spacerItem1)
@@ -213,9 +223,9 @@ class CropVideoWidget(CropBatchWidget):
         self.audio.mutedChanged.connect(lambda: self.change_audio_icon())
         self.player.playbackStateChanged.connect(
             lambda: self.change_media_widget_state(
-                self.stopButton, self.stepbackButton, self.stepfwdButton, self.fastfwdButton, self.goto_beginingButton,
-                self.goto_endButton, self.startmarkerButton, self.endmarkerButton, self.selectStartMarkerButton,
-                self.selectEndMarkerButton,))
+                self.stopButton, self.stepbackButton, self.stepfwdButton, self.fastfwdButton,
+                self.goto_beginingButton, self.goto_endButton, self.startmarkerButton, self.endmarkerButton,
+                self.selectStartMarkerButton, self.selectEndMarkerButton))
         self.player.playbackStateChanged.connect(lambda: self.change_playback_icons())
 
         # Video start connection
