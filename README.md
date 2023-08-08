@@ -28,11 +28,13 @@ The following file types are supported:
 - Windows ICO files (`.ico`)
 - X bitmap files (`.xbm`)
 - RAW files (`.dng`, `.arw`, `.cr2`, `.crw`, `.erf`, `.kdc`, `.nef`, `.nrw`, `.orf`, `.pef`, `.raf`, `.raw`, `.sr2`, `.srw`, `.x3f`)
-- Video files (`.avi`, `.m4v`, `.mkv`, `.mov`, `.mp4`, `.wmv`)
+- Video files (`.avi`, `.m4v`, `.mkv`, `.mov`, `.mp4`)
 
 ## Misc
 
 ### Installing directly
+
+Install CMake and Rust, clone the repository, and pip install the requirements.
 
 Autocrop is [currently being tested on](https://github.com/leblancfg/autocrop/actions/workflows/ci.yml):
 
