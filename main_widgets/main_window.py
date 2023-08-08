@@ -194,7 +194,6 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.action3_4_Ratio.triggered.connect(lambda: self.load_preset(Preset.THREE_QUARTERS))
         self.action4_5_Ratio.triggered.connect(lambda: self.load_preset(Preset.FOUR_FIFTHS))
         self.actionSquare.triggered.connect(lambda: self.load_preset(Preset.SQUARE))
-
         self.actionCrop_File.triggered.connect(lambda: self.function_tabWidget.setCurrentIndex(FunctionType.PHOTO.value))
         self.actionCrop_Folder.triggered.connect(lambda: self.function_tabWidget.setCurrentIndex(FunctionType.FOLDER.value))
         self.actionUse_Mapping.triggered.connect(lambda: self.function_tabWidget.setCurrentIndex(FunctionType.MAPPING.value))
