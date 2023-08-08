@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Optional, Any, Union
 
 import pandas as pd
-from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtWidgets
 
 from core import CustomDialWidget, DataFrameModel, ExtWidget, FunctionTabSelectionState, FunctionType, ImageWidget, \
     utils, window_functions
@@ -10,6 +10,7 @@ from file_types import Photo, Table
 from line_edits import PathLineEdit, PathType, NumberLineEdit, LineEditState
 from core.cropper import Cropper
 from .crop_batch_widget import CropBatchWidget
+from .enums import ButtonType
 
 
 class CropMapWidget(CropBatchWidget):
@@ -28,6 +29,7 @@ class CropMapWidget(CropBatchWidget):
         super().__init__(crop_worker, width_line_edit, height_line_edit, ext_widget, sensitivity_dial_area,
                          face_dial_area, gamma_dial_area, top_dial_area, bottom_dial_area, left_dial_area,
                          right_dial_area, parent)
+        self.folderButton = self.setup_process_button('folderButton', 'folder', ButtonType.NAVIGATION_BUTTON)
         self.model: Optional[DataFrameModel] = None
         self.data_frame: Optional[pd.DataFrame] = None
         self.setObjectName('Form')
@@ -36,23 +38,11 @@ class CropMapWidget(CropBatchWidget):
         self.gridLayout = QtWidgets.QGridLayout()
         self.gridLayout.setObjectName('gridLayout')
         self.folderLineEdit = self.setup_path_line_edit('folderLineEdit')
-        self.folderLineEdit.setParent(self)
         self.gridLayout.addWidget(self.folderLineEdit, 0, 0, 1, 1)
-        self.folderButton.setParent(self)
         self.gridLayout.addWidget(self.folderButton, 0, 1, 1, 1)
-        self.tableLineEdit = PathLineEdit(path_type=PathType.TABLE, parent=self)
-        self.tableLineEdit.setMinimumSize(QtCore.QSize(0, 24))
-        self.tableLineEdit.setMaximumSize(QtCore.QSize(16777215, 24))
-        self.tableLineEdit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
-        self.tableLineEdit.setObjectName('tableLineEdit')
+        self.tableLineEdit = self.setup_path_line_edit('tableLineEdit', PathType.TABLE)
         self.gridLayout.addWidget(self.tableLineEdit, 1, 0, 1, 1)
-        self.tableButton = QtWidgets.QPushButton(parent=self)
-        self.tableButton.setMinimumSize(QtCore.QSize(124, 24))
-        self.tableButton.setMaximumSize(QtCore.QSize(16777215, 24))
-        icon1 = QtGui.QIcon()
-        icon1.addPixmap(QtGui.QPixmap('resources\\icons\\excel.svg'), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        self.tableButton.setIcon(icon1)
-        self.tableButton.setObjectName('tableButton')
+        self.tableButton = self.setup_process_button('tableButton', 'excel', ButtonType.NAVIGATION_BUTTON)
         self.gridLayout.addWidget(self.tableButton, 1, 1, 1, 1)
         self.verticalLayout_3.addLayout(self.gridLayout)
         self.horizontalLayout_1 = QtWidgets.QHBoxLayout()
@@ -64,11 +54,8 @@ class CropMapWidget(CropBatchWidget):
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding,
                                            QtWidgets.QSizePolicy.Policy.Minimum)
         self.horizontalLayout_3.addItem(spacerItem)
-        self.mfaceCheckBox.setParent(self.frame)
         self.horizontalLayout_3.addWidget(self.mfaceCheckBox)
-        self.tiltCheckBox.setParent(self.frame)
         self.horizontalLayout_3.addWidget(self.tiltCheckBox)
-        self.exposureCheckBox.setParent(self.frame)
         self.horizontalLayout_3.addWidget(self.exposureCheckBox)
         self.verticalLayout.addLayout(self.horizontalLayout_3)
         self.imageWidget = ImageWidget(parent=self.frame)
@@ -77,9 +64,7 @@ class CropMapWidget(CropBatchWidget):
         self.verticalLayout.addWidget(self.imageWidget)
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_2.setObjectName('horizontalLayout_2')
-        self.cropButton.setParent(self.frame)
         self.horizontalLayout_2.addWidget(self.cropButton)
-        self.cancelButton.setParent(self.frame)
         self.horizontalLayout_2.addWidget(self.cancelButton)
         self.verticalLayout.addLayout(self.horizontalLayout_2)
         self.progressBar.setParent(self.frame)
@@ -113,9 +98,7 @@ class CropMapWidget(CropBatchWidget):
         self.verticalLayout_3.addLayout(self.horizontalLayout_1)
         self.horizontalLayout_5 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_5.setObjectName('horizontalLayout_5')
-        self.destinationLineEdit.setParent(self)
         self.horizontalLayout_5.addWidget(self.destinationLineEdit)
-        self.destinationButton.setParent(self)
         self.horizontalLayout_5.addWidget(self.destinationButton)
         self.verticalLayout_3.addLayout(self.horizontalLayout_5)
 

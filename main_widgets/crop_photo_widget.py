@@ -1,12 +1,13 @@
 from pathlib import Path
 from typing import Optional, Union
 
-from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtWidgets
 
 from core import Cropper, CustomDialWidget, ExtWidget, FunctionTabSelectionState, ImageWidget, window_functions
 from file_types import Photo
 from line_edits import PathLineEdit, PathType, NumberLineEdit, LineEditState
 from .custom_crop_widget import CustomCropWidget
+from .enums import ButtonType
 
 
 class CropPhotoWidget(CustomCropWidget):
@@ -31,19 +32,9 @@ class CropPhotoWidget(CustomCropWidget):
         self.verticalLayout_2.setObjectName('verticalLayout_2')
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_2.setObjectName('horizontalLayout_2')
-        self.photoLineEdit = PathLineEdit(path_type=PathType.IMAGE, parent=self)
-        self.photoLineEdit.setMinimumSize(QtCore.QSize(0, 24))
-        self.photoLineEdit.setMaximumSize(QtCore.QSize(16777215, 24))
-        self.photoLineEdit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
-        self.photoLineEdit.setObjectName('photoLineEdit')
+        self.photoLineEdit = self.setup_path_line_edit('photoLineEdit', PathType.IMAGE)
         self.horizontalLayout_2.addWidget(self.photoLineEdit)
-        self.photoButton = QtWidgets.QPushButton(parent=self)
-        self.photoButton.setMinimumSize(QtCore.QSize(124, 24))
-        self.photoButton.setMaximumSize(QtCore.QSize(16777215, 24))
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap('resources\\icons\\picture.svg'), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        self.photoButton.setIcon(icon)
-        self.photoButton.setObjectName('photoButton')
+        self.photoButton = self.setup_process_button('photoButton', 'picture', ButtonType.NAVIGATION_BUTTON)
         self.horizontalLayout_2.addWidget(self.photoButton)
         self.verticalLayout_2.addLayout(self.horizontalLayout_2)
         self.verticalLayout = QtWidgets.QVBoxLayout(self.frame)
@@ -53,27 +44,21 @@ class CropPhotoWidget(CustomCropWidget):
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding,
                                            QtWidgets.QSizePolicy.Policy.Minimum)
         self.horizontalLayout_1.addItem(spacerItem)
-        self.mfaceCheckBox.setParent(self.frame)
         self.horizontalLayout_1.addWidget(self.mfaceCheckBox)
-        self.tiltCheckBox.setParent(self.frame)
         self.horizontalLayout_1.addWidget(self.tiltCheckBox)
-        self.exposureCheckBox.setParent(self.frame)
         self.horizontalLayout_1.addWidget(self.exposureCheckBox)
         self.verticalLayout.addLayout(self.horizontalLayout_1)
         self.imageWidget = ImageWidget(parent=self.frame)
         self.imageWidget.setStyleSheet('')
         self.imageWidget.setObjectName('imageWidget')
         self.verticalLayout.addWidget(self.imageWidget)
-        self.cropButton.setParent(self.frame)
         self.verticalLayout.addWidget(self.cropButton)
         self.verticalLayout.setStretch(1, 1)
         self.verticalLayout.setStretch(2, 1)
         self.verticalLayout_2.addWidget(self.frame)
         self.horizontalLayout_3 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_3.setObjectName('horizontalLayout_3')
-        self.destinationLineEdit.setParent(self)
         self.horizontalLayout_3.addWidget(self.destinationLineEdit)
-        self.destinationButton.setParent(self)
         self.horizontalLayout_3.addWidget(self.destinationButton)
         self.verticalLayout_2.addLayout(self.horizontalLayout_3)
 

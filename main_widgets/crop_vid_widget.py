@@ -9,6 +9,7 @@ from core import Cropper, CustomDialWidget, ExtWidget, FunctionType, window_func
 from file_types import Photo, Video
 from line_edits import PathLineEdit, PathType, NumberLineEdit, LineEditState
 from .crop_batch_widget import CropBatchWidget
+from .enums import ButtonType
 
 
 class CropVideoWidget(CropBatchWidget):
@@ -40,20 +41,9 @@ class CropVideoWidget(CropBatchWidget):
         self.verticalLayout_3.setObjectName('verticalLayout_3')
         self.horizontalLayout_3 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_3.setObjectName('horizontalLayout_3')
-        self.videoLineEdit = PathLineEdit(path_type=PathType.VIDEO, parent=self)
-        self.videoLineEdit.setMinimumSize(QtCore.QSize(0, 24))
-        self.videoLineEdit.setMaximumSize(QtCore.QSize(16777215, 24))
-        self.videoLineEdit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
-        self.videoLineEdit.setObjectName('videoLineEdit')
+        self.videoLineEdit = self.setup_path_line_edit('videoLineEdit', PathType.VIDEO)
         self.horizontalLayout_3.addWidget(self.videoLineEdit)
-        self.videoButton = QtWidgets.QPushButton(parent=self)
-        self.videoButton.setMinimumSize(QtCore.QSize(124, 0))
-        self.videoButton.setMaximumSize(QtCore.QSize(16777215, 24))
-        icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap('resources\\icons\\clapperboard.svg'), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        self.videoButton.setIcon(icon)
-        self.videoButton.setObjectName('videoButton')
+        self.videoButton = self.setup_process_button('videoButton', 'clapperboard', ButtonType.NAVIGATION_BUTTON)
         self.horizontalLayout_3.addWidget(self.videoButton)
         self.verticalLayout_3.addLayout(self.horizontalLayout_3)
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.frame)
@@ -93,11 +83,8 @@ class CropVideoWidget(CropBatchWidget):
         spacerItem = QtWidgets.QSpacerItem(
             40, 20, QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Minimum)
         self.horizontalLayout_1.addItem(spacerItem)
-        self.mfaceCheckBox.setParent(self.frame)
         self.horizontalLayout_1.addWidget(self.mfaceCheckBox)
-        self.tiltCheckBox.setParent(self.frame)
         self.horizontalLayout_1.addWidget(self.tiltCheckBox)
-        self.exposureCheckBox.setParent(self.frame)
         self.horizontalLayout_1.addWidget(self.exposureCheckBox)
         self.verticalLayout_2.addLayout(self.horizontalLayout_1)
         self.videoWidget = QVideoWidget(parent=self.frame)
@@ -107,19 +94,9 @@ class CropVideoWidget(CropBatchWidget):
         self.verticalLayout_2.addWidget(self.videoWidget)
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_2.setObjectName('horizontalLayout_2')
-        self.cropButton.setParent(self.frame)
         self.horizontalLayout_2.addWidget(self.cropButton)
-        self.videocropButton = QtWidgets.QPushButton(parent=self.frame)
-        self.videocropButton.setMinimumSize(QtCore.QSize(0, 24))
-        self.videocropButton.setMaximumSize(QtCore.QSize(16777215, 24))
-        self.videocropButton.setText('')
-        icon3 = QtGui.QIcon()
-        icon3.addPixmap(
-            QtGui.QPixmap('resources\\icons\\crop_video.svg'), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        self.videocropButton.setIcon(icon3)
-        self.videocropButton.setObjectName('videocropButton')
+        self.videocropButton = self.setup_process_button('videocropButton', 'crop_video', ButtonType.PROCESS_BUTTON)
         self.horizontalLayout_2.addWidget(self.videocropButton)
-        self.cancelButton.setParent(self.frame)
         self.horizontalLayout_2.addWidget(self.cancelButton)
         self.verticalLayout_2.addLayout(self.horizontalLayout_2)
         self.progressBar.setParent(self.frame)
@@ -131,10 +108,7 @@ class CropVideoWidget(CropBatchWidget):
         self.verticalLayout_3.addWidget(self.frame)
         self.horizontalLayout_4 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_4.setObjectName('horizontalLayout_4')
-        self.destinationLineEdit.setParent(self)
         self.horizontalLayout_4.addWidget(self.destinationLineEdit)
-        self.destinationButton.setParent(self)
-
         self.horizontalLayout_4.addWidget(self.destinationButton)
         self.verticalLayout_3.addLayout(self.horizontalLayout_4)
         self.horizontalLayout_5 = QtWidgets.QHBoxLayout()

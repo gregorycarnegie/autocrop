@@ -8,6 +8,7 @@ from core import Cropper, CustomDialWidget, ExtWidget, FunctionTabSelectionState
 from file_types import Photo
 from line_edits import PathLineEdit, NumberLineEdit, LineEditState
 from .crop_batch_widget import CropBatchWidget
+from .enums import ButtonType
 
 
 class CropFolderWidget(CropBatchWidget):
@@ -26,6 +27,7 @@ class CropFolderWidget(CropBatchWidget):
         super().__init__(crop_worker, width_line_edit, height_line_edit, ext_widget, sensitivity_dial_area,
                          face_dial_area, gamma_dial_area, top_dial_area, bottom_dial_area, left_dial_area,
                          right_dial_area, parent)
+        self.folderButton = self.setup_process_button('folderButton', 'folder', ButtonType.NAVIGATION_BUTTON)
         self.file_model = QtGui.QFileSystemModel(self)
         self.file_model.setFilter(QtCore.QDir.Filter.NoDotAndDotDot | QtCore.QDir.Filter.Files)
         self.file_model.setNameFilters(Photo().file_filter)
@@ -35,9 +37,7 @@ class CropFolderWidget(CropBatchWidget):
         self.horizontalLayout_1 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_1.setObjectName('horizontalLayout_1')
         self.folderLineEdit = self.setup_path_line_edit('folderLineEdit')
-        self.folderLineEdit.setParent(self)
         self.horizontalLayout_1.addWidget(self.folderLineEdit)
-        self.folderButton.setParent(self)
         self.horizontalLayout_1.addWidget(self.folderButton)
         self.verticalLayout_2.addLayout(self.horizontalLayout_1)
         self.horizontalLayout_3 = QtWidgets.QHBoxLayout()
@@ -49,11 +49,8 @@ class CropFolderWidget(CropBatchWidget):
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding,
                                            QtWidgets.QSizePolicy.Policy.Minimum)
         self.horizontalLayout_4.addItem(spacerItem)
-        self.mfaceCheckBox.setParent(self.frame)
         self.horizontalLayout_4.addWidget(self.mfaceCheckBox)
-        self.tiltCheckBox.setParent(self.frame)
         self.horizontalLayout_4.addWidget(self.tiltCheckBox)
-        self.exposureCheckBox.setParent(self.frame)
         self.horizontalLayout_4.addWidget(self.exposureCheckBox)
         self.verticalLayout.addLayout(self.horizontalLayout_4)
         self.imageWidget = ImageWidget(parent=self.frame)
@@ -62,9 +59,7 @@ class CropFolderWidget(CropBatchWidget):
         self.verticalLayout.addWidget(self.imageWidget)
         self.horizontalLayout_5 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_5.setObjectName('horizontalLayout_5')
-        self.cropButton.setParent(self.frame)
         self.horizontalLayout_5.addWidget(self.cropButton)
-        self.cancelButton.setParent(self.frame)
         self.horizontalLayout_5.addWidget(self.cancelButton)
         self.verticalLayout.addLayout(self.horizontalLayout_5)
         self.progressBar.setParent(self.frame)
@@ -83,9 +78,7 @@ class CropFolderWidget(CropBatchWidget):
         self.verticalLayout_2.addLayout(self.horizontalLayout_3)
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_2.setObjectName('horizontalLayout_2')
-        self.destinationLineEdit.setParent(self)
         self.horizontalLayout_2.addWidget(self.destinationLineEdit)
-        self.destinationButton.setParent(self)
         self.horizontalLayout_2.addWidget(self.destinationButton)
         self.verticalLayout_2.addLayout(self.horizontalLayout_2)
 

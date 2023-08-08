@@ -5,7 +5,8 @@ from PyQt6 import QtWidgets, QtCore, QtGui
 
 from core import CustomDialWidget, Cropper, ExtWidget, FunctionTabSelectionState, Job, window_functions
 from file_types import Photo
-from line_edits import PathLineEdit, NumberLineEdit
+from line_edits import PathLineEdit, NumberLineEdit, PathType
+from .enums import ButtonType
 
 CHECKBOX_STYLESHEET = """QCheckBox:unchecked{color: red}
         QCheckBox:checked{color: white}
@@ -46,32 +47,14 @@ class CustomCropWidget(QtWidgets.QWidget):
         self.frame.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)
         self.frame.setFrameShadow(QtWidgets.QFrame.Shadow.Raised)
         self.frame.setObjectName('frame')
-
         self.folderLineEdit: Optional[PathLineEdit] = None
         self.CHECKBOX_STYLESHEET = CHECKBOX_STYLESHEET
         self.exposureCheckBox = self.setup_checkbox('exposureCheckBox')
         self.mfaceCheckBox = self.setup_checkbox('mfaceCheckBox')
         self.tiltCheckBox = self.setup_checkbox('tiltCheckBox')
-
-        self.cropButton = QtWidgets.QPushButton()
-        self.cropButton.setMinimumSize(QtCore.QSize(0, 24))
-        self.cropButton.setMaximumSize(QtCore.QSize(16777215, 24))
-        self.cropButton.setText('')
-        crop_icon = QtGui.QIcon()
-        crop_icon.addPixmap(QtGui.QPixmap('resources\\icons\\crop.svg'), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        self.cropButton.setIcon(crop_icon)
-        self.cropButton.setObjectName('cropButton')
-
+        self.cropButton = self.setup_process_button('cropButton', 'crop', ButtonType.PROCESS_BUTTON)
         self.destinationLineEdit = self.setup_path_line_edit('destinationLineEdit')
-
-        self.destinationButton = QtWidgets.QPushButton(parent=self)
-        self.destinationButton.setMinimumSize(QtCore.QSize(124, 24))
-        self.destinationButton.setMaximumSize(QtCore.QSize(16777215, 24))
-        folder_icon = QtGui.QIcon()
-        folder_icon.addPixmap(QtGui.QPixmap('resources\\icons\\folder.svg'), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        self.destinationButton.setIcon(folder_icon)
-        self.destinationButton.setObjectName('destinationButton')
-
+        self.destinationButton = self.setup_process_button('destinationButton', 'folder', ButtonType.NAVIGATION_BUTTON)
         self.progressBar = QtWidgets.QProgressBar()
         self.crop_worker = crop_worker
         self.widthLineEdit = width_line_edit
@@ -84,13 +67,27 @@ class CustomCropWidget(QtWidgets.QWidget):
         self.bottom_dialArea = bottom_dial_area
         self.left_dialArea = left_dial_area
         self.right_dialArea = right_dial_area
-
         self.selection_state = FunctionTabSelectionState.NOT_SELECTED
 
-    @staticmethod
-    def setup_path_line_edit(name: str) -> PathLineEdit:
+    def setup_process_button(self, name: str, icon_name: str,  button_type: ButtonType) -> QtWidgets.QPushButton: 
+        match button_type:
+            case ButtonType.PROCESS_BUTTON:
+                button = QtWidgets.QPushButton(parent=self.frame)
+                button.setMinimumSize(QtCore.QSize(0, 24))
+            case ButtonType.NAVIGATION_BUTTON:
+                button = QtWidgets.QPushButton(parent=self)
+                button.setMinimumSize(QtCore.QSize(124, 24))
+        button.setMaximumSize(QtCore.QSize(16777215, 24))
+        button.setText('')
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(f'resources\\icons\\{icon_name}.svg'), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        button.setIcon(icon)
+        button.setObjectName(name)
+        return button
+
+    def setup_path_line_edit(self, name: str, path_type: PathType = PathType.FOLDER) -> PathLineEdit:
         """Only sublasses of this class should implement this method"""
-        line_edit = PathLineEdit()
+        line_edit = PathLineEdit(path_type=path_type, parent=self)
         line_edit.setMinimumSize(QtCore.QSize(0, 24))
         line_edit.setMaximumSize(QtCore.QSize(16777215, 24))
         line_edit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
@@ -99,7 +96,7 @@ class CustomCropWidget(QtWidgets.QWidget):
 
     def setup_checkbox(self, name: str) -> QtWidgets.QCheckBox:
         """Only sublasses of this class should implement this method"""
-        checkbox = QtWidgets.QCheckBox()
+        checkbox = QtWidgets.QCheckBox(self.frame)
         checkbox.setObjectName(name)
         checkbox.setStyleSheet(self.CHECKBOX_STYLESHEET)
         return checkbox
