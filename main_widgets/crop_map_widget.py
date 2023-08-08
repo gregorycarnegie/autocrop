@@ -143,7 +143,7 @@ class CropMapWidget(CropBatchWidget):
         self.crop_worker.mapping_finished.connect(lambda: window_functions.enable_widget(*widget_list))
         self.crop_worker.mapping_finished.connect(lambda: window_functions.disable_widget(self.cancelButton))
         self.crop_worker.mapping_finished.connect(lambda: window_functions.show_message_box(self.destinationLineEdit))
-        self.crop_worker.mapping_progress.connect(lambda: self.update_progress(self.crop_worker.bar_value_m))
+        self.crop_worker.mapping_progress.connect(self.update_progress)
     
     def display_crop(self) -> None:
         job = self.create_job(self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox)
@@ -207,17 +207,6 @@ class CropMapWidget(CropBatchWidget):
         data = utils.open_table((Path(f_name)))
         self.validate_pandas_file(data)
 
-    def mapping_process(self) -> None:
-        job = self.create_job(self.exposureCheckBox, 
-                              self.mfaceCheckBox, 
-                              self.tiltCheckBox,
-                              folder_path=self.folderLineEdit, 
-                              destination=self.destinationLineEdit,
-                              table=self.data_frame, 
-                              column1=self.comboBox_1, 
-                              column2=self.comboBox_2)
-        self.run_batch_process(self.crop_worker.mapping_crop, self.crop_worker.reset_m_task, job)
-
     def validate_pandas_file(self, data: Any) -> None:
         try:
             assert isinstance(data, pd.DataFrame)
@@ -231,3 +220,14 @@ class CropMapWidget(CropBatchWidget):
         self.tableView.setModel(self.model)
         self.comboBox_1.addItems(self.data_frame.columns.to_numpy())
         self.comboBox_2.addItems(self.data_frame.columns.to_numpy())
+
+    def mapping_process(self) -> None:
+        job = self.create_job(self.exposureCheckBox, 
+                              self.mfaceCheckBox, 
+                              self.tiltCheckBox,
+                              folder_path=self.folderLineEdit, 
+                              destination=self.destinationLineEdit,
+                              table=self.data_frame, 
+                              column1=self.comboBox_1, 
+                              column2=self.comboBox_2)
+        self.run_batch_process(self.crop_worker.mapping_crop, self.crop_worker.reset_m_task, job)

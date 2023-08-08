@@ -255,7 +255,7 @@ def box(img: Union[cv2.Mat, npt.NDArray[np.uint8]],
     output = np.squeeze(detections)
     # get the confidence
     confidence_list = output[:, 2]
-    if np.max(confidence_list) * 100 < job.sensitivity.value(): return None
+    if np.max(confidence_list) * 100 < 100 - job.sensitivity.value(): return None
     return get_box_coordinates(output[:, 3:7], width, height, job, confidence_list)
 
 def multi_box(image: Union[cv2.Mat, npt.NDArray[np.uint8]],
@@ -265,7 +265,7 @@ def multi_box(image: Union[cv2.Mat, npt.NDArray[np.uint8]],
     detections = prepare_detections(image, face_worker)
     for i in range(detections.shape[2]):
         # Confidence in the detection
-        if (confidence := detections[0, 0, i, 2]) * 100 > job.sensitivity.value(): # Threshold
+        if (confidence := detections[0, 0, i, 2]) * 100 > 100 - job.sensitivity.value(): # Threshold
             x0, y0, x1, y1 = get_box_coordinates(detections[0, 0, i, 3:7], width, height, job)
             text = "{:.2f}%".format(confidence)
             y = y0 - 10 if y0 > 20 else y0 + 10
@@ -280,7 +280,7 @@ def multi_box_positions(image: Union[cv2.Mat, npt.NDArray[np.uint8]],
     detections = prepare_detections(image, face_worker)
     crop_positions = [get_box_coordinates(detections[0, 0, i, 3:7], width, height, job)
                       for i in range(detections.shape[2])
-                      if detections[0, 0, i, 2] * 100 > job.sensitivity.value()]
+                      if detections[0, 0, i, 2] * 100 > 100 - job.sensitivity.value()]
     return detections, np.array(crop_positions)
 
 def box_detect(img: Union[cv2.Mat, npt.NDArray[np.uint8]],

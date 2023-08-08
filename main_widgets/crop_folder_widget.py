@@ -118,7 +118,7 @@ class CropFolderWidget(CropBatchWidget):
         self.crop_worker.folder_finished.connect(lambda: window_functions.enable_widget(*widget_list))
         self.crop_worker.folder_finished.connect(lambda: window_functions.disable_widget(self.cancelButton))
         self.crop_worker.folder_finished.connect(lambda: window_functions.show_message_box(self.destinationLineEdit))
-        self.crop_worker.folder_progress.connect(lambda: self.update_progress(self.crop_worker.bar_value_f))
+        self.crop_worker.folder_progress.connect(self.update_progress)
     
     def display_crop(self, selection: Optional[Path] = None) -> None:
         job = self.create_job(self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox)

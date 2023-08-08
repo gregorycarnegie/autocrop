@@ -1,5 +1,5 @@
 from multiprocessing import Process
-from typing import Optional, Callable, Any
+from typing import Optional, Callable, Any, Tuple
 
 from PyQt6 import QtCore, QtWidgets
 
@@ -7,6 +7,8 @@ from core import Cropper, CustomDialWidget, ExtWidget, Job
 from line_edits import NumberLineEdit
 from .custom_crop_widget import CustomCropWidget
 from .enums import ButtonType
+
+PROGRESSBAR_STEPS = 1_000
 
 
 class CropBatchWidget(CustomCropWidget):
@@ -33,6 +35,7 @@ class CropBatchWidget(CustomCropWidget):
         self.progressBar = QtWidgets.QProgressBar(parent=self.frame)
         self.progressBar.setMinimumSize(QtCore.QSize(0, 12))
         self.progressBar.setMaximumSize(QtCore.QSize(16777215, 12))
+        self.progressBar.setRange(0, PROGRESSBAR_STEPS)
         self.progressBar.setValue(0)
         self.progressBar.setTextVisible(False)
 
@@ -40,10 +43,12 @@ class CropBatchWidget(CustomCropWidget):
         """Only sublasses of the CropBatchWidget class should implement this method"""
         pass
 
-    def update_progress(self, value: int) -> None:
+    def update_progress(self, data: Tuple[int, int]) -> None:
         """Only sublasses of the CropBatchWidget class should implement this method"""
-        self.progressBar.setValue(value)
+        x, y = data
+        self.progressBar.setValue(int(PROGRESSBAR_STEPS * x / y))
         QtWidgets.QApplication.processEvents()
+
     
     @staticmethod
     def run_batch_process(function: Callable[..., Any],

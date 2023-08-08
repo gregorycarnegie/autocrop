@@ -231,7 +231,7 @@ class CropVideoWidget(CropBatchWidget):
         self.crop_worker.video_started.connect(lambda: window_functions.disable_widget(*widget_list))
         self.crop_worker.video_finished.connect(lambda: window_functions.disable_widget(self.cancelButton))
         self.crop_worker.video_finished.connect(lambda: window_functions.show_message_box(self.destinationLineEdit))
-        self.crop_worker.video_progress.connect(lambda: self.update_progress(self.crop_worker.bar_value_v))
+        self.crop_worker.video_progress.connect(self.update_progress)
     
     def setup_label(self, name: str) -> QtWidgets.QLabel:
         label = QtWidgets.QLabel(parent=self)

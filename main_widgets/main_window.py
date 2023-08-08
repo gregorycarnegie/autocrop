@@ -186,9 +186,6 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.menubar.addAction(self.menuInfo.menuAction())
 
         # CONNECTIONS
-        self.folder_Tab.cropButton.clicked.connect(lambda: self.folder_Tab.progressBar.setRange(0, self.crop_worker.amount_f))
-        self.mappingTab.cropButton.clicked.connect(lambda: self.mappingTab.progressBar.setRange(0, self.crop_worker.amount_m))
-
         self.connect_combo_boxes(self.mappingTab)
 
         self.actionAbout_Face_Cropper.triggered.connect(lambda: window_functions.load_about_form())
