@@ -53,7 +53,8 @@ class CustomCropWidget(QtWidgets.QWidget):
         self.frame.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)
         self.frame.setFrameShadow(QtWidgets.QFrame.Shadow.Raised)
         self.frame.setObjectName('frame')
-        self.folderLineEdit: Optional[PathLineEdit] = None
+        self.verticalLayout_1 = QtWidgets.QVBoxLayout(self.frame)
+        self.verticalLayout_1.setObjectName('verticalLayout_1')
         self.CHECKBOX_STYLESHEET = CHECKBOX_STYLESHEET
         self.exposureCheckBox = self.setup_checkbox('exposureCheckBox')
         self.mfaceCheckBox = self.setup_checkbox('mfaceCheckBox')
@@ -92,7 +93,7 @@ class CustomCropWidget(QtWidgets.QWidget):
         return button
 
     def setup_path_line_edit(self, name: str, path_type: PathType = PathType.FOLDER) -> PathLineEdit:
-        """Only sublasses of this class should implement this method"""
+        """Only sublasses of the CustomCropWidget class should implement this method"""
         line_edit = PathLineEdit(path_type=path_type, parent=self)
         line_edit.setMinimumSize(QtCore.QSize(0, 24))
         line_edit.setMaximumSize(QtCore.QSize(16777215, 24))
@@ -101,22 +102,22 @@ class CustomCropWidget(QtWidgets.QWidget):
         return line_edit
 
     def setup_checkbox(self, name: str) -> QtWidgets.QCheckBox:
-        """Only sublasses of this class should implement this method"""
+        """Only sublasses of the CustomCropWidget class should implement this method"""
         checkbox = QtWidgets.QCheckBox(self.frame)
         checkbox.setObjectName(name)
         checkbox.setStyleSheet(self.CHECKBOX_STYLESHEET)
         return checkbox
 
     def reload_widgets(self) -> None:
-        """Only sublasses of this class should implement this method"""
+        """Only sublasses of the CustomCropWidget class should implement this method"""
         pass
 
     def disable_buttons(self) -> None:
-        """Only sublasses of this class should implement this method"""
+        """Only sublasses of the CustomCropWidget class should implement this method"""
         pass
 
     def connect_checkboxs(self, input_widget: QtWidgets.QCheckBox) -> None:
-        """Only sublasses of this class should implement this method"""
+        """Only sublasses of the CustomCropWidget class should implement this method"""
         input_widget.stateChanged.connect(lambda: self.reload_widgets())
         match input_widget:
             case self.mfaceCheckBox:
@@ -127,7 +128,7 @@ class CustomCropWidget(QtWidgets.QWidget):
             case _: pass
 
     def connect_input_widgets(self, *input_widgets: QtWidgets.QWidget) -> None:
-        """Only sublasses of this class should implement this method"""
+        """Only sublasses of the CustomCropWidget class should implement this method"""
         for input_widget in input_widgets:
             match input_widget:
                 case NumberLineEdit() | PathLineEdit():
@@ -151,7 +152,7 @@ class CustomCropWidget(QtWidgets.QWidget):
                    video_path: Optional[PathLineEdit] = None,
                    start_position: Optional[float] = None,
                    stop_position: Optional[float] = None) -> Job:
-        """Only sublasses of this class should implement this method"""
+        """Only sublasses of the CustomCropWidget class should implement this method"""
         return Job(self.widthLineEdit,
                    self.heightLineEdit,
                    exposure,
@@ -178,12 +179,12 @@ class CustomCropWidget(QtWidgets.QWidget):
                     stop_position=stop_position)
 
     def open_folder(self, line_edit: PathLineEdit) -> None:
-        """Only sublasses of this class should implement this method"""
+        """Only sublasses of the CustomCropWidget class should implement this method"""
         f_name = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Directory', Photo().default_directory)
         line_edit.setText(f_name)
         if line_edit is self.folderLineEdit:
             self.load_data()
 
     def load_data(self) -> None:
-        """Only sublasses of this class should implement this method"""
+        """Only sublasses of the CustomCropWidget class should implement this method"""
         pass

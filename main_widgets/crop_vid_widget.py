@@ -37,15 +37,13 @@ class CropVideoWidget(CropBatchWidget):
         self.speed = 0
         self.reverse = 0
         self.setObjectName('Form')
-        self.verticalLayout_3 = QtWidgets.QVBoxLayout(self)
-        self.verticalLayout_3.setObjectName('verticalLayout_3')
+        self.verticalLayout_2 = QtWidgets.QVBoxLayout(self)
+        self.verticalLayout_2.setObjectName('verticalLayout_2')
         self.videoLineEdit = self.setup_path_line_edit('videoLineEdit', PathType.VIDEO)
         self.horizontalLayout_3.addWidget(self.videoLineEdit)
         self.videoButton = self.setup_process_button('videoButton', 'clapperboard', ButtonType.NAVIGATION_BUTTON)
         self.horizontalLayout_3.addWidget(self.videoButton)
-        self.verticalLayout_3.addLayout(self.horizontalLayout_3)
-        self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.frame)
-        self.verticalLayout_2.setObjectName('verticalLayout_2')
+        self.verticalLayout_2.addLayout(self.horizontalLayout_3)
         self.muteButton = QtWidgets.QPushButton(parent=self.frame)
         self.muteButton.setText('')
         icon1 = QtGui.QIcon()
@@ -82,27 +80,27 @@ class CropVideoWidget(CropBatchWidget):
         self.horizontalLayout_1.addWidget(self.mfaceCheckBox)
         self.horizontalLayout_1.addWidget(self.tiltCheckBox)
         self.horizontalLayout_1.addWidget(self.exposureCheckBox)
-        self.verticalLayout_2.addLayout(self.horizontalLayout_1)
+        self.verticalLayout_1.addLayout(self.horizontalLayout_1)
         self.videoWidget = QVideoWidget(parent=self.frame)
         self.videoWidget.setStyleSheet('background: #1f2c33')
         self.videoWidget.setObjectName('videoWidget')
         self.create_mediaPlayer()
-        self.verticalLayout_2.addWidget(self.videoWidget)
+        self.verticalLayout_1.addWidget(self.videoWidget)
         self.horizontalLayout_2.addWidget(self.cropButton)
         self.videocropButton = self.setup_process_button('videocropButton', 'crop_video', ButtonType.PROCESS_BUTTON)
         self.horizontalLayout_2.addWidget(self.videocropButton)
         self.horizontalLayout_2.addWidget(self.cancelButton)
-        self.verticalLayout_2.addLayout(self.horizontalLayout_2)
+        self.verticalLayout_1.addLayout(self.horizontalLayout_2)
         self.progressBar.setParent(self.frame)
-        self.verticalLayout_2.addWidget(self.progressBar)
-        self.verticalLayout_2.setStretch(0, 1)
-        self.verticalLayout_2.setStretch(1, 10)
-        self.verticalLayout_2.setStretch(2, 1)
-        self.verticalLayout_2.setStretch(3, 1)
-        self.verticalLayout_3.addWidget(self.frame)
+        self.verticalLayout_1.addWidget(self.progressBar)
+        self.verticalLayout_1.setStretch(0, 1)
+        self.verticalLayout_1.setStretch(1, 10)
+        self.verticalLayout_1.setStretch(2, 1)
+        self.verticalLayout_1.setStretch(3, 1)
+        self.verticalLayout_2.addWidget(self.frame)
         self.horizontalLayout_4.addWidget(self.destinationLineEdit)
         self.horizontalLayout_4.addWidget(self.destinationButton)
-        self.verticalLayout_3.addLayout(self.horizontalLayout_4)
+        self.verticalLayout_2.addLayout(self.horizontalLayout_4)
         self.playButton = window_functions.create_media_button(
             'playButton', 'play', self.horizontalLayout_5, parent=self)
         self.stopButton = window_functions.create_media_button(
@@ -126,45 +124,23 @@ class CropVideoWidget(CropBatchWidget):
         self.horizontalLayout_5.addItem(spacerItem1)
         self.gridLayout = QtWidgets.QGridLayout()
         self.gridLayout.setObjectName('gridLayout')
-        self.label_A = QtWidgets.QLabel(parent=self)
-        sizePolicy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Preferred)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_A.sizePolicy().hasHeightForWidth())
-        self.label_A.setSizePolicy(sizePolicy)
-        self.label_A.setMaximumSize(QtCore.QSize(14, 14))
-        self.label_A.setText('')
-        self.label_A.setPixmap(QtGui.QPixmap('resources\\icons\\marker_label_a.svg'))
-        self.label_A.setScaledContents(True)
-        self.label_A.setObjectName('label_A')
+        self.label_A = self.setup_label('a')
         self.gridLayout.addWidget(self.label_A, 0, 0, 1, 1)
         self.selectStartMarkerButton = QtWidgets.QPushButton(parent=self)
         self.selectStartMarkerButton.setMinimumSize(QtCore.QSize(150, 0))
         self.selectStartMarkerButton.setObjectName('selectStartMarkerButton')
         self.gridLayout.addWidget(self.selectStartMarkerButton, 0, 1, 1, 1)
-        self.label_B = QtWidgets.QLabel(parent=self)
-        sizePolicy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Preferred)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_B.sizePolicy().hasHeightForWidth())
-        self.label_B.setSizePolicy(sizePolicy)
-        self.label_B.setMaximumSize(QtCore.QSize(14, 14))
-        self.label_B.setText('')
-        self.label_B.setPixmap(QtGui.QPixmap('resources\\icons\\marker_label_b.svg'))
-        self.label_B.setScaledContents(True)
-        self.label_B.setObjectName('label_B')
+        self.label_B = self.setup_label('b')
         self.gridLayout.addWidget(self.label_B, 1, 0, 1, 1)
         self.selectEndMarkerButton = QtWidgets.QPushButton(parent=self)
         self.selectEndMarkerButton.setMinimumSize(QtCore.QSize(150, 0))
         self.selectEndMarkerButton.setObjectName('selectEndMarkerButton')
         self.gridLayout.addWidget(self.selectEndMarkerButton, 1, 1, 1, 1)
         self.horizontalLayout_5.addLayout(self.gridLayout)
-        self.verticalLayout_3.addLayout(self.horizontalLayout_5)
-        self.verticalLayout_3.setStretch(0, 1)
-        self.verticalLayout_3.setStretch(1, 19)
-        self.verticalLayout_3.setStretch(3, 2)
+        self.verticalLayout_2.addLayout(self.horizontalLayout_5)
+        self.verticalLayout_2.setStretch(0, 1)
+        self.verticalLayout_2.setStretch(1, 19)
+        self.verticalLayout_2.setStretch(3, 2)
 
         # Connections
         self.crop_worker.video_progress.connect(self.update_progress)
@@ -192,35 +168,8 @@ class CropVideoWidget(CropBatchWidget):
                 self.selectStartMarkerButton, self.selectEndMarkerButton))
         self.player.playbackStateChanged.connect(lambda: self.change_playback_icons())
 
-        # Video start connection
-        self.crop_worker.video_started.connect(
-            lambda: window_functions.disable_widget(
-                self.widthLineEdit, self.heightLineEdit, self.sensitivity_dialArea.dial, self.face_dialArea.dial,
-                self.gamma_dialArea.dial, self.top_dialArea.dial, self.bottom_dialArea.dial, self.left_dialArea.dial,
-                self.right_dialArea.dial, self.videoLineEdit, self.destinationLineEdit, self.destinationButton,
-                self.extWidget.radioButton_1, self.extWidget.radioButton_2, self.extWidget.radioButton_3,
-                self.extWidget.radioButton_4, self.extWidget.radioButton_5, self.extWidget.radioButton_6,
-                self.cropButton, self.videocropButton, self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox,
-                self.videocropButton, self.playButton, self.stopButton, self.stepbackButton, self.stepfwdButton,
-                self.fastfwdButton, self.goto_beginingButton, self.goto_endButton, self.startmarkerButton,
-                self.endmarkerButton, self.selectStartMarkerButton, self.selectEndMarkerButton))
-        self.crop_worker.video_started.connect(lambda: window_functions.enable_widget(self.cancelButton))
-
-        # Video end connection
-        self.crop_worker.video_finished.connect(
-            lambda: window_functions.enable_widget(
-                self.widthLineEdit, self.heightLineEdit, self.sensitivity_dialArea.dial, self.face_dialArea.dial,
-                self.gamma_dialArea.dial, self.top_dialArea.dial, self.bottom_dialArea.dial, self.left_dialArea.dial,
-                self.right_dialArea.dial, self.videoLineEdit, self.destinationLineEdit, self.destinationButton,
-                self.extWidget.radioButton_1, self.extWidget.radioButton_2, self.extWidget.radioButton_3,
-                self.extWidget.radioButton_4, self.extWidget.radioButton_5, self.extWidget.radioButton_6,
-                self.cropButton, self.videocropButton, self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox,
-                self.videocropButton, self.playButton, self.stopButton, self.stepbackButton, self.stepfwdButton,
-                self.fastfwdButton, self.goto_beginingButton, self.goto_endButton, self.startmarkerButton,
-                self.endmarkerButton, self.selectStartMarkerButton, self.selectEndMarkerButton))
-        self.crop_worker.video_finished.connect(lambda: window_functions.disable_widget(self.cancelButton))
-        self.crop_worker.video_finished.connect(lambda: window_functions.show_message_box(self.destinationLineEdit))
-        self.crop_worker.video_progress.connect(lambda: self.update_progress(self.crop_worker.bar_value_v))
+        # Connect crop worker
+        self.connect_crop_worker()
 
         self.playButton.clicked.connect(lambda: self.change_playback_state())
         self.playButton.clicked.connect(
@@ -264,6 +213,41 @@ class CropVideoWidget(CropBatchWidget):
         self.destinationButton.setText(_translate('Form', 'Destination Folder'))
         self.selectStartMarkerButton.setText(_translate('Form', '00:00:00'))
         self.selectEndMarkerButton.setText(_translate('Form', '00:00:00'))
+    
+    def connect_crop_worker(self) -> None:
+        widget_list = (self.widthLineEdit, self.heightLineEdit, self.sensitivity_dialArea.dial, self.face_dialArea.dial,
+                       self.gamma_dialArea.dial, self.top_dialArea.dial, self.bottom_dialArea.dial,
+                       self.left_dialArea.dial, self.right_dialArea.dial, self.videoLineEdit, self.destinationLineEdit,
+                       self.destinationButton, self.extWidget.radioButton_1, self.extWidget.radioButton_2,
+                       self.extWidget.radioButton_3, self.extWidget.radioButton_4, self.extWidget.radioButton_5,
+                       self.extWidget.radioButton_6, self.cropButton, self.videocropButton, self.exposureCheckBox,
+                       self.mfaceCheckBox, self.tiltCheckBox, self.videocropButton, self.playButton, self.stopButton,
+                       self.stepbackButton, self.stepfwdButton, self.fastfwdButton, self.goto_beginingButton,
+                       self.goto_endButton, self.startmarkerButton, self.endmarkerButton, self.selectStartMarkerButton,
+                       self.selectEndMarkerButton)
+        # Video start connection
+        self.crop_worker.video_started.connect(lambda: window_functions.disable_widget(*widget_list))
+        self.crop_worker.video_started.connect(lambda: window_functions.enable_widget(self.cancelButton))
+        # Video end connection
+        self.crop_worker.video_started.connect(lambda: window_functions.disable_widget(*widget_list))
+        self.crop_worker.video_finished.connect(lambda: window_functions.disable_widget(self.cancelButton))
+        self.crop_worker.video_finished.connect(lambda: window_functions.show_message_box(self.destinationLineEdit))
+        self.crop_worker.video_progress.connect(lambda: self.update_progress(self.crop_worker.bar_value_v))
+    
+    def setup_label(self, name: str) -> QtWidgets.QLabel:
+        label = QtWidgets.QLabel(parent=self)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(label.sizePolicy().hasHeightForWidth())
+        label.setSizePolicy(sizePolicy)
+        label.setMaximumSize(QtCore.QSize(14, 14))
+        label.setText('')
+        label.setPixmap(QtGui.QPixmap(f'resources\\icons\\marker_label_{name.lower()}.svg'))
+        label.setScaledContents(True)
+        label.setObjectName(f'label_{name.upper()}')
+        return label
     
     def open_folder(self, line_edit: PathLineEdit) -> None:
         self.check_playback_state()

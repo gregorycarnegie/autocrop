@@ -38,28 +38,26 @@ class CropFolderWidget(CropBatchWidget):
         self.horizontalLayout_1.addWidget(self.folderLineEdit)
         self.horizontalLayout_1.addWidget(self.folderButton)
         self.verticalLayout_2.addLayout(self.horizontalLayout_1)
-        self.verticalLayout = QtWidgets.QVBoxLayout(self.frame)
-        self.verticalLayout.setObjectName('verticalLayout')
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding,
                                            QtWidgets.QSizePolicy.Policy.Minimum)
         self.horizontalLayout_4.addItem(spacerItem)
         self.horizontalLayout_4.addWidget(self.mfaceCheckBox)
         self.horizontalLayout_4.addWidget(self.tiltCheckBox)
         self.horizontalLayout_4.addWidget(self.exposureCheckBox)
-        self.verticalLayout.addLayout(self.horizontalLayout_4)
+        self.verticalLayout_1.addLayout(self.horizontalLayout_4)
         self.imageWidget = ImageWidget(parent=self.frame)
         self.imageWidget.setStyleSheet('')
         self.imageWidget.setObjectName('imageWidget')
-        self.verticalLayout.addWidget(self.imageWidget)
+        self.verticalLayout_1.addWidget(self.imageWidget)
         self.horizontalLayout_5.addWidget(self.cropButton)
         self.horizontalLayout_5.addWidget(self.cancelButton)
-        self.verticalLayout.addLayout(self.horizontalLayout_5)
+        self.verticalLayout_1.addLayout(self.horizontalLayout_5)
         self.progressBar.setParent(self.frame)
-        self.verticalLayout.addWidget(self.progressBar)
-        self.verticalLayout.setStretch(0, 1)
-        self.verticalLayout.setStretch(1, 10)
-        self.verticalLayout.setStretch(2, 1)
-        self.verticalLayout.setStretch(3, 1)
+        self.verticalLayout_1.addWidget(self.progressBar)
+        self.verticalLayout_1.setStretch(0, 1)
+        self.verticalLayout_1.setStretch(1, 10)
+        self.verticalLayout_1.setStretch(2, 1)
+        self.verticalLayout_1.setStretch(3, 1)
         self.horizontalLayout_3.addWidget(self.frame)
         self.treeView = QtWidgets.QTreeView(parent=self)
         self.treeView.setObjectName('treeView')
@@ -85,31 +83,8 @@ class CropFolderWidget(CropBatchWidget):
                                    self.tiltCheckBox, self.sensitivity_dialArea.dial, self.face_dialArea.dial,
                                    self.gamma_dialArea.dial, self.top_dialArea.dial, self.bottom_dialArea.dial,
                                    self.left_dialArea.dial, self.right_dialArea.dial)
-        # Folder start connection
-        self.crop_worker.folder_started.connect(
-            lambda: window_functions.disable_widget(self.widthLineEdit, self.heightLineEdit, self.sensitivity_dialArea.dial,
-                                   self.face_dialArea.dial, self.gamma_dialArea.dial, self.top_dialArea.dial,
-                                   self.bottom_dialArea.dial, self.left_dialArea.dial, self.right_dialArea.dial,
-                                   self.folderLineEdit, self.destinationLineEdit, self.destinationButton,
-                                   self.folderButton, self.extWidget.radioButton_1, self.extWidget.radioButton_2,
-                                   self.extWidget.radioButton_3, self.extWidget.radioButton_4,
-                                   self.extWidget.radioButton_5, self.extWidget.radioButton_6, self.cropButton,
-                                   self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox))
-        self.crop_worker.folder_started.connect(lambda: window_functions.enable_widget(self.cancelButton))
-
-        # Folder end connection
-        self.crop_worker.folder_finished.connect(
-            lambda: window_functions.enable_widget(self.widthLineEdit, self.heightLineEdit, self.sensitivity_dialArea.dial,
-                                  self.face_dialArea.dial, self.gamma_dialArea.dial, self.top_dialArea.dial,
-                                  self.bottom_dialArea.dial, self.left_dialArea.dial, self.right_dialArea.dial,
-                                  self.folderLineEdit, self.destinationLineEdit, self.destinationButton,
-                                  self.folderButton, self.extWidget.radioButton_1, self.extWidget.radioButton_2,
-                                  self.extWidget.radioButton_3, self.extWidget.radioButton_4,
-                                  self.extWidget.radioButton_5, self.extWidget.radioButton_6, self.cropButton,
-                                  self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox))
-        self.crop_worker.folder_finished.connect(lambda: window_functions.disable_widget(self.cancelButton))
-        self.crop_worker.folder_finished.connect(lambda: window_functions.show_message_box(self.destinationLineEdit))
-        self.crop_worker.folder_progress.connect(lambda: self.update_progress(self.crop_worker.bar_value_f))
+        # Connect crop worker
+        self.connect_crop_worker()
 
         self.retranslateUi()
         self.disable_buttons()
@@ -128,6 +103,23 @@ class CropFolderWidget(CropBatchWidget):
             _translate('Form', 'Choose where you want to save the cropped images'))
         self.destinationButton.setText(_translate('Form', 'Destination Folder'))
 
+    def connect_crop_worker(self) -> None:
+        widget_list = (self.widthLineEdit, self.heightLineEdit, self.sensitivity_dialArea.dial, self.face_dialArea.dial,
+                       self.gamma_dialArea.dial, self.top_dialArea.dial, self.bottom_dialArea.dial,
+                       self.left_dialArea.dial, self.right_dialArea.dial, self.folderLineEdit, self.destinationLineEdit,
+                       self.destinationButton, self.folderButton, self.extWidget.radioButton_1,
+                       self.extWidget.radioButton_2, self.extWidget.radioButton_3, self.extWidget.radioButton_4,
+                       self.extWidget.radioButton_5, self.extWidget.radioButton_6, self.cropButton,
+                       self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox)
+        # Folder start connection
+        self.crop_worker.folder_started.connect(lambda: window_functions.disable_widget(*widget_list))
+        self.crop_worker.folder_started.connect(lambda: window_functions.enable_widget(self.cancelButton))
+        # Folder end connection
+        self.crop_worker.folder_finished.connect(lambda: window_functions.enable_widget(*widget_list))
+        self.crop_worker.folder_finished.connect(lambda: window_functions.disable_widget(self.cancelButton))
+        self.crop_worker.folder_finished.connect(lambda: window_functions.show_message_box(self.destinationLineEdit))
+        self.crop_worker.folder_progress.connect(lambda: self.update_progress(self.crop_worker.bar_value_f))
+    
     def display_crop(self, selection: Optional[Path] = None) -> None:
         job = self.create_job(self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox)
         if selection is None:
