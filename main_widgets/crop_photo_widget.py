@@ -59,6 +59,7 @@ class CropPhotoWidget(CustomCropWidget):
         self.photoButton.clicked.connect(lambda: self.open_folder(self.photoLineEdit))
         self.destinationButton.clicked.connect(lambda: self.open_folder(self.destinationLineEdit))
         self.cropButton.clicked.connect(lambda: self.crop_photo())
+        self.photoLineEdit.textChanged.connect(lambda: self.reload_widgets())
         self.connect_input_widgets(self.photoLineEdit, self.widthLineEdit, self.heightLineEdit,
                                    self.destinationLineEdit, self.exposureCheckBox, self.mfaceCheckBox,
                                    self.tiltCheckBox, self.sensitivity_dialArea.dial, self.face_dialArea.dial,

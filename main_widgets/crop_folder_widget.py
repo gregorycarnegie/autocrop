@@ -72,6 +72,7 @@ class CropFolderWidget(CropBatchWidget):
         # Connections
         self.folderButton.clicked.connect(lambda: self.open_folder(self.folderLineEdit))
         self.destinationButton.clicked.connect(lambda: self.open_folder(self.destinationLineEdit))
+        self.folderLineEdit.textChanged.connect(lambda: self.load_data())
         self.treeView.selectionModel().selectionChanged.connect(lambda: self.reload_widgets())
         self.cropButton.clicked.connect(lambda: self.folder_process())
         self.cancelButton.clicked.connect(lambda: self.crop_worker.terminate(FunctionType.FOLDER))

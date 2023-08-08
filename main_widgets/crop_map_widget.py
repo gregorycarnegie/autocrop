@@ -97,7 +97,8 @@ class CropMapWidget(CropBatchWidget):
         self.cancelButton.clicked.connect(lambda: self.crop_worker.terminate(FunctionType.MAPPING))
         self.cancelButton.clicked.connect(
             lambda: self.cancel_button_operation(self.cancelButton, self.cropButton))
-
+        self.folderLineEdit.textChanged.connect(lambda: self.reload_widgets())
+        
         self.connect_input_widgets(self.folderLineEdit, self.widthLineEdit, self.heightLineEdit,
                                    self.destinationLineEdit, self.comboBox_1, self.comboBox_2, self.exposureCheckBox,
                                    self.mfaceCheckBox, self.tiltCheckBox, self.sensitivity_dialArea.dial,
