@@ -30,10 +30,11 @@ class CropBatchWidget(CustomCropWidget):
         self.horizontalLayout_5 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_5.setObjectName('horizontalLayout_5')
         self.cancelButton = self.setup_process_button('cancelButton', 'cancel', ButtonType.PROCESS_BUTTON)
-        self.progressBar = QtWidgets.QProgressBar()
+        self.progressBar = QtWidgets.QProgressBar(parent=self.frame)
         self.progressBar.setMinimumSize(QtCore.QSize(0, 12))
         self.progressBar.setMaximumSize(QtCore.QSize(16777215, 12))
-        self.progressBar.setProperty('value', 0)
+        # self.progressBar.setRange(0, 100)
+        self.progressBar.setValue(0)
         self.progressBar.setTextVisible(False)
 
     def connect_crop_worker(self) -> None:

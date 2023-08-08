@@ -52,7 +52,6 @@ class CropFolderWidget(CropBatchWidget):
         self.horizontalLayout_5.addWidget(self.cropButton)
         self.horizontalLayout_5.addWidget(self.cancelButton)
         self.verticalLayout_1.addLayout(self.horizontalLayout_5)
-        self.progressBar.setParent(self.frame)
         self.verticalLayout_1.addWidget(self.progressBar)
         self.verticalLayout_1.setStretch(0, 1)
         self.verticalLayout_1.setStretch(1, 10)
