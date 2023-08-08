@@ -89,6 +89,7 @@ class CustomCropWidget(QtWidgets.QWidget):
 
     @staticmethod
     def setup_path_line_edit(name: str) -> PathLineEdit:
+        """Only sublasses of this class should implement this method"""
         line_edit = PathLineEdit()
         line_edit.setMinimumSize(QtCore.QSize(0, 24))
         line_edit.setMaximumSize(QtCore.QSize(16777215, 24))
@@ -97,6 +98,7 @@ class CustomCropWidget(QtWidgets.QWidget):
         return line_edit
 
     def setup_checkbox(self, name: str) -> QtWidgets.QCheckBox:
+        """Only sublasses of this class should implement this method"""
         checkbox = QtWidgets.QCheckBox()
         checkbox.setObjectName(name)
         checkbox.setStyleSheet(self.CHECKBOX_STYLESHEET)
@@ -111,6 +113,7 @@ class CustomCropWidget(QtWidgets.QWidget):
         pass
 
     def connect_checkboxs(self, input_widget: QtWidgets.QCheckBox) -> None:
+        """Only sublasses of this class should implement this method"""
         input_widget.stateChanged.connect(lambda: self.reload_widgets())
         match input_widget:
             case self.mfaceCheckBox:
@@ -145,6 +148,7 @@ class CustomCropWidget(QtWidgets.QWidget):
                    video_path: Optional[PathLineEdit] = None,
                    start_position: Optional[float] = None,
                    stop_position: Optional[float] = None) -> Job:
+        """Only sublasses of this class should implement this method"""
         return Job(self.widthLineEdit,
                    self.heightLineEdit,
                    exposure,
@@ -171,6 +175,7 @@ class CustomCropWidget(QtWidgets.QWidget):
                     stop_position=stop_position)
 
     def open_folder(self, line_edit: PathLineEdit) -> None:
+        """Only sublasses of this class should implement this method"""
         f_name = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Directory', Photo().default_directory)
         line_edit.setText(f_name)
         if line_edit is self.folderLineEdit:

@@ -46,6 +46,7 @@ class CropBatchWidget(CustomCropWidget):
         self.folderButton.setObjectName('folderButton')
 
     def update_progress(self, value: int) -> None:
+        """Only sublasses of this class should implement this method"""
         self.progressBar.setValue(value)
         QtWidgets.QApplication.processEvents()
     
@@ -53,12 +54,14 @@ class CropBatchWidget(CustomCropWidget):
     def run_batch_process(function: Callable[..., Any],
                           reset_worker_func: Callable[..., Any],
                           job: Job) -> None:
+        """Only sublasses of this class should implement this method"""
         reset_worker_func()
         process = Process(target=function, daemon=True, args=(job,))
         process.run()
 
     @staticmethod
-    def cancel_button_operation(cancel_button: QtWidgets.QPushButton, *crop_buttons: QtWidgets.QPushButton):
+    def cancel_button_operation(cancel_button: QtWidgets.QPushButton, *crop_buttons: QtWidgets.QPushButton) -> None:
+        """Only sublasses of this class should implement this method"""
         cancel_button.setDisabled(True)
         for crop_button in crop_buttons:
             crop_button.setEnabled(True)
