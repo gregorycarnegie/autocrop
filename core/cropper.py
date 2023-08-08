@@ -37,6 +37,9 @@ class Cropper(QObject):
         self.bar_value_m = 0
         self.bar_value_v = 0
 
+        self.amount_f = 0
+        self.amount_m = 0
+
         self.end_f_task = False
         self.end_m_task = False
         self.end_v_task = False
@@ -256,16 +259,21 @@ class Cropper(QObject):
         match process_type:
             case FunctionType.FOLDER:
                 self.bar_value_f += 1
-                self.folder_progress.emit(int(100 * self.bar_value_f / file_amount))
+                self.folder_progress.emit(1)
                 if self.bar_value_f == file_amount: self.folder_finished.emit()
             case FunctionType.MAPPING:
                 self.bar_value_m += 1
-                self.mapping_progress.emit(int(100 * self.bar_value_m / file_amount))
+                self.mapping_progress.emit(1)
                 if self.bar_value_m == file_amount: self.mapping_finished.emit()
             case FunctionType.VIDEO:
+                # Only way I could get the video process progressbar to work properly
                 self.bar_value_v += 1
-                self.video_progress.emit(int(100 * self.bar_value_v / file_amount))
-                if self.bar_value_v == file_amount: self.video_finished.emit()
+                if self.bar_value_v == file_amount:
+                    self.video_progress.emit(100)
+                    self.video_finished.emit()
+                elif self.bar_value_v < file_amount:
+                    x = np.floor(100 * self.bar_value_v / file_amount)
+                    self.video_progress.emit(x)
             case _: pass
     
     def folder_worker(self, file_amount: int,
@@ -282,16 +290,16 @@ class Cropper(QObject):
             self.message_box_f = False
 
     def crop_dir(self, job: Job) -> None:
-        self.folder_started.emit()
         if (file_tuple := job.file_list()) is None: return None
-        file_list, file_amount = file_tuple
+        file_list, self.amount_f = file_tuple
         split_array = np.array_split(file_list, min(cpu_count(), 8))
         threads = []
         self.bar_value_f = 0
         self.folder_progress.emit(self.bar_value_f)
+        self.folder_started.emit()
 
         for i, array in enumerate(split_array):
-            t = Thread(target=self.folder_worker, args=(file_amount, array, job, self.face_workers[i]))
+            t = Thread(target=self.folder_worker, args=(self.amount_f, array, job, self.face_workers[i]))
             threads.append(t)
             t.start()
 
@@ -314,15 +322,17 @@ class Cropper(QObject):
         file_list1, file_list2 = g
         # Get the extensions of the file names and 
         # Create a mask that indicates which files have supported extensions.
-        mask, file_amount = utils.mask_extensions(file_list1)
+        mask, self.amount_m = utils.mask_extensions(file_list1)
         # Split the file lists and the mapping data into chunks.
         old_file_list, new_file_list = utils.split_by_cpus(mask, min(cpu_count(), 8), file_list1, file_list2)
-        self.mapping_started.emit()
+        
         self.bar_value_m = 0
         self.folder_progress.emit(self.bar_value_m)
+        self.mapping_started.emit()
+        
         threads = []
         for i, _ in enumerate(old_file_list):
-            t = Thread(target=self.mapping_worker, args=(file_amount, _, new_file_list[i], job, self.face_workers[i]))
+            t = Thread(target=self.mapping_worker, args=(self.amount_m, _, new_file_list[i], job, self.face_workers[i]))
             threads.append(t)
             t.start()
 
@@ -431,13 +441,15 @@ class Cropper(QObject):
     def extract_frames(self, job: Job) -> None:
         if job.video_path is None or job.start_position is None or job.stop_position is None:
             return None
-        self.video_started.emit()
+        
         video = cv2.VideoCapture(job.video_path.text())
         fps = int(video.get(cv2.CAP_PROP_FPS))
         start_frame = int(job.start_position * fps)
         end_frame = int(job.stop_position * fps)
-        self.video_progress.emit(0)
         frame_numbers = np.arange(start_frame, end_frame + 1)
+
+        self.video_progress.emit(0)
+        self.video_started.emit()
 
         def progress_callback() -> None:
             self._update_progress(frame_numbers.size, FunctionType.VIDEO)
