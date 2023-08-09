@@ -1,9 +1,10 @@
 from os import startfile
 from typing import Optional, Union
+from pathlib import Path
 
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QIcon, QPixmap
-from PyQt6.QtWidgets import QCheckBox, QLineEdit, QMessageBox, QWidget, QPushButton, QHBoxLayout, QVBoxLayout
+from PyQt6.QtWidgets import QCheckBox, QMessageBox, QWidget, QPushButton, QHBoxLayout, QVBoxLayout
 
 from .dialog import UiDialog
 from .literals import MediaIconAlias
@@ -16,7 +17,7 @@ def load_about_form() -> None:
     about_ui = UiDialog()
     about_ui.exec()
 
-def show_message_box(destination: QLineEdit) -> None:
+def show_message_box(destination: Path) -> None:
     msg_box = QMessageBox()
     msg_box.setWindowTitle('Open Destination Folder')
     msg_box.setText('Open destination folder?')
@@ -25,7 +26,7 @@ def show_message_box(destination: QLineEdit) -> None:
     
     match msg_box.exec():
         case QMessageBox.StandardButton.Yes:
-            startfile(destination.text())
+            startfile(destination)
         case _: pass
 
 def create_media_button(name: str,

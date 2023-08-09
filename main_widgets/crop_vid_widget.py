@@ -231,7 +231,7 @@ class CropVideoWidget(CropBatchWidget):
         # Video end connection
         self.crop_worker.video_started.connect(lambda: window_functions.disable_widget(*widget_list))
         self.crop_worker.video_finished.connect(lambda: window_functions.disable_widget(self.cancelButton))
-        self.crop_worker.video_finished.connect(lambda: window_functions.show_message_box(self.destinationLineEdit))
+        self.crop_worker.video_finished.connect(lambda: window_functions.show_message_box(self.destination))
         self.crop_worker.video_progress.connect(self.update_progress)
     
     def setup_label(self, name: str) -> QtWidgets.QLabel:
@@ -442,8 +442,8 @@ class CropVideoWidget(CropBatchWidget):
             job = self.create_job(self.exposureCheckBox, 
                                 self.mfaceCheckBox, 
                                 self.tiltCheckBox,
-                                video_path=self.videoLineEdit, 
-                                destination=self.destinationLineEdit)
+                                video_path=Path(self.videoLineEdit.text()), 
+                                destination=Path(self.destinationLineEdit.text()))
             self.player.pause()
             self.crop_worker.crop_frame(job, self.positionLabel, self.timelineSlider)
 
@@ -468,8 +468,8 @@ class CropVideoWidget(CropBatchWidget):
             job = self.create_job(self.exposureCheckBox, 
                                 self.mfaceCheckBox, 
                                 self.tiltCheckBox,
-                                video_path=self.videoLineEdit, 
-                                destination=self.destinationLineEdit,
+                                video_path=Path(self.videoLineEdit.text()), 
+                                destination=Path(self.destinationLineEdit.text()),
                                 start_position=self.start_position, 
                                 stop_position=self.stop_position)
             self.player.pause()
@@ -478,12 +478,13 @@ class CropVideoWidget(CropBatchWidget):
         if Path(self.videoLineEdit.text()).parent == Path(self.destinationLineEdit.text()):
             msgBox = QtWidgets.QMessageBox()
             msgBox.setWindowIcon(QtGui.QIcon('resources\\logos\\logo.ico'))
-            msgBox.setIcon(QtWidgets.QMessageBox.Icon.Information)
-            msgBox.setText("""The paths are the same.
-                           Currently this may crash the program if source files and destination files have the same file names.
-                           Please choose a different folder.""")
+            msgBox.setIcon(QtWidgets.QMessageBox.Icon.Warning)
+            msgBox.setText('The paths are the same.\nIf potential overwites are detected, the images will save to a new folder.\nAre you OK to proceed?')
             msgBox.setWindowTitle('Paths Match')
-            msgBox.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Ok)
-            msgBox.exec()
-            return
+            msgBox.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
+            returnValue = msgBox.exec()
+            match returnValue:
+                case QtWidgets.QMessageBox.StandardButton.Yes:
+                    callback()
+                case _: return
         callback()

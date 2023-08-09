@@ -7,7 +7,7 @@ import pandas as pd
 from PyQt6.QtWidgets import QCheckBox, QComboBox, QDial, QRadioButton
 
 from file_types import Photo
-from line_edits import NumberLineEdit, PathLineEdit
+from line_edits import NumberLineEdit
 
 
 class Job(NamedTuple):
@@ -57,10 +57,10 @@ class Job(NamedTuple):
     right: QDial
     radio_buttons: Tuple[QRadioButton, ...]
     radio_options: npt.NDArray[np.str_] = np.array(['No', '.bmp', '.jpg', '.png', '.tiff', '.webp'])
-    destination: Optional[PathLineEdit] = None
-    photo_path: Optional[PathLineEdit] = None
-    folder_path: Optional[PathLineEdit] = None
-    video_path: Optional[PathLineEdit] = None
+    destination: Optional[Path] = None
+    photo_path: Optional[Path] = None
+    folder_path: Optional[Path] = None
+    video_path: Optional[Path] = None
     start_position: Optional[float] = None
     stop_position: Optional[float] = None
     table: Optional[pd.DataFrame] = None
@@ -75,7 +75,7 @@ class Job(NamedTuple):
             numpy.ndarray: An array of pathlib.Path objects representing the valid image files.
         """
         if self.folder_path is not None:
-            x = np.fromiter(Path(self.folder_path.text()).iterdir(), Path)
+            x = np.fromiter(self.folder_path.iterdir(), Path)
             y = np.array([pic.suffix.lower() in Photo().file_types for pic in x])
             result = x[y]
             return result, len(result)
@@ -125,9 +125,8 @@ class Job(NamedTuple):
             None: if no path was specified.
         """
         if self.destination is None: return None
-        x = Path(self.destination.text())
-        x.mkdir(exist_ok=True)
-        return x
+        self.destination.mkdir(exist_ok=True)
+        return self.destination
     
     def file_list_to_numpy(self) -> Optional[Tuple[npt.NDArray[np.str_], npt.NDArray[np.str_]]]:
         """

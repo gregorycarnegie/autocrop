@@ -1,4 +1,5 @@
-from typing import Optional
+from typing import Optional, Set
+from pathlib import Path
 
 import pandas as pd
 from PyQt6 import QtWidgets, QtCore, QtGui
@@ -42,6 +43,7 @@ class CustomCropWidget(QtWidgets.QWidget):
                  right_dial_area: CustomDialWidget,
                  parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
+        self.destination: Path = Path.home()
         self.horizontalLayout_1 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_1.setObjectName('horizontalLayout_1')
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
@@ -140,19 +142,74 @@ class CustomCropWidget(QtWidgets.QWidget):
                     self.connect_checkboxs(input_widget)
                 case _: pass
 
+    @staticmethod
+    def _get_file_names_without_extension(directory: Path) -> Set[str]:
+        """Return a set of filenames (without extensions) in the given directory."""
+        return {p.stem for p in directory.iterdir() if p.is_file()}
+
+    @staticmethod
+    def _check_matching_files(destination: Path, filenames: Set[str], extensions: Set[str]) -> bool:
+        """Recursively check if destination contains any files with the given extensions that match the filenames."""
+        return any(p.is_file()
+                   and p.suffix.lower() in extensions
+                   and p.stem in filenames
+                   for p in destination.rglob('*'))
+
+    @staticmethod
+    def _create_unique_folder(base_path: Path, valid_extensions: Set[str]) -> Path:
+        if not base_path.exists():
+            return base_path
+        if all(file.suffix not in valid_extensions
+               for file in base_path.iterdir()
+               if file.is_file()):
+            return base_path  # Return the original path if no files with the specified extensions are found
+        counter = 1
+        new_path = base_path
+        while new_path.exists():
+            new_path = base_path.with_name(f"{base_path.name}_{counter}")
+            counter += 1
+        new_path.mkdir(parents=True, exist_ok=True)
+        return new_path
+
+    def _handle_folder_path(self, destination: Path, folder_path: Path, extensions: Set[str]) -> Path:
+        if destination.exists():
+            folder_filenames = self._get_file_names_without_extension(folder_path)
+            if self._check_matching_files(destination, folder_filenames, extensions):
+                destination = destination.with_name(destination.name + '_CROPS')
+            destination = self._create_unique_folder(destination, extensions)
+        return destination
+
+    def _handle_video_path(self, destination: Path, video_path: Path, extensions: Set[str]) -> Path:
+        if destination.exists():
+            folder_filenames = self._get_file_names_without_extension(video_path.parent)
+            if any(video_path.name.lower() in name.lower() for name in folder_filenames):
+                destination = destination.with_name(destination.name + '_CROPS')
+            destination = self._create_unique_folder(destination, extensions)
+        return destination
+
     def create_job(self, exposure: QtWidgets.QCheckBox,
                    multi: QtWidgets.QCheckBox,
                    tilt: QtWidgets.QCheckBox,
-                   photo_path: Optional[PathLineEdit] = None,
-                   destination: Optional[PathLineEdit] = None,
-                   folder_path: Optional[PathLineEdit] = None,
+                   photo_path: Optional[Path] = None,
+                   destination: Optional[Path] = None,
+                   folder_path: Optional[Path] = None,
                    table: Optional[pd.DataFrame] = None,
                    column1: Optional[QtWidgets.QComboBox] = None,
                    column2: Optional[QtWidgets.QComboBox] = None,
-                   video_path: Optional[PathLineEdit] = None,
+                   video_path: Optional[Path] = None,
                    start_position: Optional[float] = None,
                    stop_position: Optional[float] = None) -> Job:
         """Only sublasses of the CustomCropWidget class should implement this method"""
+        extensions = {'.bmp', '.jpg', '.png', '.tiff', '.webp'}
+        
+        if destination and folder_path:
+            destination = self._handle_folder_path(destination, folder_path, extensions)
+        
+        if destination and video_path:
+            destination = self._handle_video_path(destination, video_path, extensions)
+
+        self.destination = destination if destination is not None else self.destination
+
         return Job(self.widthLineEdit,
                    self.heightLineEdit,
                    exposure,

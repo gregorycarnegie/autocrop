@@ -154,14 +154,14 @@ class Cropper(QObject):
              new: Optional[str] = None) -> None:
         if job.table is not None and job.folder_path is not None and new is not None:
             # Data cropping
-            path = Path(job.folder_path.text()).joinpath(image)
+            path = job.folder_path.joinpath(image)
             if job.multi_face_job.isChecked():
                 self.multi_save_detection(path, job, face_worker, image, new)
             else:
                 self.save_detection(path, job, face_worker, image, new)
         elif job.folder_path is not None:
             # Folder cropping
-            source, image_name = Path(job.folder_path.text()), image.name
+            source, image_name = job.folder_path, image.name
             path = source.joinpath(image_name)
             if job.multi_face_job.isChecked():
                 self.multi_save_detection(path, job, face_worker, Path(image_name))
@@ -353,10 +353,10 @@ class Cropper(QObject):
                    timeline_slider: QSlider) -> None:
         if job.video_path is None or job.destination is None:
             return None
-        if (frame := self.grab_frame(timeline_slider.value(), job.video_path.text())) is None:
+        if (frame := self.grab_frame(timeline_slider.value(), job.video_path.as_posix())) is None:
             return None
 
-        destination, base_name = Path(job.destination.text()), Path(job.video_path.text()).stem
+        destination, base_name = job.destination, job.video_path.stem
         destination.mkdir(exist_ok=True)
         position = re.sub(':', '_', position_label.text())
         file_path = destination.joinpath(
@@ -431,7 +431,7 @@ class Cropper(QObject):
             return None
         
         if (destination := job.get_destination()) is None: return None
-        file_enum = f'{Path(job.video_path.text()).stem}_frame_{frame_number:06d}'
+        file_enum = f'{job.video_path.stem}_frame_{frame_number:06d}'
         if job.multi_face_job.isChecked():
             self.process_multiface_frame_job(frame, job, file_enum, destination)
         else:
@@ -442,7 +442,7 @@ class Cropper(QObject):
         if job.video_path is None or job.start_position is None or job.stop_position is None:
             return None
         
-        video = cv2.VideoCapture(job.video_path.text())
+        video = cv2.VideoCapture(job.video_path.as_posix())
         fps = int(video.get(cv2.CAP_PROP_FPS))
         start_frame = int(job.start_position * fps)
         end_frame = int(job.stop_position * fps)

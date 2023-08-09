@@ -117,7 +117,7 @@ class CropFolderWidget(CropBatchWidget):
         # Folder end connection
         self.crop_worker.folder_finished.connect(lambda: window_functions.enable_widget(*widget_list))
         self.crop_worker.folder_finished.connect(lambda: window_functions.disable_widget(self.cancelButton))
-        self.crop_worker.folder_finished.connect(lambda: window_functions.show_message_box(self.destinationLineEdit))
+        self.crop_worker.folder_finished.connect(lambda: window_functions.show_message_box(self.destination))
         self.crop_worker.folder_progress.connect(self.update_progress)
     
     def display_crop(self, selection: Optional[Path] = None) -> None:
@@ -172,19 +172,20 @@ class CropFolderWidget(CropBatchWidget):
             job = self.create_job(self.exposureCheckBox,
                                   self.mfaceCheckBox,
                                   self.tiltCheckBox,
-                                  folder_path=self.folderLineEdit,
-                                  destination=self.destinationLineEdit)
+                                  folder_path=Path(self.folderLineEdit.text()),
+                                  destination=Path(self.destinationLineEdit.text()))
             self.run_batch_process(self.crop_worker.crop_dir, self.crop_worker.reset_f_task, job)
 
         if Path(self.folderLineEdit.text()) == Path(self.destinationLineEdit.text()):
             msgBox = QtWidgets.QMessageBox()
             msgBox.setWindowIcon(QtGui.QIcon('resources\\logos\\logo.ico'))
-            msgBox.setIcon(QtWidgets.QMessageBox.Icon.Information)
-            msgBox.setText("""The paths are the same.
-                           Currently this may crash the program if source files and destination files have the same file names.
-                           Please choose a different folder.""")
+            msgBox.setIcon(QtWidgets.QMessageBox.Icon.Warning)
+            msgBox.setText('The paths are the same.\nIf potential overwites are detected, the images will save to a new folder.\nAre you OK to proceed?')
             msgBox.setWindowTitle('Paths Match')
-            msgBox.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Ok)
-            msgBox.exec()
-            return
+            msgBox.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
+            returnValue = msgBox.exec()
+            match returnValue:
+                case QtWidgets.QMessageBox.StandardButton.Yes:
+                    callback()
+                case _: return
         callback()
