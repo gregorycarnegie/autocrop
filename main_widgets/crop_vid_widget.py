@@ -1,5 +1,6 @@
 from threading import Thread
 from typing import Optional, Tuple, Union
+from pathlib import Path
 
 import numpy as np
 from PyQt6 import QtCore, QtGui, QtWidgets, QtMultimedia
@@ -437,20 +438,52 @@ class CropVideoWidget(CropBatchWidget):
             self.cropButton, self.videocropButton)
 
     def crop_frame(self) -> None:
-        job = self.create_job(self.exposureCheckBox, 
-                              self.mfaceCheckBox, 
-                              self.tiltCheckBox,
-                              video_path=self.videoLineEdit, 
-                              destination=self.destinationLineEdit)
-        self.crop_worker.crop_frame(job, self.positionLabel, self.timelineSlider)
+        def callback():
+            job = self.create_job(self.exposureCheckBox, 
+                                self.mfaceCheckBox, 
+                                self.tiltCheckBox,
+                                video_path=self.videoLineEdit, 
+                                destination=self.destinationLineEdit)
+            self.player.pause()
+            self.crop_worker.crop_frame(job, self.positionLabel, self.timelineSlider)
+
+        if Path(self.videoLineEdit.text()).parent == Path(self.destinationLineEdit.text()):
+            msgBox = QtWidgets.QMessageBox()
+            msgBox.setWindowIcon(QtGui.QIcon('resources\\logos\\logo.ico'))
+            msgBox.setIcon(QtWidgets.QMessageBox.Icon.Warning)
+            msgBox.setText("""The paths are the same.
+                           This will overwrite any cropped frames with the same name.
+                           Are you OK to proceed?""")
+            msgBox.setWindowTitle('Paths Match')
+            msgBox.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
+            returnValue = msgBox.exec()
+            match returnValue:
+                case QtWidgets.QMessageBox.StandardButton.Yes:
+                    callback()
+                case _: return
+        callback()
 
     def video_process(self) -> None:
-        job = self.create_job(self.exposureCheckBox, 
-                              self.mfaceCheckBox, 
-                              self.tiltCheckBox,
-                              video_path=self.videoLineEdit, 
-                              destination=self.destinationLineEdit,
-                              start_position=self.start_position, 
-                              stop_position=self.stop_position)
-        self.player.pause()
-        self.run_batch_process(self.crop_worker.extract_frames, self.crop_worker.reset_v_task, job)
+        def callback():
+            job = self.create_job(self.exposureCheckBox, 
+                                self.mfaceCheckBox, 
+                                self.tiltCheckBox,
+                                video_path=self.videoLineEdit, 
+                                destination=self.destinationLineEdit,
+                                start_position=self.start_position, 
+                                stop_position=self.stop_position)
+            self.player.pause()
+            self.run_batch_process(self.crop_worker.extract_frames, self.crop_worker.reset_v_task, job)
+
+        if Path(self.videoLineEdit.text()).parent == Path(self.destinationLineEdit.text()):
+            msgBox = QtWidgets.QMessageBox()
+            msgBox.setWindowIcon(QtGui.QIcon('resources\\logos\\logo.ico'))
+            msgBox.setIcon(QtWidgets.QMessageBox.Icon.Information)
+            msgBox.setText("""The paths are the same.
+                           Currently this may crash the program if source files and destination files have the same file names.
+                           Please choose a different folder.""")
+            msgBox.setWindowTitle('Paths Match')
+            msgBox.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Ok)
+            msgBox.exec()
+            return
+        callback()

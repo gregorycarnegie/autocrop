@@ -49,7 +49,6 @@ class CropBatchWidget(CustomCropWidget):
         self.progressBar.setValue(int(PROGRESSBAR_STEPS * x / y))
         QtWidgets.QApplication.processEvents()
 
-    
     @staticmethod
     def run_batch_process(function: Callable[..., Any],
                           reset_worker_func: Callable[..., Any],

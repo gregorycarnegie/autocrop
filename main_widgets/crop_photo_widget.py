@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Optional, Union
 
-from PyQt6 import QtCore, QtWidgets
+from PyQt6 import QtCore, QtGui, QtWidgets
 
 from core import Cropper, CustomDialWidget, ExtWidget, FunctionTabSelectionState, ImageWidget, window_functions
 from file_types import Photo
@@ -133,11 +133,26 @@ class CropPhotoWidget(CustomCropWidget):
             self.cropButton)
 
     def crop_photo(self) -> None:
-        job = self.create_job(self.exposureCheckBox, 
-                              self.mfaceCheckBox, 
-                              self.tiltCheckBox,
-                              photo_path=self.photoLineEdit, 
-                              destination=self.destinationLineEdit)
-        self.crop_worker.crop(Path(self.photoLineEdit.text()), 
-                              job, 
-                              self.crop_worker.face_workers[0])
+        def callback():
+            job = self.create_job(self.exposureCheckBox,
+                                  self.mfaceCheckBox,
+                                  self.tiltCheckBox,
+                                  photo_path=self.photoLineEdit,
+                                  destination=self.destinationLineEdit)
+            self.crop_worker.crop(Path(self.photoLineEdit.text()), job, self.crop_worker.face_workers[0])
+
+        if Path(self.photoLineEdit.text()).parent == Path(self.destinationLineEdit.text()):
+            msgBox = QtWidgets.QMessageBox()
+            msgBox.setWindowIcon(QtGui.QIcon('resources\\logos\\logo.ico'))
+            msgBox.setIcon(QtWidgets.QMessageBox.Icon.Warning)
+            msgBox.setText("""The paths are the same.
+                           This will overwrite the original.
+                           Are you OK to proceed?""")
+            msgBox.setWindowTitle('Paths Match')
+            msgBox.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
+            returnValue = msgBox.exec()
+            match returnValue:
+                case QtWidgets.QMessageBox.StandardButton.Yes:
+                    callback()
+                case _: return
+        callback()

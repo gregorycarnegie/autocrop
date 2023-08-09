@@ -168,9 +168,23 @@ class CropFolderWidget(CropBatchWidget):
             self.cropButton)
 
     def folder_process(self) -> None:
-        job = self.create_job(self.exposureCheckBox, 
-                              self.mfaceCheckBox, 
-                              self.tiltCheckBox,
-                              folder_path=self.folderLineEdit, 
-                              destination=self.destinationLineEdit)
-        self.run_batch_process(self.crop_worker.crop_dir, self.crop_worker.reset_f_task, job)
+        def callback():
+            job = self.create_job(self.exposureCheckBox,
+                                  self.mfaceCheckBox,
+                                  self.tiltCheckBox,
+                                  folder_path=self.folderLineEdit,
+                                  destination=self.destinationLineEdit)
+            self.run_batch_process(self.crop_worker.crop_dir, self.crop_worker.reset_f_task, job)
+
+        if Path(self.folderLineEdit.text()) == Path(self.destinationLineEdit.text()):
+            msgBox = QtWidgets.QMessageBox()
+            msgBox.setWindowIcon(QtGui.QIcon('resources\\logos\\logo.ico'))
+            msgBox.setIcon(QtWidgets.QMessageBox.Icon.Information)
+            msgBox.setText("""The paths are the same.
+                           Currently this may crash the program if source files and destination files have the same file names.
+                           Please choose a different folder.""")
+            msgBox.setWindowTitle('Paths Match')
+            msgBox.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Ok)
+            msgBox.exec()
+            return
+        callback()

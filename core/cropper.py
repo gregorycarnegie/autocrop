@@ -92,8 +92,7 @@ class Cropper(QObject):
                 utils.reject(source_image, destination_path, image_name)
         elif image_name is not None:
             if (cropped_image := self.crop_image(source_image, job, face_worker)) is not None:
-                file_path, is_tiff = utils.set_filename(
-                    image_name, destination_path, job.radio_choice(), job.radio_tuple(), new)
+                file_path, is_tiff = utils.set_filename( image_name, destination_path, job.radio_choice(), job.radio_tuple(), new)
                 utils.save_image(cropped_image, file_path.as_posix(), job.gamma.value(), is_tiff=is_tiff)
             else:
                 utils.reject(source_image, destination_path, image_name)

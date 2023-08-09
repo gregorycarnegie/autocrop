@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Optional, Any, Union
 
 import pandas as pd
-from PyQt6 import QtCore, QtWidgets
+from PyQt6 import QtCore, QtGui, QtWidgets
 
 from core import CustomDialWidget, DataFrameModel, ExtWidget, FunctionTabSelectionState, FunctionType, ImageWidget, \
     utils, window_functions
@@ -222,12 +222,26 @@ class CropMapWidget(CropBatchWidget):
         self.comboBox_2.addItems(self.data_frame.columns.to_numpy())
 
     def mapping_process(self) -> None:
-        job = self.create_job(self.exposureCheckBox, 
-                              self.mfaceCheckBox, 
-                              self.tiltCheckBox,
-                              folder_path=self.folderLineEdit, 
-                              destination=self.destinationLineEdit,
-                              table=self.data_frame, 
-                              column1=self.comboBox_1, 
-                              column2=self.comboBox_2)
-        self.run_batch_process(self.crop_worker.mapping_crop, self.crop_worker.reset_m_task, job)
+        def callback():
+            job = self.create_job(self.exposureCheckBox,
+                                  self.mfaceCheckBox,
+                                  self.tiltCheckBox,
+                                  folder_path=self.folderLineEdit,
+                                  destination=self.destinationLineEdit,
+                                  table=self.data_frame,
+                                  column1=self.comboBox_1,
+                                  column2=self.comboBox_2)
+            self.run_batch_process(self.crop_worker.mapping_crop, self.crop_worker.reset_m_task, job)
+
+        if Path(self.folderLineEdit.text()) == Path(self.destinationLineEdit.text()):
+            msgBox = QtWidgets.QMessageBox()
+            msgBox.setWindowIcon(QtGui.QIcon('resources\\logos\\logo.ico'))
+            msgBox.setIcon(QtWidgets.QMessageBox.Icon.Information)
+            msgBox.setText("""The paths are the same.
+                           Currently this may crash the program if source files and destination files have the same file names.
+                           Please choose a different folder.""")
+            msgBox.setWindowTitle('Paths Match')
+            msgBox.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Ok)
+            msgBox.exec()
+            return
+        callback()
