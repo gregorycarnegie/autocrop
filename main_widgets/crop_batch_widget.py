@@ -27,10 +27,8 @@ class CropBatchWidget(CustomCropWidget):
         super().__init__(crop_worker, width_line_edit, height_line_edit, ext_widget, sensitivity_dial_area,
                          face_dial_area, gamma_dial_area, top_dial_area, bottom_dial_area, left_dial_area,
                          right_dial_area, parent)
-        self.horizontalLayout_4 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_4.setObjectName('horizontalLayout_4')
-        self.horizontalLayout_5 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_5.setObjectName('horizontalLayout_5')
+        self.horizontalLayout_4 = self.setup_hbox('horizontalLayout_4')
+        self.horizontalLayout_5 = self.setup_hbox('horizontalLayout_5')
         self.cancelButton = self.setup_process_button('cancelButton', 'cancel', ButtonType.PROCESS_BUTTON)
         self.progressBar = QtWidgets.QProgressBar(parent=self.frame)
         self.progressBar.setMinimumSize(QtCore.QSize(0, 12))

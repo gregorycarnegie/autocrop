@@ -145,9 +145,7 @@ class CropPhotoWidget(CustomCropWidget):
             msgBox = QtWidgets.QMessageBox()
             msgBox.setWindowIcon(QtGui.QIcon('resources\\logos\\logo.ico'))
             msgBox.setIcon(QtWidgets.QMessageBox.Icon.Warning)
-            msgBox.setText("""The paths are the same.
-                           This will overwrite the original.
-                           Are you OK to proceed?""")
+            msgBox.setText('The paths are the same.\nThis will overwrite the original.\nAre you OK to proceed?')
             msgBox.setWindowTitle('Paths Match')
             msgBox.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
             returnValue = msgBox.exec()

@@ -44,12 +44,9 @@ class CustomCropWidget(QtWidgets.QWidget):
                  parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
         self.destination: Path = Path.home()
-        self.horizontalLayout_1 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_1.setObjectName('horizontalLayout_1')
-        self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_2.setObjectName('horizontalLayout_2')
-        self.horizontalLayout_3 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_3.setObjectName('horizontalLayout_3')
+        self.horizontalLayout_1 = self.setup_hbox('horizontalLayout_1')
+        self.horizontalLayout_2 = self.setup_hbox('horizontalLayout_2')
+        self.horizontalLayout_3 = self.setup_hbox('horizontalLayout_3')
         self.frame = QtWidgets.QFrame(parent=self)
         self.frame.setStyleSheet('background: #1f2c33')
         self.frame.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)
@@ -78,6 +75,12 @@ class CustomCropWidget(QtWidgets.QWidget):
         self.right_dialArea = right_dial_area
         self.selection_state = FunctionTabSelectionState.NOT_SELECTED
 
+    @staticmethod
+    def setup_hbox(name: str) -> QtWidgets.QHBoxLayout:
+        horizontal_layout = QtWidgets.QHBoxLayout()
+        horizontal_layout.setObjectName(name)
+        return horizontal_layout
+    
     def setup_process_button(self, name: str, icon_name: str,  button_type: ButtonType) -> QtWidgets.QPushButton: 
         match button_type:
             case ButtonType.PROCESS_BUTTON:

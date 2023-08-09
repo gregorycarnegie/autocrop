@@ -3,16 +3,17 @@ from typing import Optional
 
 
 class CustomDialWidget(QtWidgets.QWidget):
-    def __init__(self, _min: int = 1,
+    def __init__(self, _label: str,
+                 _min: int = 1,
                  _max: int = 100,
                  single_step: int = 1,
                  page_step: int = 10,
                  _value: int = 0,
-                 _label: Optional[str] = None,
                  parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
-        self.setObjectName('Form')
-        self._label = _label
+        self.object_name = f'{_label}_dialArea'
+        self.setObjectName(self.object_name)
+        self._label = f'{_label.capitalize()} %:' if _label=='face' else f'{_label.capitalize()}:'
         self.verticalLayout = QtWidgets.QVBoxLayout(self)
         self.verticalLayout.setObjectName('verticalLayout')
         self.dial = QtWidgets.QDial(parent=self)
@@ -52,6 +53,5 @@ class CustomDialWidget(QtWidgets.QWidget):
 
     def retranslateUi(self):
         _translate = QtCore.QCoreApplication.translate
-        self.setWindowTitle(_translate('Form', 'Form'))
-        if self._label is not None:
-            self.label.setText(_translate('Form', self._label))
+        self.setWindowTitle(_translate(self.object_name, self.object_name))
+        self.label.setText(_translate(self.object_name, self._label))
