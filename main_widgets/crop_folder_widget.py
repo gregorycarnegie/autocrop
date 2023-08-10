@@ -3,8 +3,7 @@ from typing import Optional, Union
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-from core import Cropper, CustomDialWidget, ExtWidget, FunctionTabSelectionState, FunctionType, ImageWidget, \
-    window_functions
+from core import Cropper, CustomDialWidget, ExtWidget, FunctionTabSelectionState, FunctionType, window_functions
 from file_types import Photo
 from line_edits import PathLineEdit, NumberLineEdit, LineEditState
 from .crop_batch_widget import CropBatchWidget
@@ -35,22 +34,16 @@ class CropFolderWidget(CropBatchWidget):
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self)
         self.verticalLayout_2.setObjectName('verticalLayout_2')
         self.folderLineEdit = self.setup_path_line_edit('folderLineEdit')
-        self.horizontalLayout_1.addWidget(self.folderLineEdit)
-        self.horizontalLayout_1.addWidget(self.folderButton)
+        window_functions.add_widgets(self.horizontalLayout_1, self.folderLineEdit, self.folderButton)
         self.verticalLayout_2.addLayout(self.horizontalLayout_1)
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding,
                                            QtWidgets.QSizePolicy.Policy.Minimum)
         self.horizontalLayout_4.addItem(spacerItem)
-        self.horizontalLayout_4.addWidget(self.mfaceCheckBox)
-        self.horizontalLayout_4.addWidget(self.tiltCheckBox)
-        self.horizontalLayout_4.addWidget(self.exposureCheckBox)
+        window_functions.add_widgets(self.horizontalLayout_4, self.mfaceCheckBox, self.tiltCheckBox, self.exposureCheckBox)
         self.verticalLayout_1.addLayout(self.horizontalLayout_4)
-        self.imageWidget = ImageWidget(parent=self.frame)
-        self.imageWidget.setStyleSheet('')
-        self.imageWidget.setObjectName('imageWidget')
+        self.imageWidget = self.setup_image_widget(parent=self.frame)
         self.verticalLayout_1.addWidget(self.imageWidget)
-        self.horizontalLayout_5.addWidget(self.cropButton)
-        self.horizontalLayout_5.addWidget(self.cancelButton)
+        window_functions.add_widgets(self.horizontalLayout_5, self.cropButton, self.cancelButton)
         self.verticalLayout_1.addLayout(self.horizontalLayout_5)
         self.verticalLayout_1.addWidget(self.progressBar)
         self.verticalLayout_1.setStretch(0, 1)
@@ -65,8 +58,7 @@ class CropFolderWidget(CropBatchWidget):
         self.horizontalLayout_3.setStretch(0, 4)
         self.horizontalLayout_3.setStretch(1, 3)
         self.verticalLayout_2.addLayout(self.horizontalLayout_3)
-        self.horizontalLayout_2.addWidget(self.destinationLineEdit)
-        self.horizontalLayout_2.addWidget(self.destinationButton)
+        window_functions.add_widgets(self.horizontalLayout_2, self.destinationLineEdit, self.destinationButton)
         self.verticalLayout_2.addLayout(self.horizontalLayout_2)
 
         # Connections

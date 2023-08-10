@@ -3,7 +3,7 @@ from typing import Optional, Union
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-from core import Cropper, CustomDialWidget, ExtWidget, FunctionTabSelectionState, ImageWidget, window_functions
+from core import Cropper, CustomDialWidget, ExtWidget, FunctionTabSelectionState, window_functions
 from file_types import Photo
 from line_edits import PathLineEdit, PathType, NumberLineEdit, LineEditState
 from .custom_crop_widget import CustomCropWidget
@@ -39,20 +39,14 @@ class CropPhotoWidget(CustomCropWidget):
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding,
                                            QtWidgets.QSizePolicy.Policy.Minimum)
         self.horizontalLayout_1.addItem(spacerItem)
-        self.horizontalLayout_1.addWidget(self.mfaceCheckBox)
-        self.horizontalLayout_1.addWidget(self.tiltCheckBox)
-        self.horizontalLayout_1.addWidget(self.exposureCheckBox)
+        window_functions.add_widgets(self.horizontalLayout_1, self.mfaceCheckBox, self.tiltCheckBox, self.exposureCheckBox)
         self.verticalLayout_1.addLayout(self.horizontalLayout_1)
-        self.imageWidget = ImageWidget(parent=self.frame)
-        self.imageWidget.setStyleSheet('')
-        self.imageWidget.setObjectName('imageWidget')
-        self.verticalLayout_1.addWidget(self.imageWidget)
-        self.verticalLayout_1.addWidget(self.cropButton)
+        self.imageWidget = self.setup_image_widget(parent=self.frame)
+        window_functions.add_widgets(self.verticalLayout_1, self.imageWidget, self.cropButton)
         self.verticalLayout_1.setStretch(1, 1)
         self.verticalLayout_1.setStretch(2, 1)
         self.verticalLayout_2.addWidget(self.frame)
-        self.horizontalLayout_3.addWidget(self.destinationLineEdit)
-        self.horizontalLayout_3.addWidget(self.destinationButton)
+        window_functions.add_widgets(self.horizontalLayout_3, self.destinationLineEdit, self.destinationButton)
         self.verticalLayout_2.addLayout(self.horizontalLayout_3)
 
         # Connections

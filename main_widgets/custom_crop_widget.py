@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 from PyQt6 import QtWidgets, QtCore, QtGui
 
-from core import CustomDialWidget, Cropper, ExtWidget, FunctionTabSelectionState, Job, window_functions
+from core import CustomDialWidget, Cropper, ExtWidget, FunctionTabSelectionState, ImageWidget, Job, window_functions
 from file_types import Photo
 from line_edits import PathLineEdit, NumberLineEdit, PathType
 from .enums import ButtonType
@@ -54,7 +54,6 @@ class CustomCropWidget(QtWidgets.QWidget):
         self.frame.setObjectName('frame')
         self.verticalLayout_1 = QtWidgets.QVBoxLayout(self.frame)
         self.verticalLayout_1.setObjectName('verticalLayout_1')
-        self.CHECKBOX_STYLESHEET = CHECKBOX_STYLESHEET
         self.exposureCheckBox = self.setup_checkbox('exposureCheckBox')
         self.mfaceCheckBox = self.setup_checkbox('mfaceCheckBox')
         self.tiltCheckBox = self.setup_checkbox('tiltCheckBox')
@@ -75,6 +74,13 @@ class CustomCropWidget(QtWidgets.QWidget):
         self.right_dialArea = right_dial_area
         self.selection_state = FunctionTabSelectionState.NOT_SELECTED
 
+    @staticmethod
+    def setup_image_widget(parent: QtWidgets.QWidget) -> ImageWidget:
+        image_widget = ImageWidget(parent=parent)
+        image_widget.setStyleSheet('')
+        image_widget.setObjectName('imageWidget')
+        return image_widget
+    
     @staticmethod
     def setup_hbox(name: str) -> QtWidgets.QHBoxLayout:
         horizontal_layout = QtWidgets.QHBoxLayout()
@@ -110,7 +116,7 @@ class CustomCropWidget(QtWidgets.QWidget):
         """Only sublasses of the CustomCropWidget class should implement this method"""
         checkbox = QtWidgets.QCheckBox(self.frame)
         checkbox.setObjectName(name)
-        checkbox.setStyleSheet(self.CHECKBOX_STYLESHEET)
+        checkbox.setStyleSheet(CHECKBOX_STYLESHEET)
         return checkbox
 
     def reload_widgets(self) -> None:
@@ -203,7 +209,7 @@ class CustomCropWidget(QtWidgets.QWidget):
                    start_position: Optional[float] = None,
                    stop_position: Optional[float] = None) -> Job:
         """Only sublasses of the CustomCropWidget class should implement this method"""
-        extensions = {'.bmp', '.jpg', '.png', '.tiff', '.webp'}
+        extensions = Photo().SAVE_TYPES
         
         if destination and folder_path:
             destination = self._handle_folder_path(destination, folder_path, extensions)

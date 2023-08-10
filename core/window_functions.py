@@ -9,6 +9,10 @@ from PyQt6.QtWidgets import QCheckBox, QMessageBox, QWidget, QPushButton, QHBoxL
 from .dialog import UiDialog
 from .literals import MediaIconAlias
 
+def add_widgets(base_widget: Union[QHBoxLayout, QVBoxLayout], *widgets: QWidget) -> None:
+    for widget in widgets:
+        base_widget.addWidget(widget)
+
 def uncheck_boxes(*checkboxes: QCheckBox) -> None:
     for checkbox in checkboxes:
         checkbox.setCheckState(Qt.CheckState.Unchecked)

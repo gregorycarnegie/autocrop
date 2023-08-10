@@ -4,8 +4,8 @@ from typing import Optional, Any, Union
 import pandas as pd
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-from core import CustomDialWidget, DataFrameModel, ExtWidget, FunctionTabSelectionState, FunctionType, ImageWidget, \
-    utils, window_functions
+from core import CustomDialWidget, DataFrameModel, ExtWidget, FunctionTabSelectionState, FunctionType, utils, \
+    window_functions
 from file_types import Photo, Table
 from line_edits import PathLineEdit, PathType, NumberLineEdit, LineEditState
 from core.cropper import Cropper
@@ -48,16 +48,11 @@ class CropMapWidget(CropBatchWidget):
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding,
                                            QtWidgets.QSizePolicy.Policy.Minimum)
         self.horizontalLayout_3.addItem(spacerItem)
-        self.horizontalLayout_3.addWidget(self.mfaceCheckBox)
-        self.horizontalLayout_3.addWidget(self.tiltCheckBox)
-        self.horizontalLayout_3.addWidget(self.exposureCheckBox)
+        window_functions.add_widgets(self.horizontalLayout_3, self.mfaceCheckBox, self.tiltCheckBox, self.exposureCheckBox)
         self.verticalLayout_1.addLayout(self.horizontalLayout_3)
-        self.imageWidget = ImageWidget(parent=self.frame)
-        self.imageWidget.setStyleSheet('')
-        self.imageWidget.setObjectName('imageWidget')
+        self.imageWidget = self.setup_image_widget(parent=self.frame)
         self.verticalLayout_1.addWidget(self.imageWidget)
-        self.horizontalLayout_2.addWidget(self.cropButton)
-        self.horizontalLayout_2.addWidget(self.cancelButton)
+        window_functions.add_widgets(self.horizontalLayout_2, self.cropButton, self.cancelButton)
         self.verticalLayout_1.addLayout(self.horizontalLayout_2)
         self.verticalLayout_1.addWidget(self.progressBar)
         self.verticalLayout_1.setStretch(0, 1)
@@ -85,8 +80,7 @@ class CropMapWidget(CropBatchWidget):
         self.horizontalLayout_1.setStretch(0, 1)
         self.horizontalLayout_1.setStretch(1, 2)
         self.verticalLayout_3.addLayout(self.horizontalLayout_1)
-        self.horizontalLayout_5.addWidget(self.destinationLineEdit)
-        self.horizontalLayout_5.addWidget(self.destinationButton)
+        window_functions.add_widgets(self.horizontalLayout_5, self.destinationLineEdit, self.destinationButton)
         self.verticalLayout_3.addLayout(self.horizontalLayout_5)
 
         # Connections
