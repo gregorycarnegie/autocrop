@@ -439,15 +439,7 @@ class CropVideoWidget(CropBatchWidget):
             self.crop_worker.crop_frame(job, self.positionLabel, self.timelineSlider)
 
         if Path(self.videoLineEdit.text()).parent == Path(self.destinationLineEdit.text()):
-            msgBox = QtWidgets.QMessageBox()
-            msgBox.setWindowIcon(QtGui.QIcon('resources\\logos\\logo.ico'))
-            msgBox.setIcon(QtWidgets.QMessageBox.Icon.Warning)
-            msgBox.setText("""The paths are the same.
-                           This will overwrite any cropped frames with the same name.
-                           Are you OK to proceed?""")
-            msgBox.setWindowTitle('Paths Match')
-            msgBox.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
-            returnValue = msgBox.exec()
+            returnValue = window_functions.show_warning(FunctionType.FRAME)
             match returnValue:
                 case QtWidgets.QMessageBox.StandardButton.Yes:
                     callback()
@@ -467,13 +459,7 @@ class CropVideoWidget(CropBatchWidget):
             self.run_batch_process(self.crop_worker.extract_frames, self.crop_worker.reset_v_task, job)
 
         if Path(self.videoLineEdit.text()).parent == Path(self.destinationLineEdit.text()):
-            msgBox = QtWidgets.QMessageBox()
-            msgBox.setWindowIcon(QtGui.QIcon('resources\\logos\\logo.ico'))
-            msgBox.setIcon(QtWidgets.QMessageBox.Icon.Warning)
-            msgBox.setText('The paths are the same.\nIf potential overwites are detected, the images will save to a new folder.\nAre you OK to proceed?')
-            msgBox.setWindowTitle('Paths Match')
-            msgBox.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
-            returnValue = msgBox.exec()
+            returnValue = window_functions.show_warning(FunctionType.VIDEO)
             match returnValue:
                 case QtWidgets.QMessageBox.StandardButton.Yes:
                     callback()

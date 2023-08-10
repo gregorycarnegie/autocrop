@@ -6,6 +6,7 @@ from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtWidgets import QCheckBox, QMessageBox, QWidget, QPushButton, QHBoxLayout, QVBoxLayout
 
+from .enums import FunctionType
 from .dialog import UiDialog
 from .literals import MediaIconAlias
 
@@ -23,6 +24,7 @@ def load_about_form() -> None:
 
 def show_message_box(destination: Path) -> None:
     msg_box = QMessageBox()
+    msg_box.setWindowIcon(QIcon('resources\\logos\\logo.ico'))
     msg_box.setWindowTitle('Open Destination Folder')
     msg_box.setText('Open destination folder?')
     msg_box.setIcon(QMessageBox.Icon.Question)
@@ -32,6 +34,24 @@ def show_message_box(destination: Path) -> None:
         case QMessageBox.StandardButton.Yes:
             startfile(destination)
         case _: pass
+
+def show_warning(function_type: FunctionType) -> int:
+    msg_box = QMessageBox()
+    msg_box.setWindowIcon(QIcon('resources\\logos\\logo.ico'))
+    msg_box.setWindowTitle('Paths Match')
+    msg_box.setIcon(QMessageBox.Icon.Warning)
+    match function_type:
+        case FunctionType.PHOTO:
+            msg = 'This will overwrite the original.'
+        case FunctionType.FOLDER | FunctionType.MAPPING:
+            msg = 'If potential overwites are detected, the images will save to a new folder.'
+        case FunctionType.VIDEO:
+            msg = 'If potential overwites are detected, the frames will save to a new folder.'
+        case FunctionType.FRAME:
+            msg = 'This will overwrite any cropped frames with the same name.'
+    msg_box.setText(f'The paths are the same.\n{msg}\nAre you OK to proceed?')
+    msg_box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+    return msg_box.exec()
 
 def create_media_button(name: str,
                         icon_resource: MediaIconAlias,

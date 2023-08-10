@@ -169,13 +169,7 @@ class CropFolderWidget(CropBatchWidget):
             self.run_batch_process(self.crop_worker.crop_dir, self.crop_worker.reset_f_task, job)
 
         if Path(self.folderLineEdit.text()) == Path(self.destinationLineEdit.text()):
-            msgBox = QtWidgets.QMessageBox()
-            msgBox.setWindowIcon(QtGui.QIcon('resources\\logos\\logo.ico'))
-            msgBox.setIcon(QtWidgets.QMessageBox.Icon.Warning)
-            msgBox.setText('The paths are the same.\nIf potential overwites are detected, the images will save to a new folder.\nAre you OK to proceed?')
-            msgBox.setWindowTitle('Paths Match')
-            msgBox.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
-            returnValue = msgBox.exec()
+            returnValue = window_functions.show_warning(FunctionType.FOLDER)
             match returnValue:
                 case QtWidgets.QMessageBox.StandardButton.Yes:
                     callback()

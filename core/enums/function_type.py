@@ -6,3 +6,4 @@ class FunctionType(Enum):
     FOLDER = 1
     MAPPING = 2
     VIDEO = 3
+    FRAME = 4

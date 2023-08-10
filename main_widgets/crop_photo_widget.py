@@ -3,7 +3,7 @@ from typing import Optional, Union
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-from core import Cropper, CustomDialWidget, ExtWidget, window_functions
+from core import Cropper, CustomDialWidget, ExtWidget, FunctionType, window_functions
 from file_types import Photo
 from line_edits import PathLineEdit, PathType, NumberLineEdit, LineEditState
 from .custom_crop_widget import CustomCropWidget
@@ -136,13 +136,7 @@ class CropPhotoWidget(CustomCropWidget):
             self.crop_worker.crop(Path(self.photoLineEdit.text()), job, self.crop_worker.face_workers[0])
 
         if Path(self.photoLineEdit.text()).parent == Path(self.destinationLineEdit.text()):
-            msgBox = QtWidgets.QMessageBox()
-            msgBox.setWindowIcon(QtGui.QIcon('resources\\logos\\logo.ico'))
-            msgBox.setIcon(QtWidgets.QMessageBox.Icon.Warning)
-            msgBox.setText('The paths are the same.\nThis will overwrite the original.\nAre you OK to proceed?')
-            msgBox.setWindowTitle('Paths Match')
-            msgBox.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
-            returnValue = msgBox.exec()
+            returnValue = window_functions.show_warning(FunctionType.PHOTO)
             match returnValue:
                 case QtWidgets.QMessageBox.StandardButton.Yes:
                     callback()
