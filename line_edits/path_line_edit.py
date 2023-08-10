@@ -6,12 +6,14 @@ from PyQt6 import QtCore, QtWidgets
 from file_types import Photo, Table, Video
 from .custom_line_edit import CustomLineEdit
 from .enums import PathType
+from .file_path_validator import FilePathValidator
 
 
 class PathLineEdit(CustomLineEdit):
     def __init__(self, path_type: PathType=PathType.FOLDER, parent: Optional[QtWidgets.QWidget]=None):
         super().__init__(parent)
         self.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
+        self.setValidator(FilePathValidator(parent=self))
         self.path_type = path_type
         self.textChanged.connect(self.insert_clipboard_path)
 
