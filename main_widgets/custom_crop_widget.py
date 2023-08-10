@@ -1,4 +1,4 @@
-from typing import Optional, Set
+from typing import Optional, Set, ClassVar
 from pathlib import Path
 
 import pandas as pd
@@ -30,6 +30,8 @@ CHECKBOX_STYLESHEET = """QCheckBox:unchecked{color: red}
 
 
 class CustomCropWidget(QtWidgets.QWidget):
+    SELECTED: ClassVar[FunctionTabSelectionState] = FunctionTabSelectionState.SELECTED
+    NOT_SELECTED: ClassVar[FunctionTabSelectionState] = FunctionTabSelectionState.NOT_SELECTED
     def __init__(self, crop_worker: Cropper,
                  width_line_edit: NumberLineEdit,
                  height_line_edit: NumberLineEdit,
@@ -72,7 +74,7 @@ class CustomCropWidget(QtWidgets.QWidget):
         self.bottom_dialArea = bottom_dial_area
         self.left_dialArea = left_dial_area
         self.right_dialArea = right_dial_area
-        self.selection_state = FunctionTabSelectionState.NOT_SELECTED
+        self.selection_state = self.NOT_SELECTED
 
     @staticmethod
     def setup_image_widget(parent: QtWidgets.QWidget) -> ImageWidget:

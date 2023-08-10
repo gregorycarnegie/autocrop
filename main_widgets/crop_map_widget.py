@@ -4,8 +4,7 @@ from typing import Optional, Any, Union
 import pandas as pd
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-from core import CustomDialWidget, DataFrameModel, ExtWidget, FunctionTabSelectionState, FunctionType, utils, \
-    window_functions
+from core import CustomDialWidget, DataFrameModel, ExtWidget, FunctionType, utils, window_functions
 from file_types import Photo, Table
 from line_edits import PathLineEdit, PathType, NumberLineEdit, LineEditState
 from core.cropper import Cropper
@@ -157,7 +156,7 @@ class CropMapWidget(CropBatchWidget):
 
         if not self.widthLineEdit.text() or not self.heightLineEdit.text():
             return None
-        if self.selection_state == FunctionTabSelectionState.SELECTED:
+        if self.selection_state == self.SELECTED:
             f_name = Path(self.folderLineEdit.text())
             callback(f_name)
 

@@ -3,7 +3,7 @@ from typing import Optional, Union
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-from core import Cropper, CustomDialWidget, ExtWidget, FunctionTabSelectionState, FunctionType, window_functions
+from core import Cropper, CustomDialWidget, ExtWidget, FunctionType, window_functions
 from file_types import Photo
 from line_edits import PathLineEdit, NumberLineEdit, LineEditState
 from .crop_batch_widget import CropBatchWidget
@@ -135,7 +135,7 @@ class CropFolderWidget(CropBatchWidget):
             self.display_crop(input_path)
         if not self.widthLineEdit.text() or not self.heightLineEdit.text():
             return None
-        if self.selection_state == FunctionTabSelectionState.NOT_SELECTED:
+        if self.selection_state == self.NOT_SELECTED:
             return None
         if self.treeView.currentIndex().isValid():
             f_name = Path(self.file_model.filePath(self.treeView.currentIndex()))

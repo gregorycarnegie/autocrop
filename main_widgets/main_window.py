@@ -3,8 +3,7 @@ from typing import Union, Tuple
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-from core import Cropper, CustomDialWidget, ExtWidget, FunctionTabSelectionState, FunctionType, utils, window_functions, \
-    Preset
+from core import Cropper, CustomDialWidget, ExtWidget, FunctionType, utils, window_functions, Preset
 from file_types import Photo, Table, Video
 from line_edits import NumberLineEdit, PathLineEdit, LineEditState
 from .crop_folder_widget import CropFolderWidget
@@ -262,13 +261,13 @@ class UiMainWindow(QtWidgets.QMainWindow):
         except AssertionError:
             return None
         
-        if self.photoTab.selection_state == FunctionTabSelectionState.SELECTED:
+        if self.photoTab.selection_state == self.photoTab.SELECTED:
             self.handle_function_tab_state(self.photoTab, self.folder_Tab, self.mappingTab, self.videoTab)
             self.photoTab.display_crop()
-        elif self.folder_Tab.selection_state == FunctionTabSelectionState.SELECTED:
+        elif self.folder_Tab.selection_state == self.folder_Tab.SELECTED:
             self.handle_function_tab_state(self.folder_Tab, self.photoTab, self.mappingTab, self.videoTab)
             self.folder_Tab.load_data()
-        elif self.mappingTab.selection_state == FunctionTabSelectionState.SELECTED:
+        elif self.mappingTab.selection_state == self.mappingTab.SELECTED:
             self.handle_function_tab_state(self.mappingTab, self.photoTab, self.folder_Tab, self.videoTab)
             self.mappingTab.display_crop()
 
@@ -338,9 +337,9 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
     @staticmethod
     def handle_function_tab_state(selected_tab: CustomCropWidget, *other_tabs: CustomCropWidget):
-        selected_tab.selection_state = FunctionTabSelectionState.SELECTED
+        selected_tab.selection_state = selected_tab.SELECTED
         for tab in other_tabs:
-            tab.selection_state = FunctionTabSelectionState.NOT_SELECTED
+            tab.selection_state = tab.NOT_SELECTED
 
     def load_preset(self, phi: Preset) -> None:
         if any(line.state is LineEditState.INVALID_INPUT for line in (self.widthLineEdit, self.heightLineEdit)):

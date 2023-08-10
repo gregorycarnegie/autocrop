@@ -3,7 +3,7 @@ from typing import Optional, Union
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-from core import Cropper, CustomDialWidget, ExtWidget, FunctionTabSelectionState, window_functions
+from core import Cropper, CustomDialWidget, ExtWidget, window_functions
 from file_types import Photo
 from line_edits import PathLineEdit, PathType, NumberLineEdit, LineEditState
 from .custom_crop_widget import CustomCropWidget
@@ -26,7 +26,7 @@ class CropPhotoWidget(CustomCropWidget):
         super().__init__(crop_worker, width_line_edit, height_line_edit, ext_widget, sensitivity_dial_area,
                          face_dial_area, gamma_dial_area, top_dial_area, bottom_dial_area, left_dial_area,
                          right_dial_area, parent)
-        self.selection_state = FunctionTabSelectionState.SELECTED
+        self.selection_state = self.SELECTED
         self.setObjectName('Form')
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self)
         self.verticalLayout_2.setObjectName('verticalLayout_2')
@@ -106,7 +106,7 @@ class CropPhotoWidget(CustomCropWidget):
 
         if not self.widthLineEdit.text() or not self.heightLineEdit.text():
             return None
-        if self.selection_state == FunctionTabSelectionState.SELECTED:
+        if self.selection_state == self.SELECTED:
             f_name = Path(self.photoLineEdit.text())
             callback(f_name)
 
