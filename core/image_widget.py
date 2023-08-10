@@ -14,7 +14,7 @@ class ImageWidget(QWidget):
         self.image = image
         self.update()
 
-    def paintEvent(self, a0: QPaintEvent) -> None:
+    def paintEvent(self, a0: Optional[QPaintEvent]) -> None:
         if self.image is not None:
             qp = QPainter(self)
             qp.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)

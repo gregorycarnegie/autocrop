@@ -9,29 +9,28 @@ from file_types import Photo
 from line_edits import PathLineEdit, NumberLineEdit, PathType
 from .enums import ButtonType
 
-CHECKBOX_STYLESHEET = """QCheckBox:unchecked{color: red}
-        QCheckBox:checked{color: white}
-        QCheckBox::indicator{
-                width: 20px;
-                height: 20px;
-        }
-        QCheckBox::indicator:checked{
-                image: url(resources/icons/checkbox_checked.svg);
-        }
-        QCheckBox::indicator:unchecked{
-                image: url(resources/icons/checkbox_unchecked.svg);
-        }
-        QCheckBox::indicator:checked:hover{
-                image: url(resources/icons/checkbox_checked_hover.svg);
-        }
-        QCheckBox::indicator:unchecked:hover{
-                image: url(resources/icons/checkbox_unchecked_hover.svg);
-        }"""
-
 
 class CustomCropWidget(QtWidgets.QWidget):
     SELECTED: ClassVar[FunctionTabSelectionState] = FunctionTabSelectionState.SELECTED
     NOT_SELECTED: ClassVar[FunctionTabSelectionState] = FunctionTabSelectionState.NOT_SELECTED
+    CHECKBOX_STYLESHEET: ClassVar[str] = """QCheckBox:unchecked{color: red}
+            QCheckBox:checked{color: white}
+            QCheckBox::indicator{
+                    width: 20px;
+                    height: 20px;
+            }
+            QCheckBox::indicator:checked{
+                    image: url(resources/icons/checkbox_checked.svg);
+            }
+            QCheckBox::indicator:unchecked{
+                    image: url(resources/icons/checkbox_unchecked.svg);
+            }
+            QCheckBox::indicator:checked:hover{
+                    image: url(resources/icons/checkbox_checked_hover.svg);
+            }
+            QCheckBox::indicator:unchecked:hover{
+                    image: url(resources/icons/checkbox_unchecked_hover.svg);
+            }"""
     def __init__(self, crop_worker: Cropper,
                  width_line_edit: NumberLineEdit,
                  height_line_edit: NumberLineEdit,
@@ -118,7 +117,7 @@ class CustomCropWidget(QtWidgets.QWidget):
         """Only sublasses of the CustomCropWidget class should implement this method"""
         checkbox = QtWidgets.QCheckBox(self.frame)
         checkbox.setObjectName(name)
-        checkbox.setStyleSheet(CHECKBOX_STYLESHEET)
+        checkbox.setStyleSheet(self.CHECKBOX_STYLESHEET)
         return checkbox
 
     def reload_widgets(self) -> None:

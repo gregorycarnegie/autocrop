@@ -70,11 +70,13 @@ class CropVideoWidget(CropBatchWidget):
         self.timelineSlider.setObjectName('timelineSlider')
         self.durationLabel = QtWidgets.QLabel(parent=self.frame)
         self.durationLabel.setObjectName('durationLabel')
-        window_functions.add_widgets(self.horizontalLayout_1, self.muteButton, self.volumeSlider, self.positionLabel, self.timelineSlider, self.durationLabel)
+        window_functions.add_widgets(self.horizontalLayout_1, self.muteButton, self.volumeSlider,
+                                     self.positionLabel, self.timelineSlider, self.durationLabel)
         spacerItem = QtWidgets.QSpacerItem(
             40, 20, QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Minimum)
         self.horizontalLayout_1.addItem(spacerItem)
-        window_functions.add_widgets(self.horizontalLayout_1, self.mfaceCheckBox, self.tiltCheckBox, self.exposureCheckBox)
+        window_functions.add_widgets(self.horizontalLayout_1, self.mfaceCheckBox,
+                                     self.tiltCheckBox, self.exposureCheckBox)
         self.verticalLayout_1.addLayout(self.horizontalLayout_1)
         self.videoWidget = QVideoWidget(parent=self.frame)
         self.videoWidget.setStyleSheet('background: #1f2c33')
@@ -82,7 +84,8 @@ class CropVideoWidget(CropBatchWidget):
         self.create_mediaPlayer()
         self.verticalLayout_1.addWidget(self.videoWidget)
         self.videocropButton = self.setup_process_button('videocropButton', 'crop_video', ButtonType.PROCESS_BUTTON)
-        window_functions.add_widgets(self.horizontalLayout_2, self.cropButton, self.videocropButton, self.cancelButton)
+        window_functions.add_widgets(self.horizontalLayout_2, self.cropButton,
+                                     self.videocropButton, self.cancelButton)
         self.verticalLayout_1.addLayout(self.horizontalLayout_2)
         self.verticalLayout_1.addWidget(self.progressBar)
         self.verticalLayout_1.setStretch(0, 1)

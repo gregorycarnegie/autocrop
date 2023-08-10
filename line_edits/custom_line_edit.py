@@ -25,7 +25,7 @@ class CustomLineEdit(QLineEdit):
         self.colour = self.INVALID_COLOR
         self.update_style()
 
-    def resizeEvent(self, a0: QResizeEvent):
+    def resizeEvent(self, a0: Optional[QResizeEvent]):
         buttonSize = self.clearButton.sizeHint()
         frameWidth = self.style().pixelMetric(QStyle.PixelMetric.PM_DefaultFrameWidth)
         self.clearButton.move(self.rect().right() - frameWidth - buttonSize.width(),
