@@ -3,6 +3,7 @@ from pathlib import Path
 
 from .file import File
 
+
 class Video(File):
     def __init__(self):
         super().__init__()

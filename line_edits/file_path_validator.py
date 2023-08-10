@@ -1,8 +1,9 @@
+import re
 from typing import Optional, Tuple
 
-from PyQt6.QtWidgets import QWidget
 from PyQt6.QtGui import QValidator
-import re
+from PyQt6.QtWidgets import QWidget
+
 
 class FilePathValidator(QValidator):
     def __init__(self, parent: Optional[QWidget]=None):

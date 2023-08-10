@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Optional, Union
 
-from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtWidgets
 
 from core import Cropper, CustomDialWidget, ExtWidget, FunctionType, window_functions
 from file_types import Photo
@@ -136,8 +136,7 @@ class CropPhotoWidget(CustomCropWidget):
             self.crop_worker.crop(Path(self.photoLineEdit.text()), job, self.crop_worker.face_workers[0])
 
         if Path(self.photoLineEdit.text()).parent == Path(self.destinationLineEdit.text()):
-            returnValue = window_functions.show_warning(FunctionType.PHOTO)
-            match returnValue:
+            match window_functions.show_warning(FunctionType.PHOTO):
                 case QtWidgets.QMessageBox.StandardButton.Yes:
                     callback()
                 case _: return

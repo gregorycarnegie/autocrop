@@ -1,5 +1,6 @@
-from PyQt6 import QtCore, QtWidgets
 from typing import Optional
+
+from PyQt6 import QtCore, QtWidgets
 
 
 class CustomDialWidget(QtWidgets.QWidget):

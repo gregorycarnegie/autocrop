@@ -3,6 +3,7 @@ from pathlib import Path
 import numpy as np
 import numpy.typing as npt
 
+
 class File:
     def __init__(self) -> None:
         self.default_directory = f'{Path.home()}\\Pictures'

@@ -1,6 +1,7 @@
 from PyQt6.QtCore import QCoreApplication, QMetaObject, QSize
 from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtWidgets import QDialog, QFrame, QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout
+
 from .image_widget import ImageWidget
 
 

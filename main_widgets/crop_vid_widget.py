@@ -439,8 +439,7 @@ class CropVideoWidget(CropBatchWidget):
             self.crop_worker.crop_frame(job, self.positionLabel, self.timelineSlider)
 
         if Path(self.videoLineEdit.text()).parent == Path(self.destinationLineEdit.text()):
-            returnValue = window_functions.show_warning(FunctionType.FRAME)
-            match returnValue:
+            match window_functions.show_warning(FunctionType.FRAME):
                 case QtWidgets.QMessageBox.StandardButton.Yes:
                     callback()
                 case _: return
@@ -459,8 +458,7 @@ class CropVideoWidget(CropBatchWidget):
             self.run_batch_process(self.crop_worker.extract_frames, self.crop_worker.reset_v_task, job)
 
         if Path(self.videoLineEdit.text()).parent == Path(self.destinationLineEdit.text()):
-            returnValue = window_functions.show_warning(FunctionType.VIDEO)
-            match returnValue:
+            match window_functions.show_warning(FunctionType.VIDEO):
                 case QtWidgets.QMessageBox.StandardButton.Yes:
                     callback()
                 case _: return

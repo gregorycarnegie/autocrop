@@ -2,6 +2,7 @@ import numpy as np
 
 from .file import File
 
+
 class Photo(File):
     def __init__(self) -> None:
         super().__init__()

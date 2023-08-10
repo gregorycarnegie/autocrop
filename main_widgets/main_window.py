@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Union, Tuple
+from typing import Union, Tuple, Optional
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 
@@ -226,24 +226,49 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.action4_5_Ratio.setText(_translate('MainWindow', '4:5 Ratio'))
         self.actionCrop_Video.setText(_translate('MainWindow', 'Crop Video'))
 
-    def dragEnterEvent(self, a0: QtGui.QDragEnterEvent) -> None:
-        if a0.mimeData().hasUrls():
+    def dragEnterEvent(self, a0: Optional[QtGui.QDragEnterEvent]) -> None:
+        try:
+            assert isinstance(a0, QtGui.QDragEnterEvent)
+        except AssertionError:
+            return None
+        
+        if (x := a0.mimeData()) is None:
+            return None
+
+        if x.hasUrls():
             a0.accept()
         else:
             a0.ignore()
 
-    def dragMoveEvent(self, a0: QtGui.QDragMoveEvent) -> None:
-        if a0.mimeData().hasUrls():
+    def dragMoveEvent(self, a0: Optional[QtGui.QDragMoveEvent]) -> None:
+        try:
+            assert isinstance(a0, QtGui.QDragMoveEvent)
+        except AssertionError:
+            return None
+        
+        if (x := a0.mimeData()) is None:
+            return None
+
+        if x.hasUrls():
             a0.accept()
         else:
             a0.ignore()
 
-    def dropEvent(self, a0: QtGui.QDropEvent) -> None:
-        if not a0.mimeData().hasUrls():
+    def dropEvent(self, a0: Optional[QtGui.QDropEvent]) -> None:
+        try:
+            assert isinstance(a0, QtGui.QDropEvent)
+        except AssertionError:
+            return None
+        
+        if (x := a0.mimeData()) is None:
+            return None
+
+        if not x.hasUrls():
             a0.ignore()
             return
+        
         a0.setDropAction(QtCore.Qt.DropAction.CopyAction)
-        file_path = Path(a0.mimeData().urls()[0].toLocalFile())
+        file_path = Path(x.urls()[0].toLocalFile())
         if file_path.is_dir(): self.handle_path_main(file_path)
         elif file_path.is_file(): self.handle_file(file_path)
         a0.accept()
@@ -410,7 +435,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
             tab_widget.addTab(_tab, icon, '')
 
         match function_type:
-            case FunctionType.PHOTO:
+            case FunctionType.PHOTO | FunctionType.FRAME:
                 tab = CropPhotoWidget(*widget_list, parent=self)
                 tab_name, icon_name = 'photoTab', 'picture'
                 callback(tab, tab_name, icon_name)

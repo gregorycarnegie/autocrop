@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Optional, Any, Union
 
 import pandas as pd
-from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtWidgets
 
 from core import CustomDialWidget, DataFrameModel, ExtWidget, FunctionType, utils, window_functions
 from file_types import Photo, Table
@@ -227,8 +227,7 @@ class CropMapWidget(CropBatchWidget):
             self.run_batch_process(self.crop_worker.mapping_crop, self.crop_worker.reset_m_task, job)
 
         if Path(self.folderLineEdit.text()) == Path(self.destinationLineEdit.text()):
-            returnValue = window_functions.show_warning(FunctionType.MAPPING)
-            match returnValue:
+            match window_functions.show_warning(FunctionType.MAPPING):
                 case QtWidgets.QMessageBox.StandardButton.Yes:
                     callback()
                 case _: return
