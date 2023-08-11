@@ -19,9 +19,7 @@ class PathLineEdit(CustomLineEdit):
 
     def insert_clipboard_path(self, text: str) -> None:
         """Remove quotation marks from the path"""
-        if text.startswith('"') and text.endswith('"'):
-            text = text[1:-1]
-        elif text.startswith("'") and text.endswith("'"):
+        if (text.startswith('"') & text.endswith('"')) ^ (text.startswith("'") & text.endswith("'")):
             text = text[1:-1]
         self.setText(text)
 

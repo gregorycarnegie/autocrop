@@ -382,20 +382,18 @@ class CropVideoWidget(CropBatchWidget):
         button.setText(QtCore.QTime(hours, minutes, seconds).toString())
 
     def set_startPosition(self, button: QtWidgets.QPushButton) -> None:
-        if (time_value := self.timelineSlider.value() * 0.001) < self.stop_position:
+        x: bool = (time_value := self.timelineSlider.value() * 0.001) < self.stop_position
+        y: bool = self.start_position == 0.0 and self.stop_position == 0.0
+        if x | y:
             self.start_position = time_value
             self.set_marker_time(button, self.start_position)
-        elif self.start_position == 0 and self.stop_position == 0:
-            self.start_position = time_value
-            self.set_marker_time(button, self.start_position) 
 
     def set_stopPosition(self, button: QtWidgets.QPushButton) -> None:
-        if (time_value := self.timelineSlider.value() * 0.001) > self.start_position:
+        x: bool = (time_value := self.timelineSlider.value() * 0.001) > self.start_position
+        y: bool = self.start_position == 0.0 and self.stop_position == 0.0
+        if x | y:
             self.stop_position = time_value
             self.set_marker_time(button, self.stop_position)
-        elif self.start_position == 0 and self.stop_position == 0:
-            self.start_position = time_value
-            self.set_marker_time(button, self.start_position) 
 
     def goto(self, marker_button: QtWidgets.QPushButton) -> None:
         m = np.array(marker_button.text().split(':')).astype(int)
