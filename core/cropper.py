@@ -242,8 +242,7 @@ class Cropper(QObject):
         if pic_array is None: return None
         if (bounding_box := utils.box_detect(pic_array, job, face_worker)) is None: return None
         cropped_pic = self._numpy_array_crop(pic_array, bounding_box)
-        result = utils.convert_color_space(np.array(cropped_pic)) \
-            if len(cropped_pic.shape) >= 3 else np.array(cropped_pic)
+        result = utils.convert_color_space(cropped_pic) if len(cropped_pic.shape) >= 3 else cropped_pic
         return cv2.resize(result, job.size(), interpolation=cv2.INTER_AREA)
 
     def _update_progress(self, file_amount: int,
@@ -289,11 +288,11 @@ class Cropper(QObject):
         if (file_tuple := job.file_list()) is None: return None
         file_list, amount = file_tuple
         split_array = np.array_split(file_list, min(cpu_count(), 8))
-        threads = []
         self.bar_value_f = 0
         self.folder_progress.emit((self.bar_value_f, amount))
         self.folder_started.emit()
-
+        
+        threads = []
         for i, array in enumerate(split_array):
             t = Thread(target=self.folder_worker, args=(amount, array, job, self.face_workers[i]))
             threads.append(t)
