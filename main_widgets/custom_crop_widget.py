@@ -224,31 +224,31 @@ class CustomCropWidget(QtWidgets.QWidget):
             destination = self._handle_video_path(destination, video_path, extensions)
 
         self.destination = destination if destination is not None else self.destination
-
-        return Job(self.widthLineEdit,
-                   self.heightLineEdit,
+        
+        return Job(self.widthLineEdit.value(),
+                   self.heightLineEdit.value(),
                    exposure,
                    multi,
                    tilt,
-                   self.sensitivity_dialArea.dial,
-                   self.face_dialArea.dial,
-                   self.gamma_dialArea.dial,
-                   self.top_dialArea.dial,
-                   self.bottom_dialArea.dial,
-                   self.left_dialArea.dial,
-                   self.right_dialArea.dial,
+                   self.sensitivity_dialArea.dial.value(),
+                   self.face_dialArea.dial.value(),
+                   self.gamma_dialArea.dial.value(),
+                   self.top_dialArea.dial.value(),
+                   self.bottom_dialArea.dial.value(),
+                   self.left_dialArea.dial.value(),
+                   self.right_dialArea.dial.value(),
                    (self.extWidget.radioButton_1, self.extWidget.radioButton_2,
                     self.extWidget.radioButton_3, self.extWidget.radioButton_4,
                     self.extWidget.radioButton_5, self.extWidget.radioButton_6),
-                    photo_path=photo_path,
-                    destination=destination,
-                    folder_path=folder_path,
-                    table=table,
-                    column1=column1,
-                    column2=column2,
-                    video_path=video_path,
-                    start_position=start_position,
-                    stop_position=stop_position)
+                   photo_path=photo_path,
+                   destination=destination,
+                   folder_path=folder_path,
+                   table=table,
+                   column1=column1,
+                   column2=column2,
+                   video_path=video_path,
+                   start_position=start_position,
+                   stop_position=stop_position)
 
     def open_folder(self, line_edit: PathLineEdit) -> None:
         """Only sublasses of the CustomCropWidget class should implement this method"""

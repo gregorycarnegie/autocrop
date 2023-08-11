@@ -239,10 +239,8 @@ def get_box_coordinates(output: Union[cvt.MatLike, npt.NDArray[np.generic]],
                         x: Optional[npt.NDArray[np.generic]] = None) -> Tuple[int, int, int, int]:
     box_outputs = output * np.array([width, height, width, height])
     x0, y0, x1, y1 = box_outputs.astype(np.int_) if x is None else box_outputs[np.argmax(x)]
-    return autocrop_rs.crop_positions(
-        x0, y0, x1 - x0, y1 - y0, job.face_percent.value(), job.width_value(),
-        job.height_value(), job.top.value(), job.bottom.value(), job.left.value(),
-        job.right.value())
+    return autocrop_rs.crop_positions(x0, y0, x1 - x0, y1 - y0, job.face_percent, job.width,
+                                      job.height, job.top, job.bottom, job.left, job.right)
 
 def box(img: cvt.MatLike,
         width: int,
@@ -254,7 +252,7 @@ def box(img: cvt.MatLike,
     output = np.squeeze(detections)
     # get the confidence
     confidence_list = output[:, 2]
-    if np.max(confidence_list) * 100 < 100 - job.sensitivity.value(): return None
+    if np.max(confidence_list) * 100 < 100 - job.sensitivity: return None
     return get_box_coordinates(output[:, 3:7], width, height, job, confidence_list)
 
 def multi_box(image: cvt.MatLike,
@@ -264,7 +262,7 @@ def multi_box(image: cvt.MatLike,
     detections = prepare_detections(image, face_worker)
     for i in range(detections.shape[2]):
         # Confidence in the detection
-        if (confidence := detections[0, 0, i, 2]) * 100 > 100 - job.sensitivity.value(): # Threshold
+        if (confidence := detections[0, 0, i, 2]) * 100 > 100 - job.sensitivity: # Threshold
             x0, y0, x1, y1 = get_box_coordinates(detections[0, 0, i, 3:7], width, height, job)
             text = "{:.2f}%".format(confidence)
             y = y0 - 10 if y0 > 20 else y0 + 10
@@ -279,7 +277,7 @@ def multi_box_positions(image: cvt.MatLike,
     detections = prepare_detections(image, face_worker)
     crop_positions = [get_box_coordinates(detections[0, 0, i, 3:7], width, height, job)
                       for i in range(detections.shape[2])
-                      if detections[0, 0, i, 2] * 100 > 100 - job.sensitivity.value()]
+                      if detections[0, 0, i, 2] * 100 > 100 - job.sensitivity]
     return np.array(detections), np.array(crop_positions)
 
 def box_detect(img: cvt.MatLike,

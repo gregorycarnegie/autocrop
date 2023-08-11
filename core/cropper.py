@@ -81,19 +81,19 @@ class Cropper(QObject):
         if image_name is None and new is None:
             if (cropped_image := self.crop_image(source_image, job, face_worker)) is not None:
                 file_path, is_tiff = utils.set_filename(source_image, destination_path, job.radio_choice(), job.radio_tuple())
-                utils.save_image(cropped_image, file_path.as_posix(), job.gamma.value(), is_tiff=is_tiff)
+                utils.save_image(cropped_image, file_path.as_posix(), job.gamma, is_tiff=is_tiff)
             else:
                 utils.reject(source_image, destination_path, source_image)
         elif image_name is not None and new is None:
             if (cropped_image := self.crop_image(source_image, job, face_worker)) is not None:
                 file_path, is_tiff = utils.set_filename(image_name, destination_path, job.radio_choice(), job.radio_tuple())
-                utils.save_image(cropped_image, file_path.as_posix(), job.gamma.value(), is_tiff=is_tiff)
+                utils.save_image(cropped_image, file_path.as_posix(), job.gamma, is_tiff=is_tiff)
             else:
                 utils.reject(source_image, destination_path, image_name)
         elif image_name is not None:
             if (cropped_image := self.crop_image(source_image, job, face_worker)) is not None:
                 file_path, is_tiff = utils.set_filename( image_name, destination_path, job.radio_choice(), job.radio_tuple(), new)
-                utils.save_image(cropped_image, file_path.as_posix(), job.gamma.value(), is_tiff=is_tiff)
+                utils.save_image(cropped_image, file_path.as_posix(), job.gamma, is_tiff=is_tiff)
             else:
                 utils.reject(source_image, destination_path, image_name)
 
@@ -117,20 +117,20 @@ class Cropper(QObject):
                 utils.reject(source_image, destination_path, source_image)
             else:
                 file_path, is_tiff = utils.set_filename(source_image, destination_path, job.radio_choice(), job.radio_tuple())
-                self.multi_save_loop(cropped_images, file_path, job.gamma.value(), is_tiff)
+                self.multi_save_loop(cropped_images, file_path, job.gamma, is_tiff)
         elif image_name is not None and new is None:
             if (cropped_images := self.multi_crop(source_image, job, face_worker)) is None:
                 utils.reject(source_image, destination_path, image_name)
             else:
                 file_path, is_tiff = utils.set_filename(image_name, destination_path, job.radio_choice(), job.radio_tuple())
-                self.multi_save_loop(cropped_images, file_path, job.gamma.value(), is_tiff)
+                self.multi_save_loop(cropped_images, file_path, job.gamma, is_tiff)
         elif image_name is not None:
             if (cropped_images := self.multi_crop(source_image, job, face_worker)) is None:
                 utils.reject(source_image, destination_path, image_name)
             else:
                 file_path, is_tiff = utils.set_filename(
                     image_name, destination_path, job.radio_choice(), job.radio_tuple(), new)
-                self.multi_save_loop(cropped_images, file_path, job.gamma.value(), is_tiff)
+                self.multi_save_loop(cropped_images, file_path, job.gamma, is_tiff)
 
     @staticmethod
     def multi_crop(source_image: Union[cvt.MatLike, Path],
@@ -142,7 +142,7 @@ class Cropper(QObject):
             return None
         detections, crop_positions = utils.multi_box_positions(img, job, face_worker)
         # Check if any faces were detected
-        if not np.any(100 * detections[0, 0, :, 2] > (100 - job.sensitivity.value())): return None
+        if not np.any(100 * detections[0, 0, :, 2] > (100 - job.sensitivity)): return None
         images = [Image.fromarray(img).crop(crop_position) for crop_position in crop_positions]
 
         image_array = [utils.pillow_to_numpy(image) for image in images]
@@ -180,9 +180,6 @@ class Cropper(QObject):
         img_path = line_edit if isinstance(line_edit, Path) else Path(line_edit.text())
         # if input field is empty, then do nothing
         if not img_path or img_path.as_posix() in {'', '.', None}: return None
-        
-        # if width or height fields are empty, then do nothing
-        if not job.width.text() or not job.height.text(): return None
 
         if img_path.is_dir():
             first_file = utils.get_first_file(img_path)
@@ -194,7 +191,7 @@ class Cropper(QObject):
         )
         if pic_array is None: return None
 
-        pic_array = utils.adjust_gamma(pic_array, job.gamma.value())
+        pic_array = utils.adjust_gamma(pic_array, job.gamma)
         if job.multi_face_job.isChecked():
             adjusted = utils.convert_color_space(pic_array)
             pic = utils.multi_box(adjusted, job, self.face_workers[0])
@@ -202,7 +199,7 @@ class Cropper(QObject):
         else:
             bounding_box = utils.box_detect(pic_array, job, self.face_workers[0])
             if bounding_box is None: return None
-            self.crop_and_set(pic_array, bounding_box, job.gamma.value(), image_widget)
+            self.crop_and_set(pic_array, bounding_box, job.gamma, image_widget)
 
     @staticmethod
     def _numpy_array_crop(image: cvt.MatLike,
@@ -384,7 +381,7 @@ class Cropper(QObject):
                    file_path: Path,
                    job: Job,
                    is_tiff: bool) -> None:
-        utils.save_image(image, file_path.as_posix(), job.gamma.value(), is_tiff=is_tiff)
+        utils.save_image(image, file_path.as_posix(), job.gamma, is_tiff=is_tiff)
 
     def process_multiface_frame_job(self, frame: cvt.MatLike,
                                     job: Job,
