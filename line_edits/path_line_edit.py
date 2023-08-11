@@ -42,7 +42,7 @@ class PathLineEdit(CustomLineEdit):
                 self.color_logic(self.is_valid_video(file_path))
             case PathType.FOLDER:
                 self.color_logic(file_path.is_dir())
-
+        
         self.update_style()
 
     @staticmethod

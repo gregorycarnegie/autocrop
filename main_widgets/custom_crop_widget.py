@@ -89,26 +89,31 @@ class CustomCropWidget(QtWidgets.QWidget):
         return horizontal_layout
     
     def setup_process_button(self, name: str, icon_name: str,  button_type: ButtonType) -> QtWidgets.QPushButton: 
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(f'resources\\icons\\{icon_name}.svg'), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        def callback(btn: QtWidgets.QPushButton) -> QtWidgets.QPushButton:
+            btn.setMaximumSize(QtCore.QSize(16_777_215, 24))
+            btn.setText('')
+            btn.setIcon(icon)
+            btn.setObjectName(name)
+            return btn
+
         match button_type:
             case ButtonType.PROCESS_BUTTON:
                 button = QtWidgets.QPushButton(parent=self.frame)
                 button.setMinimumSize(QtCore.QSize(0, 24))
+                return callback(button)
             case ButtonType.NAVIGATION_BUTTON:
                 button = QtWidgets.QPushButton(parent=self)
                 button.setMinimumSize(QtCore.QSize(124, 24))
-        button.setMaximumSize(QtCore.QSize(16777215, 24))
-        button.setText('')
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(f'resources\\icons\\{icon_name}.svg'), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        button.setIcon(icon)
-        button.setObjectName(name)
-        return button
+                return callback(button)
 
     def setup_path_line_edit(self, name: str, path_type: PathType = PathType.FOLDER) -> PathLineEdit:
         """Only sublasses of the CustomCropWidget class should implement this method"""
         line_edit = PathLineEdit(path_type=path_type, parent=self)
         line_edit.setMinimumSize(QtCore.QSize(0, 24))
-        line_edit.setMaximumSize(QtCore.QSize(16777215, 24))
+        line_edit.setMaximumSize(QtCore.QSize(16_777_215, 24))
         line_edit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
         line_edit.setObjectName(name)
         return line_edit
