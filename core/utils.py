@@ -66,7 +66,7 @@ def display_image_on_widget(image: cvt.MatLike, image_widget: ImageWidget) -> No
     q_image = QImage(image.data, width, height, bytes_per_line, QImage.Format.Format_BGR888)
     image_widget.setImage(QPixmap.fromImage(q_image))
 
-def correct_exposure(image_array: Union[cvt.MatLike, npt.NDArray[np.uint8]],
+def correct_exposure(image: Union[cvt.MatLike, npt.NDArray[np.uint8]],
                      exposure: bool) -> cvt.MatLike:
     """
     Adjust the exposure of an input image based on the alpha and beta values calculated from its grayscale histogram.
@@ -78,13 +78,13 @@ def correct_exposure(image_array: Union[cvt.MatLike, npt.NDArray[np.uint8]],
     Returns:
         (Union[cv2.Mat, np.ndarray]): The exposure corrected image if exposure=True, otherwise the original image. The returned image will be a numpy array if the input was a PIL Image, otherwise, the same type as the input image.
     """
-    if not exposure: return image_array
-    gray = cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY) if len(image_array.shape) > 2 else image_array
+    if not exposure: return image
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if len(image.shape) > 2 else image
     # Grayscale histogram
     hist: npt.NDArray[np.generic] = cv2.calcHist([gray], [0], None, [256], [0, 256]).ravel()
     # Calculate alpha and beta
     alpha, beta = autocrop_rs.calc_alpha_beta(hist)
-    return cv2.convertScaleAbs(src=image_array, alpha=alpha, beta=beta)
+    return cv2.convertScaleAbs(src=image, alpha=alpha, beta=beta)
 
 def open_image(image: Path,
                exposure: bool,
