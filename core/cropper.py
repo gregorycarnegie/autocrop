@@ -6,9 +6,9 @@ from threading import Thread, Lock
 from typing import Any, Callable, List, Union, Optional, Tuple
 
 import cv2
+import cv2.typing as cvt
 import numpy as np
 import numpy.typing as npt
-import pandas as pd
 from PIL import Image
 from PyQt6.QtCore import pyqtSignal, QObject
 from PyQt6.QtWidgets import QLabel, QLineEdit, QSlider
@@ -98,7 +98,7 @@ class Cropper(QObject):
                 utils.reject(source_image, destination_path, image_name)
 
     @staticmethod
-    def multi_save_loop(cropped_images: Union[List[cv2.Mat], List[npt.NDArray[np.uint8]]],
+    def multi_save_loop(cropped_images: List[cvt.MatLike],
                         file_path: Path,
                         gamma: int,
                         is_tiff: bool) -> None:
@@ -133,20 +133,22 @@ class Cropper(QObject):
                 self.multi_save_loop(cropped_images, file_path, job.gamma.value(), is_tiff)
 
     @staticmethod
-    def multi_crop(source_image: Union[cv2.Mat, npt.NDArray[np.uint8], Path],
+    def multi_crop(source_image: Union[cvt.MatLike, Path],
                    job: Job,
-                   face_worker: FaceWorker) -> Optional[Union[List[cv2.Mat], List[npt.NDArray[np.uint8]]]]:
+                   face_worker: FaceWorker) -> Optional[List[cvt.MatLike]]:
         img = utils.open_pic(source_image, job.fix_exposure_job.isChecked(), job.auto_tilt_job.isChecked(), face_worker) \
                 if isinstance(source_image, Path) else source_image
+        if img is None:
+            return None
         detections, crop_positions = utils.multi_box_positions(img, job, face_worker)
         # Check if any faces were detected
-        if not np.any(100 * detections[0, 0, :, 2] > 100 - job.sensitivity.value()): return None
+        if not np.any(100 * detections[0, 0, :, 2] > (100 - job.sensitivity.value())): return None
         images = [Image.fromarray(img).crop(crop_position) for crop_position in crop_positions]
 
         image_array = [utils.pillow_to_numpy(image) for image in images]
 
-        results = [utils.convert_color_space(array) for array in image_array]
-        return [cv2.resize(result, job.size(), interpolation=cv2.INTER_AREA) for result in results]
+        results: List[cvt.MatLike] = [utils.convert_color_space(array) for array in image_array]
+        return [cv2.resize(src=result, dsize=job.size(), interpolation=cv2.INTER_AREA) for result in results]
 
     def crop(self, image: Path,
              job: Job,
@@ -191,11 +193,6 @@ class Cropper(QObject):
             img_path, job.fix_exposure_job.isChecked(), job.auto_tilt_job.isChecked(), self.face_workers[0]
         )
         if pic_array is None: return None
-        
-        try:
-            assert not isinstance(pic_array, pd.DataFrame)
-        except AssertionError:
-            return None
 
         pic_array = utils.adjust_gamma(pic_array, job.gamma.value())
         if job.multi_face_job.isChecked():
@@ -208,13 +205,13 @@ class Cropper(QObject):
             self.crop_and_set(pic_array, bounding_box, job.gamma.value(), image_widget)
 
     @staticmethod
-    def _numpy_array_crop(image: npt.NDArray[np.uint8],
+    def _numpy_array_crop(image: cvt.MatLike,
                           bounding_box: Tuple[int, int, int, int]) -> npt.NDArray[np.uint8]:
         # Load and crop image using PIL
         picture = Image.fromarray(image).crop(bounding_box)
         return utils.pillow_to_numpy(picture)
 
-    def crop_and_set(self, image: npt.NDArray[np.uint8],
+    def crop_and_set(self, image: cvt.MatLike,
                      bounding_box: Tuple[int, int, int, int],
                      gamma: int,
                      image_widget: ImageWidget) -> None:
@@ -237,10 +234,9 @@ class Cropper(QObject):
             return None
         utils.display_image_on_widget(final_image, image_widget)
 
-    # @staticmethod
-    def crop_image(self, image: Union[Path, cv2.Mat, npt.NDArray[np.uint8]],
+    def crop_image(self, image: Union[Path, cvt.MatLike],
                    job: Job,
-                   face_worker: FaceWorker) -> Optional[Union[cv2.Mat, npt.NDArray[np.uint8]]]:
+                   face_worker: FaceWorker) -> Optional[cvt.MatLike]:
         pic_array = utils.open_pic(image, job.fix_exposure_job.isChecked(), job.auto_tilt_job.isChecked(), face_worker) \
             if isinstance(image, Path) else image
         if pic_array is None: return None
@@ -338,7 +334,7 @@ class Cropper(QObject):
 
     @cache
     def grab_frame(self, position_slider: int,
-                   video_line_edit: str) -> Optional[cv2.Mat]:
+                   video_line_edit: str) -> Optional[cvt.MatLike]:
         # Set video frame position to timelineSlider value
         self.cap = cv2.VideoCapture(video_line_edit)
         self.cap.set(cv2.CAP_PROP_POS_MSEC, position_slider)
@@ -385,13 +381,13 @@ class Cropper(QObject):
         return file_path, file_path.suffix in {'.tif', '.tiff'}
 
     @staticmethod
-    def save_frame(image: Union[cv2.Mat, npt.NDArray[np.uint8]],
+    def save_frame(image: cvt.MatLike,
                    file_path: Path,
                    job: Job,
                    is_tiff: bool) -> None:
         utils.save_image(image, file_path.as_posix(), job.gamma.value(), is_tiff=is_tiff)
 
-    def process_multiface_frame_job(self, frame: cv2.Mat,
+    def process_multiface_frame_job(self, frame: cvt.MatLike,
                                     job: Job,
                                     file_enum: str,
                                     destination: Path) -> None:
@@ -404,7 +400,7 @@ class Cropper(QObject):
                 file_path, is_tiff = self.get_frame_path(destination, f'{file_enum}_{i}', job)
                 self.save_frame(utils.convert_color_space(image), file_path, job, is_tiff)
 
-    def process_singleface_frame_job(self, frame: cv2.Mat,
+    def process_singleface_frame_job(self, frame: cvt.MatLike,
                                      job: Job,
                                      file_enum: str,
                                      destination: Path) -> None:
