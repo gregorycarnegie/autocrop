@@ -137,7 +137,7 @@ class Cropper(QObject):
                    job: Job,
                    face_worker: FaceWorker) -> Optional[List[cvt.MatLike]]:
         img = utils.open_pic(source_image, job.fix_exposure_job.isChecked(), job.auto_tilt_job.isChecked(), face_worker) \
-                if isinstance(source_image, Path) else source_image
+                        if isinstance(source_image, Path) else source_image
         if img is None:
             return None
         detections, crop_positions = utils.multi_box_positions(img, job, face_worker)
@@ -147,8 +147,10 @@ class Cropper(QObject):
 
         image_array = [utils.pillow_to_numpy(image) for image in images]
 
-        results: List[cvt.MatLike] = [utils.convert_color_space(array) for array in image_array]
-        return [cv2.resize(src=result, dsize=job.size(), interpolation=cv2.INTER_AREA) for result in results]
+        results = [utils.convert_color_space(array) for array in image_array]
+        output: List[cvt.MatLike] = [cv2.resize(src=result, dsize=job.size, interpolation=cv2.INTER_AREA)
+                                     for result in results]
+        return output
 
     def crop(self, image: Path,
              job: Job,
@@ -240,7 +242,7 @@ class Cropper(QObject):
         if (bounding_box := utils.box_detect(pic_array, job, face_worker)) is None: return None
         cropped_pic = self._numpy_array_crop(pic_array, bounding_box)
         result = utils.convert_color_space(cropped_pic) if len(cropped_pic.shape) >= 3 else cropped_pic
-        return cv2.resize(result, job.size(), interpolation=cv2.INTER_AREA)
+        return cv2.resize(result, job.size, interpolation=cv2.INTER_AREA)
 
     def _update_progress(self, file_amount: int,
                          process_type: FunctionType) -> None:
@@ -289,7 +291,7 @@ class Cropper(QObject):
         self.folder_progress.emit((self.bar_value_f, amount))
         self.folder_started.emit()
         
-        threads = []
+        threads: List[Thread] = []
         for i, array in enumerate(split_array):
             t = Thread(target=self.folder_worker, args=(amount, array, job, self.face_workers[i]))
             threads.append(t)
@@ -322,7 +324,7 @@ class Cropper(QObject):
         self.mapping_progress.emit((self.bar_value_m, amount))
         self.mapping_started.emit()
         
-        threads = []
+        threads: List[Thread] = []
         for i, _ in enumerate(old_file_list):
             t = Thread(target=self.mapping_worker, args=(amount, _, new_file_list[i], job, self.face_workers[i]))
             threads.append(t)

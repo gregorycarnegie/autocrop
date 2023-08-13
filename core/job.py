@@ -92,6 +92,7 @@ class Job(NamedTuple):
         x = np.array([r.isChecked() for r in self.radio_buttons])
         return self.radio_options[x][0]
     
+    @property
     def size(self) -> Tuple[int, int]:
         return self.width, self.height
 
