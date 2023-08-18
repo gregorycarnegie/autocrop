@@ -44,9 +44,7 @@ class CropMapWidget(CropBatchWidget):
         self.tableButton = self.setup_process_button('tableButton', 'excel', ButtonType.NAVIGATION_BUTTON)
         self.gridLayout.addWidget(self.tableButton, 1, 1, 1, 1)
         self.verticalLayout_3.addLayout(self.gridLayout)
-        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding,
-                                           QtWidgets.QSizePolicy.Policy.Minimum)
-        self.horizontalLayout_3.addItem(spacerItem)
+        self.horizontalLayout_3.addItem(self.spacerItem)
         window_functions.add_widgets(self.horizontalLayout_3, self.mfaceCheckBox, self.tiltCheckBox, self.exposureCheckBox)
         self.verticalLayout_1.addLayout(self.horizontalLayout_3)
         self.imageWidget = self.setup_image_widget(parent=self.frame)

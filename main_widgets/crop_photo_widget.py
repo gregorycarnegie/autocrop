@@ -36,9 +36,7 @@ class CropPhotoWidget(CustomCropWidget):
         self.horizontalLayout_2.addWidget(self.photoButton)
         self.verticalLayout_2.addLayout(self.horizontalLayout_2)
         self.verticalLayout_1.setParent(self.frame)
-        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding,
-                                           QtWidgets.QSizePolicy.Policy.Minimum)
-        self.horizontalLayout_1.addItem(spacerItem)
+        self.horizontalLayout_1.addItem(self.spacerItem)
         window_functions.add_widgets(self.horizontalLayout_1, self.mfaceCheckBox, self.tiltCheckBox, self.exposureCheckBox)
         self.verticalLayout_1.addLayout(self.horizontalLayout_1)
         self.imageWidget = self.setup_image_widget(parent=self.frame)

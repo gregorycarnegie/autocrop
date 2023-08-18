@@ -14,6 +14,8 @@ class ExtWidget(QtWidgets.QWidget):
             QRadioButton::indicator:unchecked{
                 image: url(resources/icons/file_string_unchecked.svg);
             }"""
+    spacerItem = QtWidgets.QSpacerItem(
+        293, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
     def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
         self.setObjectName('Form')
@@ -22,9 +24,7 @@ class ExtWidget(QtWidgets.QWidget):
         self.radioButton_1 = self.setup_radio_button('radioButton_1', 'no')
         self.radioButton_1.setChecked(True)
         self.horizontalLayout.addWidget(self.radioButton_1)
-        spacerItem = QtWidgets.QSpacerItem(
-            293, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
-        self.horizontalLayout.addItem(spacerItem)
+        self.horizontalLayout.addItem(self.spacerItem)
         self.radioButton_2 = self.setup_radio_button('radioButton_2', 'bmp')
         self.radioButton_3 = self.setup_radio_button('radioButton_3', 'jpg')
         self.radioButton_4 = self.setup_radio_button('radioButton_4', 'png')

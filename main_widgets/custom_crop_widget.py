@@ -31,6 +31,7 @@ class CustomCropWidget(QtWidgets.QWidget):
             QCheckBox::indicator:unchecked:hover{
                     image: url(resources/icons/checkbox_unchecked_hover.svg);
             }"""
+    
     def __init__(self, crop_worker: Cropper,
                  width_line_edit: NumberLineEdit,
                  height_line_edit: NumberLineEdit,
@@ -45,6 +46,8 @@ class CustomCropWidget(QtWidgets.QWidget):
                  parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
         self.destination: Path = Path.home()
+        self.spacerItem = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
         self.horizontalLayout_1 = self.setup_hbox('horizontalLayout_1')
         self.horizontalLayout_2 = self.setup_hbox('horizontalLayout_2')
         self.horizontalLayout_3 = self.setup_hbox('horizontalLayout_3')

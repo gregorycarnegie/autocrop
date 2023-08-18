@@ -36,9 +36,7 @@ class CropFolderWidget(CropBatchWidget):
         self.folderLineEdit = self.setup_path_line_edit('folderLineEdit')
         window_functions.add_widgets(self.horizontalLayout_1, self.folderLineEdit, self.folderButton)
         self.verticalLayout_2.addLayout(self.horizontalLayout_1)
-        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding,
-                                           QtWidgets.QSizePolicy.Policy.Minimum)
-        self.horizontalLayout_4.addItem(spacerItem)
+        self.horizontalLayout_4.addItem(self.spacerItem)
         window_functions.add_widgets(self.horizontalLayout_4, self.mfaceCheckBox, self.tiltCheckBox, self.exposureCheckBox)
         self.verticalLayout_1.addLayout(self.horizontalLayout_4)
         self.imageWidget = self.setup_image_widget(parent=self.frame)

@@ -113,9 +113,7 @@ class CropVideoWidget(CropBatchWidget):
             'startmarkerButton', 'leftmarker', self.horizontalLayout_5, parent=self)
         self.endmarkerButton = window_functions.create_media_button(
             'endmarkerButton', 'rightmarker', self.horizontalLayout_5, parent=self)
-        spacerItem1 = QtWidgets.QSpacerItem(
-            40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
-        self.horizontalLayout_5.addItem(spacerItem1)
+        self.horizontalLayout_5.addItem(self.spacerItem)
         self.gridLayout = QtWidgets.QGridLayout()
         self.gridLayout.setObjectName('gridLayout')
         self.label_A = self.setup_label('a')

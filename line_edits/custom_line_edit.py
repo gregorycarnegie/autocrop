@@ -10,6 +10,7 @@ from .enums import LineEditState
 class CustomLineEdit(QLineEdit):
     VALID_COLOR: ClassVar[str] = '#7fda91'  # light green
     INVALID_COLOR: ClassVar[str] = '#ff6c6c'  # rose
+    
     def __init__(self, parent: Optional[QWidget] = None):
         super(CustomLineEdit, self).__init__(parent)
         self.clearButton = QToolButton(self)

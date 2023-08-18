@@ -4,6 +4,8 @@ from PyQt6 import QtCore, QtWidgets
 
 
 class CustomDialWidget(QtWidgets.QWidget):
+    spacerItem = QtWidgets.QSpacerItem(
+        40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
     def __init__(self, _label: str,
                  _min: int = 1,
                  _max: int = 100,
@@ -29,9 +31,7 @@ class CustomDialWidget(QtWidgets.QWidget):
         self.verticalLayout.addWidget(self.dial)
         self.horizontalLayout = QtWidgets.QHBoxLayout()
         self.horizontalLayout.setObjectName('horizontalLayout')
-        spacerItem = QtWidgets.QSpacerItem(
-            40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
-        self.horizontalLayout.addItem(spacerItem)
+        self.horizontalLayout.addItem(self.spacerItem)
         self.label = QtWidgets.QLabel(parent=self)
         self.label.setObjectName('label')
         self.horizontalLayout.addWidget(self.label)
@@ -40,9 +40,7 @@ class CustomDialWidget(QtWidgets.QWidget):
         self.lcdNumber.setProperty('intValue', _value)
         self.lcdNumber.setObjectName('lcdNumber')
         self.horizontalLayout.addWidget(self.lcdNumber)
-        spacerItem1 = QtWidgets.QSpacerItem(
-            40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
-        self.horizontalLayout.addItem(spacerItem1)
+        self.horizontalLayout.addItem(self.spacerItem)
         self.verticalLayout.addLayout(self.horizontalLayout)
         self.verticalLayout.setStretch(0, 1)
 
