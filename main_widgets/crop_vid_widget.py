@@ -31,7 +31,7 @@ class CropVideoWidget(CropBatchWidget):
                          right_dial_area, parent)
         self.vol_cache = 70
         self.rewind_timer = QtCore.QTimer()
-        self.default_directory = Video().default_directory
+        self.default_directory = Video.default_directory
         self.player = QtMultimedia.QMediaPlayer()
         self.audio = QtMultimedia.QAudioOutput()
         self.start_position, self.stop_position, self.step = 0.0, 0.0, 2
@@ -245,13 +245,13 @@ class CropVideoWidget(CropBatchWidget):
     
     def open_folder(self, line_edit: PathLineEdit) -> None:
         self.check_playback_state()
-        f_name = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Directory', Photo().default_directory)
+        f_name = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Directory', Photo.default_directory)
         line_edit.setText(f_name)
 
     def open_video(self) -> None:
         self.check_playback_state()
         file_name, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open Video', self.default_directory,
-                                                             Video().type_string)
+                                                             Video.type_string())
         self.videoLineEdit.setText(file_name)
         if self.videoLineEdit.state is LineEditState.INVALID_INPUT:
             return None

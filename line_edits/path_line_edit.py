@@ -45,12 +45,12 @@ class PathLineEdit(CustomLineEdit):
 
     @staticmethod
     def is_valid_image(path: Path) -> bool:
-        return path.is_file() and path.suffix.lower() in Photo().file_types
+        return path.is_file() and path.suffix.lower() in Photo.file_types
     
     @staticmethod
     def is_valid_table(path: Path) -> bool:
-        return path.is_file() and path.suffix.lower() in Table().file_types
+        return path.is_file() and path.suffix.lower() in Table.file_types
     
     @staticmethod
     def is_valid_video(path: Path) -> bool:
-        return path.is_file() and path.suffix.lower() in Video().file_types
+        return path.is_file() and path.suffix.lower() in Video.file_types

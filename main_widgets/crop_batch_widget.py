@@ -31,7 +31,7 @@ class CropBatchWidget(CustomCropWidget):
         self.cancelButton = self.setup_process_button('cancelButton', 'cancel', ButtonType.PROCESS_BUTTON)
         self.progressBar = QtWidgets.QProgressBar(parent=self.frame)
         self.progressBar.setMinimumSize(QtCore.QSize(0, 12))
-        self.progressBar.setMaximumSize(QtCore.QSize(16777215, 12))
+        self.progressBar.setMaximumSize(QtCore.QSize(16_777_215, 12))
         self.progressBar.setRange(0, self.PROGRESSBAR_STEPS)
         self.progressBar.setValue(0)
         self.progressBar.setTextVisible(False)

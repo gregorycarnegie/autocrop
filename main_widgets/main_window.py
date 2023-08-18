@@ -19,7 +19,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.setAcceptDrops(True)
         self.crop_worker = Cropper()
         self.setObjectName('MainWindow')
-        self.resize(1348, 894)
+        self.resize(1_348, 894)
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap('resources\\logos\\logo.ico'), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         self.setWindowIcon(icon)
@@ -44,7 +44,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.horizontalLayout_3 = QtWidgets.QHBoxLayout(self.settingsTab)
         self.horizontalLayout_3.setObjectName('horizontalLayout_3')
         self.gamma_dialArea = CustomDialWidget(
-            _label='gamma', _max=2_000, single_step=5, page_step=100, _value=1000, parent=self.settingsTab)
+            _label='gamma', _max=2_000, single_step=5, page_step=100, _value=1_000, parent=self.settingsTab)
         self.face_dialArea = CustomDialWidget(_label='face', _min=0, _value=62, parent=self.settingsTab)
         self.sensitivity_dialArea = CustomDialWidget(
             _label='sensitivity', _min=0, _value=50, parent=self.settingsTab)
@@ -116,7 +116,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.horizontalLayout_2.addLayout(self.verticalLayout_2)
         self.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(parent=self)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1348, 22))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1_348, 22))
         self.menubar.setObjectName('menubar')
         self.menuFile = QtWidgets.QMenu(parent=self.menubar)
         self.menuFile.setObjectName('menuFile')
@@ -294,7 +294,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
     def handle_path_main(self, file_path: Path) -> None:
         extensions = {y.suffix.lower() for y in file_path.iterdir()}
-        mask = {ext in extensions for ext in Table().file_types}
+        mask = {ext in extensions for ext in Table.file_types}
         try:
             assert isinstance(self.mappingTab, CropMapWidget)
             assert isinstance(self.folder_Tab, CropFolderWidget)
@@ -307,11 +307,11 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
     def handle_file(self, file_path: Path) -> None:
         match file_path.suffix.lower():
-            case suffix if suffix in Photo().file_types:
+            case suffix if suffix in Photo.file_types:
                 self.handle_image_file(file_path)
-            case suffix if suffix in Video().file_types:
+            case suffix if suffix in Video.file_types:
                 self.handle_video_file(file_path)
-            case suffix if suffix in Table().file_types:
+            case suffix if suffix in Table.file_types:
                 self.handle_pandas_file(file_path)
             case _: pass
 

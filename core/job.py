@@ -75,9 +75,10 @@ class Job(NamedTuple):
         """
         if self.folder_path is not None:
             x = np.fromiter(self.folder_path.iterdir(), Path)
-            y = np.array([pic.suffix.lower() in Photo().file_types for pic in x])
+            y = np.array([pic.suffix.lower() in Photo.file_types for pic in x])
             result = x[y]
             return result, len(result)
+        return None
 
     def radio_tuple(self) -> Tuple[str, ...]:
         return tuple(self.radio_options)

@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pathlib import Path
 
 import numpy as np
@@ -5,16 +7,17 @@ import numpy.typing as npt
 
 
 class File:
-    def __init__(self) -> None:
-        self.default_directory = f'{Path.home()}\\Pictures'
-        self.file_types: npt.NDArray[np.str_] = np.array([''])
+    file_types: npt.NDArray[np.str_] = np.array([''])
+    default_directory = f'{Path.home()}\\Pictures'
 
-    @property
-    def file_filter(self) -> npt.NDArray[np.str_]:
+    @classmethod
+    def file_filter(cls) -> npt.NDArray[np.str_]:
         """Only sublasses of this class should implement this method"""
-        return np.array([f'*{file}' for file in self.file_types])
+        return np.array([f'*{file}' for file in cls.file_types])
 
-    @property
-    def type_string(self) -> str:
+    @classmethod
+    def type_string(cls) -> Optional[str]:
         """Only sublasses of this class should implement this method"""
-        return 'All Files (*);;' + ';;'.join(f'{_} Files (*{_})' for _ in np.sort(self.file_types))
+        if not cls.file_types[0]:
+            return None
+        return 'All Files (*);;' + ';;'.join(f'{_} Files (*{_})' for _ in np.sort(cls.file_types))

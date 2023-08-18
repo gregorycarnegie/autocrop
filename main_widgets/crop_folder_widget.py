@@ -29,7 +29,7 @@ class CropFolderWidget(CropBatchWidget):
         self.folderButton = self.setup_process_button('folderButton', 'folder', ButtonType.NAVIGATION_BUTTON)
         self.file_model = QtGui.QFileSystemModel(self)
         self.file_model.setFilter(QtCore.QDir.Filter.NoDotAndDotDot | QtCore.QDir.Filter.Files)
-        self.file_model.setNameFilters(Photo().file_filter)
+        self.file_model.setNameFilters(Photo.file_filter())
         self.setObjectName('Form')
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self)
         self.verticalLayout_2.setObjectName('verticalLayout_2')

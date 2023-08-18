@@ -215,7 +215,7 @@ class CustomCropWidget(QtWidgets.QWidget):
                    start_position: Optional[float] = None,
                    stop_position: Optional[float] = None) -> Job:
         """Only sublasses of the CustomCropWidget class should implement this method"""
-        extensions = Photo().SAVE_TYPES
+        extensions = Photo.SAVE_TYPES
         
         if destination and folder_path:
             destination = self._handle_folder_path(destination, folder_path, extensions)
@@ -252,7 +252,7 @@ class CustomCropWidget(QtWidgets.QWidget):
 
     def open_folder(self, line_edit: PathLineEdit) -> None:
         """Only sublasses of the CustomCropWidget class should implement this method"""
-        f_name = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Directory', Photo().default_directory)
+        f_name = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Directory', Photo.default_directory)
         line_edit.setText(f_name)
         if line_edit is self.folderLineEdit:
             self.load_data()
