@@ -21,6 +21,7 @@ from .job import Job
 
 
 class Cropper(QObject):
+    THREAD_NUMBER = min(cpu_count(), 8)
     folder_started = pyqtSignal()
     folder_finished = pyqtSignal()
     mapping_started = pyqtSignal()
@@ -52,10 +53,10 @@ class Cropper(QObject):
         self.cap = None
         self.start, self.stop, self.step = 0.0, 0.0, 2
 
-    @staticmethod
-    def start_face_workers() -> List[FaceWorker]:
+    @classmethod
+    def start_face_workers(cls) -> List[FaceWorker]:
         """Load the face detectors and shape predictors"""
-        return [FaceWorker() for _ in range(min(cpu_count(), 8))]
+        return [FaceWorker() for _ in range(cls.THREAD_NUMBER)]
 
     def reset_f_task(self):
         self.bar_value_f = 0
@@ -286,7 +287,7 @@ class Cropper(QObject):
     def crop_dir(self, job: Job) -> None:
         if (file_tuple := job.file_list()) is None: return None
         file_list, amount = file_tuple
-        split_array = np.array_split(file_list, min(cpu_count(), 8))
+        split_array = np.array_split(file_list, self.THREAD_NUMBER)
         self.bar_value_f = 0
         self.folder_progress.emit((self.bar_value_f, amount))
         self.folder_started.emit()
@@ -318,7 +319,7 @@ class Cropper(QObject):
         # Create a mask that indicates which files have supported extensions.
         mask, amount = utils.mask_extensions(file_list1)
         # Split the file lists and the mapping data into chunks.
-        old_file_list, new_file_list = utils.split_by_cpus(mask, min(cpu_count(), 8), file_list1, file_list2)
+        old_file_list, new_file_list = utils.split_by_cpus(mask, self.THREAD_NUMBER, file_list1, file_list2)
         
         self.bar_value_m = 0
         self.mapping_progress.emit((self.bar_value_m, amount))
