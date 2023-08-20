@@ -80,20 +80,23 @@ class Cropper(QObject):
                        new: Optional[str] = None) -> None:
         if (destination_path := job.get_destination()) is None: return None
         if image_name is None and new is None:
+            # Image Crop
             if (cropped_image := self.crop_image(source_image, job, face_worker)) is not None:
                 file_path, is_tiff = utils.set_filename(source_image, destination_path, job.radio_choice(), job.radio_tuple())
                 utils.save_image(cropped_image, file_path.as_posix(), job.gamma, is_tiff=is_tiff)
             else:
                 utils.reject(source_image, destination_path, source_image)
         elif image_name is not None and new is None:
+            # Folder 
             if (cropped_image := self.crop_image(source_image, job, face_worker)) is not None:
                 file_path, is_tiff = utils.set_filename(image_name, destination_path, job.radio_choice(), job.radio_tuple())
                 utils.save_image(cropped_image, file_path.as_posix(), job.gamma, is_tiff=is_tiff)
             else:
                 utils.reject(source_image, destination_path, image_name)
         elif image_name is not None:
+            # Mapping crop
             if (cropped_image := self.crop_image(source_image, job, face_worker)) is not None:
-                file_path, is_tiff = utils.set_filename( image_name, destination_path, job.radio_choice(), job.radio_tuple(), new)
+                file_path, is_tiff = utils.set_filename(image_name, destination_path, job.radio_choice(), job.radio_tuple(), new)
                 utils.save_image(cropped_image, file_path.as_posix(), job.gamma, is_tiff=is_tiff)
             else:
                 utils.reject(source_image, destination_path, image_name)
@@ -114,18 +117,21 @@ class Cropper(QObject):
                              new: Optional[str] = None) -> None:
         if (destination_path := job.get_destination()) is None: return None
         if image_name is None and new is None:
+            # Image Crop
             if (cropped_images := self.multi_crop(source_image, job, face_worker)) is None:
                 utils.reject(source_image, destination_path, source_image)
             else:
                 file_path, is_tiff = utils.set_filename(source_image, destination_path, job.radio_choice(), job.radio_tuple())
                 self.multi_save_loop(cropped_images, file_path, job.gamma, is_tiff)
         elif image_name is not None and new is None:
+            # Folder Crop
             if (cropped_images := self.multi_crop(source_image, job, face_worker)) is None:
                 utils.reject(source_image, destination_path, image_name)
             else:
                 file_path, is_tiff = utils.set_filename(image_name, destination_path, job.radio_choice(), job.radio_tuple())
                 self.multi_save_loop(cropped_images, file_path, job.gamma, is_tiff)
         elif image_name is not None:
+            # Mapping crop
             if (cropped_images := self.multi_crop(source_image, job, face_worker)) is None:
                 utils.reject(source_image, destination_path, image_name)
             else:
