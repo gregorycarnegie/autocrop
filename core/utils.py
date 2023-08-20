@@ -337,3 +337,24 @@ def save_image(image: cvt.MatLike,
         tiff.imwrite(file_path, image)
     else:
         cv2.imwrite(file_path, cv2.LUT(image, gamma(user_gam * GAMMA_THRESHOLD)))
+
+def multi_save_image(cropped_images: List[cvt.MatLike],
+                     file_path: Path,
+                     gamma: int,
+                     is_tiff: bool) -> None:
+    for i, image in enumerate(cropped_images):
+        new_file_path = file_path.with_stem(f'{file_path.stem}_{i}')
+        save_image(image, new_file_path.as_posix(), gamma, is_tiff=is_tiff)
+
+def get_frame_path(destination: Path,
+                   file_enum: str,
+                   job: Job) -> Tuple[Path, bool]:
+    file_str = f'{file_enum}.jpg' if job.radio_choice() == job.radio_options[0] else file_enum + job.radio_choice()
+    file_path = destination.joinpath(file_str)
+    return file_path, file_path.suffix in {'.tif', '.tiff'}
+
+def save_frame(image: cvt.MatLike,
+               file_path: Path,
+               job: Job,
+               is_tiff: bool) -> None:
+    save_image(image, file_path.as_posix(), job.gamma, is_tiff=is_tiff)

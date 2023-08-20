@@ -79,36 +79,16 @@ class Cropper(QObject):
                        image_name: Optional[Path] = None,
                        new: Optional[str] = None) -> None:
         if (destination_path := job.get_destination()) is None: return None
-        if image_name is None and new is None:
-            # Image Crop
-            if (cropped_image := self.crop_image(source_image, job, face_worker)) is not None:
-                file_path, is_tiff = utils.set_filename(source_image, destination_path, job.radio_choice(), job.radio_tuple())
-                utils.save_image(cropped_image, file_path.as_posix(), job.gamma, is_tiff=is_tiff)
-            else:
-                utils.reject(source_image, destination_path, source_image)
-        elif image_name is not None and new is None:
-            # Folder 
-            if (cropped_image := self.crop_image(source_image, job, face_worker)) is not None:
-                file_path, is_tiff = utils.set_filename(image_name, destination_path, job.radio_choice(), job.radio_tuple())
-                utils.save_image(cropped_image, file_path.as_posix(), job.gamma, is_tiff=is_tiff)
-            else:
-                utils.reject(source_image, destination_path, image_name)
-        elif image_name is not None:
-            # Mapping crop
-            if (cropped_image := self.crop_image(source_image, job, face_worker)) is not None:
-                file_path, is_tiff = utils.set_filename(image_name, destination_path, job.radio_choice(), job.radio_tuple(), new)
-                utils.save_image(cropped_image, file_path.as_posix(), job.gamma, is_tiff=is_tiff)
-            else:
-                utils.reject(source_image, destination_path, image_name)
 
-    @staticmethod
-    def multi_save_loop(cropped_images: List[cvt.MatLike],
-                        file_path: Path,
-                        gamma: int,
-                        is_tiff: bool) -> None:
-        for i, image in enumerate(cropped_images):
-            new_file_path = file_path.with_stem(f'{file_path.stem}_{i}')
-            utils.save_image(image, new_file_path.as_posix(), gamma, is_tiff=is_tiff)
+        image_name = source_image if image_name is None else image_name
+
+        if (cropped_image := self.crop_image(source_image, job, face_worker)) is None:
+            utils.reject(source_image, destination_path, image_name)
+            return None
+
+        file_path, is_tiff = utils.set_filename(image_name, destination_path, job.radio_choice(), job.radio_tuple(), new)
+
+        utils.save_image(cropped_image, file_path.as_posix(), job.gamma, is_tiff=is_tiff)
 
     def multi_save_detection(self, source_image: Path,
                              job: Job,
@@ -116,28 +96,16 @@ class Cropper(QObject):
                              image_name: Optional[Path] = None,
                              new: Optional[str] = None) -> None:
         if (destination_path := job.get_destination()) is None: return None
-        if image_name is None and new is None:
-            # Image Crop
-            if (cropped_images := self.multi_crop(source_image, job, face_worker)) is None:
-                utils.reject(source_image, destination_path, source_image)
-            else:
-                file_path, is_tiff = utils.set_filename(source_image, destination_path, job.radio_choice(), job.radio_tuple())
-                self.multi_save_loop(cropped_images, file_path, job.gamma, is_tiff)
-        elif image_name is not None and new is None:
-            # Folder Crop
-            if (cropped_images := self.multi_crop(source_image, job, face_worker)) is None:
-                utils.reject(source_image, destination_path, image_name)
-            else:
-                file_path, is_tiff = utils.set_filename(image_name, destination_path, job.radio_choice(), job.radio_tuple())
-                self.multi_save_loop(cropped_images, file_path, job.gamma, is_tiff)
-        elif image_name is not None:
-            # Mapping crop
-            if (cropped_images := self.multi_crop(source_image, job, face_worker)) is None:
-                utils.reject(source_image, destination_path, image_name)
-            else:
-                file_path, is_tiff = utils.set_filename(
-                    image_name, destination_path, job.radio_choice(), job.radio_tuple(), new)
-                self.multi_save_loop(cropped_images, file_path, job.gamma, is_tiff)
+
+        image_name = source_image if image_name is None else image_name
+
+        if (cropped_images := self.multi_crop(source_image, job, face_worker)) is None:
+            utils.reject(source_image, destination_path, image_name)
+            return None
+
+        file_path, is_tiff = utils.set_filename(image_name, destination_path, job.radio_choice(), job.radio_tuple(), new)
+
+        utils.multi_save_image(cropped_images, file_path, job.gamma, is_tiff)
 
     @staticmethod
     def multi_crop(source_image: Union[cvt.MatLike, Path],
@@ -155,6 +123,7 @@ class Cropper(QObject):
         image_array = [utils.pillow_to_numpy(image) for image in images]
 
         results = [utils.convert_color_space(array) for array in image_array]
+
         output: List[cvt.MatLike] = [cv2.resize(src=result, dsize=job.size, interpolation=cv2.INTER_AREA)
                                      for result in results]
         return output
@@ -370,27 +339,12 @@ class Cropper(QObject):
 
             for i, image in enumerate(images):
                 new_file_path = file_path.with_stem(f'{file_path.stem}_{i}')
-                self.save_frame(image, new_file_path, job, is_tiff)
+                utils.save_frame(image, new_file_path, job, is_tiff)
         elif (cropped_image := self.crop_image(frame, job, self.face_workers[0])) is None:
             return None
 
         else:
-            self.save_frame(cropped_image, file_path, job, is_tiff)
-
-    @staticmethod
-    def get_frame_path(destination: Path,
-                       file_enum: str,
-                       job: Job) -> Tuple[Path, bool]:
-        file_str = f'{file_enum}.jpg' if job.radio_choice() == job.radio_options[0] else file_enum + job.radio_choice()
-        file_path = destination.joinpath(file_str)
-        return file_path, file_path.suffix in {'.tif', '.tiff'}
-
-    @staticmethod
-    def save_frame(image: cvt.MatLike,
-                   file_path: Path,
-                   job: Job,
-                   is_tiff: bool) -> None:
-        utils.save_image(image, file_path.as_posix(), job.gamma, is_tiff=is_tiff)
+            utils.save_frame(cropped_image, file_path, job, is_tiff)
 
     def process_multiface_frame_job(self, frame: cvt.MatLike,
                                     job: Job,
@@ -398,12 +352,12 @@ class Cropper(QObject):
                                     destination: Path) -> None:
         if (images := self.multi_crop(frame, job, self.face_workers[0])) is None:
             file_enum = f'failed_{file_enum}'
-            file_path, is_tiff = self.get_frame_path(destination, file_enum, job)
-            self.save_frame(utils.convert_color_space(frame), file_path, job, is_tiff)
+            file_path, is_tiff = utils.get_frame_path(destination, file_enum, job)
+            utils.save_frame(utils.convert_color_space(frame), file_path, job, is_tiff)
         else:
             for i, image in enumerate(images):
-                file_path, is_tiff = self.get_frame_path(destination, f'{file_enum}_{i}', job)
-                self.save_frame(utils.convert_color_space(image), file_path, job, is_tiff)
+                file_path, is_tiff = utils.get_frame_path(destination, f'{file_enum}_{i}', job)
+                utils.save_frame(utils.convert_color_space(image), file_path, job, is_tiff)
 
     def process_singleface_frame_job(self, frame: cvt.MatLike,
                                      job: Job,
@@ -415,8 +369,8 @@ class Cropper(QObject):
         else:
             cropped_image = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2RGB)
 
-        file_path, is_tiff = self.get_frame_path(destination, file_enum, job)
-        self.save_frame(cropped_image, file_path, job, is_tiff)
+        file_path, is_tiff = utils.get_frame_path(destination, file_enum, job)
+        utils.save_frame(cropped_image, file_path, job, is_tiff)
 
     def frame_extraction(self, video: cv2.VideoCapture,
                          frame_number: int,
