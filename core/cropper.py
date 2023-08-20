@@ -231,14 +231,14 @@ class Cropper(QObject):
                                      job: Job,
                                      file_enum: str,
                                      destination: Path) -> None:
-        if (cropped_image := utils.crop_image(frame, job, self.face_workers[0])) is None:
-            cropped_image = frame
-            file_enum = f'failed_{file_enum}'           
-        else:
-            cropped_image = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2RGB)
+        def callback(file_enum_str: str, cropped_image_data: cvt.MatLike) -> None:
+            file_path, is_tiff = utils.get_frame_path(destination, file_enum_str, job)
+            utils.save_frame(cropped_image_data, file_path, job, is_tiff)
 
-        file_path, is_tiff = utils.get_frame_path(destination, file_enum, job)
-        utils.save_frame(cropped_image, file_path, job, is_tiff)
+        if (cropped_image := utils.crop_image(frame, job, self.face_workers[0])) is None:
+            callback(f'failed_{file_enum}', frame)
+        else:
+            callback(file_enum, cv2.cvtColor(cropped_image, cv2.COLOR_BGR2RGB))
 
     def frame_extraction(self, video: cv2.VideoCapture,
                          frame_number: int,

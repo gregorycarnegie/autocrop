@@ -74,7 +74,7 @@ def display_image_on_widget(image: cvt.MatLike, image_widget: ImageWidget) -> No
 
 def crop_and_set(image: cvt.MatLike,
                  bounding_box: Tuple[int, int, int, int],
-                 gamma: int,
+                 gamma_value: int,
                  image_widget: ImageWidget) -> None:
     """
     Crop the given image using the bounding box, adjust its exposure and gamma, and set it to an image widget.
@@ -82,14 +82,14 @@ def crop_and_set(image: cvt.MatLike,
     Parameters:
         image: The input image as a numpy array.
         bounding_box: The bounding box coordinates to crop the image.
-        gamma: The gamma value for gamma correction.
+        gamma_value: The gamma value for gamma correction.
         image_widget: The image widget to display the processed image.
     
     Returns: None
     """
     try:
         cropped_image = numpy_array_crop(image, bounding_box)
-        adjusted_image = adjust_gamma(cropped_image, gamma)
+        adjusted_image = adjust_gamma(cropped_image, gamma_value)
         final_image = convert_color_space(adjusted_image)
     except (cv2.error, Image.DecompressionBombError):
         return None
@@ -170,9 +170,9 @@ def open_pic(input_file: Union[Path, str],
     """Given a filename, returns a numpy array or a pandas dataframe"""
     input_file = Path(input_file) if isinstance(input_file, str) else input_file
     match input_file.suffix.lower():
-        case extension if extension in Photo().CV2_TYPES:
+        case extension if extension in Photo.CV2_TYPES:
             return open_image(input_file, exposure, tilt, face_worker)
-        case extension if extension in Photo().RAW_TYPES:
+        case extension if extension in Photo.RAW_TYPES:
             return open_raw(input_file, exposure, tilt, face_worker)
         case _: return None
 
@@ -369,11 +369,11 @@ def save_image(image: cvt.MatLike,
 
 def multi_save_image(cropped_images: List[cvt.MatLike],
                      file_path: Path,
-                     gamma: int,
+                     gamma_value: int,
                      is_tiff: bool) -> None:
     for i, image in enumerate(cropped_images):
         new_file_path = file_path.with_stem(f'{file_path.stem}_{i}')
-        save_image(image, new_file_path, gamma, is_tiff=is_tiff)
+        save_image(image, new_file_path, gamma_value, is_tiff=is_tiff)
 
 def get_frame_path(destination: Path,
                    file_enum: str,
