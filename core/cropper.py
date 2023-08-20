@@ -3,7 +3,7 @@ from functools import cache
 from multiprocessing import cpu_count
 from pathlib import Path
 from threading import Thread
-from typing import Any, Callable, List, Union, Optional
+from typing import Any, Callable, List, Union, Optional, Tuple
 
 import cv2
 import cv2.typing as cvt
@@ -20,8 +20,8 @@ from .job import Job
 
 
 class Cropper(QObject):
-    THREAD_NUMBER = min(cpu_count(), 8)
-    TASK_VALUES = (0, False, True)
+    THREAD_NUMBER: int = min(cpu_count(), 8)
+    TASK_VALUES: Tuple[int, bool, bool] = (0, False, True)
     folder_started = pyqtSignal()
     folder_finished = pyqtSignal()
     mapping_started = pyqtSignal()
