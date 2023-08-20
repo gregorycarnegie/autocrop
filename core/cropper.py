@@ -2,7 +2,7 @@ import re
 from functools import cache
 from multiprocessing import cpu_count
 from pathlib import Path
-from threading import Thread, Lock
+from threading import Thread
 from typing import Any, Callable, List, Union, Optional, Tuple
 
 import cv2
@@ -46,12 +46,7 @@ class Cropper(QObject):
         self.message_box_m = True
         self.message_box_v = True
 
-        self.video_lock = Lock()
         self.face_workers = self.start_face_workers()
-
-        # Create video capture object
-        self.cap = None
-        self.start, self.stop, self.step = 0.0, 0.0, 2
 
     @classmethod
     def start_face_workers(cls) -> List[FaceWorker]:
@@ -88,7 +83,7 @@ class Cropper(QObject):
 
         file_path, is_tiff = utils.set_filename(image_name, destination_path, job.radio_choice(), job.radio_tuple(), new)
 
-        utils.save_image(cropped_image, file_path.as_posix(), job.gamma, is_tiff=is_tiff)
+        utils.save_image(cropped_image, file_path.as_posix(), job.gamma, is_tiff)
 
     def multi_save_detection(self, source_image: Path,
                              job: Job,
