@@ -389,12 +389,12 @@ def save_frame(image: cvt.MatLike,
     save_image(image, file_path, job.gamma, is_tiff=is_tiff)
 
 def save_detection(source_image: Path,
-                    job: Job,
-                    face_worker: FaceWorker,
-                    crop_function: Callable[[Union[cvt.MatLike, Path], Job, FaceWorker], Optional[Union[cvt.MatLike, List[cvt.MatLike]]]],
-                    save_function: Callable[[Any, Path, int, bool], None],
-                    image_name: Optional[Path] = None,
-                    new: Optional[str] = None) -> None:
+                   job: Job,
+                   face_worker: FaceWorker,
+                   crop_function: Callable[[Union[cvt.MatLike, Path], Job, FaceWorker], Optional[Union[cvt.MatLike, List[cvt.MatLike]]]],
+                   save_function: Callable[[Any, Path, int, bool], None],
+                   image_name: Optional[Path] = None,
+                   new: Optional[str] = None) -> None:
     if (destination_path := job.get_destination()) is None: return None
 
     image_name = source_image if image_name is None else image_name
@@ -420,8 +420,8 @@ def crop_image(image: Union[Path, cvt.MatLike],
 
 
 def multi_crop(source_image: Union[cvt.MatLike, Path],
-                job: Job,
-                face_worker: FaceWorker) -> Optional[List[cvt.MatLike]]:
+               job: Job,
+               face_worker: FaceWorker) -> Optional[List[cvt.MatLike]]:
     img = open_pic(source_image, job.fix_exposure_job.isChecked(), job.auto_tilt_job.isChecked(), face_worker) \
                     if isinstance(source_image, Path) else source_image
     if img is None:
