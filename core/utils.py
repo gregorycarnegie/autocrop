@@ -60,11 +60,40 @@ def adjust_gamma(image: Union[cvt.MatLike, npt.NDArray[np.uint8]], gam: int) -> 
 def convert_color_space(image: Union[cvt.MatLike, npt.NDArray[np.uint8]]) -> cvt.MatLike:
     return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
+def numpy_array_crop(image: cvt.MatLike,
+                        bounding_box: Tuple[int, int, int, int]) -> npt.NDArray[np.uint8]:
+    # Load and crop image using PIL
+    picture = Image.fromarray(image).crop(bounding_box)
+    return pillow_to_numpy(picture)
+
 def display_image_on_widget(image: cvt.MatLike, image_widget: ImageWidget) -> None:
     height, width, channel = image.shape
     bytes_per_line = channel * width
     q_image = QImage(image.data, width, height, bytes_per_line, QImage.Format.Format_BGR888)
     image_widget.setImage(QPixmap.fromImage(q_image))
+
+def crop_and_set(image: cvt.MatLike,
+                 bounding_box: Tuple[int, int, int, int],
+                 gamma: int,
+                 image_widget: ImageWidget) -> None:
+    """
+    Crop the given image using the bounding box, adjust its exposure and gamma, and set it to an image widget.
+
+    Parameters:
+        image: The input image as a numpy array.
+        bounding_box: The bounding box coordinates to crop the image.
+        gamma: The gamma value for gamma correction.
+        image_widget: The image widget to display the processed image.
+    
+    Returns: None
+    """
+    try:
+        cropped_image = numpy_array_crop(image, bounding_box)
+        adjusted_image = adjust_gamma(cropped_image, gamma)
+        final_image = convert_color_space(adjusted_image)
+    except (cv2.error, Image.DecompressionBombError):
+        return None
+    display_image_on_widget(final_image, image_widget)
 
 def correct_exposure(image: Union[cvt.MatLike, npt.NDArray[np.uint8]],
                      exposure: bool) -> cvt.MatLike:
@@ -328,7 +357,7 @@ def reject(path: Path,
     shutil.copy(path, reject_folder.joinpath(image.name))
 
 def save_image(image: cvt.MatLike,
-               file_path: str,
+               file_path: Path,
                user_gam: Union[int, float],
                is_tiff: bool = False) -> None:
     if is_tiff:
@@ -336,7 +365,7 @@ def save_image(image: cvt.MatLike,
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         tiff.imwrite(file_path, image)
     else:
-        cv2.imwrite(file_path, cv2.LUT(image, gamma(user_gam * GAMMA_THRESHOLD)))
+        cv2.imwrite(file_path.as_posix(), cv2.LUT(image, gamma(user_gam * GAMMA_THRESHOLD)))
 
 def multi_save_image(cropped_images: List[cvt.MatLike],
                      file_path: Path,
@@ -344,7 +373,7 @@ def multi_save_image(cropped_images: List[cvt.MatLike],
                      is_tiff: bool) -> None:
     for i, image in enumerate(cropped_images):
         new_file_path = file_path.with_stem(f'{file_path.stem}_{i}')
-        save_image(image, new_file_path.as_posix(), gamma, is_tiff=is_tiff)
+        save_image(image, new_file_path, gamma, is_tiff=is_tiff)
 
 def get_frame_path(destination: Path,
                    file_enum: str,
@@ -357,4 +386,79 @@ def save_frame(image: cvt.MatLike,
                file_path: Path,
                job: Job,
                is_tiff: bool) -> None:
-    save_image(image, file_path.as_posix(), job.gamma, is_tiff=is_tiff)
+    save_image(image, file_path, job.gamma, is_tiff=is_tiff)
+
+def save_detection(source_image: Path,
+                    job: Job,
+                    face_worker: FaceWorker,
+                    crop_function: Callable[[Union[cvt.MatLike, Path], Job, FaceWorker], Optional[Union[cvt.MatLike, List[cvt.MatLike]]]],
+                    save_function: Callable[[Any, Path, int, bool], None],
+                    image_name: Optional[Path] = None,
+                    new: Optional[str] = None) -> None:
+    if (destination_path := job.get_destination()) is None: return None
+
+    image_name = source_image if image_name is None else image_name
+
+    if (cropped_images := crop_function(source_image, job, face_worker)) is None:
+        reject(source_image, destination_path, image_name)
+        return None
+    
+    file_path, is_tiff = set_filename(image_name, destination_path, job.radio_choice(), job.radio_tuple(), new)
+    
+    save_function(cropped_images, file_path, job.gamma, is_tiff)
+
+def crop_image(image: Union[Path, cvt.MatLike],
+               job: Job,
+               face_worker: FaceWorker) -> Optional[cvt.MatLike]:
+    pic_array = open_pic(image, job.fix_exposure_job.isChecked(), job.auto_tilt_job.isChecked(), face_worker) \
+        if isinstance(image, Path) else image
+    if pic_array is None: return None
+    if (bounding_box := box_detect(pic_array, job, face_worker)) is None: return None
+    cropped_pic = numpy_array_crop(pic_array, bounding_box)
+    result = convert_color_space(cropped_pic) if len(cropped_pic.shape) >= 3 else cropped_pic
+    return cv2.resize(result, job.size, interpolation=cv2.INTER_AREA)
+
+
+def multi_crop(source_image: Union[cvt.MatLike, Path],
+                job: Job,
+                face_worker: FaceWorker) -> Optional[List[cvt.MatLike]]:
+    img = open_pic(source_image, job.fix_exposure_job.isChecked(), job.auto_tilt_job.isChecked(), face_worker) \
+                    if isinstance(source_image, Path) else source_image
+    if img is None:
+        return None
+    detections, crop_positions = multi_box_positions(img, job, face_worker)
+    # Check if any faces were detected
+    if not np.any(100 * detections[0, 0, :, 2] > (100 - job.sensitivity)): return None
+    images = [Image.fromarray(img).crop(crop_position) for crop_position in crop_positions]
+
+    image_array = [pillow_to_numpy(image) for image in images]
+
+    results = [convert_color_space(array) for array in image_array]
+
+    output: List[cvt.MatLike] = [cv2.resize(src=result, dsize=job.size, interpolation=cv2.INTER_AREA)
+                                    for result in results]
+    return output
+
+def crop(image: Path,
+         job: Job,
+         face_worker: FaceWorker,
+         new: Optional[str] = None) -> None:
+    if job.table is not None and job.folder_path is not None and new is not None:
+        # Data cropping
+        path = job.folder_path.joinpath(image)
+        if job.multi_face_job.isChecked():
+            save_detection(path, job, face_worker, multi_crop, multi_save_image, image, new)
+        else:
+            save_detection(path, job, face_worker, crop_image, save_image, image, new)
+    elif job.folder_path is not None:
+        # Folder cropping
+        source, image_name = job.folder_path, image.name
+        path = source.joinpath(image_name)
+        if job.multi_face_job.isChecked():
+            save_detection(path, job, face_worker, multi_crop, multi_save_image, Path(image_name))
+        else:
+            save_detection(path, job, face_worker, crop_image, save_image, Path(image_name))
+    elif job.multi_face_job.isChecked():
+        save_detection(image, job, face_worker, multi_crop, multi_save_image)
+    else:
+        save_detection(image, job, face_worker, crop_image, save_image)

@@ -131,7 +131,7 @@ class CropPhotoWidget(CustomCropWidget):
                                   self.tiltCheckBox,
                                   photo_path=Path(self.photoLineEdit.text()),
                                   destination=Path(self.destinationLineEdit.text()))
-            self.crop_worker.crop(Path(self.photoLineEdit.text()), job, self.crop_worker.face_workers[0])
+            self.crop_worker.photo_crop(Path(self.photoLineEdit.text()), job, self.crop_worker.face_workers[0])
 
         if Path(self.photoLineEdit.text()).parent == Path(self.destinationLineEdit.text()):
             match window_functions.show_warning(FunctionType.PHOTO):
