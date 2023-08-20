@@ -164,7 +164,7 @@ class CropFolderWidget(CropBatchWidget):
                                   self.tiltCheckBox,
                                   folder_path=Path(self.folderLineEdit.text()),
                                   destination=Path(self.destinationLineEdit.text()))
-            self.run_batch_process(self.crop_worker.crop_dir, self.crop_worker.reset_f_task, job)
+            self.run_batch_process(self.crop_worker.crop_dir, lambda: self.crop_worker.reset_task(FunctionType.FOLDER), job)
 
         if Path(self.folderLineEdit.text()) == Path(self.destinationLineEdit.text()):
             match window_functions.show_warning(FunctionType.FOLDER):

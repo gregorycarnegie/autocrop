@@ -222,7 +222,7 @@ class CropMapWidget(CropBatchWidget):
                                   table=self.data_frame,
                                   column1=self.comboBox_1,
                                   column2=self.comboBox_2)
-            self.run_batch_process(self.crop_worker.mapping_crop, self.crop_worker.reset_m_task, job)
+            self.run_batch_process(self.crop_worker.mapping_crop, lambda: self.crop_worker.reset_task(FunctionType.MAPPING), job)
 
         if Path(self.folderLineEdit.text()) == Path(self.destinationLineEdit.text()):
             match window_functions.show_warning(FunctionType.MAPPING):

@@ -454,7 +454,7 @@ class CropVideoWidget(CropBatchWidget):
                                 start_position=self.start_position, 
                                 stop_position=self.stop_position)
             self.player.pause()
-            self.run_batch_process(self.crop_worker.extract_frames, self.crop_worker.reset_v_task, job)
+            self.run_batch_process(self.crop_worker.extract_frames, lambda: self.crop_worker.reset_task(FunctionType.VIDEO), job)
 
         if Path(self.videoLineEdit.text()).parent == Path(self.destinationLineEdit.text()):
             match window_functions.show_warning(FunctionType.VIDEO):

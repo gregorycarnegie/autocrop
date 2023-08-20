@@ -22,6 +22,7 @@ from .job import Job
 
 class Cropper(QObject):
     THREAD_NUMBER = min(cpu_count(), 8)
+    TASK_VALUES = (0, False, True)
     folder_started = pyqtSignal()
     folder_finished = pyqtSignal()
     mapping_started = pyqtSignal()
@@ -34,18 +35,9 @@ class Cropper(QObject):
 
     def __init__(self, parent: Optional[QObject]=None):
         super(Cropper, self).__init__(parent)
-        self.bar_value_f = 0
-        self.bar_value_m = 0
-        self.bar_value_v = 0
-
-        self.end_f_task = False
-        self.end_m_task = False
-        self.end_v_task = False
-
-        self.message_box_f = True
-        self.message_box_m = True
-        self.message_box_v = True
-
+        self.bar_value_f, self.end_f_task, self.message_box_f = self.TASK_VALUES
+        self.bar_value_m, self.end_m_task, self.message_box_m = self.TASK_VALUES
+        self.bar_value_v, self.end_v_task, self.message_box_v = self.TASK_VALUES
         self.face_workers = self.start_face_workers()
 
     @classmethod
@@ -53,20 +45,15 @@ class Cropper(QObject):
         """Load the face detectors and shape predictors"""
         return [FaceWorker() for _ in range(cls.THREAD_NUMBER)]
 
-    def reset_f_task(self):
-        self.bar_value_f = 0
-        self.end_f_task = False
-        self.message_box_f = True
-
-    def reset_m_task(self):
-        self.bar_value_m = 0
-        self.end_m_task = False
-        self.message_box_m = True
-
-    def reset_v_task(self):
-        self.bar_value_v = 0
-        self.end_v_task = False
-        self.message_box_v = True
+    def reset_task(self, function_type: FunctionType):
+        match function_type:
+            case FunctionType.FOLDER:
+                self.bar_value_f, self.end_f_task, self.message_box_f = self.TASK_VALUES
+            case FunctionType.MAPPING:
+                self.bar_value_m, self.end_m_task, self.message_box_m = self.TASK_VALUES
+            case FunctionType.VIDEO:
+                self.bar_value_v, self.end_v_task, self.message_box_v = self.TASK_VALUES
+            case _: pass
     
     def save_detection(self, source_image: Path,
                        job: Job,
