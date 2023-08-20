@@ -322,12 +322,12 @@ def box_detect(img: cvt.MatLike,
 @cache
 def get_first_file(img_path: Path) -> Optional[Path]:
     files = np.fromiter(img_path.iterdir(), Path)
-    file = np.array([pic for pic in files if pic.suffix.lower() in Photo().file_types])
+    file = np.array([pic for pic in files if pic.suffix.lower() in Photo.file_types])
     return file[0] if file.size > 0 else None
 
 def mask_extensions(file_list: npt.NDArray[np.str_]) -> Tuple[npt.NDArray[np.bool_], int]:
     """Get the extensions of the file names and Create a mask that indicates which files have supported extensions."""
-    mask = np.in1d(np.char.lower([Path(file).suffix for file in file_list]), Photo().file_types)
+    mask: npt.NDArray[np.bool_] = np.in1d(np.char.lower([Path(file).suffix for file in file_list]), Photo.file_types)
     return mask, file_list[mask].size
 
 def split_by_cpus(mask: npt.NDArray[np.bool_],
@@ -342,7 +342,7 @@ def set_filename(image_path: Path,
                  radio_choice: str,
                  radio_options: Tuple[str, ...],
                  new: Optional[str] = None) -> Tuple[Path, bool]:
-    if (suffix := image_path.suffix.lower()) in Photo().RAW_TYPES:
+    if (suffix := image_path.suffix.lower()) in Photo.RAW_TYPES:
         selected_extension = radio_options[2] if radio_choice == radio_options[0] else radio_choice
     else:
         selected_extension = suffix if radio_choice == radio_options[0] else radio_choice

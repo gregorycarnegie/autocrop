@@ -34,7 +34,7 @@ class CropVideoWidget(CropBatchWidget):
         self.default_directory = Video.default_directory
         self.player = QtMultimedia.QMediaPlayer()
         self.audio = QtMultimedia.QAudioOutput()
-        self.start_position, self.stop_position, self.step = 0.0, 0.0, 2
+        self.start_position, self.stop_position, self.step = .0, .0, 2
         self.speed = 0
         self.reverse = 0
         self.setObjectName('Form')
@@ -336,7 +336,7 @@ class CropVideoWidget(CropBatchWidget):
 
             self.timelineSlider.blockSignals(True)
             self.timelineSlider.setValue(position)
-            minutes, seconds = divmod(round(position * 0.001), 60)
+            minutes, seconds = divmod(round(position * .001), 60)
             hours, minutes = divmod(minutes, 60)
             self.timelineSlider.blockSignals(False)
             self.positionLabel.setText(QtCore.QTime(hours, minutes, seconds).toString())
@@ -347,7 +347,7 @@ class CropVideoWidget(CropBatchWidget):
     def duration_changed(self, duration: int) -> None:
         self.timelineSlider.setMaximum(duration)
         if duration >= 0:
-            minutes, seconds = divmod(round(self.player.duration() * 0.001), 60)
+            minutes, seconds = divmod(round(self.player.duration() * .001), 60)
             hours, minutes = divmod(minutes, 60)
             self.durationLabel.setText(QtCore.QTime(hours, minutes, seconds).toString())
             self.selectEndMarkerButton.setText(QtCore.QTime(hours, minutes, seconds).toString())
@@ -380,15 +380,15 @@ class CropVideoWidget(CropBatchWidget):
         button.setText(QtCore.QTime(hours, minutes, seconds).toString())
 
     def set_startPosition(self, button: QtWidgets.QPushButton) -> None:
-        x: bool = (time_value := self.timelineSlider.value() * 0.001) < self.stop_position
-        y: bool = self.start_position == 0.0 and self.stop_position == 0.0
+        x: bool = (time_value := self.timelineSlider.value() * .001) < self.stop_position
+        y: bool = self.start_position == .0 and self.stop_position == .0
         if x | y:
             self.start_position = time_value
             self.set_marker_time(button, self.start_position)
 
     def set_stopPosition(self, button: QtWidgets.QPushButton) -> None:
-        x: bool = (time_value := self.timelineSlider.value() * 0.001) > self.start_position
-        y: bool = self.start_position == 0.0 and self.stop_position == 0.0
+        x: bool = (time_value := self.timelineSlider.value() * .001) > self.start_position
+        y: bool = self.start_position == .0 and self.stop_position == .0
         if x | y:
             self.stop_position = time_value
             self.set_marker_time(button, self.stop_position)
