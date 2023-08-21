@@ -60,8 +60,7 @@ def adjust_gamma(image: Union[cvt.MatLike, npt.NDArray[np.uint8]], gam: int) -> 
 def convert_color_space(image: Union[cvt.MatLike, npt.NDArray[np.uint8]]) -> cvt.MatLike:
     return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-def numpy_array_crop(image: cvt.MatLike,
-                        bounding_box: Tuple[int, int, int, int]) -> npt.NDArray[np.uint8]:
+def numpy_array_crop(image: cvt.MatLike, bounding_box: Tuple[int, int, int, int]) -> npt.NDArray[np.uint8]:
     # Load and crop image using PIL
     picture = Image.fromarray(image).crop(bounding_box)
     return pillow_to_numpy(picture)
@@ -373,7 +372,7 @@ def multi_save_image(cropped_images: List[cvt.MatLike],
                      is_tiff: bool) -> None:
     for i, image in enumerate(cropped_images):
         new_file_path = file_path.with_stem(f'{file_path.stem}_{i}')
-        save_image(image, new_file_path, gamma_value, is_tiff=is_tiff)
+        save_image(image, new_file_path, gamma_value, is_tiff)
 
 def get_frame_path(destination: Path,
                    file_enum: str,
@@ -386,7 +385,7 @@ def save_frame(image: cvt.MatLike,
                file_path: Path,
                job: Job,
                is_tiff: bool) -> None:
-    save_image(image, file_path, job.gamma, is_tiff=is_tiff)
+    save_image(image, file_path, job.gamma, is_tiff)
 
 def save_detection(source_image: Path,
                    job: Job,
@@ -418,7 +417,6 @@ def crop_image(image: Union[Path, cvt.MatLike],
     result = convert_color_space(cropped_pic) if len(cropped_pic.shape) >= 3 else cropped_pic
     return cv2.resize(result, job.size, interpolation=cv2.INTER_AREA)
 
-
 def multi_crop(source_image: Union[cvt.MatLike, Path],
                job: Job,
                face_worker: FaceWorker) -> Optional[List[cvt.MatLike]]:
@@ -436,7 +434,7 @@ def multi_crop(source_image: Union[cvt.MatLike, Path],
     results = [convert_color_space(array) for array in image_array]
 
     output: List[cvt.MatLike] = [cv2.resize(src=result, dsize=job.size, interpolation=cv2.INTER_AREA)
-                                    for result in results]
+                                 for result in results]
     return output
 
 def crop(image: Path,
