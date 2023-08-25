@@ -209,7 +209,7 @@ class CustomCropWidget(QtWidgets.QWidget):
     def create_job(self, exposure: QtWidgets.QCheckBox,
                    multi: QtWidgets.QCheckBox,
                    tilt: QtWidgets.QCheckBox,
-                   function_type: FunctionType,
+                   function_type: Optional[FunctionType] = None,
                    photo_path: Optional[Path] = None,
                    destination: Optional[Path] = None,
                    folder_path: Optional[Path] = None,
@@ -220,15 +220,16 @@ class CustomCropWidget(QtWidgets.QWidget):
                    start_position: Optional[float] = None,
                    stop_position: Optional[float] = None) -> Job:
         """Only sublasses of the CustomCropWidget class should implement this method"""
-        match function_type:
-            case FunctionType.FOLDER | FunctionType.MAPPING:
-                if destination and folder_path:
-                    destination = self._handle_folder_path(destination, folder_path, Photo.SAVE_TYPES)
-            case FunctionType.VIDEO:
-                if destination and video_path:
-                    destination = self._handle_video_path(destination, video_path, Photo.SAVE_TYPES)
-            case FunctionType.PHOTO | FunctionType.FRAME:
-                pass
+        if function_type is not None:
+            match function_type:
+                case FunctionType.FOLDER | FunctionType.MAPPING:
+                    if destination and folder_path:
+                        destination = self._handle_folder_path(destination, folder_path, Photo.SAVE_TYPES)
+                case FunctionType.VIDEO:
+                    if destination and video_path:
+                        destination = self._handle_video_path(destination, video_path, Photo.SAVE_TYPES)
+                case FunctionType.PHOTO | FunctionType.FRAME:
+                    pass
 
         self.destination = destination if destination is not None else self.destination
         

@@ -67,7 +67,7 @@ class CropPhotoWidget(CustomCropWidget):
         _translate = QtCore.QCoreApplication.translate
         self.setWindowTitle(_translate('Form', 'Form'))
         self.photoLineEdit.setPlaceholderText(_translate('Form', 'Choose the image you want to crop'))
-        self.photoButton.setText(_translate('Form', 'PushButton'))
+        self.photoButton.setText(_translate('Form', 'Open Image'))
         self.mfaceCheckBox.setText(_translate('Form', 'Multi-Face'))
         self.tiltCheckBox.setText(_translate('Form', 'Autotilt'))
         self.exposureCheckBox.setText(_translate('Form', 'Autocorrect'))
