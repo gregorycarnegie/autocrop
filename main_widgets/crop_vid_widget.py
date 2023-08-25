@@ -3,12 +3,13 @@ from typing import Optional, Tuple, Union
 from pathlib import Path
 
 import numpy as np
-from PyQt6 import QtCore, QtGui, QtWidgets, QtMultimedia
+from PyQt6 import QtCore, QtGui, QtMultimedia, QtWidgets
 from PyQt6.QtMultimediaWidgets import QVideoWidget
 
-from core import Cropper, CustomDialWidget, ExtWidget, FunctionType, window_functions
+from core import Cropper, CustomDialWidget, ExtWidget, FunctionType
+from core import window_functions as wf
 from file_types import Photo, Video
-from line_edits import PathLineEdit, PathType, NumberLineEdit, LineEditState
+from line_edits import LineEditState, NumberLineEdit, PathLineEdit, PathType
 from .crop_batch_widget import CropBatchWidget
 from .enums import ButtonType
 
@@ -70,12 +71,12 @@ class CropVideoWidget(CropBatchWidget):
         self.timelineSlider.setObjectName('timelineSlider')
         self.durationLabel = QtWidgets.QLabel(parent=self.frame)
         self.durationLabel.setObjectName('durationLabel')
-        window_functions.add_widgets(self.horizontalLayout_1, self.muteButton, self.volumeSlider,
+        wf.add_widgets(self.horizontalLayout_1, self.muteButton, self.volumeSlider,
                                      self.positionLabel, self.timelineSlider, self.durationLabel)
         spacerItem = QtWidgets.QSpacerItem(
             40, 20, QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Minimum)
         self.horizontalLayout_1.addItem(spacerItem)
-        window_functions.add_widgets(self.horizontalLayout_1, self.mfaceCheckBox,
+        wf.add_widgets(self.horizontalLayout_1, self.mfaceCheckBox,
                                      self.tiltCheckBox, self.exposureCheckBox)
         self.verticalLayout_1.addLayout(self.horizontalLayout_1)
         self.videoWidget = QVideoWidget(parent=self.frame)
@@ -84,8 +85,7 @@ class CropVideoWidget(CropBatchWidget):
         self.create_mediaPlayer()
         self.verticalLayout_1.addWidget(self.videoWidget)
         self.videocropButton = self.setup_process_button('videocropButton', 'crop_video', ButtonType.PROCESS_BUTTON)
-        window_functions.add_widgets(self.horizontalLayout_2, self.cropButton,
-                                     self.videocropButton, self.cancelButton)
+        wf.add_widgets(self.horizontalLayout_2, self.cropButton, self.videocropButton, self.cancelButton)
         self.verticalLayout_1.addLayout(self.horizontalLayout_2)
         self.verticalLayout_1.addWidget(self.progressBar)
         self.verticalLayout_1.setStretch(0, 1)
@@ -93,25 +93,25 @@ class CropVideoWidget(CropBatchWidget):
         self.verticalLayout_1.setStretch(2, 1)
         self.verticalLayout_1.setStretch(3, 1)
         self.verticalLayout_2.addWidget(self.frame)
-        window_functions.add_widgets(self.horizontalLayout_4, self.destinationLineEdit, self.destinationButton)
+        wf.add_widgets(self.horizontalLayout_4, self.destinationLineEdit, self.destinationButton)
         self.verticalLayout_2.addLayout(self.horizontalLayout_4)
-        self.playButton = window_functions.create_media_button(
+        self.playButton = wf.create_media_button(
             'playButton', 'play', self.horizontalLayout_5, parent=self)
-        self.stopButton = window_functions.create_media_button(
+        self.stopButton = wf.create_media_button(
             'stopButton', 'stop', self.horizontalLayout_5, parent=self)
-        self.stepbackButton = window_functions.create_media_button(
+        self.stepbackButton = wf.create_media_button(
             'stepbackButton', 'left', self.horizontalLayout_5, parent=self)
-        self.stepfwdButton = window_functions.create_media_button(
+        self.stepfwdButton = wf.create_media_button(
             'stepfwdButton', 'right', self.horizontalLayout_5, parent=self)
-        self.fastfwdButton = window_functions.create_media_button(
+        self.fastfwdButton = wf.create_media_button(
             'fastfwdButton', 'fastfwd', self.horizontalLayout_5, parent=self)
-        self.goto_beginingButton = window_functions.create_media_button(
+        self.goto_beginingButton = wf.create_media_button(
             'goto_beginingButton', 'begining', self.horizontalLayout_5, parent=self)
-        self.goto_endButton = window_functions.create_media_button(
+        self.goto_endButton = wf.create_media_button(
             "goto_endButton", "end", self.horizontalLayout_5, parent=self)
-        self.startmarkerButton = window_functions.create_media_button(
+        self.startmarkerButton = wf.create_media_button(
             'startmarkerButton', 'leftmarker', self.horizontalLayout_5, parent=self)
-        self.endmarkerButton = window_functions.create_media_button(
+        self.endmarkerButton = wf.create_media_button(
             'endmarkerButton', 'rightmarker', self.horizontalLayout_5, parent=self)
         self.horizontalLayout_5.addItem(self.spacerItem)
         self.gridLayout = QtWidgets.QGridLayout()
@@ -165,7 +165,7 @@ class CropVideoWidget(CropBatchWidget):
 
         self.playButton.clicked.connect(lambda: self.change_playback_state())
         self.playButton.clicked.connect(
-            lambda: window_functions.change_widget_state(
+            lambda: wf.change_widget_state(
                 True, self.stopButton, self.stepbackButton,  self.stepfwdButton, self.fastfwdButton,
                 self.goto_beginingButton, self.goto_endButton, self.startmarkerButton, self.endmarkerButton,
                 self.selectEndMarkerButton, self.selectStartMarkerButton))
@@ -183,7 +183,7 @@ class CropVideoWidget(CropBatchWidget):
 
         self.retranslateUi()
         self.disable_buttons()
-        window_functions.change_widget_state(
+        wf.change_widget_state(
             False, self.cropButton, self.videocropButton, self.cancelButton, self.playButton,
             self.stopButton, self.stepbackButton, self.stepfwdButton, self.fastfwdButton, self.goto_beginingButton,
             self.goto_endButton, self.startmarkerButton, self.endmarkerButton, self.selectStartMarkerButton,
@@ -218,12 +218,12 @@ class CropVideoWidget(CropBatchWidget):
                        self.goto_endButton, self.startmarkerButton, self.endmarkerButton, self.selectStartMarkerButton,
                        self.selectEndMarkerButton)
         # Video start connection
-        self.crop_worker.video_started.connect(lambda: window_functions.disable_widget(*widget_list))
-        self.crop_worker.video_started.connect(lambda: window_functions.enable_widget(self.cancelButton))
+        self.crop_worker.video_started.connect(lambda: wf.disable_widget(*widget_list))
+        self.crop_worker.video_started.connect(lambda: wf.enable_widget(self.cancelButton))
         # Video end connection
-        self.crop_worker.video_started.connect(lambda: window_functions.disable_widget(*widget_list))
-        self.crop_worker.video_finished.connect(lambda: window_functions.disable_widget(self.cancelButton))
-        self.crop_worker.video_finished.connect(lambda: window_functions.show_message_box(self.destination))
+        self.crop_worker.video_started.connect(lambda: wf.disable_widget(*widget_list))
+        self.crop_worker.video_finished.connect(lambda: wf.disable_widget(self.cancelButton))
+        self.crop_worker.video_finished.connect(lambda: wf.show_message_box(self.destination))
         self.crop_worker.video_progress.connect(self.update_progress)
     
     def setup_label(self, name: str) -> QtWidgets.QLabel:
@@ -420,7 +420,7 @@ class CropVideoWidget(CropBatchWidget):
 
         def update_widget_state(condition: bool, *widgets: QtWidgets.QWidget) -> None:
             for widget in widgets:
-                window_functions.change_widget_state(condition, widget)
+                wf.change_widget_state(condition, widget)
 
         # Video logic
         update_widget_state(
@@ -430,15 +430,15 @@ class CropVideoWidget(CropBatchWidget):
     def crop_frame(self) -> None:
         def callback():
             job = self.create_job(self.exposureCheckBox, 
-                                self.mfaceCheckBox, 
-                                self.tiltCheckBox,
-                                video_path=Path(self.videoLineEdit.text()), 
-                                destination=Path(self.destinationLineEdit.text()))
+                                  self.mfaceCheckBox,
+                                  self.tiltCheckBox,
+                                  video_path=Path(self.videoLineEdit.text()),
+                                  destination=Path(self.destinationLineEdit.text()))
             self.player.pause()
             self.crop_worker.crop_frame(job, self.positionLabel, self.timelineSlider)
 
         if Path(self.videoLineEdit.text()).parent == Path(self.destinationLineEdit.text()):
-            match window_functions.show_warning(FunctionType.FRAME):
+            match wf.show_warning(FunctionType.FRAME):
                 case QtWidgets.QMessageBox.StandardButton.Yes:
                     callback()
                 case _: return
@@ -446,18 +446,18 @@ class CropVideoWidget(CropBatchWidget):
 
     def video_process(self) -> None:
         def callback():
-            job = self.create_job(self.exposureCheckBox, 
-                                self.mfaceCheckBox, 
-                                self.tiltCheckBox,
-                                video_path=Path(self.videoLineEdit.text()), 
-                                destination=Path(self.destinationLineEdit.text()),
-                                start_position=self.start_position, 
-                                stop_position=self.stop_position)
+            job = self.create_job(self.exposureCheckBox,
+                                  self.mfaceCheckBox,
+                                  self.tiltCheckBox,
+                                  video_path=Path(self.videoLineEdit.text()),
+                                  destination=Path(self.destinationLineEdit.text()),
+                                  start_position=self.start_position,
+                                  stop_position=self.stop_position)
             self.player.pause()
             self.run_batch_process(self.crop_worker.extract_frames, lambda: self.crop_worker.reset_task(FunctionType.VIDEO), job)
 
         if Path(self.videoLineEdit.text()).parent == Path(self.destinationLineEdit.text()):
-            match window_functions.show_warning(FunctionType.VIDEO):
+            match wf.show_warning(FunctionType.VIDEO):
                 case QtWidgets.QMessageBox.StandardButton.Yes:
                     callback()
                 case _: return

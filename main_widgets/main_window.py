@@ -3,7 +3,9 @@ from typing import Union, Tuple, Optional
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-from core import Cropper, CustomDialWidget, ExtWidget, FunctionType, utils, window_functions, Preset
+from core import Cropper, CustomDialWidget, ExtWidget, FunctionType, Preset
+from core import utils as ut
+from core import window_functions as wf
 from file_types import Photo, Table, Video
 from line_edits import NumberLineEdit, PathLineEdit, LineEditState
 from .crop_folder_widget import CropFolderWidget
@@ -48,7 +50,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.face_dialArea = CustomDialWidget(_label='face', _min=0, _value=62, parent=self.settingsTab)
         self.sensitivity_dialArea = CustomDialWidget(
             _label='sensitivity', _min=0, _value=50, parent=self.settingsTab)
-        window_functions.add_widgets(self.horizontalLayout_3, self.gamma_dialArea, self.face_dialArea, self.sensitivity_dialArea)
+        wf.add_widgets(self.horizontalLayout_3, self.gamma_dialArea, self.face_dialArea, self.sensitivity_dialArea)
         spacerItem = QtWidgets.QSpacerItem(
             40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
         self.horizontalLayout_3.addItem(spacerItem)
@@ -82,7 +84,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.bottom_dialArea = CustomDialWidget(_label='bottom', _min=0, parent=self.settingsTab)
         self.left_dialArea = CustomDialWidget(_label='left', _min=0, parent=self.settingsTab)
         self.right_dialArea = CustomDialWidget(_label='right',_min=0,  parent=self.settingsTab)
-        window_functions.add_widgets(self.horizontalLayout_10, self.top_dialArea, self.bottom_dialArea, self.left_dialArea, self.right_dialArea)
+        wf.add_widgets(self.horizontalLayout_10, self.top_dialArea, self.bottom_dialArea, self.left_dialArea, self.right_dialArea)
         self.verticalLayout_6.addLayout(self.horizontalLayout_10)
         self.horizontalLayout_3.addLayout(self.verticalLayout_6)
         self.horizontalLayout_3.setStretch(0, 1)
@@ -169,7 +171,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         # CONNECTIONS
         self.connect_combo_boxes(self.mappingTab)
 
-        self.actionAbout_Face_Cropper.triggered.connect(lambda: window_functions.load_about_form())
+        self.actionAbout_Face_Cropper.triggered.connect(lambda: wf.load_about_form())
         self.actionGolden_Ratio.triggered.connect(lambda: self.load_preset(Preset.GOLDEN_RATIO))
         self.action2_3_Ratio.triggered.connect(lambda: self.load_preset(Preset.TWO_THIRDS))
         self.action3_4_Ratio.triggered.connect(lambda: self.load_preset(Preset.THREE_QUARTERS))
@@ -341,7 +343,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         except AssertionError:
             return None
         self.mappingTab.tableLineEdit.setText(file_path.as_posix())
-        data = utils.open_table(file_path)
+        data = ut.open_table(file_path)
         self.mappingTab.validate_pandas_file(data)
 
     def check_tab_selection(self) -> None:
@@ -388,7 +390,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
         def update_widget_state(condition: bool, *widgets: QtWidgets.QWidget) -> None:
             for widget in widgets:
-                window_functions.change_widget_state(condition, widget)
+                wf.change_widget_state(condition, widget)
 
         common_line_edits = (self.widthLineEdit, self.heightLineEdit)
         try:

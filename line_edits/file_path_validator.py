@@ -1,11 +1,11 @@
 import re
-from typing import Optional, Tuple
+from typing import ClassVar, Optional, Pattern, Tuple
 
 from PyQt6.QtGui import QValidator
 
 
 class FilePathValidator(QValidator):
-    INVALID_CHARS_PATTERN = re.compile(r'[*?<>|]')
+    INVALID_CHARS_PATTERN: ClassVar[Pattern[str]] = re.compile(r'[*?<>|]')
 
     def validate(self, a0: Optional[str], a1: int) -> Tuple[QValidator.State, str, int]:
         try:

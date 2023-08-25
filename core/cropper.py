@@ -3,7 +3,7 @@ from functools import cache
 from multiprocessing import cpu_count
 from pathlib import Path
 from threading import Thread
-from typing import Any, Callable, List, Union, Optional, Tuple
+from typing import Any, Callable, ClassVar, List, Optional, Tuple, Union
 
 import cv2
 import cv2.typing as cvt
@@ -12,7 +12,7 @@ import numpy.typing as npt
 from PyQt6.QtCore import pyqtSignal, QObject
 from PyQt6.QtWidgets import QLabel, QLineEdit, QSlider
 
-from . import utils
+from . import utils as ut
 from .enums import FunctionType
 from .face_worker import FaceWorker
 from .image_widget import ImageWidget
@@ -20,17 +20,12 @@ from .job import Job
 
 
 class Cropper(QObject):
-    THREAD_NUMBER: int = min(cpu_count(), 8)
-    TASK_VALUES: Tuple[int, bool, bool] = (0, False, True)
-    folder_started = pyqtSignal()
-    folder_finished = pyqtSignal()
-    mapping_started = pyqtSignal()
-    mapping_finished = pyqtSignal()
-    video_started = pyqtSignal()
-    video_finished = pyqtSignal()
-    folder_progress = pyqtSignal(object)
-    mapping_progress = pyqtSignal(object)
-    video_progress = pyqtSignal(object)
+    THREAD_NUMBER: ClassVar[int] = min(cpu_count(), 8)
+    TASK_VALUES: ClassVar[Tuple[int, bool, bool]] = 0, False, True
+
+    folder_started, folder_finished, folder_progress = pyqtSignal(), pyqtSignal(), pyqtSignal(object)
+    mapping_started, mapping_finished, mapping_progress = pyqtSignal(), pyqtSignal(), pyqtSignal(object)
+    video_started, video_finished, video_progress = pyqtSignal(), pyqtSignal(), pyqtSignal(object)
 
     def __init__(self, parent: Optional[QObject]=None):
         super(Cropper, self).__init__(parent)
@@ -59,7 +54,7 @@ class Cropper(QObject):
                    job: Job,
                    face_worker: FaceWorker,
                    new: Optional[str] = None) -> None:
-        utils.crop(image, job, face_worker, new)
+        ut.crop(image, job, face_worker, new)
 
     def display_crop(self, job: Job,
                      line_edit: Union[Path, QLineEdit],
@@ -69,24 +64,24 @@ class Cropper(QObject):
         if not img_path or img_path.as_posix() in {'', '.', None}: return None
 
         if img_path.is_dir():
-            first_file = utils.get_first_file(img_path)
+            first_file = ut.get_first_file(img_path)
             if first_file is None: return None
             img_path = first_file
 
-        pic_array = utils.open_pic(
+        pic_array = ut.open_pic(
             img_path, job.fix_exposure_job.isChecked(), job.auto_tilt_job.isChecked(), self.face_workers[0]
         )
         if pic_array is None: return None
 
-        pic_array = utils.adjust_gamma(pic_array, job.gamma)
+        pic_array = ut.adjust_gamma(pic_array, job.gamma)
         if job.multi_face_job.isChecked():
-            adjusted = utils.convert_color_space(pic_array)
-            pic = utils.multi_box(adjusted, job, self.face_workers[0])
-            utils.display_image_on_widget(pic, image_widget)
+            adjusted = ut.convert_color_space(pic_array)
+            pic = ut.multi_box(adjusted, job, self.face_workers[0])
+            ut.display_image_on_widget(pic, image_widget)
         else:
-            bounding_box = utils.box_detect(pic_array, job, self.face_workers[0])
+            bounding_box = ut.box_detect(pic_array, job, self.face_workers[0])
             if bounding_box is None: return None
-            utils.crop_and_set(pic_array, bounding_box, job.gamma, image_widget)
+            ut.crop_and_set(pic_array, bounding_box, job.gamma, image_widget)
 
     def _update_progress(self, file_amount: int,
                          process_type: FunctionType) -> None:
@@ -121,7 +116,7 @@ class Cropper(QObject):
         for image in file_list:
             if self.end_f_task:
                 break
-            utils.crop(image, job, face_worker)
+            ut.crop(image, job, face_worker)
             self._update_progress(file_amount, FunctionType.FOLDER)
 
         if self.bar_value_f == file_amount or self.end_f_task:
@@ -149,7 +144,7 @@ class Cropper(QObject):
         for i, image in enumerate(old):
             if self.end_m_task:
                 break
-            utils.crop(Path(image), job, face_worker, new=new[i])
+            ut.crop(Path(image), job, face_worker, new=new[i])
             self._update_progress(file_amount, FunctionType.MAPPING)
 
         if self.bar_value_m == file_amount or self.end_m_task:
@@ -160,9 +155,9 @@ class Cropper(QObject):
         file_list1, file_list2 = g
         # Get the extensions of the file names and 
         # Create a mask that indicates which files have supported extensions.
-        mask, amount = utils.mask_extensions(file_list1)
+        mask, amount = ut.mask_extensions(file_list1)
         # Split the file lists and the mapping data into chunks.
-        old_file_list, new_file_list = utils.split_by_cpus(mask, self.THREAD_NUMBER, file_list1, file_list2)
+        old_file_list, new_file_list = ut.split_by_cpus(mask, self.THREAD_NUMBER, file_list1, file_list2)
         
         self.bar_value_m = 0
         self.mapping_progress.emit((self.bar_value_m, amount))
@@ -202,40 +197,39 @@ class Cropper(QObject):
         is_tiff = file_path.suffix in {'.tif', '.tiff'}
 
         if job.multi_face_job.isChecked():
-            if (images := utils.multi_crop(frame, job, self.face_workers[0])) is None:
+            if (images := ut.multi_crop(frame, job, self.face_workers[0])) is None:
                 return None
 
             for i, image in enumerate(images):
                 new_file_path = file_path.with_stem(f'{file_path.stem}_{i}')
-                utils.save_frame(image, new_file_path, job, is_tiff)
-        elif (cropped_image := utils.crop_image(frame, job, self.face_workers[0])) is None:
+                ut.save_image(image, new_file_path, job.gamma, is_tiff)
+        elif (cropped_image := ut.crop_image(frame, job, self.face_workers[0])) is None:
             return None
-
         else:
-            utils.save_frame(cropped_image, file_path, job, is_tiff)
+            ut.save_image(cropped_image, file_path, job.gamma, is_tiff)
 
     def process_multiface_frame_job(self, frame: cvt.MatLike,
                                     job: Job,
                                     file_enum: str,
                                     destination: Path) -> None:
-        if (images := utils.multi_crop(frame, job, self.face_workers[0])) is None:
+        if (images := ut.multi_crop(frame, job, self.face_workers[0])) is None:
             file_enum = f'failed_{file_enum}'
-            file_path, is_tiff = utils.get_frame_path(destination, file_enum, job)
-            utils.save_frame(utils.convert_color_space(frame), file_path, job, is_tiff)
+            file_path, is_tiff = ut.get_frame_path(destination, file_enum, job)
+            ut.save_image(ut.convert_color_space(frame), file_path, job.gamma, is_tiff)
         else:
             for i, image in enumerate(images):
-                file_path, is_tiff = utils.get_frame_path(destination, f'{file_enum}_{i}', job)
-                utils.save_frame(utils.convert_color_space(image), file_path, job, is_tiff)
+                file_path, is_tiff = ut.get_frame_path(destination, f'{file_enum}_{i}', job)
+                ut.save_image(ut.convert_color_space(image), file_path, job.gamma, is_tiff)
 
     def process_singleface_frame_job(self, frame: cvt.MatLike,
                                      job: Job,
                                      file_enum: str,
                                      destination: Path) -> None:
         def callback(file_enum_str: str, cropped_image_data: cvt.MatLike) -> None:
-            file_path, is_tiff = utils.get_frame_path(destination, file_enum_str, job)
-            utils.save_frame(cropped_image_data, file_path, job, is_tiff)
+            file_path, is_tiff = ut.get_frame_path(destination, file_enum_str, job)
+            ut.save_image(cropped_image_data, file_path, job.gamma, is_tiff)
 
-        if (cropped_image := utils.crop_image(frame, job, self.face_workers[0])) is None:
+        if (cropped_image := ut.crop_image(frame, job, self.face_workers[0])) is None:
             callback(f'failed_{file_enum}', frame)
         else:
             callback(file_enum, cv2.cvtColor(cropped_image, cv2.COLOR_BGR2RGB))

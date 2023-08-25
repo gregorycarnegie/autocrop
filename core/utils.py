@@ -3,7 +3,7 @@ import pstats
 import shutil
 from functools import cache, lru_cache, wraps
 from pathlib import Path
-from typing import Any, Callable, List, Optional, Union, Generator, Tuple
+from typing import Any, Callable, Generator, List, Optional, Tuple, Union
 
 import autocrop_rs
 import cv2
@@ -380,12 +380,6 @@ def get_frame_path(destination: Path,
     file_str = f'{file_enum}.jpg' if job.radio_choice() == job.radio_options[0] else file_enum + job.radio_choice()
     file_path = destination.joinpath(file_str)
     return file_path, file_path.suffix in {'.tif', '.tiff'}
-
-def save_frame(image: cvt.MatLike,
-               file_path: Path,
-               job: Job,
-               is_tiff: bool) -> None:
-    save_image(image, file_path, job.gamma, is_tiff)
 
 def save_detection(source_image: Path,
                    job: Job,

@@ -1,20 +1,24 @@
 import re
-from typing import Optional, ClassVar
+from typing import ClassVar, Optional
 
 from PyQt6 import QtCore, QtWidgets
 
 from .literals import FileExtension
-from core import window_functions
+from core import window_functions as wf
 
 
 class ExtWidget(QtWidgets.QWidget):
-    RADIO_STYLESHEET: ClassVar[str] = """QRadioButton::indicator:checked{
-            image: url(resources/icons/file_string_checked.svg);
-            }
-            QRadioButton::indicator:unchecked{
-                image: url(resources/icons/file_string_unchecked.svg);
-            }"""
-    spacerItem = QtWidgets.QSpacerItem(
+    RADIO_STYLESHEET: ClassVar[str] = """QRadioButton::indicator:checked {
+        image: url(resources/icons/file_string_checked.svg);
+        }
+        QRadioButton::indicator:unchecked {
+            image: url(resources/icons/file_string_unchecked.svg);
+        }
+        QRadioButton::indicator {
+            width: 128px;
+            height: 128px;
+        }"""
+    spacerItem: ClassVar[QtWidgets.QSpacerItem] = QtWidgets.QSpacerItem(
         293, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
     def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
@@ -30,9 +34,8 @@ class ExtWidget(QtWidgets.QWidget):
         self.radioButton_4 = self.setup_radio_button('radioButton_4', 'png')
         self.radioButton_5 = self.setup_radio_button('radioButton_5', 'tiff')
         self.radioButton_6 = self.setup_radio_button('radioButton_6', 'webp')
-        window_functions.add_widgets(self.horizontalLayout,
-                                     self.radioButton_2, self.radioButton_3, self.radioButton_4,
-                                     self.radioButton_5, self.radioButton_6)
+        wf.add_widgets(self.horizontalLayout, self.radioButton_2, self.radioButton_3,
+                       self.radioButton_4, self.radioButton_5, self.radioButton_6)
         self.retranslateUi()
         QtCore.QMetaObject.connectSlotsByName(self)
 
@@ -45,6 +48,6 @@ class ExtWidget(QtWidgets.QWidget):
         style_sheet = re.sub('_string', f'_{file_type}', self.RADIO_STYLESHEET)
         radio_button.setStyleSheet(style_sheet)
         radio_button.setText('')
-        radio_button.setIconSize(QtCore.QSize(64, 64))
+        radio_button.setSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed)
         radio_button.setObjectName(name)
         return radio_button

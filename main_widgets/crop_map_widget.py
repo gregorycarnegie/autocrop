@@ -1,12 +1,14 @@
 from pathlib import Path
-from typing import Optional, Any, Union
+from typing import Any, Optional, Union
 
 import pandas as pd
 from PyQt6 import QtCore, QtWidgets
 
-from core import CustomDialWidget, DataFrameModel, ExtWidget, FunctionType, utils, window_functions
+from core import CustomDialWidget, DataFrameModel, ExtWidget, FunctionType
+from core import utils as ut
+from core import window_functions as wf
 from file_types import Photo, Table
-from line_edits import PathLineEdit, PathType, NumberLineEdit, LineEditState
+from line_edits import LineEditState, NumberLineEdit, PathLineEdit, PathType
 from core.cropper import Cropper
 from .crop_batch_widget import CropBatchWidget
 from .enums import ButtonType
@@ -45,11 +47,11 @@ class CropMapWidget(CropBatchWidget):
         self.gridLayout.addWidget(self.tableButton, 1, 1, 1, 1)
         self.verticalLayout_3.addLayout(self.gridLayout)
         self.horizontalLayout_3.addItem(self.spacerItem)
-        window_functions.add_widgets(self.horizontalLayout_3, self.mfaceCheckBox, self.tiltCheckBox, self.exposureCheckBox)
+        wf.add_widgets(self.horizontalLayout_3, self.mfaceCheckBox, self.tiltCheckBox, self.exposureCheckBox)
         self.verticalLayout_1.addLayout(self.horizontalLayout_3)
         self.imageWidget = self.setup_image_widget(parent=self.frame)
         self.verticalLayout_1.addWidget(self.imageWidget)
-        window_functions.add_widgets(self.horizontalLayout_2, self.cropButton, self.cancelButton)
+        wf.add_widgets(self.horizontalLayout_2, self.cropButton, self.cancelButton)
         self.verticalLayout_1.addLayout(self.horizontalLayout_2)
         self.verticalLayout_1.addWidget(self.progressBar)
         self.verticalLayout_1.setStretch(0, 1)
@@ -77,7 +79,7 @@ class CropMapWidget(CropBatchWidget):
         self.horizontalLayout_1.setStretch(0, 1)
         self.horizontalLayout_1.setStretch(1, 2)
         self.verticalLayout_3.addLayout(self.horizontalLayout_1)
-        window_functions.add_widgets(self.horizontalLayout_5, self.destinationLineEdit, self.destinationButton)
+        wf.add_widgets(self.horizontalLayout_5, self.destinationLineEdit, self.destinationButton)
         self.verticalLayout_3.addLayout(self.horizontalLayout_5)
 
         # Connections
@@ -100,7 +102,7 @@ class CropMapWidget(CropBatchWidget):
 
         self.retranslateUi()
         self.disable_buttons()
-        window_functions.change_widget_state(False, self.cropButton, self.cancelButton)
+        wf.change_widget_state(False, self.cropButton, self.cancelButton)
         QtCore.QMetaObject.connectSlotsByName(self)
 
     def retranslateUi(self):
@@ -128,12 +130,12 @@ class CropMapWidget(CropBatchWidget):
                        self.extWidget.radioButton_4, self.extWidget.radioButton_5, self.extWidget.radioButton_6,
                        self.cropButton, self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox)
         # Mapping start connection
-        self.crop_worker.mapping_started.connect(lambda: window_functions.disable_widget(*widget_list))
-        self.crop_worker.mapping_started.connect(lambda: window_functions.enable_widget(self.cancelButton))
+        self.crop_worker.mapping_started.connect(lambda: wf.disable_widget(*widget_list))
+        self.crop_worker.mapping_started.connect(lambda: wf.enable_widget(self.cancelButton))
         # Mapping end connection
-        self.crop_worker.mapping_finished.connect(lambda: window_functions.enable_widget(*widget_list))
-        self.crop_worker.mapping_finished.connect(lambda: window_functions.disable_widget(self.cancelButton))
-        self.crop_worker.mapping_finished.connect(lambda: window_functions.show_message_box(self.destination))
+        self.crop_worker.mapping_finished.connect(lambda: wf.enable_widget(*widget_list))
+        self.crop_worker.mapping_finished.connect(lambda: wf.disable_widget(self.cancelButton))
+        self.crop_worker.mapping_finished.connect(lambda: wf.show_message_box(self.destination))
         self.crop_worker.mapping_progress.connect(self.update_progress)
     
     def display_crop(self) -> None:
@@ -181,7 +183,7 @@ class CropMapWidget(CropBatchWidget):
 
         def update_widget_state(condition: bool, *widgets: QtWidgets.QWidget) -> None:
             for widget in widgets:
-                window_functions.change_widget_state(condition, widget)
+                wf.change_widget_state(condition, widget)
 
         # Mapping logic
         update_widget_state(
@@ -195,7 +197,7 @@ class CropMapWidget(CropBatchWidget):
         self.tableLineEdit.setText(f_name)
         if self.tableLineEdit.state is LineEditState.INVALID_INPUT:
             return None
-        data = utils.open_table((Path(f_name)))
+        data = ut.open_table((Path(f_name)))
         self.validate_pandas_file(data)
 
     def validate_pandas_file(self, data: Any) -> None:
@@ -225,7 +227,7 @@ class CropMapWidget(CropBatchWidget):
             self.run_batch_process(self.crop_worker.mapping_crop, lambda: self.crop_worker.reset_task(FunctionType.MAPPING), job)
 
         if Path(self.folderLineEdit.text()) == Path(self.destinationLineEdit.text()):
-            match window_functions.show_warning(FunctionType.MAPPING):
+            match wf.show_warning(FunctionType.MAPPING):
                 case QtWidgets.QMessageBox.StandardButton.Yes:
                     callback()
                 case _: return

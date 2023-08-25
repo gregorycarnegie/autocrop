@@ -1,6 +1,6 @@
-from typing import Optional, ClassVar
+from typing import ClassVar, Optional
 
-from PyQt6.QtWidgets import QLineEdit, QWidget, QToolButton, QStyle
+from PyQt6.QtWidgets import QLineEdit, QStyle, QToolButton, QWidget
 from PyQt6.QtGui import QIcon, QPixmap, QResizeEvent
 from PyQt6.QtCore import Qt
 

@@ -3,9 +3,10 @@ from typing import Optional, Union
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-from core import Cropper, CustomDialWidget, ExtWidget, FunctionType, window_functions
+from core import Cropper, CustomDialWidget, ExtWidget, FunctionType
+from core import window_functions as wf
 from file_types import Photo
-from line_edits import PathLineEdit, NumberLineEdit, LineEditState
+from line_edits import LineEditState, NumberLineEdit, PathLineEdit
 from .crop_batch_widget import CropBatchWidget
 from .enums import ButtonType
 
@@ -34,14 +35,14 @@ class CropFolderWidget(CropBatchWidget):
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self)
         self.verticalLayout_2.setObjectName('verticalLayout_2')
         self.folderLineEdit = self.setup_path_line_edit('folderLineEdit')
-        window_functions.add_widgets(self.horizontalLayout_1, self.folderLineEdit, self.folderButton)
+        wf.add_widgets(self.horizontalLayout_1, self.folderLineEdit, self.folderButton)
         self.verticalLayout_2.addLayout(self.horizontalLayout_1)
         self.horizontalLayout_4.addItem(self.spacerItem)
-        window_functions.add_widgets(self.horizontalLayout_4, self.mfaceCheckBox, self.tiltCheckBox, self.exposureCheckBox)
+        wf.add_widgets(self.horizontalLayout_4, self.mfaceCheckBox, self.tiltCheckBox, self.exposureCheckBox)
         self.verticalLayout_1.addLayout(self.horizontalLayout_4)
         self.imageWidget = self.setup_image_widget(parent=self.frame)
         self.verticalLayout_1.addWidget(self.imageWidget)
-        window_functions.add_widgets(self.horizontalLayout_5, self.cropButton, self.cancelButton)
+        wf.add_widgets(self.horizontalLayout_5, self.cropButton, self.cancelButton)
         self.verticalLayout_1.addLayout(self.horizontalLayout_5)
         self.verticalLayout_1.addWidget(self.progressBar)
         self.verticalLayout_1.setStretch(0, 1)
@@ -56,7 +57,7 @@ class CropFolderWidget(CropBatchWidget):
         self.horizontalLayout_3.setStretch(0, 4)
         self.horizontalLayout_3.setStretch(1, 3)
         self.verticalLayout_2.addLayout(self.horizontalLayout_3)
-        window_functions.add_widgets(self.horizontalLayout_2, self.destinationLineEdit, self.destinationButton)
+        wf.add_widgets(self.horizontalLayout_2, self.destinationLineEdit, self.destinationButton)
         self.verticalLayout_2.addLayout(self.horizontalLayout_2)
 
         # Connections
@@ -78,7 +79,7 @@ class CropFolderWidget(CropBatchWidget):
 
         self.retranslateUi()
         self.disable_buttons()
-        window_functions.change_widget_state(False, self.cropButton, self.cancelButton)
+        wf.change_widget_state(False, self.cropButton, self.cancelButton)
         QtCore.QMetaObject.connectSlotsByName(self)
 
     def retranslateUi(self):
@@ -102,12 +103,12 @@ class CropFolderWidget(CropBatchWidget):
                        self.extWidget.radioButton_5, self.extWidget.radioButton_6, self.cropButton,
                        self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox)
         # Folder start connection
-        self.crop_worker.folder_started.connect(lambda: window_functions.disable_widget(*widget_list))
-        self.crop_worker.folder_started.connect(lambda: window_functions.enable_widget(self.cancelButton))
+        self.crop_worker.folder_started.connect(lambda: wf.disable_widget(*widget_list))
+        self.crop_worker.folder_started.connect(lambda: wf.enable_widget(self.cancelButton))
         # Folder end connection
-        self.crop_worker.folder_finished.connect(lambda: window_functions.enable_widget(*widget_list))
-        self.crop_worker.folder_finished.connect(lambda: window_functions.disable_widget(self.cancelButton))
-        self.crop_worker.folder_finished.connect(lambda: window_functions.show_message_box(self.destination))
+        self.crop_worker.folder_finished.connect(lambda: wf.enable_widget(*widget_list))
+        self.crop_worker.folder_finished.connect(lambda: wf.disable_widget(self.cancelButton))
+        self.crop_worker.folder_finished.connect(lambda: wf.show_message_box(self.destination))
         self.crop_worker.folder_progress.connect(self.update_progress)
     
     def display_crop(self, selection: Optional[Path] = None) -> None:
@@ -150,7 +151,7 @@ class CropFolderWidget(CropBatchWidget):
 
         def update_widget_state(condition: bool, *widgets: QtWidgets.QWidget) -> None:
             for widget in widgets:
-                window_functions.change_widget_state(condition, widget)
+                wf.change_widget_state(condition, widget)
 
         # Folder logic
         update_widget_state(
@@ -167,7 +168,7 @@ class CropFolderWidget(CropBatchWidget):
             self.run_batch_process(self.crop_worker.crop_dir, lambda: self.crop_worker.reset_task(FunctionType.FOLDER), job)
 
         if Path(self.folderLineEdit.text()) == Path(self.destinationLineEdit.text()):
-            match window_functions.show_warning(FunctionType.FOLDER):
+            match wf.show_warning(FunctionType.FOLDER):
                 case QtWidgets.QMessageBox.StandardButton.Yes:
                     callback()
                 case _: return

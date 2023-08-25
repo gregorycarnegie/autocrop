@@ -1,13 +1,13 @@
-from typing import Optional
+from typing import ClassVar, Optional
 
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QPixmap, QGuiApplication, QMouseEvent, QColor
+from PyQt6.QtCore import pyqtSignal, Qt
+from PyQt6.QtGui import QColor, QGuiApplication, QMouseEvent, QPixmap
 from PyQt6.QtWidgets import QSplashScreen
 
 
 class ClickableSplashScreen(QSplashScreen):
     clicked = pyqtSignal()
-    image_path = 'resources\\logos\\logo.svg'
+    image_path: ClassVar[str] = 'resources\\logos\\logo.svg'
 
     def __init__(self):
         pixmap = self.get_scaled_pixmap(self.image_path)

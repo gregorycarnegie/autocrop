@@ -1,10 +1,10 @@
-from typing import Optional
+from typing import ClassVar, Optional
 
 from PyQt6 import QtCore, QtWidgets
 
 
 class CustomDialWidget(QtWidgets.QWidget):
-    spacerItem = QtWidgets.QSpacerItem(
+    spacerItem: ClassVar[QtWidgets.QSpacerItem] = QtWidgets.QSpacerItem(
         40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
     def __init__(self, _label: str,
                  _min: int = 1,

@@ -8,3 +8,4 @@ rawpy>=0.18.1
 tifffile>=2023.7.18
 maturin>=1.2.3
 dlib>=19.24.2
+qt-material>=2.14

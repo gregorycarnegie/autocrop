@@ -1,6 +1,6 @@
 from typing import Optional
 
-from PyQt6 import QtCore, QtWidgets, QtGui
+from PyQt6 import QtCore, QtGui, QtWidgets
 
 from .custom_line_edit import CustomLineEdit
     

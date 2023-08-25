@@ -2,9 +2,9 @@ from os import startfile
 from typing import Optional, Union
 from pathlib import Path
 
-from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtGui import QIcon, QPixmap
-from PyQt6.QtWidgets import QCheckBox, QMessageBox, QWidget, QPushButton, QHBoxLayout, QVBoxLayout
+from PyQt6.QtWidgets import QCheckBox, QHBoxLayout, QMessageBox, QPushButton, QVBoxLayout, QWidget
 
 from .enums import FunctionType
 from .dialog import UiDialog
@@ -59,8 +59,8 @@ def show_warning(function_type: FunctionType) -> int:
 def create_media_button(name: str,
                         icon_resource: MediaIconAlias,
                         layout: Union[QHBoxLayout, QVBoxLayout],
-                        size: int = 48,
-                        icon_size: int = 32,
+                        size: int = 88,
+                        icon_size: int = 58,
                         icon_mode: QIcon.Mode = QIcon.Mode.Normal,
                         icon_state: QIcon.State = QIcon.State.Off,
                         parent: Optional[QWidget] = None) -> QPushButton:

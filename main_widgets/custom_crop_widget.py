@@ -1,12 +1,13 @@
-from typing import Optional, Set, ClassVar
+from typing import ClassVar, Optional, Set
 from pathlib import Path
 
 import pandas as pd
-from PyQt6 import QtWidgets, QtCore, QtGui
+from PyQt6 import QtCore, QtGui, QtWidgets
 
-from core import CustomDialWidget, Cropper, ExtWidget, FunctionTabSelectionState, ImageWidget, Job, window_functions
+from core import Cropper, CustomDialWidget, ExtWidget, FunctionTabSelectionState, ImageWidget, Job
+from core import window_functions as wf
 from file_types import Photo
-from line_edits import PathLineEdit, NumberLineEdit, PathType
+from line_edits import NumberLineEdit, PathLineEdit, PathType
 from .enums import ButtonType
 
 
@@ -109,7 +110,7 @@ class CustomCropWidget(QtWidgets.QWidget):
                 return callback(button)
             case ButtonType.NAVIGATION_BUTTON:
                 button = QtWidgets.QPushButton(parent=self)
-                button.setMinimumSize(QtCore.QSize(124, 24))
+                button.setMinimumSize(QtCore.QSize(200, 24))
                 return callback(button)
 
     def setup_path_line_edit(self, name: str, path_type: PathType = PathType.FOLDER) -> PathLineEdit:
@@ -142,9 +143,9 @@ class CustomCropWidget(QtWidgets.QWidget):
         match input_widget:
             case self.mfaceCheckBox:
                 input_widget.clicked.connect(
-                    lambda: window_functions.uncheck_boxes(self.exposureCheckBox, self.tiltCheckBox))
+                    lambda: wf.uncheck_boxes(self.exposureCheckBox, self.tiltCheckBox))
             case self.exposureCheckBox | self.tiltCheckBox:
-                input_widget.clicked.connect(lambda: window_functions.uncheck_boxes(self.mfaceCheckBox))
+                input_widget.clicked.connect(lambda: wf.uncheck_boxes(self.mfaceCheckBox))
             case _: pass
 
     def connect_input_widgets(self, *input_widgets: QtWidgets.QWidget) -> None:
@@ -218,13 +219,11 @@ class CustomCropWidget(QtWidgets.QWidget):
                    start_position: Optional[float] = None,
                    stop_position: Optional[float] = None) -> Job:
         """Only sublasses of the CustomCropWidget class should implement this method"""
-        extensions = Photo.SAVE_TYPES
-        
         if destination and folder_path:
-            destination = self._handle_folder_path(destination, folder_path, extensions)
+            destination = self._handle_folder_path(destination, folder_path, Photo.SAVE_TYPES)
         
         if destination and video_path:
-            destination = self._handle_video_path(destination, video_path, extensions)
+            destination = self._handle_video_path(destination, video_path, Photo.SAVE_TYPES)
 
         self.destination = destination if destination is not None else self.destination
         

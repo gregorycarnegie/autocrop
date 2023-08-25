@@ -1,5 +1,5 @@
 from multiprocessing import Process
-from typing import Optional, Callable, Any, Tuple, ClassVar
+from typing import Any, Callable, ClassVar, Optional, Tuple
 
 from PyQt6 import QtCore, QtWidgets
 

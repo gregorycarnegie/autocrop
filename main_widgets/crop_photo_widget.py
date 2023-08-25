@@ -3,9 +3,10 @@ from typing import Optional, Union
 
 from PyQt6 import QtCore, QtWidgets
 
-from core import Cropper, CustomDialWidget, ExtWidget, FunctionType, window_functions
+from core import Cropper, CustomDialWidget, ExtWidget, FunctionType
+from core import window_functions as wf
 from file_types import Photo
-from line_edits import PathLineEdit, PathType, NumberLineEdit, LineEditState
+from line_edits import LineEditState, NumberLineEdit, PathLineEdit, PathType
 from .custom_crop_widget import CustomCropWidget
 from .enums import ButtonType
 
@@ -37,14 +38,14 @@ class CropPhotoWidget(CustomCropWidget):
         self.verticalLayout_2.addLayout(self.horizontalLayout_2)
         self.verticalLayout_1.setParent(self.frame)
         self.horizontalLayout_1.addItem(self.spacerItem)
-        window_functions.add_widgets(self.horizontalLayout_1, self.mfaceCheckBox, self.tiltCheckBox, self.exposureCheckBox)
+        wf.add_widgets(self.horizontalLayout_1, self.mfaceCheckBox, self.tiltCheckBox, self.exposureCheckBox)
         self.verticalLayout_1.addLayout(self.horizontalLayout_1)
         self.imageWidget = self.setup_image_widget(parent=self.frame)
-        window_functions.add_widgets(self.verticalLayout_1, self.imageWidget, self.cropButton)
+        wf.add_widgets(self.verticalLayout_1, self.imageWidget, self.cropButton)
         self.verticalLayout_1.setStretch(1, 1)
         self.verticalLayout_1.setStretch(2, 1)
         self.verticalLayout_2.addWidget(self.frame)
-        window_functions.add_widgets(self.horizontalLayout_3, self.destinationLineEdit, self.destinationButton)
+        wf.add_widgets(self.horizontalLayout_3, self.destinationLineEdit, self.destinationButton)
         self.verticalLayout_2.addLayout(self.horizontalLayout_3)
 
         # Connections
@@ -59,7 +60,7 @@ class CropPhotoWidget(CustomCropWidget):
                                    self.left_dialArea.dial, self.right_dialArea.dial)
         self.retranslateUi()
         self.disable_buttons()
-        window_functions.change_widget_state(False, self.cropButton)
+        wf.change_widget_state(False, self.cropButton)
         QtCore.QMetaObject.connectSlotsByName(self)
 
     def retranslateUi(self):
@@ -117,7 +118,7 @@ class CropPhotoWidget(CustomCropWidget):
 
         def update_widget_state(condition: bool, *widgets: QtWidgets.QWidget) -> None:
             for widget in widgets:
-                window_functions.change_widget_state(condition, widget)
+                wf.change_widget_state(condition, widget)
 
         # Photo logic
         update_widget_state(
@@ -134,7 +135,7 @@ class CropPhotoWidget(CustomCropWidget):
             self.crop_worker.photo_crop(Path(self.photoLineEdit.text()), job, self.crop_worker.face_workers[0])
 
         if Path(self.photoLineEdit.text()).parent == Path(self.destinationLineEdit.text()):
-            match window_functions.show_warning(FunctionType.PHOTO):
+            match wf.show_warning(FunctionType.PHOTO):
                 case QtWidgets.QMessageBox.StandardButton.Yes:
                     callback()
                 case _: return
