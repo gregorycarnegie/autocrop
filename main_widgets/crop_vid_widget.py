@@ -429,9 +429,10 @@ class CropVideoWidget(CropBatchWidget):
 
     def crop_frame(self) -> None:
         def callback():
-            job = self.create_job(self.exposureCheckBox, 
+            job = self.create_job(self.exposureCheckBox,
                                   self.mfaceCheckBox,
                                   self.tiltCheckBox,
+                                  FunctionType.FRAME,
                                   video_path=Path(self.videoLineEdit.text()),
                                   destination=Path(self.destinationLineEdit.text()))
             self.player.pause()
@@ -449,6 +450,7 @@ class CropVideoWidget(CropBatchWidget):
             job = self.create_job(self.exposureCheckBox,
                                   self.mfaceCheckBox,
                                   self.tiltCheckBox,
+                                  FunctionType.VIDEO,
                                   video_path=Path(self.videoLineEdit.text()),
                                   destination=Path(self.destinationLineEdit.text()),
                                   start_position=self.start_position,

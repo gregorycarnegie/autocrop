@@ -130,6 +130,7 @@ class CropPhotoWidget(CustomCropWidget):
             job = self.create_job(self.exposureCheckBox,
                                   self.mfaceCheckBox,
                                   self.tiltCheckBox,
+                                  FunctionType.PHOTO,
                                   photo_path=Path(self.photoLineEdit.text()),
                                   destination=Path(self.destinationLineEdit.text()))
             self.crop_worker.photo_crop(Path(self.photoLineEdit.text()), job, self.crop_worker.face_workers[0])

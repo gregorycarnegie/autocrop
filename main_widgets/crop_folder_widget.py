@@ -163,6 +163,7 @@ class CropFolderWidget(CropBatchWidget):
             job = self.create_job(self.exposureCheckBox,
                                   self.mfaceCheckBox,
                                   self.tiltCheckBox,
+                                  FunctionType.FOLDER,
                                   folder_path=Path(self.folderLineEdit.text()),
                                   destination=Path(self.destinationLineEdit.text()))
             self.run_batch_process(self.crop_worker.crop_dir, lambda: self.crop_worker.reset_task(FunctionType.FOLDER), job)

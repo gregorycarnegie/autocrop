@@ -219,6 +219,7 @@ class CropMapWidget(CropBatchWidget):
             job = self.create_job(self.exposureCheckBox,
                                   self.mfaceCheckBox,
                                   self.tiltCheckBox,
+                                  FunctionType.MAPPING,
                                   folder_path=Path(self.folderLineEdit.text()),
                                   destination=Path(self.destinationLineEdit.text()),
                                   table=self.data_frame,
