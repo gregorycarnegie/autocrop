@@ -135,7 +135,7 @@ class CropVideoWidget(CropBatchWidget):
         self.verticalLayout_2.setStretch(3, 2)
 
         # Connections
-        self.crop_worker.video_progress.connect(self.update_progress)
+        self.crop_worker.v_progress.connect(self.update_progress)
         self.player.positionChanged.connect(self.position_changed)
         self.player.durationChanged.connect(self.duration_changed)
         self.volumeSlider.sliderMoved.connect(self.volume_slider_changed)
@@ -218,13 +218,13 @@ class CropVideoWidget(CropBatchWidget):
                        self.goto_endButton, self.startmarkerButton, self.endmarkerButton, self.selectStartMarkerButton,
                        self.selectEndMarkerButton)
         # Video start connection
-        self.crop_worker.video_started.connect(lambda: wf.disable_widget(*widget_list))
-        self.crop_worker.video_started.connect(lambda: wf.enable_widget(self.cancelButton))
+        self.crop_worker.v_started.connect(lambda: wf.disable_widget(*widget_list))
+        self.crop_worker.v_started.connect(lambda: wf.enable_widget(self.cancelButton))
         # Video end connection
-        self.crop_worker.video_started.connect(lambda: wf.disable_widget(*widget_list))
-        self.crop_worker.video_finished.connect(lambda: wf.disable_widget(self.cancelButton))
-        self.crop_worker.video_finished.connect(lambda: wf.show_message_box(self.destination))
-        self.crop_worker.video_progress.connect(self.update_progress)
+        self.crop_worker.v_started.connect(lambda: wf.disable_widget(*widget_list))
+        self.crop_worker.v_finished.connect(lambda: wf.disable_widget(self.cancelButton))
+        self.crop_worker.v_finished.connect(lambda: wf.show_message_box(self.destination))
+        self.crop_worker.v_progress.connect(self.update_progress)
     
     def setup_label(self, name: str) -> QtWidgets.QLabel:
         label = QtWidgets.QLabel(parent=self)

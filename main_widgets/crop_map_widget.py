@@ -130,13 +130,13 @@ class CropMapWidget(CropBatchWidget):
                        self.extWidget.radioButton_4, self.extWidget.radioButton_5, self.extWidget.radioButton_6,
                        self.cropButton, self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox)
         # Mapping start connection
-        self.crop_worker.mapping_started.connect(lambda: wf.disable_widget(*widget_list))
-        self.crop_worker.mapping_started.connect(lambda: wf.enable_widget(self.cancelButton))
+        self.crop_worker.m_started.connect(lambda: wf.disable_widget(*widget_list))
+        self.crop_worker.m_started.connect(lambda: wf.enable_widget(self.cancelButton))
         # Mapping end connection
-        self.crop_worker.mapping_finished.connect(lambda: wf.enable_widget(*widget_list))
-        self.crop_worker.mapping_finished.connect(lambda: wf.disable_widget(self.cancelButton))
-        self.crop_worker.mapping_finished.connect(lambda: wf.show_message_box(self.destination))
-        self.crop_worker.mapping_progress.connect(self.update_progress)
+        self.crop_worker.m_finished.connect(lambda: wf.enable_widget(*widget_list))
+        self.crop_worker.m_finished.connect(lambda: wf.disable_widget(self.cancelButton))
+        self.crop_worker.m_finished.connect(lambda: wf.show_message_box(self.destination))
+        self.crop_worker.m_progress.connect(self.update_progress)
     
     def display_crop(self) -> None:
         job = self.create_job(self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox)

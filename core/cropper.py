@@ -23,9 +23,9 @@ class Cropper(QObject):
     THREAD_NUMBER: ClassVar[int] = min(cpu_count(), 8)
     TASK_VALUES: ClassVar[Tuple[int, bool, bool]] = 0, False, True
 
-    folder_started, folder_finished, folder_progress = pyqtSignal(), pyqtSignal(), pyqtSignal(object)
-    mapping_started, mapping_finished, mapping_progress = pyqtSignal(), pyqtSignal(), pyqtSignal(object)
-    video_started, video_finished, video_progress = pyqtSignal(), pyqtSignal(), pyqtSignal(object)
+    f_started, f_finished, f_progress = pyqtSignal(), pyqtSignal(), pyqtSignal(object)
+    m_started, m_finished, m_progress = pyqtSignal(), pyqtSignal(), pyqtSignal(object)
+    v_started, v_finished, v_progress = pyqtSignal(), pyqtSignal(), pyqtSignal(object)
 
     def __init__(self, parent: Optional[QObject]=None):
         super(Cropper, self).__init__(parent)
@@ -89,24 +89,24 @@ class Cropper(QObject):
             case FunctionType.FOLDER:
                 self.bar_value_f += 1
                 if self.bar_value_f == file_amount:
-                    self.folder_progress.emit((file_amount, file_amount))
-                    self.folder_finished.emit()
+                    self.f_progress.emit((file_amount, file_amount))
+                    self.f_finished.emit()
                 elif self.bar_value_f < file_amount:
-                    self.folder_progress.emit((self.bar_value_f, file_amount))
+                    self.f_progress.emit((self.bar_value_f, file_amount))
             case FunctionType.MAPPING:
                 self.bar_value_m += 1
                 if self.bar_value_m == file_amount:
-                    self.mapping_progress.emit((file_amount, file_amount))
-                    self.mapping_finished.emit()
+                    self.m_progress.emit((file_amount, file_amount))
+                    self.m_finished.emit()
                 elif self.bar_value_m < file_amount:
-                    self.mapping_progress.emit((self.bar_value_m, file_amount))
+                    self.m_progress.emit((self.bar_value_m, file_amount))
             case FunctionType.VIDEO:
                 self.bar_value_v += 1
                 if self.bar_value_v == file_amount:
-                    self.video_progress.emit((file_amount, file_amount))
-                    self.video_finished.emit()
+                    self.v_progress.emit((file_amount, file_amount))
+                    self.v_finished.emit()
                 elif self.bar_value_v < file_amount:
-                    self.video_progress.emit((self.bar_value_v, file_amount))
+                    self.v_progress.emit((self.bar_value_v, file_amount))
             case _: pass
     
     def folder_worker(self, file_amount: int,
@@ -127,8 +127,8 @@ class Cropper(QObject):
         file_list, amount = file_tuple
         split_array = np.array_split(file_list, self.THREAD_NUMBER)
         self.bar_value_f = 0
-        self.folder_progress.emit((self.bar_value_f, amount))
-        self.folder_started.emit()
+        self.f_progress.emit((self.bar_value_f, amount))
+        self.f_started.emit()
         
         threads: List[Thread] = []
         for i, array in enumerate(split_array):
@@ -160,8 +160,8 @@ class Cropper(QObject):
         old_file_list, new_file_list = ut.split_by_cpus(mask, self.THREAD_NUMBER, file_list1, file_list2)
         
         self.bar_value_m = 0
-        self.mapping_progress.emit((self.bar_value_m, amount))
-        self.mapping_started.emit()
+        self.m_progress.emit((self.bar_value_m, amount))
+        self.m_started.emit()
         
         threads: List[Thread] = []
         for i, _ in enumerate(old_file_list):
@@ -265,8 +265,8 @@ class Cropper(QObject):
         end_frame = int(job.stop_position * fps)
         frame_numbers = np.arange(start_frame, end_frame + 1)
 
-        self.video_progress.emit((0, frame_numbers.size))
-        self.video_started.emit()
+        self.v_progress.emit((0, frame_numbers.size))
+        self.v_started.emit()
 
         def progress_callback() -> None:
             self._update_progress(frame_numbers.size, FunctionType.VIDEO)
@@ -283,11 +283,11 @@ class Cropper(QObject):
         match series:
             case FunctionType.FOLDER:
                 self.end_f_task = True
-                self.folder_finished.emit()
+                self.f_finished.emit()
             case FunctionType.MAPPING:
                 self.end_m_task = True
-                self.mapping_finished.emit()
+                self.m_finished.emit()
             case FunctionType.VIDEO:
                 self.end_v_task = True
-                self.video_finished.emit()
+                self.v_finished.emit()
             case _: return None
