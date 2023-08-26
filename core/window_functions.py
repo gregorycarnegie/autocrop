@@ -2,13 +2,28 @@ from os import startfile
 from typing import Optional, Union
 from pathlib import Path
 
+import cv2.typing as cvt
 from PyQt6.QtCore import QSize, Qt
-from PyQt6.QtGui import QIcon, QPixmap
+from PyQt6.QtGui import QIcon, QImage, QPixmap
 from PyQt6.QtWidgets import QCheckBox, QHBoxLayout, QMessageBox, QPushButton, QVBoxLayout, QWidget
 
 from .enums import FunctionType
 from .dialog import UiDialog
+from .image_widget import ImageWidget
 from .literals import MediaIconAlias
+
+def display_image_on_widget(image: cvt.MatLike, image_widget: ImageWidget) -> None:
+    """
+    Display an OpenCV image on a Qt ImageWidget.
+    
+    Args:
+    - image (cvt.MatLike): OpenCV image to display.
+    - image_widget (ImageWidget): Qt widget where the image should be displayed.
+    """
+    height, width, channel = image.shape
+    bytes_per_line = channel * width
+    q_image = QImage(image.data, width, height, bytes_per_line, QImage.Format.Format_BGR888)
+    image_widget.setImage(QPixmap.fromImage(q_image))
 
 def add_widgets(base_widget: Union[QHBoxLayout, QVBoxLayout], *widgets: QWidget) -> None:
     for widget in widgets:

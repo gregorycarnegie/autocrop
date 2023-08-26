@@ -14,8 +14,8 @@ import pandas as pd
 import rawpy
 import tifffile as tiff
 from PIL import Image
-from PyQt6.QtGui import QImage, QPixmap
 
+from . import window_functions as wf
 from file_types import Photo
 from .face_worker import FaceWorker
 from .image_widget import ImageWidget
@@ -65,12 +65,6 @@ def numpy_array_crop(image: cvt.MatLike, bounding_box: Tuple[int, int, int, int]
     picture = Image.fromarray(image).crop(bounding_box)
     return pillow_to_numpy(picture)
 
-def display_image_on_widget(image: cvt.MatLike, image_widget: ImageWidget) -> None:
-    height, width, channel = image.shape
-    bytes_per_line = channel * width
-    q_image = QImage(image.data, width, height, bytes_per_line, QImage.Format.Format_BGR888)
-    image_widget.setImage(QPixmap.fromImage(q_image))
-
 def crop_and_set(image: cvt.MatLike,
                  bounding_box: Tuple[int, int, int, int],
                  gamma_value: int,
@@ -92,7 +86,7 @@ def crop_and_set(image: cvt.MatLike,
         final_image = convert_color_space(adjusted_image)
     except (cv2.error, Image.DecompressionBombError):
         return None
-    display_image_on_widget(final_image, image_widget)
+    wf.display_image_on_widget(final_image, image_widget)
 
 def correct_exposure(image: Union[cvt.MatLike, npt.NDArray[np.uint8]],
                      exposure: bool) -> cvt.MatLike:
@@ -286,16 +280,53 @@ def box(img: cvt.MatLike,
 def multi_box(image: cvt.MatLike,
               job: Job,
               face_worker: FaceWorker) -> cvt.MatLike:
+    """
+    Draw bounding boxes around detected faces in an image based on a given sensitivity threshold.
+    
+    Args:
+    - image (cvt.MatLike): Input image with potential faces.
+    - job (Job): Object containing detection sensitivity parameter.
+    - face_worker (FaceWorker): Worker object responsible for face detection.
+    
+    Returns:
+    - cvt.MatLike: Image with bounding boxes drawn around detected faces.
+    """
+    
     height, width = image.shape[:2]
     detections = prepare_detections(image, face_worker)
-    for i in range(detections.shape[2]):
-        # Confidence in the detection
-        if (confidence := detections[0, 0, i, 2]) * 100 > 100 - job.sensitivity: # Threshold
-            x0, y0, x1, y1 = get_box_coordinates(detections[0, 0, i, 3:7], width, height, job)
-            text = "{:.2f}%".format(confidence)
-            y = y0 - 10 if y0 > 20 else y0 + 10
-            cv2.rectangle(image, (x0, y0), (x1, y1), (0, 0, 255), 2)
-            cv2.putText(image, text, (x0, y), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 2)
+    threshold = 100 - job.sensitivity
+
+    x = range(detections.shape[2])
+    conf_array: Generator[np.float64 , None, None] = (detections[0, 0, i, 2] * 100 for i in x)
+    output_array: Generator[npt.NDArray[np.float_] , None, None] = (detections[0, 0, i, 3:7] for i in x)
+
+    for confidence, output in zip(conf_array, output_array):
+        if confidence > threshold:
+            x0, y0, x1, y1 = get_box_coordinates(output, width, height, job)
+            image = _draw_box_with_text(image, x0, y0, x1, y1, confidence)
+    return image
+
+def _draw_box_with_text(image: cvt.MatLike, x0: int, y0: int, x1: int, y1: int, confidence: np.float64) -> cvt.MatLike:
+    """
+    Draw a bounding box and confidence text on an image.
+    
+    Args:
+    - image (cvt.MatLike): Image on which to draw.
+    - x0, y0, x1, y1 (int): Bounding box coordinates.
+    - confidence (float): Detection confidence.
+    
+    Returns:
+    - cvt.MatLike: Image with bounding box and text.
+    """
+    RED_COLOR = 0, 0, 255
+    FONT_SCALE = .45
+    LINE_WIDTH = 2
+    TEXT_OFFSET = 10
+
+    text = "{:.2f}%".format(confidence)
+    y_text = y0 - TEXT_OFFSET if y0 > 20 else y0 + TEXT_OFFSET
+    cv2.rectangle(image, (x0, y0), (x1, y1), RED_COLOR, LINE_WIDTH)
+    cv2.putText(image, text, (x0, y_text), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, RED_COLOR, LINE_WIDTH)
     return image
 
 def multi_box_positions(image: cvt.MatLike,
@@ -318,11 +349,10 @@ def box_detect(img: cvt.MatLike,
         return None
     return box(img, width, height, job, face_worker)
 
-@cache
 def get_first_file(img_path: Path) -> Optional[Path]:
     files = np.fromiter(img_path.iterdir(), Path)
-    file = np.array([pic for pic in files if pic.suffix.lower() in Photo.file_types])
-    return file[0] if file.size > 0 else None
+    file: Generator[Path, None, None] = (pic for pic in files if pic.suffix.lower() in Photo.file_types)
+    return next(file, None)
 
 def mask_extensions(file_list: npt.NDArray[np.str_]) -> Tuple[npt.NDArray[np.bool_], int]:
     """Get the extensions of the file names and Create a mask that indicates which files have supported extensions."""
@@ -330,10 +360,20 @@ def mask_extensions(file_list: npt.NDArray[np.str_]) -> Tuple[npt.NDArray[np.boo
     return mask, file_list[mask].size
 
 def split_by_cpus(mask: npt.NDArray[np.bool_],
-                  cpu_count: int,
+                  core_count: int,
                   *file_lists: npt.NDArray[np.str_]) -> Generator[List[npt.NDArray[np.str_]], None, None]:
-    """Split the file list and the mapping data into chunks."""
-    return (np.array_split(file_list[mask], cpu_count) for file_list in file_lists)
+    """
+    Splits each file list into chunks based on a boolean mask and the given CPU count.
+    
+    Args:
+    - mask (np.ndarray): A boolean mask used to filter each file list.
+    - core_count (int): Number of CPUs to determine the number of chunks.
+    - *file_lists (np.ndarray): Multiple lists of files to be split.
+    
+    Returns:
+    - Generator: Yields chunks of files for each file list.
+    """
+    return (np.array_split(file_list[mask], core_count) for file_list in file_lists)
 
 @cache
 def set_filename(image_path: Path,
@@ -384,7 +424,7 @@ def get_frame_path(destination: Path,
 def save_detection(source_image: Path,
                    job: Job,
                    face_worker: FaceWorker,
-                   crop_function: Callable[[Union[cvt.MatLike, Path], Job, FaceWorker], Optional[Union[cvt.MatLike, List[cvt.MatLike]]]],
+                   crop_function: Callable[[Union[cvt.MatLike, Path], Job, FaceWorker], Optional[Union[cvt.MatLike, Generator[cvt.MatLike, None, None]]]],
                    save_function: Callable[[Any, Path, int, bool], None],
                    image_name: Optional[Path] = None,
                    new: Optional[str] = None) -> None:
@@ -413,7 +453,7 @@ def crop_image(image: Union[Path, cvt.MatLike],
 
 def multi_crop(source_image: Union[cvt.MatLike, Path],
                job: Job,
-               face_worker: FaceWorker) -> Optional[List[cvt.MatLike]]:
+               face_worker: FaceWorker) -> Optional[Generator[cvt.MatLike, None, None]]:
     img = open_pic(source_image, job.fix_exposure_job.isChecked(), job.auto_tilt_job.isChecked(), face_worker) \
                     if isinstance(source_image, Path) else source_image
     if img is None:
@@ -421,15 +461,14 @@ def multi_crop(source_image: Union[cvt.MatLike, Path],
     detections, crop_positions = multi_box_positions(img, job, face_worker)
     # Check if any faces were detected
     if not np.any(100 * detections[0, 0, :, 2] > (100 - job.sensitivity)): return None
-    images = [Image.fromarray(img).crop(crop_position) for crop_position in crop_positions]
-
-    image_array = [pillow_to_numpy(image) for image in images]
-
-    results = [convert_color_space(array) for array in image_array]
-
-    output: List[cvt.MatLike] = [cv2.resize(src=result, dsize=job.size, interpolation=cv2.INTER_AREA)
-                                 for result in results]
-    return output
+    # Cropped images
+    images = (Image.fromarray(img).crop(crop_position) for crop_position in crop_positions)
+    # images as numpy arrays
+    image_array: Generator[npt.NDArray[np.uint8], None, None] = (pillow_to_numpy(image) for image in images)
+    # numpy arrays with collour space converted
+    results: Generator[cvt.MatLike, None, None] = (convert_color_space(array) for array in image_array)
+    # return resized results
+    return (cv2.resize(src=result, dsize=job.size, interpolation=cv2.INTER_AREA) for result in results)
 
 def crop(image: Path,
          job: Job,

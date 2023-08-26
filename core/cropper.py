@@ -3,7 +3,7 @@ from functools import cache
 from multiprocessing import cpu_count
 from pathlib import Path
 from threading import Thread
-from typing import Any, Callable, ClassVar, List, Optional, Tuple, Union
+from typing import Any, Callable, ClassVar, Generator, List, Optional, Tuple, Union
 
 import cv2
 import cv2.typing as cvt
@@ -13,6 +13,7 @@ from PyQt6.QtCore import pyqtSignal, QObject
 from PyQt6.QtWidgets import QLabel, QLineEdit, QSlider
 
 from . import utils as ut
+from . import window_functions as wf
 from .enums import FunctionType
 from .face_worker import FaceWorker
 from .image_widget import ImageWidget
@@ -77,7 +78,7 @@ class Cropper(QObject):
         if job.multi_face_job.isChecked():
             adjusted = ut.convert_color_space(pic_array)
             pic = ut.multi_box(adjusted, job, self.face_workers[0])
-            ut.display_image_on_widget(pic, image_widget)
+            wf.display_image_on_widget(pic, image_widget)
         else:
             bounding_box = ut.box_detect(pic_array, job, self.face_workers[0])
             if bounding_box is None: return None
@@ -125,16 +126,18 @@ class Cropper(QObject):
     def crop_dir(self, job: Job) -> None:
         if (file_tuple := job.file_list()) is None: return None
         file_list, amount = file_tuple
+        # Split the file list into chunks.
         split_array = np.array_split(file_list, self.THREAD_NUMBER)
+
         self.bar_value_f = 0
         self.f_progress.emit((self.bar_value_f, amount))
         self.f_started.emit()
         
-        threads: List[Thread] = []
-        for i, array in enumerate(split_array):
-            t = Thread(target=self.folder_worker, args=(amount, array, job, self.face_workers[i]))
-            threads.append(t)
-            t.start()
+        threads: Generator[Thread, None, None] = (
+            Thread(target=self.folder_worker, args=(amount, split_array[i], job, self.face_workers[i]))
+            for i in range(len(split_array)))
+        for t in threads:
+            t.start() 
 
     def mapping_worker(self, file_amount: int,
                        old: npt.NDArray[np.str_],
@@ -151,8 +154,8 @@ class Cropper(QObject):
             self.message_box_m = False
 
     def mapping_crop(self, job: Job) -> None:
-        if (g := job.file_list_to_numpy()) is None: return None
-        file_list1, file_list2 = g
+        if (file_tuple := job.file_list_to_numpy()) is None: return None
+        file_list1, file_list2 = file_tuple
         # Get the extensions of the file names and 
         # Create a mask that indicates which files have supported extensions.
         mask, amount = ut.mask_extensions(file_list1)
@@ -163,10 +166,10 @@ class Cropper(QObject):
         self.m_progress.emit((self.bar_value_m, amount))
         self.m_started.emit()
         
-        threads: List[Thread] = []
-        for i, _ in enumerate(old_file_list):
-            t = Thread(target=self.mapping_worker, args=(amount, _, new_file_list[i], job, self.face_workers[i]))
-            threads.append(t)
+        threads: Generator[Thread, None, None] = (
+            Thread(target=self.mapping_worker, args=(amount, old_file_list[i], new_file_list[i], job, self.face_workers[i]))
+            for i in range(len(new_file_list)))
+        for t in threads:
             t.start()
 
     @cache

@@ -75,7 +75,7 @@ class Job(NamedTuple):
         """
         if self.folder_path is not None:
             x = np.fromiter(self.folder_path.iterdir(), Path)
-            y = np.array([pic.suffix.lower() in Photo.file_types for pic in x])
+            y: npt.NDArray[np.bool_] = np.array([pic.suffix.lower() in Photo.file_types for pic in x])
             result = x[y]
             return result, len(result)
         return None
@@ -90,7 +90,7 @@ class Job(NamedTuple):
         Returns:
             str: The selected image format.
         """
-        x = np.array([r.isChecked() for r in self.radio_buttons])
+        x: npt.NDArray[np.bool_] = np.array([r.isChecked() for r in self.radio_buttons])
         return self.radio_options[x][0]
     
     @property
@@ -123,7 +123,7 @@ class Job(NamedTuple):
         def table_to_numpy(table: pd.DataFrame,
                            column_1: str,
                            column_2: str) -> Tuple[npt.NDArray[np.str_], npt.NDArray[np.str_]]:
-            return table[column_1].to_numpy().astype(str), table[column_2].to_numpy().astype(str) # type: ignore
+            return table[column_1].to_numpy().astype(str), table[column_2].to_numpy().astype(str)
         
         if (not isinstance(self.table, pd.DataFrame)
             or not isinstance(self.column1, QComboBox)
