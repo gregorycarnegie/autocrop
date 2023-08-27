@@ -425,32 +425,22 @@ class UiMainWindow(QtWidgets.QMainWindow):
                        self.top_dialArea, self.bottom_dialArea, self.left_dialArea, self.right_dialArea)
         icon = QtGui.QIcon()
 
-        def callback(_tab: CustomCropWidget, _tab_name: str, _icon_name: str):
-            _tab.setObjectName(_tab_name)
-            icon.addPixmap(QtGui.QPixmap(f'resources\\icons\\{_icon_name}.svg'), QtGui.QIcon.Mode.Normal,
-                           QtGui.QIcon.State.Off)
-            tab_widget.addTab(_tab, icon, '')
-
         match function_type:
             case FunctionType.PHOTO | FunctionType.FRAME:
                 tab = CropPhotoWidget(*widget_list, parent=self)
-                tab_name, icon_name = 'photoTab', 'picture'
-                callback(tab, tab_name, icon_name)
+                wf.create_tab(tab_widget, tab, icon, tab_name='photoTab', icon_name='picture')
                 return tab, icon
             case FunctionType.FOLDER:
                 tab = CropFolderWidget(*widget_list, parent=self)
-                tab_name, icon_name = 'folder_Tab', 'folder'
-                callback(tab, tab_name, icon_name)
+                wf.create_tab(tab_widget, tab, icon, tab_name='folder_Tab', icon_name='folder')
                 return tab, icon
             case FunctionType.MAPPING:
                 tab = CropMapWidget(*widget_list, parent=self)
-                tab_name, icon_name = 'mappingTab', 'excel'
-                callback(tab, tab_name, icon_name)
+                wf.create_tab(tab_widget, tab, icon, tab_name='mappingTab', icon_name='excel')
                 return tab, icon
             case FunctionType.VIDEO:
                 tab = CropVideoWidget(*widget_list, parent=self)
-                tab_name, icon_name = 'videoTab', 'clapperboard'
-                callback(tab, tab_name, icon_name)
+                wf.create_tab(tab_widget, tab, icon, tab_name='videoTab', icon_name='clapperboard')
                 return tab, icon
 
     def connect_combo_boxes(self, tab_widget: CustomCropWidget) -> None:

@@ -8,7 +8,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 from .enums import FunctionType
 from .dialog import UiDialog
 from .image_widget import ImageWidget
-from .literals import MediaIconAlias
+from .literals import MediaIconAlias, TabIconAlias
 
 
 def display_image_on_widget(image: cvt.MatLike, image_widget: ImageWidget) -> None:
@@ -135,3 +135,14 @@ def setup_frame(name: str, *, parent: QtWidgets.QWidget) -> QtWidgets.QFrame:
     frame.setFrameShadow(QtWidgets.QFrame.Shadow.Raised)
     frame.setObjectName(name)
     return frame
+
+
+def create_tab(tab_widget: QtWidgets.QTabWidget,
+               tab: QtWidgets.QWidget,
+               icon: QtGui.QIcon, *,
+               tab_name: str,
+               icon_name: TabIconAlias) -> None:
+    tab.setObjectName(tab_name)
+    icon.addPixmap(QtGui.QPixmap(f'resources\\icons\\{icon_name}.svg'), QtGui.QIcon.Mode.Normal,
+                    QtGui.QIcon.State.Off)
+    tab_widget.addTab(tab, icon, '')
