@@ -468,8 +468,8 @@ def multi_crop(source_image: Union[cvt.MatLike, Path],
     detections, crop_positions = multi_box_positions(img, job, face_worker)
     # Check if any faces were detected
     x = 100 * detections[0, 0, :, 2] > job.threshold
-
     if not x.any(): return None
+    
     # Cropped images
     images = (Image.fromarray(img).crop(crop_position) for crop_position in crop_positions)
     # images as numpy arrays
