@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import QWidget
 
 
 class ImageWidget(QWidget):
-    def __init__(self, parent: Optional[QWidget]=None):
+    def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.image: Optional[QPixmap] = None
 

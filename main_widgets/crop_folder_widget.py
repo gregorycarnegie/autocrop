@@ -68,7 +68,7 @@ class CropFolderWidget(CropBatchWidget):
         self.cropButton.clicked.connect(lambda: self.folder_process())
         self.cancelButton.clicked.connect(lambda: self.crop_worker.terminate(FunctionType.FOLDER))
         self.cancelButton.clicked.connect(lambda: self.cancel_button_operation(self.cancelButton, self.cropButton))
-                                          
+
         self.connect_input_widgets(self.folderLineEdit, self.widthLineEdit, self.heightLineEdit,
                                    self.destinationLineEdit, self.exposureCheckBox, self.mfaceCheckBox,
                                    self.tiltCheckBox, self.sensitivity_dialArea.dial, self.face_dialArea.dial,
@@ -110,7 +110,7 @@ class CropFolderWidget(CropBatchWidget):
         self.crop_worker.f_finished.connect(lambda: wf.disable_widget(self.cancelButton))
         self.crop_worker.f_finished.connect(lambda: wf.show_message_box(self.destination))
         self.crop_worker.f_progress.connect(self.update_progress)
-    
+
     def display_crop(self, selection: Optional[Path] = None) -> None:
         job = self.create_job(self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox)
         if selection is None:
@@ -120,7 +120,7 @@ class CropFolderWidget(CropBatchWidget):
 
     def load_data(self) -> None:
         try:
-            f_name =  self.folderLineEdit.text()
+            f_name = self.folderLineEdit.text()
             self.file_model.setRootPath(f_name)
             self.treeView.setRootIndex(self.file_model.index(f_name))
             self.display_crop()
@@ -132,6 +132,7 @@ class CropFolderWidget(CropBatchWidget):
             if not input_path.as_posix():
                 return None
             self.display_crop(input_path)
+
         if not self.widthLineEdit.text() or not self.heightLineEdit.text():
             return None
         if self.selection_state == self.NOT_SELECTED:
@@ -166,11 +167,13 @@ class CropFolderWidget(CropBatchWidget):
                                   FunctionType.FOLDER,
                                   folder_path=Path(self.folderLineEdit.text()),
                                   destination=Path(self.destinationLineEdit.text()))
-            self.run_batch_process(self.crop_worker.crop_dir, lambda: self.crop_worker.reset_task(FunctionType.FOLDER), job)
+            self.run_batch_process(self.crop_worker.crop_dir, lambda: self.crop_worker.reset_task(FunctionType.FOLDER),
+                                   job)
 
         if Path(self.folderLineEdit.text()) == Path(self.destinationLineEdit.text()):
             match wf.show_warning(FunctionType.FOLDER):
                 case QtWidgets.QMessageBox.StandardButton.Yes:
                     callback()
-                case _: return
+                case _:
+                    return
         callback()

@@ -20,6 +20,7 @@ class ExtWidget(QtWidgets.QWidget):
         }"""
     spacerItem: ClassVar[QtWidgets.QSpacerItem] = QtWidgets.QSpacerItem(
         293, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
+
     def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
         self.setObjectName('Form')
@@ -42,7 +43,7 @@ class ExtWidget(QtWidgets.QWidget):
     def retranslateUi(self):
         _translate = QtCore.QCoreApplication.translate
         self.setWindowTitle(_translate('Form', 'Form'))
-    
+
     def setup_radio_button(self, name: str, file_type: FileExtension) -> QtWidgets.QRadioButton:
         radio_button = QtWidgets.QRadioButton(parent=self)
         style_sheet = re.sub('_string', f'_{file_type}', self.RADIO_STYLESHEET)

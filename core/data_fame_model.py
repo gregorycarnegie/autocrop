@@ -6,18 +6,18 @@ from PyQt6.QtWidgets import QWidget
 
 
 class DataFrameModel(QAbstractTableModel):
-    def __init__(self, df: pd.DataFrame, parent: Optional[QWidget]=None):
+    def __init__(self, df: pd.DataFrame, parent: Optional[QWidget] = None):
         super(DataFrameModel, self).__init__(parent)
         self._df = df
 
-    def rowCount(self, parent: Optional[QModelIndex]=None):
+    def rowCount(self, parent: Optional[QModelIndex] = None):
         return self._df.shape[0]
 
-    def columnCount(self, parent: Optional[QModelIndex]=None):
+    def columnCount(self, parent: Optional[QModelIndex] = None):
         return self._df.shape[1]
 
     def data(self, index: QModelIndex,
-             role: int=Qt.ItemDataRole.DisplayRole) -> Optional[str]:
+             role: int = Qt.ItemDataRole.DisplayRole) -> Optional[str]:
         if index.isValid() and role == Qt.ItemDataRole.DisplayRole:
             return str(self._df.iloc[index.row(), index.column()])
         return None
@@ -31,10 +31,10 @@ class DataFrameModel(QAbstractTableModel):
                     return str(self._df.index[section])
         except IndexError:
             return None
-    
+
     def headerData(self, section: int,
                    orientation: Qt.Orientation,
-                   role: int=Qt.ItemDataRole.DisplayRole) -> Optional[str]:
+                   role: int = Qt.ItemDataRole.DisplayRole) -> Optional[str]:
         match role:
             case Qt.ItemDataRole.DisplayRole:
                 return self.load_dataframe(section, orientation)

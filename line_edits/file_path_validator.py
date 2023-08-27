@@ -12,7 +12,7 @@ class FilePathValidator(QValidator):
             assert isinstance(a0, str)
         except AssertionError:
             a0 = ''
-        
+
         if self.INVALID_CHARS_PATTERN.search(a0):
             return QValidator.State.Invalid, a0, a1
         return QValidator.State.Acceptable, a0, a1

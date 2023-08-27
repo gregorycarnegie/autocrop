@@ -3,10 +3,10 @@ from typing import Optional
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from .custom_line_edit import CustomLineEdit
-    
+
 
 class NumberLineEdit(CustomLineEdit):
-    def __init__(self, name: str, parent: Optional[QtWidgets.QWidget]=None):
+    def __init__(self, name: str, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
         self.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhDigitsOnly)
         self.setValidator(QtGui.QIntValidator(parent=self))

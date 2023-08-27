@@ -11,7 +11,7 @@ from .enums import ButtonType
 
 class CropBatchWidget(CustomCropWidget):
     PROGRESSBAR_STEPS: ClassVar[int] = 1_000
-    
+
     def __init__(self, crop_worker: Cropper,
                  width_line_edit: NumberLineEdit,
                  height_line_edit: NumberLineEdit,

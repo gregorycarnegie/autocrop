@@ -92,11 +92,11 @@ class Job(NamedTuple):
         """
         x: npt.NDArray[np.bool_] = np.array([r.isChecked() for r in self.radio_buttons])
         return self.radio_options[x][0]
-    
+
     @property
     def size(self) -> Tuple[int, int]:
         return self.width, self.height
-    
+
     @property
     def threshold(self) -> int:
         return 100 - self.sensitivity
@@ -115,7 +115,7 @@ class Job(NamedTuple):
             return None
         self.destination.mkdir(exist_ok=True)
         return self.destination
-    
+
     def file_list_to_numpy(self) -> Optional[Tuple[npt.NDArray[np.str_], npt.NDArray[np.str_]]]:
         """
         Converts the specified DataFrame columns to numpy arrays.
@@ -124,13 +124,14 @@ class Job(NamedTuple):
             tuple(numpy.ndarray, numpy.ndarray): Two numpy arrays representing the specified DataFrame columns.
             None: If 'table', 'column1', or 'column2' is not in the expected format.
         """
+
         def table_to_numpy(table: pd.DataFrame,
                            column_1: str,
                            column_2: str) -> Tuple[npt.NDArray[np.str_], npt.NDArray[np.str_]]:
             return table[column_1].to_numpy().astype(str), table[column_2].to_numpy().astype(str)
-        
+
         if (not isinstance(self.table, pd.DataFrame)
-            or not isinstance(self.column1, QComboBox)
-            or not isinstance(self.column2, QComboBox)):
+                or not isinstance(self.column1, QComboBox)
+                or not isinstance(self.column2, QComboBox)):
             return None
         return table_to_numpy(self.table, self.column1.currentText(), self.column2.currentText())

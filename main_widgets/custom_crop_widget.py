@@ -32,7 +32,7 @@ class CustomCropWidget(QtWidgets.QWidget):
             QCheckBox::indicator:unchecked:hover{
                     image: url(resources/icons/checkbox_unchecked_hover.svg);
             }"""
-    
+
     def __init__(self, crop_worker: Cropper,
                  width_line_edit: NumberLineEdit,
                  height_line_edit: NumberLineEdit,
@@ -85,16 +85,17 @@ class CustomCropWidget(QtWidgets.QWidget):
         image_widget.setStyleSheet('')
         image_widget.setObjectName('imageWidget')
         return image_widget
-    
+
     @staticmethod
     def setup_hbox(name: str) -> QtWidgets.QHBoxLayout:
         horizontal_layout = QtWidgets.QHBoxLayout()
         horizontal_layout.setObjectName(name)
         return horizontal_layout
-    
-    def setup_process_button(self, name: str, icon_name: str,  button_type: ButtonType) -> QtWidgets.QPushButton: 
+
+    def setup_process_button(self, name: str, icon_name: str, button_type: ButtonType) -> QtWidgets.QPushButton:
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(f'resources\\icons\\{icon_name}.svg'), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon.addPixmap(QtGui.QPixmap(f'resources\\icons\\{icon_name}.svg'), QtGui.QIcon.Mode.Normal,
+                       QtGui.QIcon.State.Off)
 
         def callback(btn: QtWidgets.QPushButton) -> QtWidgets.QPushButton:
             btn.setMaximumSize(QtCore.QSize(16_777_215, 24))
@@ -146,7 +147,8 @@ class CustomCropWidget(QtWidgets.QWidget):
                     lambda: wf.uncheck_boxes(self.exposureCheckBox, self.tiltCheckBox))
             case self.exposureCheckBox | self.tiltCheckBox:
                 input_widget.clicked.connect(lambda: wf.uncheck_boxes(self.mfaceCheckBox))
-            case _: pass
+            case _:
+                pass
 
     def connect_input_widgets(self, *input_widgets: QtWidgets.QWidget) -> None:
         """Only sublasses of the CustomCropWidget class should implement this method"""
@@ -159,7 +161,8 @@ class CustomCropWidget(QtWidgets.QWidget):
                     input_widget.valueChanged.connect(lambda: self.reload_widgets())
                 case QtWidgets.QCheckBox():
                     self.connect_checkboxs(input_widget)
-                case _: pass
+                case _:
+                    pass
 
     @staticmethod
     def _get_file_names_without_extension(directory: Path) -> Set[str]:
@@ -232,7 +235,7 @@ class CustomCropWidget(QtWidgets.QWidget):
                     pass
 
         self.destination = destination if destination is not None else self.destination
-        
+
         return Job(self.widthLineEdit.value(),
                    self.heightLineEdit.value(),
                    exposure,

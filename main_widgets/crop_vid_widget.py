@@ -72,12 +72,12 @@ class CropVideoWidget(CropBatchWidget):
         self.durationLabel = QtWidgets.QLabel(parent=self.frame)
         self.durationLabel.setObjectName('durationLabel')
         wf.add_widgets(self.horizontalLayout_1, self.muteButton, self.volumeSlider,
-                                     self.positionLabel, self.timelineSlider, self.durationLabel)
+                       self.positionLabel, self.timelineSlider, self.durationLabel)
         spacerItem = QtWidgets.QSpacerItem(
             40, 20, QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Minimum)
         self.horizontalLayout_1.addItem(spacerItem)
         wf.add_widgets(self.horizontalLayout_1, self.mfaceCheckBox,
-                                     self.tiltCheckBox, self.exposureCheckBox)
+                       self.tiltCheckBox, self.exposureCheckBox)
         self.verticalLayout_1.addLayout(self.horizontalLayout_1)
         self.videoWidget = QVideoWidget(parent=self.frame)
         self.videoWidget.setStyleSheet('background: #1f2c33')
@@ -150,7 +150,7 @@ class CropVideoWidget(CropBatchWidget):
 
         self.connect_input_widgets(self.widthLineEdit, self.heightLineEdit, self.destinationLineEdit,
                                    self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox)
-        
+
         # Media connections
         self.audio.mutedChanged.connect(lambda: self.change_audio_icon())
         self.player.playbackStateChanged.connect(
@@ -166,7 +166,7 @@ class CropVideoWidget(CropBatchWidget):
         self.playButton.clicked.connect(lambda: self.change_playback_state())
         self.playButton.clicked.connect(
             lambda: wf.change_widget_state(
-                True, self.stopButton, self.stepbackButton,  self.stepfwdButton, self.fastfwdButton,
+                True, self.stopButton, self.stepbackButton, self.stepfwdButton, self.fastfwdButton,
                 self.goto_beginingButton, self.goto_endButton, self.startmarkerButton, self.endmarkerButton,
                 self.selectEndMarkerButton, self.selectStartMarkerButton))
         self.stopButton.clicked.connect(lambda: self.stop_playback())
@@ -205,7 +205,7 @@ class CropVideoWidget(CropBatchWidget):
         self.destinationButton.setText(_translate('Form', 'Destination Folder'))
         self.selectStartMarkerButton.setText(_translate('Form', '00:00:00'))
         self.selectEndMarkerButton.setText(_translate('Form', '00:00:00'))
-    
+
     def connect_crop_worker(self) -> None:
         widget_list = (self.widthLineEdit, self.heightLineEdit, self.sensitivity_dialArea.dial, self.face_dialArea.dial,
                        self.gamma_dialArea.dial, self.top_dialArea.dial, self.bottom_dialArea.dial,
@@ -225,7 +225,7 @@ class CropVideoWidget(CropBatchWidget):
         self.crop_worker.v_finished.connect(lambda: wf.disable_widget(self.cancelButton))
         self.crop_worker.v_finished.connect(lambda: wf.show_message_box(self.destination))
         self.crop_worker.v_progress.connect(self.update_progress)
-    
+
     def setup_label(self, name: str) -> QtWidgets.QLabel:
         label = QtWidgets.QLabel(parent=self)
         sizePolicy = QtWidgets.QSizePolicy(
@@ -240,7 +240,7 @@ class CropVideoWidget(CropBatchWidget):
         label.setScaledContents(True)
         label.setObjectName(f'label_{name.upper()}')
         return label
-    
+
     def open_folder(self, line_edit: PathLineEdit) -> None:
         self.check_playback_state()
         f_name = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Directory', Photo.default_directory)
@@ -264,7 +264,8 @@ class CropVideoWidget(CropBatchWidget):
 
     def playback_bool(self,
                       a0: QtMultimedia.QMediaPlayer.PlaybackState = QtMultimedia.QMediaPlayer.PlaybackState.PausedState,
-                      a1: QtMultimedia.QMediaPlayer.PlaybackState = QtMultimedia.QMediaPlayer.PlaybackState.StoppedState) -> Tuple[bool, bool]:
+                      a1: QtMultimedia.QMediaPlayer.PlaybackState = QtMultimedia.QMediaPlayer.PlaybackState.StoppedState) -> \
+    Tuple[bool, bool]:
         """Returns a tuple of bools comparing the playback state to the Class attributes of PyQt6.QtMultimedia.QMediaPlayer.PlaybackState"""
         return self.player.playbackState() == a0, self.player.playbackState() == a1
 
@@ -293,7 +294,7 @@ class CropVideoWidget(CropBatchWidget):
         x, y = self.playback_bool()
         for button in buttons:
             button.setDisabled(x ^ y)
-        
+
         for button in (self.stopButton, self.fastfwdButton):
             button.setEnabled(x)
 
@@ -322,7 +323,7 @@ class CropVideoWidget(CropBatchWidget):
             self.player.setPosition(self.player.duration())
         else:
             self.player.setPosition(new_position)
-    
+
     def step_back(self):
         if (new_position := self.player.position() - 10_000) <= 0:
             self.player.setPosition(0)
@@ -340,7 +341,7 @@ class CropVideoWidget(CropBatchWidget):
             hours, minutes = divmod(minutes, 60)
             self.timelineSlider.blockSignals(False)
             self.positionLabel.setText(QtCore.QTime(hours, minutes, seconds).toString())
-        
+
         thread = Thread(target=callback)
         thread.start()
 
@@ -401,7 +402,7 @@ class CropVideoWidget(CropBatchWidget):
             self.player.setPosition(0)
         else:
             self.player.setPosition(int(x))
-           
+
     def connect_input_widgets(self, *input_widgets: QtWidgets.QWidget) -> None:
         for input_widget in input_widgets:
             match input_widget:
@@ -409,8 +410,9 @@ class CropVideoWidget(CropBatchWidget):
                     input_widget.textChanged.connect(lambda: self.disable_buttons())
                 case QtWidgets.QCheckBox():
                     self.connect_checkboxs(input_widget)
-                case _: pass
- 
+                case _:
+                    pass
+
     def disable_buttons(self) -> None:
         def all_filled(*line_edits: Union[PathLineEdit, NumberLineEdit, QtWidgets.QComboBox]) -> bool:
             x = all(edit.state == LineEditState.VALID_INPUT
@@ -442,7 +444,8 @@ class CropVideoWidget(CropBatchWidget):
             match wf.show_warning(FunctionType.FRAME):
                 case QtWidgets.QMessageBox.StandardButton.Yes:
                     callback()
-                case _: return
+                case _:
+                    return
         callback()
 
     def video_process(self) -> None:
@@ -456,11 +459,13 @@ class CropVideoWidget(CropBatchWidget):
                                   start_position=self.start_position,
                                   stop_position=self.stop_position)
             self.player.pause()
-            self.run_batch_process(self.crop_worker.extract_frames, lambda: self.crop_worker.reset_task(FunctionType.VIDEO), job)
+            self.run_batch_process(self.crop_worker.extract_frames,
+                                   lambda: self.crop_worker.reset_task(FunctionType.VIDEO), job)
 
         if Path(self.videoLineEdit.text()).parent == Path(self.destinationLineEdit.text()):
             match wf.show_warning(FunctionType.VIDEO):
                 case QtWidgets.QMessageBox.StandardButton.Yes:
                     callback()
-                case _: return
+                case _:
+                    return
         callback()

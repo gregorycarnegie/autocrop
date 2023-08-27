@@ -91,7 +91,7 @@ class CropMapWidget(CropBatchWidget):
         self.cancelButton.clicked.connect(
             lambda: self.cancel_button_operation(self.cancelButton, self.cropButton))
         self.folderLineEdit.textChanged.connect(lambda: self.reload_widgets())
-        
+
         self.connect_input_widgets(self.folderLineEdit, self.widthLineEdit, self.heightLineEdit,
                                    self.destinationLineEdit, self.comboBox_1, self.comboBox_2, self.exposureCheckBox,
                                    self.mfaceCheckBox, self.tiltCheckBox, self.sensitivity_dialArea.dial,
@@ -137,7 +137,7 @@ class CropMapWidget(CropBatchWidget):
         self.crop_worker.m_finished.connect(lambda: wf.disable_widget(self.cancelButton))
         self.crop_worker.m_finished.connect(lambda: wf.show_message_box(self.destination))
         self.crop_worker.m_progress.connect(self.update_progress)
-    
+
     def display_crop(self) -> None:
         job = self.create_job(self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox)
         self.crop_worker.display_crop(job, self.folderLineEdit, self.imageWidget)
@@ -172,7 +172,8 @@ class CropMapWidget(CropBatchWidget):
                     input_widget.currentTextChanged.connect(lambda: self.disable_buttons())
                 case QtWidgets.QCheckBox():
                     self.connect_checkboxs(input_widget)
-                case _: pass
+                case _:
+                    pass
 
     def disable_buttons(self) -> None:
         def all_filled(*line_edits: Union[PathLineEdit, NumberLineEdit, QtWidgets.QComboBox]) -> bool:
@@ -225,11 +226,13 @@ class CropMapWidget(CropBatchWidget):
                                   table=self.data_frame,
                                   column1=self.comboBox_1,
                                   column2=self.comboBox_2)
-            self.run_batch_process(self.crop_worker.mapping_crop, lambda: self.crop_worker.reset_task(FunctionType.MAPPING), job)
+            self.run_batch_process(self.crop_worker.mapping_crop,
+                                   lambda: self.crop_worker.reset_task(FunctionType.MAPPING), job)
 
         if Path(self.folderLineEdit.text()) == Path(self.destinationLineEdit.text()):
             match wf.show_warning(FunctionType.MAPPING):
                 case QtWidgets.QMessageBox.StandardButton.Yes:
                     callback()
-                case _: return
+                case _:
+                    return
         callback()

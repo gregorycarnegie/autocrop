@@ -27,6 +27,7 @@ GAMMA_THRESHOLD = .001
 L_EYE_START, L_EYE_END = 42, 48
 R_EYE_START, R_EYE_END = 36, 42
 
+
 def profile_it(func: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any):
@@ -35,11 +36,14 @@ def profile_it(func: Callable[..., Any]) -> Callable[..., Any]:
         result = pstats.Stats(profile)
         result.sort_stats(pstats.SortKey.CUMULATIVE)
         result.print_stats()
+
     return wrapper
+
 
 def pillow_to_numpy(image: Image.Image) -> npt.NDArray[np.uint8]:
     """Convert PIL image to numpy array"""
     return np.frombuffer(image.tobytes(), dtype=np.uint8).reshape((image.size[1], image.size[0], len(image.getbands())))
+
 
 @cache
 def gamma(gam: Union[int, float] = 1.0) -> npt.NDArray[np.generic]:
@@ -55,16 +59,20 @@ def gamma(gam: Union[int, float] = 1.0) -> npt.NDArray[np.generic]:
     """
     return np.power(np.arange(256) / 255, 1.0 / gam) * 255 if gam != 1.0 else np.arange(256)
 
+
 def adjust_gamma(image: Union[cvt.MatLike, npt.NDArray[np.uint8]], gam: int) -> cvt.MatLike:
     return cv2.LUT(image, gamma(gam * GAMMA_THRESHOLD).astype('uint8'))
 
+
 def convert_color_space(image: Union[cvt.MatLike, npt.NDArray[np.uint8]]) -> cvt.MatLike:
     return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
 
 def numpy_array_crop(image: cvt.MatLike, bounding_box: Tuple[int, int, int, int]) -> npt.NDArray[np.uint8]:
     # Load and crop image using PIL
     picture = Image.fromarray(image).crop(bounding_box)
     return pillow_to_numpy(picture)
+
 
 def crop_and_set(image: cvt.MatLike,
                  bounding_box: Tuple[int, int, int, int],
@@ -78,7 +86,7 @@ def crop_and_set(image: cvt.MatLike,
         bounding_box: The bounding box coordinates to crop the image.
         gamma_value: The gamma value for gamma correction.
         image_widget: The image widget to display the processed image.
-    
+
     Returns: None
     """
     try:
@@ -88,6 +96,7 @@ def crop_and_set(image: cvt.MatLike,
     except (cv2.error, Image.DecompressionBombError):
         return None
     wf.display_image_on_widget(final_image, image_widget)
+
 
 def correct_exposure(image: Union[cvt.MatLike, npt.NDArray[np.uint8]],
                      exposure: bool) -> cvt.MatLike:
@@ -109,6 +118,76 @@ def correct_exposure(image: Union[cvt.MatLike, npt.NDArray[np.uint8]],
     alpha, beta = autocrop_rs.calc_alpha_beta(hist)
     return cv2.convertScaleAbs(src=image, alpha=alpha, beta=beta)
 
+
+def rotate_image(image: Union[cvt.MatLike, npt.NDArray[np.uint8]],
+                 angle: float,
+                 center: Tuple[float, float]) -> cvt.MatLike:
+    """
+    Rotates an image by a specified angle around a center point.
+
+    Parameters:
+        image: A numpy array representing the image.
+        angle: The angle to rotate the image by in degrees.
+        center: The point to rotate the image around.
+
+    Returns:
+        A numpy array representing the rotated image.
+    """
+    # Get the rotation matrix.
+    rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1)
+    # Apply the rotation to the image.
+    return cv2.warpAffine(image, rotation_matrix, (image.shape[1], image.shape[0]))
+
+
+def align_head(image: Union[cvt.MatLike, npt.NDArray[np.uint8]],
+               face_worker: FaceWorker,
+               tilt: bool) -> cvt.MatLike:
+    """
+    Aligns the head in an image using dlib and shape_predictor_68_face_landmarks.dat.
+
+    Parameters:
+        image: A numpy array representing the image.
+        face_worker: tuple of face detector and predictor for current thread.
+        tilt: boolean value. determines weather or not to perform alignment
+
+    Returns:
+        A numpy array representing the aligned image.
+    """
+    if not tilt:
+        return image
+    height, _ = image.shape[:2]
+    scaling_factor = 256 / height
+    # print(f'running {align_head.__name__} -> {cv2.resize.__name__}')
+    image_array = cv2.resize(image, None, fx=scaling_factor, fy=scaling_factor, interpolation=cv2.INTER_AREA)
+    # Detect the faces in the image.
+    # print('check for B/W images')
+    if len(image_array.shape) >= 3:
+        image_array = cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY)
+
+    # print('get face_detector & predictor')
+    face_detector, predictor = face_worker.worker_tuple()
+    # print('got face_worker.worker_tuple')
+
+    faces = face_detector(image_array, 1)
+    # print(type(faces))
+    # print(faces)
+    # If no faces are detected, return the original image.
+    if len(faces) == 0:
+        return image
+
+    # Find the face with the highest confidence score.
+    # print('Finding face with biggest area')
+    face = max(faces, key=lambda x: x.area())
+    # Get the 68 facial landmarks for the face.
+    # print('Get the 68 facial landmarks')
+    landmarks = predictor(image_array, face)
+    landmarks_array = np.array([(p.x, p.y) for p in landmarks.parts()])
+    # Find the angle of the tilt and the center of the face
+    angle, center_x, center_y = get_angle_of_tilt(landmarks_array, scaling_factor)
+    # print(f'running {rotate_image.__name__} function')
+    return rotate_image(image, angle, (center_x, center_y))
+
+
 def open_image(image: Path,
                exposure: bool,
                tilt: bool,
@@ -128,7 +207,9 @@ def open_image(image: Path,
     img = cv2.imread(image.as_posix())
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = correct_exposure(img, exposure)
+    # print(f'{open_image.__name__} -> {align_head.__name__}')
     return align_head(img, face_worker, tilt)
+
 
 def open_raw(image: Path,
              exposure: bool,
@@ -150,10 +231,13 @@ def open_raw(image: Path,
         # Post-process the raw image data
         img = raw.postprocess(use_camera_wb=True)
         img = correct_exposure(img, exposure)
+        # print(f'{open_raw.__name__} -> {align_head.__name__}')
         return align_head(img, face_worker, tilt)
+
 
 def open_table(input_file: Path) -> pd.DataFrame:
     return pd.read_csv(input_file) if input_file.suffix.lower() == '.csv' else pd.read_excel(input_file)
+
 
 def open_pic(input_file: Union[Path, str],
              exposure: bool,
@@ -166,44 +250,9 @@ def open_pic(input_file: Union[Path, str],
             return open_image(input_file, exposure, tilt, face_worker)
         case extension if extension in Photo.RAW_TYPES:
             return open_raw(input_file, exposure, tilt, face_worker)
-        case _: return None
+        case _:
+            return None
 
-def align_head(image: Union[cvt.MatLike, npt.NDArray[np.uint8]],
-               face_worker: FaceWorker,
-               tilt: bool) -> cvt.MatLike:
-    """
-    Aligns the head in an image using dlib and shape_predictor_68_face_landmarks.dat.
-
-    Parameters:
-        image: A numpy array representing the image.
-        face_worker: tuple of face detector and predictor for current thread.
-        tilt: boolean value. determines weather or not to perform alignment
-
-    Returns:
-        A numpy array representing the aligned image.
-    """
-    if not tilt: return image
-    height, _ = image.shape[:2]
-    scaling_factor = 256 / height
-    image_array = cv2.resize(image, None, fx=scaling_factor, fy=scaling_factor, interpolation=cv2.INTER_AREA)
-    # Detect the faces in the image.
-    if len(image_array.shape) >= 3:
-        image_array = cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY)
-    
-    face_detector, predictor = face_worker.worker_tuple
-
-    faces = face_detector(image_array, 1)
-    # If no faces are detected, return the original image.
-    if len(faces) == 0: return image
-
-    # Find the face with the highest confidence score.
-    face = max(faces, key=lambda x: x.area())
-    # Get the 68 facial landmarks for the face.
-    landmarks = predictor(image_array, face)
-    landmarks_array = np.array([(p.x, p.y) for p in landmarks.parts()])
-    # Find the angle of the tilt and the center of the face
-    angle, center_x, center_y = get_angle_of_tilt(landmarks_array, scaling_factor)
-    return rotate_image(image, angle, (center_x, center_y))
 
 def get_angle_of_tilt(landmarks_array: npt.NDArray[np.int_], scaling_factor: float) -> Tuple[float, float, float]:
     """
@@ -223,24 +272,6 @@ def get_angle_of_tilt(landmarks_array: npt.NDArray[np.int_], scaling_factor: flo
     center_x, center_y = np.mean(landmarks_array[R_EYE_START:L_EYE_END], axis=0) / scaling_factor
     return np.arctan2(eye_diff[1], eye_diff[0]) * 180 / np.pi, center_x, center_y
 
-def rotate_image(image: Union[cvt.MatLike, npt.NDArray[np.uint8]],
-                 angle: float,
-                 center: Tuple[float, float]) -> cvt.MatLike:
-    """
-    Rotates an image by a specified angle around a center point.
-
-    Parameters:
-        image: A numpy array representing the image.
-        angle: The angle to rotate the image by in degrees.
-        center: The point to rotate the image around.
-
-    Returns:
-        A numpy array representing the rotated image.
-    """
-    # Get the rotation matrix.
-    rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1)
-    # Apply the rotation to the image.
-    return cv2.warpAffine(image, rotation_matrix, (image.shape[1], image.shape[0]))
 
 def prepare_detections(image: cvt.MatLike,
                        face_worker: FaceWorker) -> npt.NDArray[np.float64]:
@@ -253,6 +284,7 @@ def prepare_detections(image: cvt.MatLike,
     # Forward pass through the network to get detections
     return np.array(caffe.forward())
 
+
 def get_box_coordinates(output: Union[cvt.MatLike, npt.NDArray[np.generic]],
                         width: int,
                         height: int,
@@ -263,28 +295,31 @@ def get_box_coordinates(output: Union[cvt.MatLike, npt.NDArray[np.generic]],
     return autocrop_rs.crop_positions(x0, y0, x1 - x0, y1 - y0, job.face_percent, job.width,
                                       job.height, job.top, job.bottom, job.left, job.right)
 
+
 def box(img: cvt.MatLike,
         width: int,
         height: int,
         job: Job,
-        face_worker: FaceWorker,) -> Optional[Tuple[int, int, int, int]]:
+        face_worker: FaceWorker, ) -> Optional[Tuple[int, int, int, int]]:
     # preprocess the image: resize and performs mean subtraction
     detections = prepare_detections(img, face_worker)
     output = np.squeeze(detections)
     # get the confidence
     confidence_list = output[:, 2]
-    if np.max(confidence_list) * 100 < job.threshold: return None
+    if np.max(confidence_list) * 100 < job.threshold:
+        return None
     return get_box_coordinates(output[:, 3:7], width, height, job, confidence_list)
+
 
 def _draw_box_with_text(image: cvt.MatLike, x0: int, y0: int, x1: int, y1: int, confidence: np.float64) -> cvt.MatLike:
     """
     Draw a bounding box and confidence text on an image.
-    
+
     Args:
     - image (cvt.MatLike): Image on which to draw.
     - x0, y0, x1, y1 (int): Bounding box coordinates.
     - confidence (float): Detection confidence.
-    
+
     Returns:
     - cvt.MatLike: Image with bounding box and text.
     """
@@ -298,11 +333,13 @@ def _draw_box_with_text(image: cvt.MatLike, x0: int, y0: int, x1: int, y1: int, 
     cv2.putText(image, text, (x0, y_text), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, colour, LINE_WIDTH)
     return image
 
+
 def get_detection_arrays(detections: npt.NDArray[np.float64]) -> Iterator[Tuple[np.float64, npt.NDArray[np.float64]]]:
     x = range(detections.shape[2])
-    conf_array: Generator[np.float64 , None, None] = (detections[0, 0, i, 2] * 100 for i in x)
-    output_array: Generator[npt.NDArray[np.float64] , None, None] = (detections[0, 0, i, 3:7] for i in x)
+    conf_array: Generator[np.float64, None, None] = (detections[0, 0, i, 2] * 100 for i in x)
+    output_array: Generator[npt.NDArray[np.float64], None, None] = (detections[0, 0, i, 3:7] for i in x)
     return zip(conf_array, output_array)
+
 
 def get_multi_box_parameters(image: cvt.MatLike,
                              face_worker: FaceWorker) -> Tuple[npt.NDArray[np.float64], int, int]:
@@ -310,17 +347,18 @@ def get_multi_box_parameters(image: cvt.MatLike,
     detections = prepare_detections(convert_color_space(image), face_worker)
     return detections, height, width
 
+
 def multi_box(image: cvt.MatLike,
               job: Job,
               face_worker: FaceWorker) -> cvt.MatLike:
     """
     Draw bounding boxes around detected faces in an image based on a given sensitivity threshold.
-    
+
     Args:
     - image (cvt.MatLike): Input image with potential faces.
     - job (Job): Object containing detection sensitivity parameter.
     - face_worker (FaceWorker): Worker object responsible for face detection.
-    
+
     Returns:
     - cvt.MatLike: Image with bounding boxes drawn around detected faces.
     """
@@ -335,6 +373,7 @@ def multi_box(image: cvt.MatLike,
             image = _draw_box_with_text(image, x0, y0, x1, y1, confidence)
     return image
 
+
 def multi_box_positions(image: cvt.MatLike,
                         job: Job,
                         face_worker: FaceWorker) -> Tuple[npt.NDArray[np.float_], npt.NDArray[np.int_]]:
@@ -344,6 +383,7 @@ def multi_box_positions(image: cvt.MatLike,
                       for confidence, output in get_detection_arrays(detections)
                       if confidence > job.threshold]
     return np.array(detections), np.array(crop_positions)
+
 
 def box_detect(img: cvt.MatLike,
                job: Job,
@@ -355,31 +395,35 @@ def box_detect(img: cvt.MatLike,
         return None
     return box(img, width, height, job, face_worker)
 
+
 def get_first_file(img_path: Path) -> Optional[Path]:
     files = np.fromiter(img_path.iterdir(), Path)
     file: Generator[Path, None, None] = (pic for pic in files if pic.suffix.lower() in Photo.file_types)
     return next(file, None)
+
 
 def mask_extensions(file_list: npt.NDArray[np.str_]) -> Tuple[npt.NDArray[np.bool_], int]:
     """Get the extensions of the file names and Create a mask that indicates which files have supported extensions."""
     mask: npt.NDArray[np.bool_] = np.in1d(np.char.lower([Path(file).suffix for file in file_list]), Photo.file_types)
     return mask, file_list[mask].size
 
+
 def split_by_cpus(mask: npt.NDArray[np.bool_],
                   core_count: int,
                   *file_lists: npt.NDArray[np.str_]) -> Generator[List[npt.NDArray[np.str_]], None, None]:
     """
     Splits each file list into chunks based on a boolean mask and the given CPU count.
-    
+
     Args:
     - mask (np.ndarray): A boolean mask used to filter each file list.
     - core_count (int): Number of CPUs to determine the number of chunks.
     - *file_lists (np.ndarray): Multiple lists of files to be split.
-    
+
     Returns:
     - Generator: Yields chunks of files for each file list.
     """
     return (np.array_split(file_list[mask], core_count) for file_list in file_lists)
+
 
 @cache
 def set_filename(image_path: Path,
@@ -394,12 +438,14 @@ def set_filename(image_path: Path,
     final_path = destination.joinpath(f'{new or image_path.stem}{selected_extension}')
     return final_path, final_path.suffix in {'.tif', '.tiff'}
 
+
 def reject(path: Path,
            destination: Path,
            image: Path) -> None:
     reject_folder = destination.joinpath('rejects')
     reject_folder.mkdir(exist_ok=True)
     shutil.copy(path, reject_folder.joinpath(image.name))
+
 
 def save_image(image: cvt.MatLike,
                file_path: Path,
@@ -412,6 +458,7 @@ def save_image(image: cvt.MatLike,
     else:
         cv2.imwrite(file_path.as_posix(), cv2.LUT(image, gamma(user_gam * GAMMA_THRESHOLD)))
 
+
 def multi_save_image(cropped_images: List[cvt.MatLike],
                      file_path: Path,
                      gamma_value: int,
@@ -420,6 +467,7 @@ def multi_save_image(cropped_images: List[cvt.MatLike],
         new_file_path = file_path.with_stem(f'{file_path.stem}_{i}')
         save_image(image, new_file_path, gamma_value, is_tiff)
 
+
 def get_frame_path(destination: Path,
                    file_enum: str,
                    job: Job) -> Tuple[Path, bool]:
@@ -427,24 +475,26 @@ def get_frame_path(destination: Path,
     file_path = destination.joinpath(file_str)
     return file_path, file_path.suffix in {'.tif', '.tiff'}
 
+
 def save_detection(source_image: Path,
                    job: Job,
                    face_worker: FaceWorker,
-                   crop_function: Callable[[Union[cvt.MatLike, Path], Job, FaceWorker], Optional[Union[cvt.MatLike, Generator[cvt.MatLike, None, None]]]],
+                   crop_function: Callable[[Union[cvt.MatLike, Path], Job, FaceWorker], Optional[
+                       Union[cvt.MatLike, Generator[cvt.MatLike, None, None]]]],
                    save_function: Callable[[Any, Path, int, bool], None],
                    image_name: Optional[Path] = None,
                    new: Optional[str] = None) -> None:
-    if (destination_path := job.get_destination()) is None: return None
+    if (destination_path := job.get_destination()) is None:
+        return None
 
     image_name = source_image if image_name is None else image_name
-
     if (cropped_images := crop_function(source_image, job, face_worker)) is None:
         reject(source_image, destination_path, image_name)
         return None
-    
+
     file_path, is_tiff = set_filename(image_name, destination_path, job.radio_choice(), job.radio_tuple(), new)
-    
     save_function(cropped_images, file_path, job.gamma, is_tiff)
+
 
 def crop_image(image: Union[Path, cvt.MatLike],
                job: Job,
@@ -457,6 +507,7 @@ def crop_image(image: Union[Path, cvt.MatLike],
     result = convert_color_space(cropped_pic) if len(cropped_pic.shape) >= 3 else cropped_pic
     return cv2.resize(result, job.size, interpolation=cv2.INTER_AREA)
 
+
 def multi_crop(source_image: Union[cvt.MatLike, Path],
                job: Job,
                face_worker: FaceWorker) -> Optional[Generator[cvt.MatLike, None, None]]:
@@ -468,8 +519,9 @@ def multi_crop(source_image: Union[cvt.MatLike, Path],
     detections, crop_positions = multi_box_positions(img, job, face_worker)
     # Check if any faces were detected
     x = 100 * detections[0, 0, :, 2] > job.threshold
-    if not x.any(): return None
-    
+    if not x.any():
+        return None
+
     # Cropped images
     images = (Image.fromarray(img).crop(crop_position) for crop_position in crop_positions)
     # images as numpy arrays
@@ -478,6 +530,7 @@ def multi_crop(source_image: Union[cvt.MatLike, Path],
     results: Generator[cvt.MatLike, None, None] = (convert_color_space(array) for array in image_array)
     # return resized results
     return (cv2.resize(src=result, dsize=job.size, interpolation=cv2.INTER_AREA) for result in results)
+
 
 def crop(image: Path,
          job: Job,
@@ -502,3 +555,4 @@ def crop(image: Path,
         save_detection(image, job, face_worker, multi_crop, multi_save_image)
     else:
         save_detection(image, job, face_worker, crop_image, save_image)
+

@@ -83,8 +83,9 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.top_dialArea = CustomDialWidget(_label='top', _min=0, parent=self.settingsTab)
         self.bottom_dialArea = CustomDialWidget(_label='bottom', _min=0, parent=self.settingsTab)
         self.left_dialArea = CustomDialWidget(_label='left', _min=0, parent=self.settingsTab)
-        self.right_dialArea = CustomDialWidget(_label='right',_min=0,  parent=self.settingsTab)
-        wf.add_widgets(self.horizontalLayout_10, self.top_dialArea, self.bottom_dialArea, self.left_dialArea, self.right_dialArea)
+        self.right_dialArea = CustomDialWidget(_label='right', _min=0, parent=self.settingsTab)
+        wf.add_widgets(self.horizontalLayout_10, self.top_dialArea, self.bottom_dialArea, self.left_dialArea,
+                       self.right_dialArea)
         self.verticalLayout_6.addLayout(self.horizontalLayout_10)
         self.horizontalLayout_3.addLayout(self.verticalLayout_6)
         self.horizontalLayout_3.setStretch(0, 1)
@@ -177,10 +178,14 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.action3_4_Ratio.triggered.connect(lambda: self.load_preset(Preset.THREE_QUARTERS))
         self.action4_5_Ratio.triggered.connect(lambda: self.load_preset(Preset.FOUR_FIFTHS))
         self.actionSquare.triggered.connect(lambda: self.load_preset(Preset.SQUARE))
-        self.actionCrop_File.triggered.connect(lambda: self.function_tabWidget.setCurrentIndex(FunctionType.PHOTO.value))
-        self.actionCrop_Folder.triggered.connect(lambda: self.function_tabWidget.setCurrentIndex(FunctionType.FOLDER.value))
-        self.actionUse_Mapping.triggered.connect(lambda: self.function_tabWidget.setCurrentIndex(FunctionType.MAPPING.value))
-        self.actionCrop_Video.triggered.connect(lambda: self.function_tabWidget.setCurrentIndex(FunctionType.VIDEO.value))
+        self.actionCrop_File.triggered.connect(
+            lambda: self.function_tabWidget.setCurrentIndex(FunctionType.PHOTO.value))
+        self.actionCrop_Folder.triggered.connect(
+            lambda: self.function_tabWidget.setCurrentIndex(FunctionType.FOLDER.value))
+        self.actionUse_Mapping.triggered.connect(
+            lambda: self.function_tabWidget.setCurrentIndex(FunctionType.MAPPING.value))
+        self.actionCrop_Video.triggered.connect(
+            lambda: self.function_tabWidget.setCurrentIndex(FunctionType.VIDEO.value))
 
         self.function_tabWidget.currentChanged.connect(lambda: self.check_tab_selection())
         self.function_tabWidget.currentChanged.connect(lambda: self.videoTab.player.pause())
@@ -188,10 +193,10 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.retranslateUi()
         self.function_tabWidget.setCurrentIndex(FunctionType.PHOTO.value)
         self.settings_tabWidget.setCurrentIndex(0)
-        self.actionCrop_File.triggered.connect(self.function_tabWidget.setFocus) # type: ignore
-        self.actionCrop_Folder.triggered.connect(self.function_tabWidget.setFocus) # type: ignore
-        self.actionCrop_Video.triggered.connect(self.function_tabWidget.setFocus) # type: ignore
-        self.actionUse_Mapping.triggered.connect(self.function_tabWidget.setFocus) # type: ignore
+        self.actionCrop_File.triggered.connect(self.function_tabWidget.setFocus)  # type: ignore
+        self.actionCrop_Folder.triggered.connect(self.function_tabWidget.setFocus)  # type: ignore
+        self.actionCrop_Video.triggered.connect(self.function_tabWidget.setFocus)  # type: ignore
+        self.actionUse_Mapping.triggered.connect(self.function_tabWidget.setFocus)  # type: ignore
         QtCore.QMetaObject.connectSlotsByName(self)
 
     def retranslateUi(self):
@@ -204,7 +209,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.function_tabWidget.setTabText(
             self.function_tabWidget.indexOf(self.mappingTab), _translate('MainWindow', 'Mapping Crop'))
         self.function_tabWidget.setTabText(
-            self.function_tabWidget.indexOf(self.videoTab),  _translate('MainWindow', 'Video Crop'))
+            self.function_tabWidget.indexOf(self.videoTab), _translate('MainWindow', 'Video Crop'))
         self.label_4.setText(_translate('MainWindow', 'Width (px)'))
         self.widthLineEdit.setPlaceholderText(_translate('MainWindow', 'Try typing a number e.g. 400'))
         self.label_5.setText(_translate('MainWindow', 'Height (px)'))
@@ -257,18 +262,20 @@ class UiMainWindow(QtWidgets.QMainWindow):
             assert isinstance(a0, QtGui.QDropEvent)
         except AssertionError:
             return None
-        
+
         if (x := a0.mimeData()) is None:
             return None
 
         if not x.hasUrls():
             a0.ignore()
             return
-        
+
         a0.setDropAction(QtCore.Qt.DropAction.CopyAction)
         file_path = Path(x.urls()[0].toLocalFile())
-        if file_path.is_dir(): self.handle_path_main(file_path)
-        elif file_path.is_file(): self.handle_file(file_path)
+        if file_path.is_dir():
+            self.handle_path_main(file_path)
+        elif file_path.is_file():
+            self.handle_file(file_path)
         a0.accept()
 
     def handle_path(self, file_path: Path,
@@ -283,7 +290,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
             assert isinstance(self.photoTab, CropPhotoWidget)
         except AssertionError:
             return None
-        
+
         if self.photoTab.selection_state == self.photoTab.SELECTED:
             self.handle_function_tab_state(self.photoTab, self.folder_Tab, self.mappingTab, self.videoTab)
             self.photoTab.display_crop()
@@ -315,7 +322,8 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 self.handle_video_file(file_path)
             case suffix if suffix in Table.file_types:
                 self.handle_pandas_file(file_path)
-            case _: pass
+            case _:
+                pass
 
     def handle_image_file(self, file_path: Path) -> None:
         try:
@@ -356,7 +364,8 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 self.handle_function_tab_state(self.mappingTab, self.videoTab, self.photoTab, self.folder_Tab)
             case FunctionType.VIDEO.value:
                 self.handle_function_tab_state(self.videoTab, self.photoTab, self.folder_Tab, self.mappingTab)
-            case _: pass
+            case _:
+                pass
 
     @staticmethod
     def handle_function_tab_state(selected_tab: CustomCropWidget, *other_tabs: CustomCropWidget):

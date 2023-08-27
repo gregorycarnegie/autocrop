@@ -114,5 +114,7 @@ class UiDialog(QDialog):
         self.label_2.setText(_translate('Dialog', 'Creator:'))
         self.label_6.setText(_translate("Dialog", 'Gregory Carnegie'))
         self.label_3.setText(_translate('Dialog', 'Inspiration:'))
-        self.label_7.setText(_translate('Dialog', """<a href="https://leblancfg.com/autocrop/">François Leblanc's autocrop library</a>"""))
-        self.label_8.setText(_translate('Dialog', """<a href="https://bleedaiacademy.com/5-easy-effective-face-detection-algorithms-in-python/">Bleed AI's Face Detection article</a>"""))
+        self.label_7.setText(_translate('Dialog', """<a href="https://leblancfg.com/autocrop/">François Leblanc's 
+        autocrop library</a>"""))
+        self.label_8.setText(_translate('Dialog', """<a href="https://bleedaiacademy.com/5-easy-effective-face
+        -detection-algorithms-in-python/">Bleed AI's Face Detection article</a>"""))

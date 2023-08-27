@@ -27,7 +27,7 @@ class Cropper(QObject):
     m_started, m_finished, m_progress = pyqtSignal(), pyqtSignal(), pyqtSignal(object)
     v_started, v_finished, v_progress = pyqtSignal(), pyqtSignal(), pyqtSignal(object)
 
-    def __init__(self, parent: Optional[QObject]=None):
+    def __init__(self, parent: Optional[QObject] = None):
         super(Cropper, self).__init__(parent)
         self.bar_value_f, self.end_f_task, self.message_box_f = self.TASK_VALUES
         self.bar_value_m, self.end_m_task, self.message_box_m = self.TASK_VALUES
@@ -47,8 +47,9 @@ class Cropper(QObject):
                 self.bar_value_m, self.end_m_task, self.message_box_m = self.TASK_VALUES
             case FunctionType.VIDEO:
                 self.bar_value_v, self.end_v_task, self.message_box_v = self.TASK_VALUES
-            case _: pass
-    
+            case _:
+                pass
+
     @staticmethod
     def photo_crop(image: Path,
                    job: Job,
@@ -105,8 +106,9 @@ class Cropper(QObject):
                     self.v_finished.emit()
                 elif self.bar_value_v < file_amount:
                     self.v_progress.emit((self.bar_value_v, file_amount))
-            case _: pass
-    
+            case _:
+                pass
+
     def folder_worker(self, file_amount: int,
                       file_list: npt.NDArray[Any],
                       job: Job,
@@ -129,12 +131,12 @@ class Cropper(QObject):
         self.bar_value_f = 0
         self.f_progress.emit((self.bar_value_f, amount))
         self.f_started.emit()
-        
+
         threads: Generator[Thread, None, None] = (
             Thread(target=self.folder_worker, args=(amount, split_array[i], job, self.face_workers[i]))
             for i in range(len(split_array)))
         for t in threads:
-            t.start() 
+            t.start()
 
     def mapping_worker(self, file_amount: int,
                        old: npt.NDArray[np.str_],
@@ -153,18 +155,19 @@ class Cropper(QObject):
     def mapping_crop(self, job: Job) -> None:
         if (file_tuple := job.file_list_to_numpy()) is None: return None
         file_list1, file_list2 = file_tuple
-        # Get the extensions of the file names and 
+        # Get the extensions of the file names and
         # Create a mask that indicates which files have supported extensions.
         mask, amount = ut.mask_extensions(file_list1)
         # Split the file lists and the mapping data into chunks.
         old_file_list, new_file_list = ut.split_by_cpus(mask, self.THREAD_NUMBER, file_list1, file_list2)
-        
+
         self.bar_value_m = 0
         self.m_progress.emit((self.bar_value_m, amount))
         self.m_started.emit()
-        
+
         threads: Generator[Thread, None, None] = (
-            Thread(target=self.mapping_worker, args=(amount, old_file_list[i], new_file_list[i], job, self.face_workers[i]))
+            Thread(target=self.mapping_worker,
+                   args=(amount, old_file_list[i], new_file_list[i], job, self.face_workers[i]))
             for i in range(len(new_file_list)))
         for t in threads:
             t.start()
@@ -241,12 +244,12 @@ class Cropper(QObject):
         video.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
         ret, frame = video.read()
         if not ret: return None
-        
+
         try:
             assert job.video_path is not None
         except AssertionError:
             return None
-        
+
         if (destination := job.get_destination()) is None: return None
         file_enum = f'{job.video_path.stem}_frame_{frame_number:06d}'
         if job.multi_face_job.isChecked():
@@ -254,11 +257,11 @@ class Cropper(QObject):
         else:
             self.process_singleface_frame_job(frame, job, file_enum, destination)
         progress_callback()
-    
+
     def extract_frames(self, job: Job) -> None:
         if job.video_path is None or job.start_position is None or job.stop_position is None:
             return None
-        
+
         video = cv2.VideoCapture(job.video_path.as_posix())
         fps = video.get(cv2.CAP_PROP_FPS)
         start_frame, end_frame = int(job.start_position * fps), int(job.stop_position * fps)
@@ -288,4 +291,5 @@ class Cropper(QObject):
             case FunctionType.VIDEO:
                 self.end_v_task = True
                 self.v_finished.emit()
-            case _: return None
+            case _:
+                return None

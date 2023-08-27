@@ -10,7 +10,7 @@ from .file_path_validator import FilePathValidator
 
 
 class PathLineEdit(CustomLineEdit):
-    def __init__(self, path_type: PathType=PathType.FOLDER, parent: Optional[QtWidgets.QWidget]=None):
+    def __init__(self, path_type: PathType = PathType.FOLDER, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
         self.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
         self.setValidator(FilePathValidator(parent=self))
@@ -30,7 +30,7 @@ class PathLineEdit(CustomLineEdit):
             return
 
         file_path = Path(path)
-        
+
         match self.path_type:
             case PathType.IMAGE:
                 self.color_logic(self.is_valid_image(file_path))
@@ -40,17 +40,17 @@ class PathLineEdit(CustomLineEdit):
                 self.color_logic(self.is_valid_video(file_path))
             case PathType.FOLDER:
                 self.color_logic(file_path.is_dir())
-        
+
         self.update_style()
 
     @staticmethod
     def is_valid_image(path: Path) -> bool:
         return path.is_file() and path.suffix.lower() in Photo.file_types
-    
+
     @staticmethod
     def is_valid_table(path: Path) -> bool:
         return path.is_file() and path.suffix.lower() in Table.file_types
-    
+
     @staticmethod
     def is_valid_video(path: Path) -> bool:
         return path.is_file() and path.suffix.lower() in Video.file_types

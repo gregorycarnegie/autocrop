@@ -6,6 +6,7 @@ from PyQt6 import QtCore, QtWidgets
 class CustomDialWidget(QtWidgets.QWidget):
     spacerItem: ClassVar[QtWidgets.QSpacerItem] = QtWidgets.QSpacerItem(
         40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
+
     def __init__(self, _label: str,
                  _min: int = 1,
                  _max: int = 100,
@@ -16,7 +17,7 @@ class CustomDialWidget(QtWidgets.QWidget):
         super().__init__(parent)
         self.object_name = f'{_label}_dialArea'
         self.setObjectName(self.object_name)
-        self._label = f'{_label.capitalize()} %:' if _label=='face' else f'{_label.capitalize()}:'
+        self._label = f'{_label.capitalize()} %:' if _label == 'face' else f'{_label.capitalize()}:'
         self.verticalLayout = QtWidgets.QVBoxLayout(self)
         self.verticalLayout.setObjectName('verticalLayout')
         self.dial = QtWidgets.QDial(parent=self)
@@ -44,7 +45,7 @@ class CustomDialWidget(QtWidgets.QWidget):
         self.verticalLayout.addLayout(self.horizontalLayout)
         self.verticalLayout.setStretch(0, 1)
 
-        #connections
+        # connections
         self.dial.valueChanged['int'].connect(self.lcdNumber.display)
 
         self.retranslateUi()
