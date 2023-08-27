@@ -112,7 +112,8 @@ class UiDialog(QDialog):
         self.label.setText(_translate('Dialog', 'Version:'))
         self.label_5.setText(_translate('Dialog', '2.0.0b1'))
         self.label_2.setText(_translate('Dialog', 'Creator:'))
-        self.label_6.setText(_translate("Dialog", 'Gregory Carnegie'))
+        self.label_6.setText(_translate("Dialog", """<a href="https://github.com/gregorycarnegie/autocrop">Gregory 
+        Carnegie</a>"""))
         self.label_3.setText(_translate('Dialog', 'Inspiration:'))
         self.label_7.setText(_translate('Dialog', """<a href="https://leblancfg.com/autocrop/">François Leblanc's 
         autocrop library</a>"""))
