@@ -96,23 +96,23 @@ class CropVideoWidget(CropBatchWidget):
         wf.add_widgets(self.horizontalLayout_4, self.destinationLineEdit, self.destinationButton)
         self.verticalLayout_2.addLayout(self.horizontalLayout_4)
         self.playButton = wf.create_media_button(
-            'playButton', 'play', self.horizontalLayout_5, parent=self)
+            name='playButton', icon_resource='play', layout=self.horizontalLayout_5, parent=self)
         self.stopButton = wf.create_media_button(
-            'stopButton', 'stop', self.horizontalLayout_5, parent=self)
+            name='stopButton', icon_resource='stop', layout=self.horizontalLayout_5, parent=self)
         self.stepbackButton = wf.create_media_button(
-            'stepbackButton', 'left', self.horizontalLayout_5, parent=self)
+            name='stepbackButton', icon_resource='left', layout=self.horizontalLayout_5, parent=self)
         self.stepfwdButton = wf.create_media_button(
-            'stepfwdButton', 'right', self.horizontalLayout_5, parent=self)
+            name='stepfwdButton', icon_resource='right', layout=self.horizontalLayout_5, parent=self)
         self.fastfwdButton = wf.create_media_button(
-            'fastfwdButton', 'fastfwd', self.horizontalLayout_5, parent=self)
+            name='fastfwdButton', icon_resource='fastfwd', layout=self.horizontalLayout_5, parent=self)
         self.goto_beginingButton = wf.create_media_button(
-            'goto_beginingButton', 'begining', self.horizontalLayout_5, parent=self)
+            name='goto_beginingButton', icon_resource='begining', layout=self.horizontalLayout_5, parent=self)
         self.goto_endButton = wf.create_media_button(
-            "goto_endButton", "end", self.horizontalLayout_5, parent=self)
+            name='goto_endButton', icon_resource='end', layout=self.horizontalLayout_5, parent=self)
         self.startmarkerButton = wf.create_media_button(
-            'startmarkerButton', 'leftmarker', self.horizontalLayout_5, parent=self)
+            name='startmarkerButton', icon_resource='leftmarker', layout=self.horizontalLayout_5, parent=self)
         self.endmarkerButton = wf.create_media_button(
-            'endmarkerButton', 'rightmarker', self.horizontalLayout_5, parent=self)
+            name='endmarkerButton', icon_resource='rightmarker', layout=self.horizontalLayout_5, parent=self)
         self.horizontalLayout_5.addItem(self.spacerItem)
         self.gridLayout = QtWidgets.QGridLayout()
         self.gridLayout.setObjectName('gridLayout')

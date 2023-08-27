@@ -1,8 +1,9 @@
 from PyQt6.QtCore import QCoreApplication, QMetaObject, QSize
 from PyQt6.QtGui import QIcon, QPixmap
-from PyQt6.QtWidgets import QDialog, QFrame, QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout
+from PyQt6.QtWidgets import QDialog, QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout
 
 from .image_widget import ImageWidget
+from . import window_functions as wf
 
 
 class UiDialog(QDialog):
@@ -24,10 +25,7 @@ class UiDialog(QDialog):
         self.widget.setImage(QPixmap('resources\\logos\\logo.svg'))
         self.setWindowIcon(QIcon('resources\\logos\\logo.ico'))
         self.verticalLayout.addWidget(self.widget)
-        self.frame = QFrame(parent=self)
-        self.frame.setFrameShape(QFrame.Shape.NoFrame)
-        self.frame.setFrameShadow(QFrame.Shadow.Raised)
-        self.frame.setObjectName('frame')
+        self.frame = wf.setup_frame('frame', parent=self)
         self.horizontalLayout_2 = QHBoxLayout(self.frame)
         self.horizontalLayout_2.setContentsMargins(-1, 0, -1, 0)
         self.horizontalLayout_2.setObjectName('horizontalLayout_2')
@@ -40,10 +38,7 @@ class UiDialog(QDialog):
         self.horizontalLayout_2.setStretch(0, 1)
         self.horizontalLayout_2.setStretch(1, 2)
         self.verticalLayout.addWidget(self.frame)
-        self.frame_2 = QFrame(parent=self)
-        self.frame_2.setFrameShape(QFrame.Shape.NoFrame)
-        self.frame_2.setFrameShadow(QFrame.Shadow.Raised)
-        self.frame_2.setObjectName('frame_2')
+        self.frame_2 = wf.setup_frame('frame_2', parent=self)
         self.horizontalLayout_3 = QHBoxLayout(self.frame_2)
         self.horizontalLayout_3.setContentsMargins(-1, 0, -1, 0)
         self.horizontalLayout_3.setObjectName('horizontalLayout_3')
@@ -56,17 +51,11 @@ class UiDialog(QDialog):
         self.horizontalLayout_3.setStretch(0, 1)
         self.horizontalLayout_3.setStretch(1, 2)
         self.verticalLayout.addWidget(self.frame_2)
-        self.frame_3 = QFrame(parent=self)
-        self.frame_3.setFrameShape(QFrame.Shape.NoFrame)
-        self.frame_3.setFrameShadow(QFrame.Shadow.Raised)
-        self.frame_3.setObjectName('frame_3')
+        self.frame_3 = wf.setup_frame('frame_3', parent=self)
         self.horizontalLayout = QHBoxLayout(self.frame_3)
         self.horizontalLayout.setContentsMargins(-1, 0, -1, 0)
         self.horizontalLayout.setObjectName('horizontalLayout')
-        self.frame_4 = QFrame(parent=self.frame_3)
-        self.frame_4.setFrameShape(QFrame.Shape.NoFrame)
-        self.frame_4.setFrameShadow(QFrame.Shadow.Raised)
-        self.frame_4.setObjectName('frame_4')
+        self.frame_4 = wf.setup_frame('frame_4', parent=self)
         self.verticalLayout_2 = QVBoxLayout(self.frame_4)
         self.verticalLayout_2.setContentsMargins(0, -1, 0, 0)
         self.verticalLayout_2.setSpacing(0)
@@ -79,10 +68,7 @@ class UiDialog(QDialog):
         self.label_4.setObjectName('label_4')
         self.verticalLayout_2.addWidget(self.label_4)
         self.horizontalLayout.addWidget(self.frame_4)
-        self.frame_5 = QFrame(parent=self.frame_3)
-        self.frame_5.setFrameShape(QFrame.Shape.NoFrame)
-        self.frame_5.setFrameShadow(QFrame.Shadow.Raised)
-        self.frame_5.setObjectName('frame_5')
+        self.frame_5 = wf.setup_frame('frame_5', parent=self)
         self.verticalLayout_3 = QVBoxLayout(self.frame_5)
         self.verticalLayout_3.setContentsMargins(0, -1, 0, 0)
         self.verticalLayout_3.setSpacing(0)

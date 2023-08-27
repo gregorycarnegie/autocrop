@@ -70,7 +70,7 @@ class Cropper(QObject):
             img_path = first_file
 
         pic_array = ut.open_pic(
-            img_path, job.fix_exposure_job.isChecked(), job.auto_tilt_job.isChecked(), self.face_workers[0]
+            img_path, self.face_workers[0], exposure=job.fix_exposure_job.isChecked(), tilt=job.auto_tilt_job.isChecked()
         )
         if pic_array is None: return None
 
@@ -139,10 +139,10 @@ class Cropper(QObject):
             t.start()
 
     def mapping_worker(self, file_amount: int,
-                       old: npt.NDArray[np.str_],
-                       new: npt.NDArray[np.str_],
                        job: Job,
-                       face_worker: FaceWorker) -> None:
+                       face_worker: FaceWorker, *,
+                       old: npt.NDArray[np.str_],
+                       new: npt.NDArray[np.str_]) -> None:
         for i, image in enumerate(old):
             if self.end_m_task:
                 break
@@ -167,7 +167,8 @@ class Cropper(QObject):
 
         threads: Generator[Thread, None, None] = (
             Thread(target=self.mapping_worker,
-                   args=(amount, old_file_list[i], new_file_list[i], job, self.face_workers[i]))
+                   args=(amount, job, self.face_workers[i]),
+                   kwargs={'old': old_file_list[i], 'new': new_file_list[i]})
             for i in range(len(new_file_list)))
         for t in threads:
             t.start()

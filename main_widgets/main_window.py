@@ -233,29 +233,19 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.action4_5_Ratio.setText(_translate('MainWindow', '4:5 Ratio'))
         self.actionCrop_Video.setText(_translate('MainWindow', 'Crop Video'))
 
-    @staticmethod
-    def check_mime_data(event: Union[QtGui.QDragEnterEvent, QtGui.QDragMoveEvent]) -> None:
-        if (mime_data := event.mimeData()) is None:
-            return None
-
-        if mime_data.hasUrls():
-            event.accept()
-        else:
-            event.ignore()
-
     def dragEnterEvent(self, a0: Optional[QtGui.QDragEnterEvent]) -> None:
         try:
             assert isinstance(a0, QtGui.QDragEnterEvent)
         except AssertionError:
             return None
-        self.check_mime_data(a0)
+        wf.check_mime_data(a0)
 
     def dragMoveEvent(self, a0: Optional[QtGui.QDragMoveEvent]) -> None:
         try:
             assert isinstance(a0, QtGui.QDragMoveEvent)
         except AssertionError:
             return None
-        self.check_mime_data(a0)
+        wf.check_mime_data(a0)
 
     def dropEvent(self, a0: Optional[QtGui.QDropEvent]) -> None:
         try:

@@ -7,7 +7,7 @@ class CustomDialWidget(QtWidgets.QWidget):
     spacerItem: ClassVar[QtWidgets.QSpacerItem] = QtWidgets.QSpacerItem(
         40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
 
-    def __init__(self, _label: str,
+    def __init__(self, *, _label: str,
                  _min: int = 1,
                  _max: int = 100,
                  single_step: int = 1,
@@ -37,7 +37,7 @@ class CustomDialWidget(QtWidgets.QWidget):
         self.label.setObjectName('label')
         self.horizontalLayout.addWidget(self.label)
         self.lcdNumber = QtWidgets.QLCDNumber(parent=self)
-        self.lcdNumber.setStyleSheet('background : lightgreen; color : gray;')
+        self.lcdNumber.setStyleSheet('background : green; color : gray;')
         self.lcdNumber.setProperty('intValue', _value)
         self.lcdNumber.setObjectName('lcdNumber')
         self.horizontalLayout.addWidget(self.lcdNumber)

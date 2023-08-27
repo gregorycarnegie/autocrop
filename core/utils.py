@@ -180,9 +180,9 @@ def align_head(image: Union[cvt.MatLike, npt.NDArray[np.uint8]],
 
 
 def open_image(image: Path,
+               face_worker: FaceWorker, *,
                exposure: bool,
-               tilt: bool,
-               face_worker: FaceWorker) -> cvt.MatLike:
+               tilt: bool) -> cvt.MatLike:
     """
     Opens an image using OpenCV, performs exposure correction if needed, and optionally aligns the head in the image.
 
@@ -202,9 +202,9 @@ def open_image(image: Path,
 
 
 def open_raw(image: Path,
+             face_worker: FaceWorker, *,
              exposure: bool,
-             tilt: bool,
-             face_worker: FaceWorker) -> cvt.MatLike:
+             tilt: bool) -> cvt.MatLike:
     """
     Opens a raw image file, post-processes the raw image data, performs exposure correction if needed, and optionally aligns the head in the image.
 
@@ -229,16 +229,16 @@ def open_table(input_file: Path) -> pd.DataFrame:
 
 
 def open_pic(input_file: Union[Path, str],
+             face_worker: FaceWorker, *,
              exposure: bool,
-             tilt: bool,
-             face_worker: FaceWorker) -> Optional[cvt.MatLike]:
+             tilt: bool) -> Optional[cvt.MatLike]:
     """Given a filename, returns a numpy array or a pandas dataframe"""
     input_file = Path(input_file) if isinstance(input_file, str) else input_file
     match input_file.suffix.lower():
         case extension if extension in Photo.CV2_TYPES:
-            return open_image(input_file, exposure, tilt, face_worker)
+            return open_image(input_file, face_worker, exposure=exposure, tilt=tilt)
         case extension if extension in Photo.RAW_TYPES:
-            return open_raw(input_file, exposure, tilt, face_worker)
+            return open_raw(input_file, face_worker, exposure=exposure, tilt=tilt)
         case _:
             return None
 
@@ -275,9 +275,9 @@ def prepare_detections(image: cvt.MatLike,
 
 
 def get_box_coordinates(output: Union[cvt.MatLike, npt.NDArray[np.generic]],
+                        job: Job, *,
                         width: int,
                         height: int,
-                        job: Job,
                         x: Optional[npt.NDArray[np.generic]] = None) -> Tuple[int, int, int, int]:
     box_outputs = output * np.array([width, height, width, height])
     x0, y0, x1, y1 = box_outputs.astype(np.int_) if x is None else box_outputs[np.argmax(x)]
@@ -286,10 +286,10 @@ def get_box_coordinates(output: Union[cvt.MatLike, npt.NDArray[np.generic]],
 
 
 def box(img: cvt.MatLike,
-        width: int,
-        height: int,
         job: Job,
-        face_worker: FaceWorker, ) -> Optional[Tuple[int, int, int, int]]:
+        face_worker: FaceWorker, *,
+        width: int,
+        height: int,) -> Optional[Tuple[int, int, int, int]]:
     # preprocess the image: resize and performs mean subtraction
     detections = prepare_detections(img, face_worker)
     output = np.squeeze(detections)
@@ -297,10 +297,10 @@ def box(img: cvt.MatLike,
     confidence_list = output[:, 2]
     if np.max(confidence_list) * 100 < job.threshold:
         return None
-    return get_box_coordinates(output[:, 3:7], width, height, job, confidence_list)
+    return get_box_coordinates(output[:, 3:7], job, width=width, height=height, x=confidence_list)
 
 
-def _draw_box_with_text(image: cvt.MatLike, x0: int, y0: int, x1: int, y1: int, confidence: np.float64) -> cvt.MatLike:
+def _draw_box_with_text(image: cvt.MatLike, confidence: np.float64, *, x0: int, y0: int, x1: int, y1: int) -> cvt.MatLike:
     """
     Draw a bounding box and confidence text on an image.
 
@@ -358,8 +358,8 @@ def multi_box(image: cvt.MatLike,
 
     for confidence, output in get_detection_arrays(detections):
         if confidence > job.threshold:
-            x0, y0, x1, y1 = get_box_coordinates(output, width, height, job)
-            image = _draw_box_with_text(image, x0, y0, x1, y1, confidence)
+            x0, y0, x1, y1 = get_box_coordinates(output, job, width=width, height=height)
+            image = _draw_box_with_text(image, confidence, x0=x0, y0=y0, x1=x1, y1=y1)
     return image
 
 
@@ -368,7 +368,7 @@ def multi_box_positions(image: cvt.MatLike,
                         face_worker: FaceWorker) -> Tuple[npt.NDArray[np.float_], npt.NDArray[np.int_]]:
     detections, height, width = get_multi_box_parameters(image, face_worker)
 
-    crop_positions = [get_box_coordinates(output, width, height, job)
+    crop_positions = [get_box_coordinates(output, job, width=width, height=height)
                       for confidence, output in get_detection_arrays(detections)
                       if confidence > job.threshold]
     return np.array(detections), np.array(crop_positions)
@@ -382,7 +382,7 @@ def box_detect(img: cvt.MatLike,
         height, width = img.shape[:2]
     except AttributeError:
         return None
-    return box(img, width, height, job, face_worker)
+    return box(img, job, face_worker, width=width, height=height)
 
 
 def get_first_file(img_path: Path) -> Optional[Path]:
@@ -488,7 +488,7 @@ def save_detection(source_image: Path,
 def crop_image(image: Union[Path, cvt.MatLike],
                job: Job,
                face_worker: FaceWorker) -> Optional[cvt.MatLike]:
-    pic_array = open_pic(image, job.fix_exposure_job.isChecked(), job.auto_tilt_job.isChecked(), face_worker) \
+    pic_array = open_pic(image, face_worker, exposure=job.fix_exposure_job.isChecked(), tilt=job.auto_tilt_job.isChecked()) \
         if isinstance(image, Path) else image
     if pic_array is None: return None
     if (bounding_box := box_detect(pic_array, job, face_worker)) is None: return None
@@ -500,7 +500,7 @@ def crop_image(image: Union[Path, cvt.MatLike],
 def multi_crop(source_image: Union[cvt.MatLike, Path],
                job: Job,
                face_worker: FaceWorker) -> Optional[Generator[cvt.MatLike, None, None]]:
-    img = open_pic(source_image, job.fix_exposure_job.isChecked(), job.auto_tilt_job.isChecked(), face_worker) \
+    img = open_pic(source_image, face_worker, exposure=job.fix_exposure_job.isChecked(), tilt=job.auto_tilt_job.isChecked()) \
         if isinstance(source_image, Path) else source_image
     if img is None:
         return None
@@ -544,4 +544,3 @@ def crop(image: Path,
         save_detection(image, job, face_worker, multi_crop, multi_save_image)
     else:
         save_detection(image, job, face_worker, crop_image, save_image)
-
