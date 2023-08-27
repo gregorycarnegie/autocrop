@@ -96,6 +96,10 @@ class Job(NamedTuple):
     @property
     def size(self) -> Tuple[int, int]:
         return self.width, self.height
+    
+    @property
+    def threshold(self) -> int:
+        return 100 - self.sensitivity
 
     def get_destination(self) -> Optional[Path]:
         """

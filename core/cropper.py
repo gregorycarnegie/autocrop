@@ -74,10 +74,8 @@ class Cropper(QObject):
         )
         if pic_array is None: return None
 
-        pic_array = ut.adjust_gamma(pic_array, job.gamma)
         if job.multi_face_job.isChecked():
-            adjusted = ut.convert_color_space(pic_array)
-            pic = ut.multi_box(adjusted, job, self.face_workers[0])
+            pic = ut.multi_box(pic_array, job, self.face_workers[0])
             wf.display_image_on_widget(pic, image_widget)
         else:
             bounding_box = ut.box_detect(pic_array, job, self.face_workers[0])
@@ -172,16 +170,16 @@ class Cropper(QObject):
         for t in threads:
             t.start()
 
-    @cache
-    def grab_frame(self, position_slider: int,
+    @staticmethod
+    def grab_frame(position_slider: int,
                    video_line_edit: str) -> Optional[cvt.MatLike]:
         # Set video frame position to timelineSlider value
-        self.cap = cv2.VideoCapture(video_line_edit)
-        self.cap.set(cv2.CAP_PROP_POS_MSEC, position_slider)
+        cap = cv2.VideoCapture(video_line_edit)
+        cap.set(cv2.CAP_PROP_POS_MSEC, position_slider)
         # Read frame from video capture object
-        ret, frame = self.cap.read()
+        ret, frame = cap.read()
         if not ret: return None
-        self.cap.release()
+        cap.release()
         return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
     def crop_frame(self, job: Job,

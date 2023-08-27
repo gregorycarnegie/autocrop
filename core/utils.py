@@ -1,9 +1,10 @@
 import cProfile
 import pstats
+import random
 import shutil
-from functools import cache, lru_cache, wraps
+from functools import cache, wraps
 from pathlib import Path
-from typing import Any, Callable, Generator, List, Optional, Tuple, Union
+from typing import Any, Callable, Generator, Iterator, List, Optional, Tuple, Union
 
 import autocrop_rs
 import cv2
@@ -151,11 +152,9 @@ def open_raw(image: Path,
         img = correct_exposure(img, exposure)
         return align_head(img, face_worker, tilt)
 
-@cache
 def open_table(input_file: Path) -> pd.DataFrame:
     return pd.read_csv(input_file) if input_file.suffix.lower() == '.csv' else pd.read_excel(input_file)
 
-@lru_cache(5, True)
 def open_pic(input_file: Union[Path, str],
              exposure: bool,
              tilt: bool,
@@ -244,7 +243,7 @@ def rotate_image(image: Union[cvt.MatLike, npt.NDArray[np.uint8]],
     return cv2.warpAffine(image, rotation_matrix, (image.shape[1], image.shape[0]))
 
 def prepare_detections(image: cvt.MatLike,
-                       face_worker: FaceWorker) -> npt.NDArray[np.float_]:
+                       face_worker: FaceWorker) -> npt.NDArray[np.float64]:
     # Create blob from image
     # We standardize the image by scaling it and then subtracting the mean RGB values
     blob = cv2.dnn.blobFromImage(image, 1.0, (300, 300), (104.0, 177.0, 123.0), False, False)
@@ -274,8 +273,42 @@ def box(img: cvt.MatLike,
     output = np.squeeze(detections)
     # get the confidence
     confidence_list = output[:, 2]
-    if np.max(confidence_list) * 100 < 100 - job.sensitivity: return None
+    if np.max(confidence_list) * 100 < job.threshold: return None
     return get_box_coordinates(output[:, 3:7], width, height, job, confidence_list)
+
+def _draw_box_with_text(image: cvt.MatLike, x0: int, y0: int, x1: int, y1: int, confidence: np.float64) -> cvt.MatLike:
+    """
+    Draw a bounding box and confidence text on an image.
+    
+    Args:
+    - image (cvt.MatLike): Image on which to draw.
+    - x0, y0, x1, y1 (int): Bounding box coordinates.
+    - confidence (float): Detection confidence.
+    
+    Returns:
+    - cvt.MatLike: Image with bounding box and text.
+    """
+    COLOURS = (255, 0, 0), (0, 255, 0), (0, 0, 255)
+    colour = random.choice(COLOURS)
+    FONT_SCALE, LINE_WIDTH, TEXT_OFFSET = .45, 2, 10
+
+    text = "{:.2f}%".format(confidence)
+    y_text = y0 - TEXT_OFFSET if y0 > 20 else y0 + TEXT_OFFSET
+    cv2.rectangle(image, (x0, y0), (x1, y1), colour, LINE_WIDTH)
+    cv2.putText(image, text, (x0, y_text), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, colour, LINE_WIDTH)
+    return image
+
+def get_detection_arrays(detections: npt.NDArray[np.float64]) -> Iterator[Tuple[np.float64, npt.NDArray[np.float64]]]:
+    x = range(detections.shape[2])
+    conf_array: Generator[np.float64 , None, None] = (detections[0, 0, i, 2] * 100 for i in x)
+    output_array: Generator[npt.NDArray[np.float64] , None, None] = (detections[0, 0, i, 3:7] for i in x)
+    return zip(conf_array, output_array)
+
+def get_multi_box_parameters(image: cvt.MatLike,
+                             face_worker: FaceWorker) -> Tuple[npt.NDArray[np.float64], int, int]:
+    height, width = image.shape[:2]
+    detections = prepare_detections(convert_color_space(image), face_worker)
+    return detections, height, width
 
 def multi_box(image: cvt.MatLike,
               job: Job,
@@ -291,52 +324,25 @@ def multi_box(image: cvt.MatLike,
     Returns:
     - cvt.MatLike: Image with bounding boxes drawn around detected faces.
     """
-    
-    height, width = image.shape[:2]
-    detections = prepare_detections(image, face_worker)
-    threshold = 100 - job.sensitivity
+    detections, height, width = get_multi_box_parameters(image, face_worker)
 
-    x = range(detections.shape[2])
-    conf_array: Generator[np.float64 , None, None] = (detections[0, 0, i, 2] * 100 for i in x)
-    output_array: Generator[npt.NDArray[np.float_] , None, None] = (detections[0, 0, i, 3:7] for i in x)
+    image = adjust_gamma(image, job.gamma)
+    image = convert_color_space(image)
 
-    for confidence, output in zip(conf_array, output_array):
-        if confidence > threshold:
+    for confidence, output in get_detection_arrays(detections):
+        if confidence > job.threshold:
             x0, y0, x1, y1 = get_box_coordinates(output, width, height, job)
             image = _draw_box_with_text(image, x0, y0, x1, y1, confidence)
-    return image
-
-def _draw_box_with_text(image: cvt.MatLike, x0: int, y0: int, x1: int, y1: int, confidence: np.float64) -> cvt.MatLike:
-    """
-    Draw a bounding box and confidence text on an image.
-    
-    Args:
-    - image (cvt.MatLike): Image on which to draw.
-    - x0, y0, x1, y1 (int): Bounding box coordinates.
-    - confidence (float): Detection confidence.
-    
-    Returns:
-    - cvt.MatLike: Image with bounding box and text.
-    """
-    RED_COLOR = 0, 0, 255
-    FONT_SCALE = .45
-    LINE_WIDTH = 2
-    TEXT_OFFSET = 10
-
-    text = "{:.2f}%".format(confidence)
-    y_text = y0 - TEXT_OFFSET if y0 > 20 else y0 + TEXT_OFFSET
-    cv2.rectangle(image, (x0, y0), (x1, y1), RED_COLOR, LINE_WIDTH)
-    cv2.putText(image, text, (x0, y_text), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, RED_COLOR, LINE_WIDTH)
     return image
 
 def multi_box_positions(image: cvt.MatLike,
                         job: Job,
                         face_worker: FaceWorker) -> Tuple[npt.NDArray[np.float_], npt.NDArray[np.int_]]:
-    height, width = image.shape[:2]
-    detections = prepare_detections(image, face_worker)
-    crop_positions = [get_box_coordinates(detections[0, 0, i, 3:7], width, height, job)
-                      for i in range(detections.shape[2])
-                      if detections[0, 0, i, 2] * 100 > 100 - job.sensitivity]
+    detections, height, width = get_multi_box_parameters(image, face_worker)
+
+    crop_positions = [get_box_coordinates(output, width, height, job)
+                      for confidence, output in get_detection_arrays(detections)
+                      if confidence > job.threshold]
     return np.array(detections), np.array(crop_positions)
 
 def box_detect(img: cvt.MatLike,
@@ -455,17 +461,20 @@ def multi_crop(source_image: Union[cvt.MatLike, Path],
                job: Job,
                face_worker: FaceWorker) -> Optional[Generator[cvt.MatLike, None, None]]:
     img = open_pic(source_image, job.fix_exposure_job.isChecked(), job.auto_tilt_job.isChecked(), face_worker) \
-                    if isinstance(source_image, Path) else source_image
+        if isinstance(source_image, Path) else source_image
     if img is None:
         return None
+
     detections, crop_positions = multi_box_positions(img, job, face_worker)
     # Check if any faces were detected
-    if not np.any(100 * detections[0, 0, :, 2] > (100 - job.sensitivity)): return None
+    x = 100 * detections[0, 0, :, 2] > job.threshold
+
+    if not x.any(): return None
     # Cropped images
     images = (Image.fromarray(img).crop(crop_position) for crop_position in crop_positions)
     # images as numpy arrays
     image_array: Generator[npt.NDArray[np.uint8], None, None] = (pillow_to_numpy(image) for image in images)
-    # numpy arrays with collour space converted
+    # numpy arrays with colour space converted
     results: Generator[cvt.MatLike, None, None] = (convert_color_space(array) for array in image_array)
     # return resized results
     return (cv2.resize(src=result, dsize=job.size, interpolation=cv2.INTER_AREA) for result in results)
