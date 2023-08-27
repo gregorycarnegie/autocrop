@@ -1,5 +1,4 @@
 import re
-from functools import cache
 from multiprocessing import cpu_count
 from pathlib import Path
 from threading import Thread
