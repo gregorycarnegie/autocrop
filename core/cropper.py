@@ -263,22 +263,20 @@ class Cropper(QObject):
             return None
         
         video = cv2.VideoCapture(job.video_path.as_posix())
-        fps = int(video.get(cv2.CAP_PROP_FPS))
-        start_frame = int(job.start_position * fps)
-        end_frame = int(job.stop_position * fps)
+        fps = video.get(cv2.CAP_PROP_FPS)
+        start_frame, end_frame = int(job.start_position * fps), int(job.stop_position * fps)
         frame_numbers = np.arange(start_frame, end_frame + 1)
+        x = frame_numbers.size
 
-        self.v_progress.emit((0, frame_numbers.size))
+        self.v_progress.emit((0, x))
         self.v_started.emit()
 
-        def progress_callback() -> None:
-            self._update_progress(frame_numbers.size, FunctionType.VIDEO)
-        
         for frame_number in frame_numbers:
             if self.end_v_task:
                 break
-            self.frame_extraction(video, frame_number, job, progress_callback)
-            if self.bar_value_v == frame_numbers.size or self.end_v_task:
+            self.frame_extraction(video, frame_number, job,
+                                  lambda: self._update_progress(x, FunctionType.VIDEO))
+            if self.bar_value_v == x or self.end_v_task:
                 self.message_box_v = False
         video.release()
 
