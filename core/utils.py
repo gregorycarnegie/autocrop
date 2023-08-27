@@ -157,34 +157,25 @@ def align_head(image: Union[cvt.MatLike, npt.NDArray[np.uint8]],
         return image
     height, _ = image.shape[:2]
     scaling_factor = 256 / height
-    # print(f'running {align_head.__name__} -> {cv2.resize.__name__}')
     image_array = cv2.resize(image, None, fx=scaling_factor, fy=scaling_factor, interpolation=cv2.INTER_AREA)
     # Detect the faces in the image.
-    # print('check for B/W images')
     if len(image_array.shape) >= 3:
         image_array = cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY)
 
-    # print('get face_detector & predictor')
     face_detector, predictor = face_worker.worker_tuple()
-    # print('got face_worker.worker_tuple')
 
     faces = face_detector(image_array, 1)
-    # print(type(faces))
-    # print(faces)
     # If no faces are detected, return the original image.
     if len(faces) == 0:
         return image
 
     # Find the face with the highest confidence score.
-    # print('Finding face with biggest area')
     face = max(faces, key=lambda x: x.area())
     # Get the 68 facial landmarks for the face.
-    # print('Get the 68 facial landmarks')
     landmarks = predictor(image_array, face)
     landmarks_array = np.array([(p.x, p.y) for p in landmarks.parts()])
     # Find the angle of the tilt and the center of the face
     angle, center_x, center_y = get_angle_of_tilt(landmarks_array, scaling_factor)
-    # print(f'running {rotate_image.__name__} function')
     return rotate_image(image, angle, (center_x, center_y))
 
 
@@ -207,7 +198,6 @@ def open_image(image: Path,
     img = cv2.imread(image.as_posix())
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = correct_exposure(img, exposure)
-    # print(f'{open_image.__name__} -> {align_head.__name__}')
     return align_head(img, face_worker, tilt)
 
 
@@ -231,7 +221,6 @@ def open_raw(image: Path,
         # Post-process the raw image data
         img = raw.postprocess(use_camera_wb=True)
         img = correct_exposure(img, exposure)
-        # print(f'{open_raw.__name__} -> {align_head.__name__}')
         return align_head(img, face_worker, tilt)
 
 
