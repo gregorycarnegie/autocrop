@@ -138,8 +138,9 @@ class CustomCropWidget(QtWidgets.QWidget):
     def all_filled(*line_edits: Union[PathLineEdit, NumberLineEdit, QtWidgets.QComboBox]) -> bool:
         x = all(edit.state == LineEditState.VALID_INPUT
                 for edit in line_edits if isinstance(edit, (PathLineEdit, NumberLineEdit)))
-        y = all(edit.currentText() for edit in line_edits if isinstance(edit, QtWidgets.QComboBox))
-        return x and y
+        y = all(edit.text() for edit in line_edits if isinstance(edit, (PathLineEdit, NumberLineEdit)))
+        z = all(edit.currentText() for edit in line_edits if isinstance(edit, QtWidgets.QComboBox))
+        return all((x, y, z))
 
     def disable_buttons(self) -> None:
         """Only sublasses of the CustomCropWidget class should implement this method"""
