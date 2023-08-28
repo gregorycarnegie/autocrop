@@ -1,8 +1,8 @@
 import re
+from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count
 from pathlib import Path
-from threading import Thread
-from typing import Any, Callable, ClassVar, Generator, List, Optional, Tuple, Union
+from typing import Any, Callable, ClassVar, List, Optional, Tuple, Union
 
 import cv2
 import cv2.typing as cvt
@@ -266,11 +266,9 @@ class Cropper(QObject):
         self.f_progress.emit((self.bar_value_f, amount))
         self.f_started.emit()
 
-        threads: Generator[Thread, None, None] = (
-            Thread(target=self.folder_worker, args=(amount, split_array[i], job, self.face_workers[i]))
-            for i in range(len(split_array)))
-        for t in threads:
-            t.start()
+        executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)
+        _ = [executor.submit(self.folder_worker, amount, split_array[i], job, self.face_workers[i])
+             for i in range(len(split_array))]
 
     def mapping_worker(self, file_amount: int,
                        job: Job,
@@ -325,13 +323,9 @@ class Cropper(QObject):
         self.m_progress.emit((self.bar_value_m, amount))
         self.m_started.emit()
 
-        threads: Generator[Thread, None, None] = (
-            Thread(target=self.mapping_worker,
-                   args=(amount, job, self.face_workers[i]),
-                   kwargs={'old': old_file_list[i], 'new': new_file_list[i]})
-            for i in range(len(new_file_list)))
-        for t in threads:
-            t.start()
+        executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)
+        _ = [executor.submit(self.mapping_worker, amount, job, self.face_workers[i], old=old_file_list[i], new=new_file_list[i])
+             for i in range(len(new_file_list))]
 
     def crop_frame(self, job: Job,
                    position_label: QLabel,
