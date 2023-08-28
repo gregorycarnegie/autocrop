@@ -88,8 +88,9 @@ def gamma(gam: Union[int, float] = 1.0) -> npt.NDArray[np.generic]:
         print(corrected_array)
         ```
     """
+    intensity_values = np.arange(256) / 255
+    return np.power(intensity_values, 1.0 / gam) * 255 if gam != 1.0 else intensity_values * 255
 
-    return np.power(np.arange(256) / 255, 1.0 / gam) * 255 if gam != 1.0 else np.arange(256)
 
 
 def adjust_gamma(image: Union[cvt.MatLike, npt.NDArray[np.uint8]], gam: int) -> cvt.MatLike:
@@ -214,7 +215,7 @@ def correct_exposure(image: Union[cvt.MatLike, npt.NDArray[np.uint8]],
     if not exposure: return image
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if len(image.shape) > 2 else image
     # Grayscale histogram
-    hist: npt.NDArray[np.generic] = cv2.calcHist([gray], [0], None, [256], [0, 256]).ravel()
+    hist, _ = np.histogram(gray.ravel(), bins=256, range=(0, 256))
     # Calculate alpha and beta
     alpha, beta = autocrop_rs.calc_alpha_beta(hist)
     return cv2.convertScaleAbs(src=image, alpha=alpha, beta=beta)
@@ -287,9 +288,11 @@ def align_head(image: Union[cvt.MatLike, npt.NDArray[np.uint8]],
 
     if not tilt:
         return image
-    height, _ = image.shape[:2]
-    scaling_factor = 256 / height
-    image_array = cv2.resize(image, None, fx=scaling_factor, fy=scaling_factor, interpolation=cv2.INTER_AREA)
+    height, width = image.shape[:2]
+    output_height = 256
+    scaling_factor = output_height / height
+    output_width = int(width * scaling_factor)
+    image_array = cv2.resize(image, (output_width, output_height), interpolation=cv2.INTER_AREA)
     # Detect the faces in the image.
     if len(image_array.shape) >= 3:
         image_array = cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY)
@@ -480,6 +483,15 @@ def get_box_coordinates(output: Union[cvt.MatLike, npt.NDArray[np.generic]],
                                       job.height, job.top, job.bottom, job.left, job.right)
 
 
+def get_multibox_coordinates(box_outputs: npt.NDArray[np.int_], job: Job) -> npt.NDArray[np.int_]:
+    z = []
+    for box_output in box_outputs:
+        x0, y0, x1, y1 = box_output
+        z.append(autocrop_rs.crop_positions(x0, y0, x1 - x0, y1 - y0, job.face_percent, job.width,
+                                            job.height, job.top, job.bottom, job.left, job.right))
+    return np.array(z)
+
+
 def box(img: cvt.MatLike,
         job: Job,
         face_worker: FaceWorker, *,
@@ -562,11 +574,12 @@ def multi_box_positions(image: cvt.MatLike,
                         job: Job,
                         face_worker: FaceWorker) -> Tuple[npt.NDArray[np.float_], npt.NDArray[np.int_]]:
     detections, height, width = get_multi_box_parameters(image, face_worker)
-
-    crop_positions = [get_box_coordinates(output, job, width=width, height=height)
-                      for confidence, output in get_detection_arrays(detections)
-                      if confidence > job.threshold]
-    return np.array(detections), np.array(crop_positions)
+    confidences = detections[0, 0, :, 2] * 100
+    outputs = detections[0, 0, :, 3:7]
+    mask = confidences > job.threshold
+    box_outputs = outputs[mask] * np.array([width, height, width, height])
+    crop_positions = get_multibox_coordinates(box_outputs.astype(np.int_), job)
+    return detections, crop_positions
 
 
 def box_detect(img: cvt.MatLike,
@@ -605,9 +618,7 @@ def get_first_file(img_path: Path) -> Optional[Path]:
         ```
     """
 
-    files = np.fromiter(img_path.iterdir(), Path)
-    file: Generator[Path, None, None] = (pic for pic in files if pic.suffix.lower() in Photo.file_types)
-    return next(file, None)
+    return next((file for file in img_path.iterdir() if file.suffix.lower() in Photo.file_types), None)
 
 
 def mask_extensions(file_list: npt.NDArray[np.str_]) -> Tuple[npt.NDArray[np.bool_], int]:
@@ -636,8 +647,10 @@ def mask_extensions(file_list: npt.NDArray[np.str_]) -> Tuple[npt.NDArray[np.boo
         ```
     """
 
-    mask: npt.NDArray[np.bool_] = np.in1d(np.char.lower([Path(file).suffix for file in file_list]), Photo.file_types)
-    return mask, file_list[mask].size
+    file_suffixes = np.char.lower([Path(file).suffix for file in file_list])
+    mask = np.isin(file_suffixes, Photo.file_types)
+    return mask, np.count_nonzero(mask)
+
 
 
 def split_by_cpus(mask: npt.NDArray[np.bool_],
@@ -983,18 +996,17 @@ def multi_crop(source_image: Union[cvt.MatLike, Path],
 
     detections, crop_positions = multi_box_positions(img, job, face_worker)
     # Check if any faces were detected
-    x = 100 * detections[0, 0, :, 2] > job.threshold
-    if not x.any():
+    if np.any(100 * detections[0, 0, :, 2] > job.threshold):
+        # Cropped images
+        images = [Image.fromarray(img).crop(crop_position) for crop_position in crop_positions]
+        # images as numpy arrays
+        image_array = [pillow_to_numpy(image) for image in images]
+        # numpy arrays with colour space converted
+        results = [convert_color_space(array) for array in image_array]
+        # return resized results
+        return (cv2.resize(src=result, dsize=job.size, interpolation=cv2.INTER_AREA) for result in results)
+    else:
         return None
-
-    # Cropped images
-    images = (Image.fromarray(img).crop(crop_position) for crop_position in crop_positions)
-    # images as numpy arrays
-    image_array: Generator[npt.NDArray[np.uint8], None, None] = (pillow_to_numpy(image) for image in images)
-    # numpy arrays with colour space converted
-    results: Generator[cvt.MatLike, None, None] = (convert_color_space(array) for array in image_array)
-    # return resized results
-    return (cv2.resize(src=result, dsize=job.size, interpolation=cv2.INTER_AREA) for result in results)
 
 
 def crop(image: Path,
