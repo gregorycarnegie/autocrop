@@ -6,29 +6,29 @@ from PyQt6.QtGui import QValidator
 
 class FilePathValidator(QValidator):
     """
-A custom validator for file paths that inherits from QValidator.
+    A custom validator for file paths that inherits from QValidator.
 
-Attributes:
-    INVALID_CHARS_PATTERN (ClassVar[Pattern[str]]): A regular expression pattern to match invalid characters in a file path.
+    Attributes:
+        INVALID_CHARS_PATTERN (ClassVar[Pattern[str]]): A regular expression pattern to match invalid characters in a file path.
 
-Methods:
-    validate(self, a0: Optional[str], a1: int) -> Tuple[QValidator.State, str, int]: Validates the input string based on the INVALID_CHARS_PATTERN and returns the validation state, the modified string, and an integer value.
-"""
+    Methods:
+        validate(self, a0: Optional[str], a1: int) -> Tuple[QValidator.State, str, int]: Validates the input string based on the INVALID_CHARS_PATTERN and returns the validation state, the modified string, and an integer value.
+    """
 
     INVALID_CHARS_PATTERN: ClassVar[Pattern[str]] = re.compile(r'[*?<>|]')
 
     def validate(self, a0: Optional[str], a1: int) -> Tuple[QValidator.State, str, int]:
         """
-Validates the input string based on a regular expression pattern and returns the validation state, the modified string, and an integer value.
+    Validates the input string based on a regular expression pattern and returns the validation state, the modified string, and an integer value.
 
-Args:
-    self: The CustomLineEdit instance.
-    a0 (Optional[str]): The input string to be validated.
-    a1 (int): An integer value.
+    Args:
+        self: The CustomLineEdit instance.
+        a0 (Optional[str]): The input string to be validated.
+        a1 (int): An integer value.
 
-Returns:
-    Tuple[QValidator.State, str, int]: A tuple containing the validation state, the modified string, and the integer value.
-"""
+    Returns:
+        Tuple[QValidator.State, str, int]: A tuple containing the validation state, the modified string, and the integer value.
+    """
 
         try:
             assert isinstance(a0, str)
