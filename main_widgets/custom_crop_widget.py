@@ -1,4 +1,4 @@
-from typing import ClassVar, Optional, Set
+from typing import ClassVar, Optional, Set, Union
 from pathlib import Path
 
 import pandas as pd
@@ -7,7 +7,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 from core import Cropper, CustomDialWidget, ExtWidget, FunctionTabSelectionState, FunctionType, ImageWidget, Job
 from core import window_functions as wf
 from file_types import Photo
-from line_edits import NumberLineEdit, PathLineEdit, PathType
+from line_edits import LineEditState, NumberLineEdit, PathLineEdit, PathType
 from .enums import ButtonType
 
 
@@ -133,6 +133,13 @@ class CustomCropWidget(QtWidgets.QWidget):
     def reload_widgets(self) -> None:
         """Only sublasses of the CustomCropWidget class should implement this method"""
         pass
+    
+    @staticmethod
+    def all_filled(*line_edits: Union[PathLineEdit, NumberLineEdit, QtWidgets.QComboBox]) -> bool:
+        x = all(edit.state == LineEditState.VALID_INPUT
+                for edit in line_edits if isinstance(edit, (PathLineEdit, NumberLineEdit)))
+        y = all(edit.currentText() for edit in line_edits if isinstance(edit, QtWidgets.QComboBox))
+        return x and y
 
     def disable_buttons(self) -> None:
         """Only sublasses of the CustomCropWidget class should implement this method"""

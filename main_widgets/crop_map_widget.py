@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 import pandas as pd
 from PyQt6 import QtCore, QtWidgets
@@ -176,19 +176,8 @@ class CropMapWidget(CropBatchWidget):
                     pass
 
     def disable_buttons(self) -> None:
-        def all_filled(*line_edits: Union[PathLineEdit, NumberLineEdit, QtWidgets.QComboBox]) -> bool:
-            x = all(edit.state == LineEditState.VALID_INPUT
-                    for edit in line_edits if isinstance(edit, (PathLineEdit, NumberLineEdit)))
-            y = all(edit.currentText() for edit in line_edits if isinstance(edit, QtWidgets.QComboBox))
-            return x and y
-
-        def update_widget_state(condition: bool, *widgets: QtWidgets.QWidget) -> None:
-            for widget in widgets:
-                wf.change_widget_state(condition, widget)
-
-        # Mapping logic
-        update_widget_state(
-            all_filled(self.folderLineEdit, self.tableLineEdit, self.destinationLineEdit, self.comboBox_1,
+        wf.update_widget_state(
+            self.all_filled(self.folderLineEdit, self.tableLineEdit, self.destinationLineEdit, self.comboBox_1,
                        self.comboBox_2, self.widthLineEdit, self.heightLineEdit),
             self.cropButton)
 

@@ -8,6 +8,49 @@ from .enums import LineEditState
 
 
 class CustomLineEdit(QLineEdit):
+    """
+Represents a CustomLineEdit class that inherits from the QLineEdit class.
+
+The CustomLineEdit class provides a customized line edit widget with a clear button and validation functionality. It overrides the `resizeEvent` method to handle the positioning of the clear button. The class also defines methods for updating the clear button visibility, validating the input path, setting the valid and invalid colors, and updating the style.
+
+Attributes:
+    VALID_COLOR (ClassVar[str]): The color code for valid input.
+    INVALID_COLOR (ClassVar[str]): The color code for invalid input.
+
+Methods:
+    resizeEvent(a0: Optional[QResizeEvent]): Overrides the resize event to handle the positioning of the clear button.
+    updateClearButton(text: str) -> None: Updates the visibility of the clear button based on the text input.
+    validate_path() -> None: Validates the input path and sets the color accordingly.
+    set_valid_color() -> None: Sets the color to the valid color.
+    set_invalid_color() -> None: Sets the color to the invalid color.
+    color_logic(boolean: bool) -> None: Sets the color and state based on a boolean value.
+    update_style() -> None: Updates the style of the line edit.
+
+Example:
+    ```python
+    # Creating an instance of the CustomLineEdit class
+    line_edit = CustomLineEdit()
+
+    # Resizing the line edit
+    line_edit.resizeEvent(None)
+
+    # Updating the clear button visibility
+    line_edit.updateClearButton("Text")
+
+    # Validating the input path
+    line_edit.validate_path()
+
+    # Setting the valid color
+    line_edit.set_valid_color()
+
+    # Setting the invalid color
+    line_edit.set_invalid_color()
+
+    # Updating the style
+    line_edit.update_style()
+    ```
+"""
+
     VALID_COLOR: ClassVar[str] = '#7fda91'  # light green
     INVALID_COLOR: ClassVar[str] = '#ff6c6c'  # rose
 
@@ -27,6 +70,17 @@ class CustomLineEdit(QLineEdit):
         self.update_style()
 
     def resizeEvent(self, a0: Optional[QResizeEvent]):
+        """
+Overrides the resize event to handle the positioning of the clear button.
+
+Args:
+    self: The CustomLineEdit instance.
+    a0 (Optional[QResizeEvent]): The resize event.
+
+Returns:
+    None
+"""
+
         buttonSize = self.clearButton.sizeHint()
         frameWidth = self.style().pixelMetric(QStyle.PixelMetric.PM_DefaultFrameWidth)
         self.clearButton.move(self.rect().right() - frameWidth - buttonSize.width(),
@@ -34,6 +88,17 @@ class CustomLineEdit(QLineEdit):
         super(CustomLineEdit, self).resizeEvent(a0)
 
     def updateClearButton(self, text: str) -> None:
+        """
+Updates the visibility of the clear button based on the text input.
+
+Args:
+    self: The CustomLineEdit instance.
+    text (str): The current text input.
+
+Returns:
+    None
+"""
+
         self.clearButton.setVisible(bool(text))
 
     def validate_path(self) -> None:
@@ -42,12 +107,43 @@ class CustomLineEdit(QLineEdit):
         return None
 
     def set_valid_color(self) -> None:
+        """
+Sets the color of the CustomLineEdit to the valid color.
+
+Args:
+    self: The CustomLineEdit instance.
+
+Returns:
+    None
+"""
+
         self.colour = self.VALID_COLOR
 
     def set_invalid_color(self) -> None:
+        """
+Sets the color of the CustomLineEdit to the invalid color.
+
+Args:
+    self: The CustomLineEdit instance.
+
+Returns:
+    None
+"""
+
         self.colour = self.INVALID_COLOR
 
     def color_logic(self, boolean: bool) -> None:
+        """
+Sets the color and state of the CustomLineEdit based on a boolean value.
+
+Args:
+    self: The CustomLineEdit instance.
+    boolean (bool): A boolean value indicating the condition.
+
+Returns:
+    None
+"""
+
         if boolean:
             self.set_valid_color()
             self.state = LineEditState.VALID_INPUT
@@ -56,4 +152,14 @@ class CustomLineEdit(QLineEdit):
             self.state = LineEditState.INVALID_INPUT
 
     def update_style(self) -> None:
+        """
+Updates the style of the CustomLineEdit by setting the background color and text color based on the current color value.
+
+Args:
+    self: The CustomLineEdit instance.
+
+Returns:
+    None
+"""
+
         self.setStyleSheet(f'background-color: {self.colour}; color: black;')

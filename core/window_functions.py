@@ -13,12 +13,25 @@ from .literals import MediaIconAlias, TabIconAlias
 
 def display_image_on_widget(image: cvt.MatLike, image_widget: ImageWidget) -> None:
     """
-    Display an OpenCV image on a Qt ImageWidget.
+Displays the specified image on the image widget.
 
-    Args:
-    - image (cvt.MatLike): OpenCV image to display.
-    - image_widget (ImageWidget): Qt widget where the image should be displayed.
-    """
+Args:
+    image (cvt.MatLike): The image to display.
+    image_widget (ImageWidget): The image widget to display the image on.
+
+Returns:
+    None
+
+Example:
+    ```python
+    image = cvt.imread('path/to/image.jpg')
+    widget = ImageWidget()
+
+    # Display the image on the widget
+    display_image_on_widget(image, widget)
+    ```
+"""
+
     height, width, channel = image.shape
     bytes_per_line = channel * width
     q_image = QtGui.QImage(image.data, width, height, bytes_per_line, QtGui.QImage.Format.Format_BGR888)
@@ -26,21 +39,94 @@ def display_image_on_widget(image: cvt.MatLike, image_widget: ImageWidget) -> No
 
 
 def add_widgets(base_widget: Union[QtWidgets.QHBoxLayout, QtWidgets.QVBoxLayout], *widgets: QtWidgets.QWidget) -> None:
+    """
+Adds the specified widgets to the base widget.
+
+Args:
+    base_widget (Union[QtWidgets.QHBoxLayout, QtWidgets.QVBoxLayout]): The base widget to add the widgets to.
+    *widgets (QtWidgets.QWidget): Variable number of widgets to add.
+
+Returns:
+    None
+
+Example:
+    ```python
+    layout = QtWidgets.QHBoxLayout()
+    widget1 = QtWidgets.QWidget()
+    widget2 = QtWidgets.QWidget()
+    widget3 = QtWidgets.QWidget()
+
+    # Add the widgets to the layout
+    add_widgets(layout, widget1, widget2, widget3)
+    ```
+"""
+
     for widget in widgets:
         base_widget.addWidget(widget)
 
 
 def uncheck_boxes(*checkboxes: QtWidgets.QCheckBox) -> None:
+    """
+Unchecks the specified checkboxes.
+
+Args:
+    *checkboxes (QtWidgets.QCheckBox): Variable number of checkboxes to uncheck.
+
+Returns:
+    None
+
+Example:
+    ```python
+    checkbox1 = QtWidgets.QCheckBox()
+    checkbox2 = QtWidgets.QCheckBox()
+    checkbox3 = QtWidgets.QCheckBox()
+
+    # Uncheck the checkboxes
+    uncheck_boxes(checkbox1, checkbox2, checkbox3)
+    ```
+"""
+
     for checkbox in checkboxes:
         checkbox.setCheckState(QtCore.Qt.CheckState.Unchecked)
 
 
 def load_about_form() -> None:
+    """
+Loads and displays the about form.
+
+Returns:
+    None
+
+Example:
+    ```python
+    # Load and display the about form
+    load_about_form()
+    ```
+"""
+
     about_ui = UiDialog()
     about_ui.exec()
 
 
 def initialise_message_box(window_title: str) -> QtWidgets.QMessageBox:
+    """
+Initializes a message box with the specified window title.
+
+Args:
+    window_title (str): The title of the message box window.
+
+Returns:
+    QtWidgets.QMessageBox: The initialized message box object.
+
+Example:
+    ```python
+    title = 'Warning'
+
+    # Initialize a message box with the specified window title
+    message_box = initialise_message_box(title)
+    ```
+"""
+
     msg_box = QtWidgets.QMessageBox()
     msg_box.setWindowIcon(QtGui.QIcon('resources\\logos\\logo.ico'))
     msg_box.setWindowTitle(window_title)
@@ -48,6 +134,24 @@ def initialise_message_box(window_title: str) -> QtWidgets.QMessageBox:
 
 
 def show_message_box(destination: Path) -> None:
+    """
+Shows a message box with the option to open the destination folder.
+
+Args:
+    destination (Path): The path of the destination folder.
+
+Returns:
+    None
+
+Example:
+    ```python
+    destination_folder = Path('path/to/destination')
+
+    # Show a message box to open the destination folder
+    show_message_box(destination_folder)
+    ```
+"""
+
     msg_box = initialise_message_box('Open Destination Folder')
     msg_box.setText('Open destination folder?')
     msg_box.setIcon(QtWidgets.QMessageBox.Icon.Question)
@@ -60,10 +164,48 @@ def show_message_box(destination: Path) -> None:
 
 
 def generate_message(msg_box: QtWidgets.QMessageBox, message: str) -> None:
+    """
+Generates a message for the message box with the specified text.
+
+Args:
+    msg_box (QtWidgets.QMessageBox): The message box object.
+    message (str): The message to include in the text.
+
+Returns:
+    None
+
+Example:
+    ```python
+    message_box = QtWidgets.QMessageBox()
+    text_message = 'This is a warning message.'
+
+    # Generate a message for the message box
+    generate_message(message_box, text_message)
+    ```
+"""
+
     msg_box.setText(f'The paths are the same.\n{message}\nAre you OK to proceed?')
 
 
 def show_warning(function_type: FunctionType) -> int:
+    """
+Shows a warning message box with a specific message based on the function type.
+
+Args:
+    function_type (FunctionType): The type of the function.
+
+Returns:
+    int: The result of the message box execution.
+
+Example:
+    ```python
+    function_type = FunctionType.PHOTO
+
+    # Show a warning message box for the specified function type
+    result = show_warning(function_type)
+    ```
+"""
+
     msg_box = initialise_message_box('Paths Match')
     msg_box.setIcon(QtWidgets.QMessageBox.Icon.Warning)
     match function_type:
@@ -87,6 +229,35 @@ def create_media_button(*, name: str,
                         icon_mode: QtGui.QIcon.Mode = QtGui.QIcon.Mode.Normal,
                         icon_state: QtGui.QIcon.State = QtGui.QIcon.State.Off,
                         parent: Optional[QtWidgets.QWidget] = None) -> QtWidgets.QPushButton:
+    """
+Creates a media button with the specified name, icon, layout, size, icon size, icon mode, icon state, and parent.
+
+Args:
+    name (str): The name of the media button object.
+    icon_resource (MediaIconAlias): The alias for the icon resource.
+    layout (Union[QtWidgets.QHBoxLayout, QtWidgets.QVBoxLayout]): The layout to add the media button to.
+    size (int, optional): The size of the media button. Defaults to 88.
+    icon_size (int, optional): The size of the icon. Defaults to 58.
+    icon_mode (QtGui.QIcon.Mode, optional): The mode of the icon. Defaults to QtGui.QIcon.Mode.Normal.
+    icon_state (QtGui.QIcon.State, optional): The state of the icon. Defaults to QtGui.QIcon.State.Off.
+    parent (Optional[QtWidgets.QWidget], optional): The parent widget for the media button. Defaults to None.
+
+Returns:
+    QtWidgets.QPushButton: The created media button object.
+
+Example:
+    ```python
+    layout = QtWidgets.QHBoxLayout()
+    button_name = 'playButton'
+    icon_resource = 'play'
+    size = 100
+    icon_size = 80
+
+    # Create a media button with the specified properties
+    media_button = create_media_button(name=button_name, icon_resource=icon_resource, layout=layout, size=size, icon_size=icon_size)
+    ```
+"""
+
     playButton = QtWidgets.QPushButton(parent=parent)
     playButton.setEnabled(True)
     playButton.setMinimumSize(QtCore.QSize(size, size))
@@ -102,16 +273,77 @@ def create_media_button(*, name: str,
 
 
 def disable_widget(*args: QtWidgets.QWidget) -> None:
+    """
+Disables multiple widgets.
+
+Args:
+    *args (QtWidgets.QWidget): Variable number of widgets to disable.
+
+Returns:
+    None
+
+Example:
+    ```python
+    button1 = QtWidgets.QPushButton()
+    button2 = QtWidgets.QPushButton()
+    button3 = QtWidgets.QPushButton()
+
+    # Disable the buttons
+    disable_widget(button1, button2, button3)
+    ```
+"""
+
     for arg in args:
         arg.setDisabled(True)
 
 
 def enable_widget(*args: QtWidgets.QWidget) -> None:
+    """
+Enables multiple widgets.
+
+Args:
+    *args (QtWidgets.QWidget): Variable number of widgets to enable.
+
+Returns:
+    None
+
+Example:
+    ```python
+    button1 = QtWidgets.QPushButton()
+    button2 = QtWidgets.QPushButton()
+    button3 = QtWidgets.QPushButton()
+
+    # Enable the buttons
+    enable_widget(button1, button2, button3)
+    ```
+"""
+
     for arg in args:
         arg.setEnabled(True)
 
 
 def change_widget_state(boolean: bool, *args: QtWidgets.QWidget) -> None:
+    """
+Changes the state of multiple widgets based on a boolean value.
+
+Args:
+    boolean (bool): The boolean value to determine the state of the widgets.
+    *args (QtWidgets.QWidget): Variable number of widgets to change the state of.
+
+Returns:
+    None
+
+Example:
+    ```python
+    button1 = QtWidgets.QPushButton()
+    button2 = QtWidgets.QPushButton()
+    button3 = QtWidgets.QPushButton()
+
+    # Change the state of the buttons based on the boolean value
+    change_widget_state(boolean=True, button1, button2, button3)
+    ```
+"""
+
     for arg in args:
         if boolean:
             arg.setEnabled(boolean)
@@ -120,6 +352,22 @@ def change_widget_state(boolean: bool, *args: QtWidgets.QWidget) -> None:
 
 
 def check_mime_data(event: Union[QtGui.QDragEnterEvent, QtGui.QDragMoveEvent]) -> None:
+    """
+Checks the mime data of a drag enter or drag move event and accepts or ignores the event based on the presence of URLs in the mime data.
+
+Args:
+    event (Union[QtGui.QDragEnterEvent, QtGui.QDragMoveEvent]): The drag enter or drag move event.
+
+Returns:
+    None
+
+Example:
+    ```python
+    drag_event = QtGui.QDragEnterEvent()
+    check_mime_data(drag_event)
+    ```
+"""
+
     if (mime_data := event.mimeData()) is None:
         return None
 
@@ -130,6 +378,26 @@ def check_mime_data(event: Union[QtGui.QDragEnterEvent, QtGui.QDragMoveEvent]) -
 
 
 def setup_frame(name: str, *, parent: QtWidgets.QWidget) -> QtWidgets.QFrame:
+    """
+Sets up and returns a QFrame with the specified name and parent.
+
+Args:
+    name (str): The name of the QFrame object.
+    parent (QtWidgets.QWidget): The parent widget for the QFrame.
+
+Returns:
+    QtWidgets.QFrame: The created QFrame object.
+
+Example:
+    ```python
+    parent_widget = QtWidgets.QWidget()
+    frame_name = 'myFrame'
+
+    # Set up a QFrame with the specified name and parent
+    frame = setup_frame(frame_name, parent=parent_widget)
+    ```
+"""
+
     frame = QtWidgets.QFrame(parent=parent)
     frame.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
     frame.setFrameShadow(QtWidgets.QFrame.Shadow.Raised)
@@ -142,7 +410,59 @@ def create_tab(tab_widget: QtWidgets.QTabWidget,
                icon: QtGui.QIcon, *,
                tab_name: str,
                icon_name: TabIconAlias) -> None:
+    """
+Creates a new tab in a tab widget with the specified widget and icon.
+
+Args:
+    tab_widget (QtWidgets.QTabWidget): The tab widget to add the new tab to.
+    tab (QtWidgets.QWidget): The widget to be added as a tab.
+    icon (QtGui.QIcon): The icon for the tab.
+    tab_name (str): The name of the tab object.
+    icon_name (TabIconAlias): The name of the icon file.
+
+Returns:
+    None
+
+Example:
+    ```python
+    tab_widget = QtWidgets.QTabWidget()
+    tab = QtWidgets.QWidget()
+    icon = QtGui.QIcon()
+    tab_name = 'myTab'
+    icon_name = 'myIcon'
+
+    # Create a new tab with the specified widget and icon
+    create_tab(tab_widget, tab, icon, tab_name=tab_name, icon_name=icon_name)
+    ```
+"""
+
     tab.setObjectName(tab_name)
     icon.addPixmap(QtGui.QPixmap(f'resources\\icons\\{icon_name}.svg'), QtGui.QIcon.Mode.Normal,
                     QtGui.QIcon.State.Off)
     tab_widget.addTab(tab, icon, '')
+
+
+def update_widget_state(condition: bool, *widgets: QtWidgets.QWidget) -> None:
+    """
+Updates the state of multiple widgets based on a given condition.
+
+Args:
+    condition (bool): The condition to determine the state of the widgets.
+    *widgets (QtWidgets.QWidget): Variable number of widgets to update.
+
+Returns:
+    None
+
+Example:
+    ```python
+    button1 = QtWidgets.QPushButton()
+    button2 = QtWidgets.QPushButton()
+    button3 = QtWidgets.QPushButton()
+
+    # Update the state of the buttons based on the condition
+    update_widget_state(condition=True, button1, button2, button3)
+    ```
+"""
+
+    for widget in widgets:
+        change_widget_state(condition, widget)

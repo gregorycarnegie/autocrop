@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 
 from PyQt6 import QtCore, QtWidgets
 
@@ -110,19 +110,8 @@ class CropPhotoWidget(CustomCropWidget):
             callback(f_name)
 
     def disable_buttons(self) -> None:
-        def all_filled(*line_edits: Union[PathLineEdit, NumberLineEdit, QtWidgets.QComboBox]) -> bool:
-            x = all(edit.state == LineEditState.VALID_INPUT
-                    for edit in line_edits if isinstance(edit, (PathLineEdit, NumberLineEdit)))
-            y = all(edit.currentText() for edit in line_edits if isinstance(edit, QtWidgets.QComboBox))
-            return x and y
-
-        def update_widget_state(condition: bool, *widgets: QtWidgets.QWidget) -> None:
-            for widget in widgets:
-                wf.change_widget_state(condition, widget)
-
-        # Photo logic
-        update_widget_state(
-            all_filled(self.photoLineEdit, self.destinationLineEdit, self.widthLineEdit, self.heightLineEdit),
+        wf.update_widget_state(
+            self.all_filled(self.photoLineEdit, self.destinationLineEdit, self.widthLineEdit, self.heightLineEdit),
             self.cropButton)
 
     def crop_photo(self) -> None:

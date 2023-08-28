@@ -16,6 +16,21 @@ from .custom_crop_widget import CustomCropWidget
 
 
 class UiMainWindow(QtWidgets.QMainWindow):
+    """
+Represents the main window of the application.
+
+The main window contains various widgets and handles drag and drop events, as well as button and combo box interactions.
+
+Args:
+    self: The instance of the class.
+
+Example:
+    ```python
+    main_window = MainWindow()
+    main_window.show()
+    ```
+"""
+
     def __init__(self) -> None:
         super(UiMainWindow, self).__init__()
         self.setAcceptDrops(True)
@@ -234,6 +249,17 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.actionCrop_Video.setText(_translate('MainWindow', 'Crop Video'))
 
     def dragEnterEvent(self, a0: Optional[QtGui.QDragEnterEvent]) -> None:
+        """
+Handles the drag enter event by checking the event type and calling the check_mime_data method.
+
+Args:
+    self: The instance of the class.
+    a0 (Optional[QtGui.QDragEnterEvent]): The drag enter event.
+
+Returns:
+    None
+"""
+
         try:
             assert isinstance(a0, QtGui.QDragEnterEvent)
         except AssertionError:
@@ -241,6 +267,17 @@ class UiMainWindow(QtWidgets.QMainWindow):
         wf.check_mime_data(a0)
 
     def dragMoveEvent(self, a0: Optional[QtGui.QDragMoveEvent]) -> None:
+        """
+Handles the drag move event by checking the event type and calling the check_mime_data method.
+
+Args:
+    self: The instance of the class.
+    a0 (Optional[QtGui.QDragMoveEvent]): The drag move event.
+
+Returns:
+    None
+"""
+
         try:
             assert isinstance(a0, QtGui.QDragMoveEvent)
         except AssertionError:
@@ -248,6 +285,17 @@ class UiMainWindow(QtWidgets.QMainWindow):
         wf.check_mime_data(a0)
 
     def dropEvent(self, a0: Optional[QtGui.QDropEvent]) -> None:
+        """
+Handles the drop event by checking the dropped item, setting the appropriate drop action, and calling the corresponding handler method.
+
+Args:
+    self: The instance of the class.
+    a0 (Optional[QtGui.QDropEvent]): The drop event.
+
+Returns:
+    None
+"""
+
         try:
             assert isinstance(a0, QtGui.QDropEvent)
         except AssertionError:
@@ -271,6 +319,19 @@ class UiMainWindow(QtWidgets.QMainWindow):
     def handle_path(self, file_path: Path,
                     tab_index: FunctionType,
                     line_edit: PathLineEdit) -> None:
+        """
+Handles a file path by setting the function tab widget to the specified tab index, updating the line edit with the file path, and handling the selection state of the tabs.
+
+Args:
+    self: The instance of the class.
+    file_path (Path): The path to the file.
+    tab_index (FunctionType): The index of the tab to set.
+    line_edit (PathLineEdit): The line edit to update.
+
+Returns:
+    None
+"""
+
         self.function_tabWidget.setCurrentIndex(tab_index.value)
         line_edit.setText(file_path.as_posix())
 
@@ -292,6 +353,17 @@ class UiMainWindow(QtWidgets.QMainWindow):
             self.mappingTab.display_crop()
 
     def handle_path_main(self, file_path: Path) -> None:
+        """
+Handles a file path by checking the file extensions in the directory, validating the mapping and folder tabs, and calling the handle_path method with the appropriate arguments.
+
+Args:
+    self: The instance of the class.
+    file_path (Path): The path to the file.
+
+Returns:
+    None
+"""
+
         extensions = {y.suffix.lower() for y in file_path.iterdir()}
         mask = {ext in extensions for ext in Table.file_types}
         try:
@@ -305,6 +377,17 @@ class UiMainWindow(QtWidgets.QMainWindow):
             self.handle_path(file_path, FunctionType.FOLDER, self.folder_Tab.folderLineEdit)
 
     def handle_file(self, file_path: Path) -> None:
+        """
+Handles a file based on its file extension by calling the appropriate handler method.
+
+Args:
+    self: The instance of the class.
+    file_path (Path): The path to the file.
+
+Returns:
+    None
+"""
+
         match file_path.suffix.lower():
             case suffix if suffix in Photo.file_types:
                 self.handle_image_file(file_path)
@@ -316,6 +399,17 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 pass
 
     def handle_image_file(self, file_path: Path) -> None:
+        """
+Handles an image file by validating the file path and calling the handle_path method with the appropriate arguments.
+
+Args:
+    self: The instance of the class.
+    file_path (Path): The path to the image file.
+
+Returns:
+    None
+"""
+
         try:
             assert isinstance(self.photoTab, CropPhotoWidget)
         except AssertionError:
@@ -323,6 +417,17 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.handle_path(file_path, FunctionType.PHOTO, self.photoTab.photoLineEdit)
 
     def handle_video_file(self, file_path: Path) -> None:
+        """
+Handles a video file by setting the function tab widget to the video tab, validating the file path, and configuring the video player.
+
+Args:
+    self: The instance of the class.
+    file_path (Path): The path to the video file.
+
+Returns:
+    None
+"""
+
         self.handle_function_tab_state(self.videoTab, self.folder_Tab, self.photoTab, self.mappingTab)
         self.function_tabWidget.setCurrentIndex(FunctionType.VIDEO.value)
         try:
@@ -335,6 +440,17 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.videoTab.player.setSource(QtCore.QUrl.fromLocalFile(self.videoTab.videoLineEdit.text()))
 
     def handle_pandas_file(self, file_path: Path) -> None:
+        """
+Handles a pandas file by setting the function tab widget to the mapping tab, validating the file path, and opening the table.
+
+Args:
+    self: The instance of the class.
+    file_path (Path): The path to the pandas file.
+
+Returns:
+    None
+"""
+
         self.function_tabWidget.setCurrentIndex(FunctionType.MAPPING.value)
         try:
             assert isinstance(self.mappingTab, CropMapWidget)
@@ -345,6 +461,16 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.mappingTab.validate_pandas_file(data)
 
     def check_tab_selection(self) -> None:
+        """
+Checks the current selection of the function tab widget and handles the tab states accordingly.
+
+Args:
+    self: The instance of the class.
+
+Returns:
+    None
+"""
+
         match self.function_tabWidget.currentIndex():
             case FunctionType.PHOTO.value:
                 self.handle_function_tab_state(self.photoTab, self.folder_Tab, self.mappingTab, self.videoTab)
@@ -359,11 +485,33 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
     @staticmethod
     def handle_function_tab_state(selected_tab: CustomCropWidget, *other_tabs: CustomCropWidget):
+        """
+Sets the selection state of the selected tab to SELECTED and the selection state of other tabs to NOT_SELECTED.
+
+Args:
+    selected_tab (CustomCropWidget): The selected tab.
+    *other_tabs (CustomCropWidget): The other tabs.
+
+Returns:
+    None
+"""
+
         selected_tab.selection_state = selected_tab.SELECTED
         for tab in other_tabs:
             tab.selection_state = tab.NOT_SELECTED
 
     def load_preset(self, phi: Preset) -> None:
+        """
+Loads a preset value into the width and height line edits.
+
+Args:
+    self: The instance of the class.
+    phi (Preset): The preset value to load.
+
+Returns:
+    None
+"""
+
         if any(line.state is LineEditState.INVALID_INPUT for line in (self.widthLineEdit, self.heightLineEdit)):
             self.widthLineEdit.setText('1000')
             self.heightLineEdit.setText('1000')
@@ -380,16 +528,25 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 else:
                     self.widthLineEdit.setText(str(int(self.heightLineEdit.value() / phi.value)))
 
-    def disable_buttons(self) -> None:
-        def all_filled(*line_edits: Union[PathLineEdit, NumberLineEdit, QtWidgets.QComboBox]) -> bool:
-            x = all(edit.state == LineEditState.VALID_INPUT
-                    for edit in line_edits if isinstance(edit, (PathLineEdit, NumberLineEdit)))
-            y = all(edit.currentText() for edit in line_edits if isinstance(edit, QtWidgets.QComboBox))
-            return x and y
 
-        def update_widget_state(condition: bool, *widgets: QtWidgets.QWidget) -> None:
-            for widget in widgets:
-                wf.change_widget_state(condition, widget)
+    @staticmethod
+    def all_filled(*line_edits: Union[PathLineEdit, NumberLineEdit, QtWidgets.QComboBox]) -> bool:
+        x = all(edit.state == LineEditState.VALID_INPUT
+                for edit in line_edits if isinstance(edit, (PathLineEdit, NumberLineEdit)))
+        y = all(edit.currentText() for edit in line_edits if isinstance(edit, QtWidgets.QComboBox))
+        return x and y
+
+
+    def disable_buttons(self) -> None:
+        """
+Disables buttons based on the filled state of line edits and combo boxes.
+
+Args:
+    self: The instance of the class.
+
+Returns:
+    None
+"""
 
         common_line_edits = (self.widthLineEdit, self.heightLineEdit)
         try:
@@ -400,26 +557,46 @@ class UiMainWindow(QtWidgets.QMainWindow):
         except AssertionError:
             return None
         # Photo logic
-        update_widget_state(
-            all_filled(self.photoTab.photoLineEdit, self.photoTab.destinationLineEdit, *common_line_edits),
+        wf.update_widget_state(
+            self.all_filled(self.photoTab.photoLineEdit, self.photoTab.destinationLineEdit, *common_line_edits),
             self.photoTab.cropButton)
         # Folder logic
-        update_widget_state(
-            all_filled(self.folder_Tab.folderLineEdit, self.folder_Tab.destinationLineEdit, *common_line_edits),
+        wf.update_widget_state(
+            self.all_filled(self.folder_Tab.folderLineEdit, self.folder_Tab.destinationLineEdit, *common_line_edits),
             self.folder_Tab.cropButton)
         # Mapping logic
-        update_widget_state(
-            all_filled(self.mappingTab.folderLineEdit, self.mappingTab.tableLineEdit,
+        wf.update_widget_state(
+            self.all_filled(self.mappingTab.folderLineEdit, self.mappingTab.tableLineEdit,
                        self.mappingTab.destinationLineEdit, self.mappingTab.comboBox_1,
                        self.mappingTab.comboBox_2, *common_line_edits),
             self.mappingTab.cropButton)
         # Video logic
-        update_widget_state(
-            all_filled(self.videoTab.videoLineEdit, self.videoTab.destinationLineEdit, *common_line_edits),
+        wf.update_widget_state(
+            self.all_filled(self.videoTab.videoLineEdit, self.videoTab.destinationLineEdit, *common_line_edits),
             self.videoTab.cropButton, self.videoTab.videocropButton)
 
     def setup_custom_crop_widget(self, tab_widget: QtWidgets.QTabWidget,
                                  function_type: FunctionType) -> Tuple[CustomCropWidget, QtGui.QIcon]:
+        """
+Sets up a custom crop widget based on the specified function type.
+
+Args:
+    self: The instance of the class.
+    tab_widget (QtWidgets.QTabWidget): The tab widget to add the custom crop widget to.
+    function_type (FunctionType): The type of function for the custom crop widget.
+
+Returns:
+    Tuple[CustomCropWidget, QtGui.QIcon]: A tuple containing the custom crop widget and the icon.
+
+Example:
+    ```python
+    main_window = MainWindow()
+    tab_widget = QtWidgets.QTabWidget()
+    function_type = FunctionType.PHOTO
+    custom_crop_widget, icon = main_window.setup_custom_crop_widget(tab_widget, function_type)
+    ```
+"""
+
         widget_list = (self.crop_worker, self.widthLineEdit, self.heightLineEdit, self.extWidget,
                        self.sensitivity_dialArea, self.face_dialArea, self.gamma_dialArea,
                        self.top_dialArea, self.bottom_dialArea, self.left_dialArea, self.right_dialArea)
@@ -444,6 +621,17 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 return tab, icon
 
     def connect_combo_boxes(self, tab_widget: CustomCropWidget) -> None:
+        """
+Connects the combo boxes in the tab widget to the disable_buttons method.
+
+Args:
+    self: The instance of the class.
+    tab_widget (CustomCropWidget): The tab widget containing the combo boxes.
+
+Returns:
+    None
+"""
+
         try:
             assert isinstance(tab_widget, CropMapWidget)
         except AssertionError:
