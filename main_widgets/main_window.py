@@ -17,19 +17,19 @@ from .custom_crop_widget import CustomCropWidget
 
 class UiMainWindow(QtWidgets.QMainWindow):
     """
-Represents the main window of the application.
+    Represents the main window of the application.
 
-The main window contains various widgets and handles drag and drop events, as well as button and combo box interactions.
+    The main window contains various widgets and handles drag and drop events, as well as button and combo box interactions.
 
-Args:
-    self: The instance of the class.
+    Args:
+        self: The instance of the class.
 
-Example:
-    ```python
-    main_window = MainWindow()
-    main_window.show()
-    ```
-"""
+    Example:
+        ```python
+        main_window = MainWindow()
+        main_window.show()
+        ```
+    """
 
     def __init__(self) -> None:
         super(UiMainWindow, self).__init__()
@@ -250,15 +250,15 @@ Example:
 
     def dragEnterEvent(self, a0: Optional[QtGui.QDragEnterEvent]) -> None:
         """
-Handles the drag enter event by checking the event type and calling the check_mime_data method.
+        Handles the drag enter event by checking the event type and calling the check_mime_data method.
 
-Args:
-    self: The instance of the class.
-    a0 (Optional[QtGui.QDragEnterEvent]): The drag enter event.
+        Args:
+            self: The instance of the class.
+            a0 (Optional[QtGui.QDragEnterEvent]): The drag enter event.
 
-Returns:
-    None
-"""
+        Returns:
+            None
+        """
 
         try:
             assert isinstance(a0, QtGui.QDragEnterEvent)
@@ -268,15 +268,15 @@ Returns:
 
     def dragMoveEvent(self, a0: Optional[QtGui.QDragMoveEvent]) -> None:
         """
-Handles the drag move event by checking the event type and calling the check_mime_data method.
+        Handles the drag move event by checking the event type and calling the check_mime_data method.
 
-Args:
-    self: The instance of the class.
-    a0 (Optional[QtGui.QDragMoveEvent]): The drag move event.
+        Args:
+            self: The instance of the class.
+            a0 (Optional[QtGui.QDragMoveEvent]): The drag move event.
 
-Returns:
-    None
-"""
+        Returns:
+            None
+        """
 
         try:
             assert isinstance(a0, QtGui.QDragMoveEvent)
@@ -286,15 +286,15 @@ Returns:
 
     def dropEvent(self, a0: Optional[QtGui.QDropEvent]) -> None:
         """
-Handles the drop event by checking the dropped item, setting the appropriate drop action, and calling the corresponding handler method.
+        Handles the drop event by checking the dropped item, setting the appropriate drop action, and calling the corresponding handler method.
 
-Args:
-    self: The instance of the class.
-    a0 (Optional[QtGui.QDropEvent]): The drop event.
+        Args:
+            self: The instance of the class.
+            a0 (Optional[QtGui.QDropEvent]): The drop event.
 
-Returns:
-    None
-"""
+        Returns:
+            None
+        """
 
         try:
             assert isinstance(a0, QtGui.QDropEvent)
@@ -320,17 +320,17 @@ Returns:
                     tab_index: FunctionType,
                     line_edit: PathLineEdit) -> None:
         """
-Handles a file path by setting the function tab widget to the specified tab index, updating the line edit with the file path, and handling the selection state of the tabs.
+        Handles a file path by setting the function tab widget to the specified tab index, updating the line edit with the file path, and handling the selection state of the tabs.
 
-Args:
-    self: The instance of the class.
-    file_path (Path): The path to the file.
-    tab_index (FunctionType): The index of the tab to set.
-    line_edit (PathLineEdit): The line edit to update.
+        Args:
+            self: The instance of the class.
+            file_path (Path): The path to the file.
+            tab_index (FunctionType): The index of the tab to set.
+            line_edit (PathLineEdit): The line edit to update.
 
-Returns:
-    None
-"""
+        Returns:
+            None
+        """
 
         self.function_tabWidget.setCurrentIndex(tab_index.value)
         line_edit.setText(file_path.as_posix())
@@ -354,15 +354,15 @@ Returns:
 
     def handle_path_main(self, file_path: Path) -> None:
         """
-Handles a file path by checking the file extensions in the directory, validating the mapping and folder tabs, and calling the handle_path method with the appropriate arguments.
+        Handles a file path by checking the file extensions in the directory, validating the mapping and folder tabs, and calling the handle_path method with the appropriate arguments.
 
-Args:
-    self: The instance of the class.
-    file_path (Path): The path to the file.
+        Args:
+            self: The instance of the class.
+            file_path (Path): The path to the file.
 
-Returns:
-    None
-"""
+        Returns:
+            None
+        """
 
         extensions = {y.suffix.lower() for y in file_path.iterdir()}
         mask = {ext in extensions for ext in Table.file_types}
@@ -378,15 +378,15 @@ Returns:
 
     def handle_file(self, file_path: Path) -> None:
         """
-Handles a file based on its file extension by calling the appropriate handler method.
+        Handles a file based on its file extension by calling the appropriate handler method.
 
-Args:
-    self: The instance of the class.
-    file_path (Path): The path to the file.
+        Args:
+            self: The instance of the class.
+            file_path (Path): The path to the file.
 
-Returns:
-    None
-"""
+        Returns:
+            None
+        """
 
         match file_path.suffix.lower():
             case suffix if suffix in Photo.file_types:
@@ -400,15 +400,15 @@ Returns:
 
     def handle_image_file(self, file_path: Path) -> None:
         """
-Handles an image file by validating the file path and calling the handle_path method with the appropriate arguments.
+        Handles an image file by validating the file path and calling the handle_path method with the appropriate arguments.
 
-Args:
-    self: The instance of the class.
-    file_path (Path): The path to the image file.
+        Args:
+            self: The instance of the class.
+            file_path (Path): The path to the image file.
 
-Returns:
-    None
-"""
+        Returns:
+            None
+        """
 
         try:
             assert isinstance(self.photoTab, CropPhotoWidget)
@@ -418,15 +418,15 @@ Returns:
 
     def handle_video_file(self, file_path: Path) -> None:
         """
-Handles a video file by setting the function tab widget to the video tab, validating the file path, and configuring the video player.
+        Handles a video file by setting the function tab widget to the video tab, validating the file path, and configuring the video player.
 
-Args:
-    self: The instance of the class.
-    file_path (Path): The path to the video file.
+        Args:
+            self: The instance of the class.
+            file_path (Path): The path to the video file.
 
-Returns:
-    None
-"""
+        Returns:
+            None
+        """
 
         self.handle_function_tab_state(self.videoTab, self.folder_Tab, self.photoTab, self.mappingTab)
         self.function_tabWidget.setCurrentIndex(FunctionType.VIDEO.value)
@@ -441,15 +441,15 @@ Returns:
 
     def handle_pandas_file(self, file_path: Path) -> None:
         """
-Handles a pandas file by setting the function tab widget to the mapping tab, validating the file path, and opening the table.
+        Handles a pandas file by setting the function tab widget to the mapping tab, validating the file path, and opening the table.
 
-Args:
-    self: The instance of the class.
-    file_path (Path): The path to the pandas file.
+        Args:
+            self: The instance of the class.
+            file_path (Path): The path to the pandas file.
 
-Returns:
-    None
-"""
+        Returns:
+            None
+        """
 
         self.function_tabWidget.setCurrentIndex(FunctionType.MAPPING.value)
         try:
@@ -462,14 +462,14 @@ Returns:
 
     def check_tab_selection(self) -> None:
         """
-Checks the current selection of the function tab widget and handles the tab states accordingly.
+        Checks the current selection of the function tab widget and handles the tab states accordingly.
 
-Args:
-    self: The instance of the class.
+        Args:
+            self: The instance of the class.
 
-Returns:
-    None
-"""
+        Returns:
+            None
+        """
 
         match self.function_tabWidget.currentIndex():
             case FunctionType.PHOTO.value:
@@ -486,15 +486,15 @@ Returns:
     @staticmethod
     def handle_function_tab_state(selected_tab: CustomCropWidget, *other_tabs: CustomCropWidget):
         """
-Sets the selection state of the selected tab to SELECTED and the selection state of other tabs to NOT_SELECTED.
+        Sets the selection state of the selected tab to SELECTED and the selection state of other tabs to NOT_SELECTED.
 
-Args:
-    selected_tab (CustomCropWidget): The selected tab.
-    *other_tabs (CustomCropWidget): The other tabs.
+        Args:
+            selected_tab (CustomCropWidget): The selected tab.
+            *other_tabs (CustomCropWidget): The other tabs.
 
-Returns:
-    None
-"""
+        Returns:
+            None
+        """
 
         selected_tab.selection_state = selected_tab.SELECTED
         for tab in other_tabs:
@@ -502,15 +502,15 @@ Returns:
 
     def load_preset(self, phi: Preset) -> None:
         """
-Loads a preset value into the width and height line edits.
+        Loads a preset value into the width and height line edits.
 
-Args:
-    self: The instance of the class.
-    phi (Preset): The preset value to load.
+        Args:
+            self: The instance of the class.
+            phi (Preset): The preset value to load.
 
-Returns:
-    None
-"""
+        Returns:
+            None
+        """
 
         if any(line.state is LineEditState.INVALID_INPUT for line in (self.widthLineEdit, self.heightLineEdit)):
             self.widthLineEdit.setText('1000')
@@ -539,14 +539,14 @@ Returns:
 
     def disable_buttons(self) -> None:
         """
-Disables buttons based on the filled state of line edits and combo boxes.
+        Disables buttons based on the filled state of line edits and combo boxes.
 
-Args:
-    self: The instance of the class.
+        Args:
+            self: The instance of the class.
 
-Returns:
-    None
-"""
+        Returns:
+            None
+        """
 
         common_line_edits = (self.widthLineEdit, self.heightLineEdit)
         try:
@@ -578,24 +578,24 @@ Returns:
     def setup_custom_crop_widget(self, tab_widget: QtWidgets.QTabWidget,
                                  function_type: FunctionType) -> Tuple[CustomCropWidget, QtGui.QIcon]:
         """
-Sets up a custom crop widget based on the specified function type.
+        Sets up a custom crop widget based on the specified function type.
 
-Args:
-    self: The instance of the class.
-    tab_widget (QtWidgets.QTabWidget): The tab widget to add the custom crop widget to.
-    function_type (FunctionType): The type of function for the custom crop widget.
+        Args:
+            self: The instance of the class.
+            tab_widget (QtWidgets.QTabWidget): The tab widget to add the custom crop widget to.
+            function_type (FunctionType): The type of function for the custom crop widget.
 
-Returns:
-    Tuple[CustomCropWidget, QtGui.QIcon]: A tuple containing the custom crop widget and the icon.
+        Returns:
+            Tuple[CustomCropWidget, QtGui.QIcon]: A tuple containing the custom crop widget and the icon.
 
-Example:
-    ```python
-    main_window = MainWindow()
-    tab_widget = QtWidgets.QTabWidget()
-    function_type = FunctionType.PHOTO
-    custom_crop_widget, icon = main_window.setup_custom_crop_widget(tab_widget, function_type)
-    ```
-"""
+        Example:
+            ```python
+            main_window = MainWindow()
+            tab_widget = QtWidgets.QTabWidget()
+            function_type = FunctionType.PHOTO
+            custom_crop_widget, icon = main_window.setup_custom_crop_widget(tab_widget, function_type)
+            ```
+        """
 
         widget_list = (self.crop_worker, self.widthLineEdit, self.heightLineEdit, self.extWidget,
                        self.sensitivity_dialArea, self.face_dialArea, self.gamma_dialArea,
@@ -622,15 +622,15 @@ Example:
 
     def connect_combo_boxes(self, tab_widget: CustomCropWidget) -> None:
         """
-Connects the combo boxes in the tab widget to the disable_buttons method.
+        Connects the combo boxes in the tab widget to the disable_buttons method.
 
-Args:
-    self: The instance of the class.
-    tab_widget (CustomCropWidget): The tab widget containing the combo boxes.
+        Args:
+            self: The instance of the class.
+            tab_widget (CustomCropWidget): The tab widget containing the combo boxes.
 
-Returns:
-    None
-"""
+        Returns:
+            None
+        """
 
         try:
             assert isinstance(tab_widget, CropMapWidget)
