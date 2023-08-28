@@ -21,58 +21,58 @@ from .job import Job
 
 class Cropper(QObject):
     """
-A class that represents a Cropper that inherits from the QObject class.
+    A class that represents a Cropper that inherits from the QObject class.
 
-Attributes:
-    THREAD_NUMBER: ClassVar[int] = min(cpu_count(), 8)
-    TASK_VALUES: ClassVar[Tuple[int, bool, bool]] = 0, False, True
+    Attributes:
+        THREAD_NUMBER: ClassVar[int] = min(cpu_count(), 8)
+        TASK_VALUES: ClassVar[Tuple[int, bool, bool]] = 0, False, True
 
-Methods:
-    start_face_workers() -> List[FaceWorker]:
-        Starts the face workers by creating a list of FaceWorker instances.
+    Methods:
+        start_face_workers() -> List[FaceWorker]:
+            Starts the face workers by creating a list of FaceWorker instances.
 
-    reset_task(function_type: FunctionType):
-        Resets the task values based on the provided function type.
+        reset_task(function_type: FunctionType):
+            Resets the task values based on the provided function type.
 
-    photo_crop(image: Path, job: Job, face_worker: FaceWorker, new: Optional[str] = None) -> None:
-        Crops the photo image based on the provided job parameters.
+        photo_crop(image: Path, job: Job, face_worker: FaceWorker, new: Optional[str] = None) -> None:
+            Crops the photo image based on the provided job parameters.
 
-    display_crop(self, job: Job, line_edit: Union[Path, QLineEdit], image_widget: ImageWidget) -> None:
-        Displays the cropped image on the image widget based on the provided job parameters.
+        display_crop(self, job: Job, line_edit: Union[Path, QLineEdit], image_widget: ImageWidget) -> None:
+            Displays the cropped image on the image widget based on the provided job parameters.
 
-    _update_progress(self, file_amount: int, process_type: FunctionType) -> None:
-        Updates the progress bar value based on the process type.
+        _update_progress(self, file_amount: int, process_type: FunctionType) -> None:
+            Updates the progress bar value based on the process type.
 
-    folder_worker(self, file_amount: int, file_list: npt.NDArray[Any], job: Job, face_worker: FaceWorker) -> None:
-        Performs cropping for a folder job by iterating over the file list, cropping each image, and updating the progress.
+        folder_worker(self, file_amount: int, file_list: npt.NDArray[Any], job: Job, face_worker: FaceWorker) -> None:
+            Performs cropping for a folder job by iterating over the file list, cropping each image, and updating the progress.
 
-    crop_dir(self, job: Job) -> None:
-        Crops all files in a directory by splitting the file list into chunks and running folder workers in separate threads.
+        crop_dir(self, job: Job) -> None:
+            Crops all files in a directory by splitting the file list into chunks and running folder workers in separate threads.
 
-    mapping_worker(self, file_amount: int, job: Job, face_worker: FaceWorker, old: npt.NDArray[np.str_], new: npt.NDArray[np.str_]) -> None:
-        Performs cropping for a mapping job by iterating over the old file list, cropping each image, and updating the progress.
+        mapping_worker(self, file_amount: int, job: Job, face_worker: FaceWorker, old: npt.NDArray[np.str_], new: npt.NDArray[np.str_]) -> None:
+            Performs cropping for a mapping job by iterating over the old file list, cropping each image, and updating the progress.
 
-    mapping_crop(self, job: Job) -> None:
-        Performs cropping for a mapping job by splitting the file lists and mapping data into chunks and running mapping workers in separate threads.
+        mapping_crop(self, job: Job) -> None:
+            Performs cropping for a mapping job by splitting the file lists and mapping data into chunks and running mapping workers in separate threads.
 
-    crop_frame(self, job: Job, position_label: QLabel, timeline_slider: QSlider) -> None:
-        Crops and saves a frame based on the specified job parameters.
+        crop_frame(self, job: Job, position_label: QLabel, timeline_slider: QSlider) -> None:
+            Crops and saves a frame based on the specified job parameters.
 
-    _process_multiface_frame_job(self, frame: cvt.MatLike, job: Job, file_enum: str, destination: Path) -> None:
-        Processes a frame for a multi-face job by cropping and saving the individual faces.
+        _process_multiface_frame_job(self, frame: cvt.MatLike, job: Job, file_enum: str, destination: Path) -> None:
+            Processes a frame for a multi-face job by cropping and saving the individual faces.
 
-    _process_singleface_frame_job(self, frame: cvt.MatLike, job: Job, file_enum: str, destination: Path) -> None:
-        Processes a single-face frame job by cropping the frame and saving the cropped image.
+        _process_singleface_frame_job(self, frame: cvt.MatLike, job: Job, file_enum: str, destination: Path) -> None:
+            Processes a single-face frame job by cropping the frame and saving the cropped image.
 
-    frame_extraction(self, video: cv2.VideoCapture, frame_number: int, job: Job, progress_callback: Callable[..., Any]) -> None:
-        Performs frame extraction from a video based on the specified frame number and job parameters.
+        frame_extraction(self, video: cv2.VideoCapture, frame_number: int, job: Job, progress_callback: Callable[..., Any]) -> None:
+            Performs frame extraction from a video based on the specified frame number and job parameters.
 
-    extract_frames(self, job: Job) -> None:
-        Extracts frames from a video based on the specified job parameters.
+        extract_frames(self, job: Job) -> None:
+            Extracts frames from a video based on the specified job parameters.
 
-    terminate(self, series: FunctionType) -> None:
-        Terminates the specified series of tasks.
-"""
+        terminate(self, series: FunctionType) -> None:
+            Terminates the specified series of tasks.
+    """
 
     THREAD_NUMBER: ClassVar[int] = min(cpu_count(), 8)
     TASK_VALUES: ClassVar[Tuple[int, bool, bool]] = 0, False, True
@@ -91,25 +91,25 @@ Methods:
     @classmethod
     def start_face_workers(cls) -> List[FaceWorker]:
         """
-Starts the face workers by creating a list of FaceWorker instances.
+        Starts the face workers by creating a list of FaceWorker instances.
 
-Returns:
-    List[FaceWorker]: The list of FaceWorker instances.
-"""
+        Returns:
+            List[FaceWorker]: The list of FaceWorker instances.
+        """
 
         return [FaceWorker() for _ in range(cls.THREAD_NUMBER)]
 
     def reset_task(self, function_type: FunctionType):
         """
-Resets the task values based on the provided function type.
+        Resets the task values based on the provided function type.
 
-Args:
-    self: The Cropper instance.
-    function_type (FunctionType): The type of function to reset.
+        Args:
+            self: The Cropper instance.
+            function_type (FunctionType): The type of function to reset.
 
-Returns:
-    None
-"""
+        Returns:
+            None
+        """
 
         match function_type:
             case FunctionType.FOLDER:
@@ -127,17 +127,17 @@ Returns:
                    face_worker: FaceWorker,
                    new: Optional[str] = None) -> None:
         """
-Crops the photo image based on the provided job parameters.
+        Crops the photo image based on the provided job parameters.
 
-Args:
-    image (Path): The path to the image file.
-    job (Job): The job containing the parameters for cropping.
-    face_worker (FaceWorker): The worker for face-related tasks.
-    new (Optional[str]): The optional new file name.
+        Args:
+            image (Path): The path to the image file.
+            job (Job): The job containing the parameters for cropping.
+            face_worker (FaceWorker): The worker for face-related tasks.
+            new (Optional[str]): The optional new file name.
 
-Returns:
-    None
-"""
+        Returns:
+            None
+        """
 
         ut.crop(image, job, face_worker, new)
 
@@ -145,17 +145,17 @@ Returns:
                      line_edit: Union[Path, QLineEdit],
                      image_widget: ImageWidget) -> None:
         """
-Displays the cropped image on the image widget based on the provided job parameters.
+        Displays the cropped image on the image widget based on the provided job parameters.
 
-Args:
-    self: The Cropper instance.
-    job (Job): The job containing the parameters for cropping.
-    line_edit (Union[Path, QLineEdit]): The input field for the image path.
-    image_widget (ImageWidget): The widget to display the cropped image.
+        Args:
+            self: The Cropper instance.
+            job (Job): The job containing the parameters for cropping.
+            line_edit (Union[Path, QLineEdit]): The input field for the image path.
+            image_widget (ImageWidget): The widget to display the cropped image.
 
-Returns:
-    None
-"""
+        Returns:
+            None
+        """
 
         img_path = line_edit if isinstance(line_edit, Path) else Path(line_edit.text())
         # if input field is empty, then do nothing
@@ -182,16 +182,16 @@ Returns:
     def _update_progress(self, file_amount: int,
                          process_type: FunctionType) -> None:
         """
-Updates the progress bar value based on the process type.
+        Updates the progress bar value based on the process type.
 
-Args:
-    self: The Cropper instance.
-    file_amount (int): The total number of files to process.
-    process_type (FunctionType): The type of process being updated.
+        Args:
+            self: The Cropper instance.
+            file_amount (int): The total number of files to process.
+            process_type (FunctionType): The type of process being updated.
 
-Returns:
-    None
-"""
+        Returns:
+            None
+        """
 
         match process_type:
             case FunctionType.FOLDER:
@@ -223,18 +223,18 @@ Returns:
                       job: Job,
                       face_worker: FaceWorker) -> None:
         """
-Performs cropping for a folder job by iterating over the file list, cropping each image, and updating the progress.
+        Performs cropping for a folder job by iterating over the file list, cropping each image, and updating the progress.
 
-Args:
-    self: The Cropper instance.
-    file_amount (int): The total number of files to process.
-    file_list (npt.NDArray[Any]): The array of file paths.
-    job (Job): The job containing the parameters for cropping.
-    face_worker (FaceWorker): The worker for face-related tasks.
+        Args:
+            self: The Cropper instance.
+            file_amount (int): The total number of files to process.
+            file_list (npt.NDArray[Any]): The array of file paths.
+            job (Job): The job containing the parameters for cropping.
+            face_worker (FaceWorker): The worker for face-related tasks.
 
-Returns:
-    None
-"""
+        Returns:
+            None
+        """
 
         for image in file_list:
             if self.end_f_task:
@@ -247,15 +247,15 @@ Returns:
 
     def crop_dir(self, job: Job) -> None:
         """
-Crops all files in a directory by splitting the file list into chunks and running folder workers in separate threads.
+        Crops all files in a directory by splitting the file list into chunks and running folder workers in separate threads.
 
-Args:
-    self: The Cropper instance.
-    job (Job): The job containing the file list.
+        Args:
+            self: The Cropper instance.
+            job (Job): The job containing the file list.
 
-Returns:
-    None
-"""
+        Returns:
+            None
+        """
 
         if (file_tuple := job.file_list()) is None: return None
         file_list, amount = file_tuple
@@ -278,19 +278,19 @@ Returns:
                        old: npt.NDArray[np.str_],
                        new: npt.NDArray[np.str_]) -> None:
         """
-Performs cropping for a mapping job by iterating over the old file list, cropping each image, and updating the progress.
+        Performs cropping for a mapping job by iterating over the old file list, cropping each image, and updating the progress.
 
-Args:
-    self: The Cropper instance.
-    file_amount (int): The total number of files to process.
-    job (Job): The job containing the parameters for cropping.
-    face_worker (FaceWorker): The worker for face-related tasks.
-    old (npt.NDArray[np.str_]): The array of old file paths.
-    new (npt.NDArray[np.str_]): The array of new file paths.
+        Args:
+            self: The Cropper instance.
+            file_amount (int): The total number of files to process.
+            job (Job): The job containing the parameters for cropping.
+            face_worker (FaceWorker): The worker for face-related tasks.
+            old (npt.NDArray[np.str_]): The array of old file paths.
+            new (npt.NDArray[np.str_]): The array of new file paths.
 
-Returns:
-    None
-"""
+        Returns:
+            None
+        """
 
         for i, image in enumerate(old):
             if self.end_m_task:
@@ -303,15 +303,15 @@ Returns:
 
     def mapping_crop(self, job: Job) -> None:
         """
-Performs cropping for a mapping job by splitting the file lists and mapping data into chunks and running mapping workers in separate threads.
+        Performs cropping for a mapping job by splitting the file lists and mapping data into chunks and running mapping workers in separate threads.
 
-Args:
-    self: The Cropper instance.
-    job (Job): The job containing the file lists and mapping data.
+        Args:
+            self: The Cropper instance.
+            job (Job): The job containing the file lists and mapping data.
 
-Returns:
-    None
-"""
+        Returns:
+            None
+        """
 
         if (file_tuple := job.file_list_to_numpy()) is None: return None
         file_list1, file_list2 = file_tuple
@@ -337,17 +337,17 @@ Returns:
                    position_label: QLabel,
                    timeline_slider: QSlider) -> None:
         """
-Crops and saves a frame based on the specified job parameters.
+        Crops and saves a frame based on the specified job parameters.
 
-Args:
-    self: The Cropper instance.
-    job (Job): The job containing the parameters for cropping.
-    position_label (QLabel): The label displaying the current position.
-    timeline_slider (QSlider): The slider representing the timeline position.
+        Args:
+            self: The Cropper instance.
+            job (Job): The job containing the parameters for cropping.
+            position_label (QLabel): The label displaying the current position.
+            timeline_slider (QSlider): The slider representing the timeline position.
 
-Returns:
-    None
-"""
+        Returns:
+            None
+        """
 
         if job.video_path is None or job.destination is None:
             return None
@@ -378,18 +378,18 @@ Returns:
                                     file_enum: str,
                                     destination: Path) -> None:
         """
-Processes a frame for a multi-face job by cropping and saving the individual faces.
+        Processes a frame for a multi-face job by cropping and saving the individual faces.
 
-Args:
-    self: The Cropper instance.
-    frame (cvt.MatLike): The frame to process.
-    job (Job): The job containing the parameters for cropping.
-    file_enum (str): The file enumeration for the frame.
-    destination (Path): The destination path to save the cropped faces.
+        Args:
+            self: The Cropper instance.
+            frame (cvt.MatLike): The frame to process.
+            job (Job): The job containing the parameters for cropping.
+            file_enum (str): The file enumeration for the frame.
+            destination (Path): The destination path to save the cropped faces.
 
-Returns:
-    None
-"""
+        Returns:
+            None
+        """
 
         if (images := ut.multi_crop(frame, job, self.face_workers[0])) is None:
             file_enum = f'failed_{file_enum}'
@@ -405,18 +405,18 @@ Returns:
                                      file_enum: str,
                                      destination: Path) -> None:
         """
-Processes a single-face frame job by cropping the frame and saving the cropped image.
+        Processes a single-face frame job by cropping the frame and saving the cropped image.
 
-Args:
-    self: The Cropper instance.
-    frame (cvt.MatLike): The frame to process.
-    job (Job): The job containing the parameters for cropping.
-    file_enum (str): The file enumeration string.
-    destination (Path): The destination path to save the file.
+        Args:
+            self: The Cropper instance.
+            frame (cvt.MatLike): The frame to process.
+            job (Job): The job containing the parameters for cropping.
+            file_enum (str): The file enumeration string.
+            destination (Path): The destination path to save the file.
 
-Returns:
-    None
-"""
+        Returns:
+            None
+        """
 
         if (cropped_image := ut.crop_image(frame, job, self.face_workers[0])) is None:
             ut.frame_save(frame, file_enum, destination, job)
@@ -428,18 +428,18 @@ Returns:
                          job: Job,
                          progress_callback: Callable[..., Any]) -> None:
         """
-Performs frame extraction from a video based on the specified frame number and job parameters.
+        Performs frame extraction from a video based on the specified frame number and job parameters.
 
-Args:
-    self: The Cropper instance.
-    video (cv2.VideoCapture): The video capture object.
-    frame_number (int): The frame number to extract.
-    job (Job): The job containing the video path and other parameters.
-    progress_callback (Callable[..., Any]): A callback function to update the progress.
+        Args:
+            self: The Cropper instance.
+            video (cv2.VideoCapture): The video capture object.
+            frame_number (int): The frame number to extract.
+            job (Job): The job containing the video path and other parameters.
+            progress_callback (Callable[..., Any]): A callback function to update the progress.
 
-Returns:
-    None
-"""
+        Returns:
+            None
+        """
 
         video.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
         ret, frame = video.read()
@@ -460,15 +460,15 @@ Returns:
 
     def extract_frames(self, job: Job) -> None:
         """
-Extracts frames from a video based on the specified job parameters.
+        Extracts frames from a video based on the specified job parameters.
 
-Args:
-    self: The Cropper instance.
-    job (Job): The job containing the video path, start position, and stop position.
+        Args:
+            self: The Cropper instance.
+            job (Job): The job containing the video path, start position, and stop position.
 
-Returns:
-    None
-"""
+        Returns:
+            None
+        """
 
         if job.video_path is None or job.start_position is None or job.stop_position is None:
             return None
@@ -493,15 +493,15 @@ Returns:
 
     def terminate(self, series: FunctionType) -> None:
         """
-Terminates the specified series of tasks.
+        Terminates the specified series of tasks.
 
-Args:
-    self: The Cropper instance.
-    series (FunctionType): The type of series to terminate.
+        Args:
+            self: The Cropper instance.
+            series (FunctionType): The type of series to terminate.
 
-Returns:
-    None
-"""
+        Returns:
+            None
+        """
 
         match series:
             case FunctionType.FOLDER:
