@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-from core import Cropper, CustomDialWidget, ExtWidget, FunctionTabSelectionState, FunctionType, ImageWidget, Job
+from core import Cropper, CustomDialWidget, ExtWidget, FunctionTabSelectionState, FunctionType, ImageWidget, Job, ProcessIconAlias
 from core import window_functions as wf
 from file_types import Photo
 from line_edits import LineEditState, NumberLineEdit, PathLineEdit, PathType
@@ -92,27 +92,20 @@ class CustomCropWidget(QtWidgets.QWidget):
         horizontal_layout.setObjectName(name)
         return horizontal_layout
 
-    def setup_process_button(self, name: str, icon_name: str, button_type: ButtonType) -> QtWidgets.QPushButton:
+    def setup_process_button(self, name: str, icon_name: ProcessIconAlias, button_type: ButtonType) -> QtWidgets.QPushButton:
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(f'resources\\icons\\{icon_name}.svg'), QtGui.QIcon.Mode.Normal,
                        QtGui.QIcon.State.Off)
-
-        def callback(btn: QtWidgets.QPushButton) -> QtWidgets.QPushButton:
-            btn.setMaximumSize(QtCore.QSize(16_777_215, 24))
-            btn.setText('')
-            btn.setIcon(icon)
-            btn.setObjectName(name)
-            return btn
 
         match button_type:
             case ButtonType.PROCESS_BUTTON:
                 button = QtWidgets.QPushButton(parent=self.frame)
                 button.setMinimumSize(QtCore.QSize(0, 24))
-                return callback(button)
+                return wf.adjust_pushbutton(button, icon, name)
             case ButtonType.NAVIGATION_BUTTON:
                 button = QtWidgets.QPushButton(parent=self)
                 button.setMinimumSize(QtCore.QSize(200, 24))
-                return callback(button)
+                return wf.adjust_pushbutton(button, icon, name)
 
     def setup_path_line_edit(self, name: str, path_type: PathType = PathType.FOLDER) -> PathLineEdit:
         """Only sublasses of the CustomCropWidget class should implement this method"""

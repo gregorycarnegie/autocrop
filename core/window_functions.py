@@ -466,3 +466,33 @@ def update_widget_state(condition: bool, *widgets: QtWidgets.QWidget) -> None:
 
     for widget in widgets:
         change_widget_state(condition, widget)
+
+
+def adjust_pushbutton(btn: QtWidgets.QPushButton,
+                      icon: QtGui.QIcon,
+                      name: str) -> QtWidgets.QPushButton:
+    """
+    Adjusts a QPushButton with the specified icon and name.
+
+    Args:
+        btn (QtWidgets.QPushButton): The QPushButton object to configure.
+        icon (QtGui.QIcon): The QIcon to set as the button's icon.
+        name (str): The name to set as the button's object name.
+
+    Returns:
+        QtWidgets.QPushButton: The configured QPushButton object.
+
+    Example:
+        ```python
+        btn = QtWidgets.QPushButton()
+        icon = QtGui.QIcon('path/to/icon.png')
+        name = 'my_button'
+        result = create_pushbutton(btn, icon, name)
+        ```
+    """
+
+    btn.setMaximumSize(QtCore.QSize(16_777_215, 24))
+    btn.setText('')
+    btn.setIcon(icon)
+    btn.setObjectName(name)
+    return btn

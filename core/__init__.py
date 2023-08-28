@@ -8,3 +8,4 @@ from .ext_widget import ExtWidget
 from .face_worker import FaceWorker
 from .image_widget import ImageWidget
 from .job import Job
+from .literals import ProcessIconAlias
