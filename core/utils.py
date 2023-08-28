@@ -88,6 +88,7 @@ def gamma(gam: Union[int, float] = 1.0) -> npt.NDArray[np.generic]:
         print(corrected_array)
         ```
     """
+    
     intensity_values = np.arange(256) / 255
     return np.power(intensity_values, 1.0 / gam) * 255 if gam != 1.0 else intensity_values * 255
 
