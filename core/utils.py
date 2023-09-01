@@ -473,24 +473,24 @@ def prepare_detections(image: cvt.MatLike,
     return np.array(caffe.forward())
 
 
+def rs_crop_positions(box_outputs: npt.NDArray[np.int_], job: Job) -> Tuple[int, int, int, int]:
+    x0, y0, x1, y1 = box_outputs
+    return autocrop_rs.crop_positions(x0, y0, x1 - x0, y1 - y0, job.face_percent, job.width,
+                                      job.height, job.top, job.bottom, job.left, job.right)
+
+
 def get_box_coordinates(output: Union[cvt.MatLike, npt.NDArray[np.generic]],
                         job: Job, *,
                         width: int,
                         height: int,
                         x: Optional[npt.NDArray[np.generic]] = None) -> Tuple[int, int, int, int]:
     box_outputs = output * np.array([width, height, width, height])
-    x0, y0, x1, y1 = box_outputs.astype(np.int_) if x is None else box_outputs[np.argmax(x)]
-    return autocrop_rs.crop_positions(x0, y0, x1 - x0, y1 - y0, job.face_percent, job.width,
-                                      job.height, job.top, job.bottom, job.left, job.right)
+    box = box_outputs.astype(np.int_) if x is None else box_outputs[np.argmax(x)]
+    return rs_crop_positions(box, job)
 
 
-def get_multibox_coordinates(box_outputs: npt.NDArray[np.int_], job: Job) -> npt.NDArray[np.int_]:
-    z = []
-    for box_output in box_outputs:
-        x0, y0, x1, y1 = box_output
-        z.append(autocrop_rs.crop_positions(x0, y0, x1 - x0, y1 - y0, job.face_percent, job.width,
-                                            job.height, job.top, job.bottom, job.left, job.right))
-    return np.array(z)
+def get_multibox_coordinates(box_outputs: npt.NDArray[np.int_], job: Job) -> Iterator[Tuple[int, int, int, int]]:
+    return map(lambda x: rs_crop_positions(x, job), box_outputs)
 
 
 def box(img: cvt.MatLike,
@@ -520,63 +520,38 @@ def _draw_box_with_text(image: cvt.MatLike, confidence: np.float64, *, x0: int, 
     return image
 
 
-def get_detection_arrays(detections: npt.NDArray[np.float64]) -> Iterator[Tuple[np.float64, npt.NDArray[np.float64]]]:
-    """
-    The function takes an array of detections as input and returns an iterator that yields tuples of confidence values and output arrays.
-
-    Args:
-        detections (npt.NDArray[np.float64]): The array of detections.
-
-    Returns:
-        Iterator[Tuple[np.float64, npt.NDArray[np.float64]]]: An iterator that yields tuples of confidence values and output arrays.
-
-    Example:
-        ```python
-        detections = np.array([[1.0, 2.0, 0.8, 0.1, 0.2, 0.3]])
-        
-        # Generating detection arrays
-        detection_arrays = get_detection_arrays(detections)
-        
-        # Printing the confidence values and output arrays
-        for conf, output in detection_arrays:
-            print(f"Confidence: {conf}, Output: {output}")
-        ```
-    """
-
-    x = range(detections.shape[2])
-    conf_array: Generator[np.float64, None, None] = (detections[0, 0, i, 2] * 100 for i in x)
-    output_array: Generator[npt.NDArray[np.float64], None, None] = (detections[0, 0, i, 3:7] for i in x)
-    return zip(conf_array, output_array)
-
-
 def get_multi_box_parameters(image: cvt.MatLike,
-                             face_worker: FaceWorker) -> Tuple[npt.NDArray[np.float64], int, int]:
-    height, width = image.shape[:2]
+                             face_worker: FaceWorker) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+    # height, width = image.shape[:2]
     detections = prepare_detections(convert_color_space(image), face_worker)
-    return detections, height, width
+    confidences = detections[0, 0, :, 2] * 100
+    outputs = detections[0, 0, :, 3:7]
+    return detections, outputs, confidences
 
 
-def multi_box(image: cvt.MatLike,
-              job: Job,
-              face_worker: FaceWorker) -> cvt.MatLike:
-    detections, height, width = get_multi_box_parameters(image, face_worker)
+def multi_box(image: cvt.MatLike, job: Job, face_worker: FaceWorker) -> cvt.MatLike:
+    height, width = image.shape[:2]
+    _, outputs, confidences = get_multi_box_parameters(image, face_worker)
 
     image = adjust_gamma(image, job.gamma)
     image = convert_color_space(image)
 
-    for confidence, output in get_detection_arrays(detections):
-        if confidence > job.threshold:
-            x0, y0, x1, y1 = get_box_coordinates(output, job, width=width, height=height)
-            image = _draw_box_with_text(image, confidence, x0=x0, y0=y0, x1=x1, y1=y1)
+    # Find indexes where confidence surpasses threshold
+    valid_indices = np.where(confidences > job.threshold)[0]
+
+    for idx in valid_indices:
+        x0, y0, x1, y1 = get_box_coordinates(outputs[idx], job, width=width, height=height)
+        image = _draw_box_with_text(image, confidences[idx], x0=x0, y0=y0, x1=x1, y1=y1)
+
     return image
 
 
 def multi_box_positions(image: cvt.MatLike,
                         job: Job,
-                        face_worker: FaceWorker) -> Tuple[npt.NDArray[np.float_], npt.NDArray[np.int_]]:
-    detections, height, width = get_multi_box_parameters(image, face_worker)
-    confidences = detections[0, 0, :, 2] * 100
-    outputs = detections[0, 0, :, 3:7]
+                        face_worker: FaceWorker) -> Tuple[npt.NDArray[np.float_], Iterator[Tuple[int, int, int, int]]]:
+    height, width = image.shape[:2]
+    detections, outputs, confidences = get_multi_box_parameters(image, face_worker)
+
     mask = confidences > job.threshold
     box_outputs = outputs[mask] * np.array([width, height, width, height])
     crop_positions = get_multibox_coordinates(box_outputs.astype(np.int_), job)
@@ -999,11 +974,11 @@ def multi_crop(source_image: Union[cvt.MatLike, Path],
     # Check if any faces were detected
     if np.any(100 * detections[0, 0, :, 2] > job.threshold):
         # Cropped images
-        images = [Image.fromarray(img).crop(crop_position) for crop_position in crop_positions]
+        images = map(lambda x: Image.fromarray(img).crop(x), crop_positions)
         # images as numpy arrays
-        image_array = [pillow_to_numpy(image) for image in images]
+        image_array = map(lambda x: pillow_to_numpy(x), images)
         # numpy arrays with colour space converted
-        results = [convert_color_space(array) for array in image_array]
+        results = map(lambda x: convert_color_space(x), image_array)
         # return resized results
         return (cv2.resize(src=result, dsize=job.size, interpolation=cv2.INTER_AREA) for result in results)
     else:

@@ -528,14 +528,12 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 else:
                     self.widthLineEdit.setText(str(int(self.heightLineEdit.value() / phi.value)))
 
-
     @staticmethod
     def all_filled(*line_edits: Union[PathLineEdit, NumberLineEdit, QtWidgets.QComboBox]) -> bool:
         x = all(edit.state == LineEditState.VALID_INPUT
                 for edit in line_edits if isinstance(edit, (PathLineEdit, NumberLineEdit)))
         y = all(edit.currentText() for edit in line_edits if isinstance(edit, QtWidgets.QComboBox))
         return x and y
-
 
     def disable_buttons(self) -> None:
         """
@@ -567,8 +565,8 @@ class UiMainWindow(QtWidgets.QMainWindow):
         # Mapping logic
         wf.update_widget_state(
             self.all_filled(self.mappingTab.folderLineEdit, self.mappingTab.tableLineEdit,
-                       self.mappingTab.destinationLineEdit, self.mappingTab.comboBox_1,
-                       self.mappingTab.comboBox_2, *common_line_edits),
+                            self.mappingTab.destinationLineEdit, self.mappingTab.comboBox_1,
+                            self.mappingTab.comboBox_2, *common_line_edits),
             self.mappingTab.cropButton)
         # Video logic
         wf.update_widget_state(

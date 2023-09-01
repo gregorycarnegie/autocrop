@@ -139,7 +139,8 @@ class Cropper(QObject):
             None
         """
 
-        ut.crop(image, job, face_worker, new)
+        if image.is_file():
+            ut.crop(image, job, face_worker, new)
 
     def display_crop(self, job: Job,
                      line_edit: Union[Path, QLineEdit],
@@ -165,6 +166,9 @@ class Cropper(QObject):
             first_file = ut.get_first_file(img_path)
             if first_file is None: return None
             img_path = first_file
+
+        if not img_path.is_file():
+            return None
 
         pic_array = ut.open_pic(
             img_path, self.face_workers[0], exposure=job.fix_exposure_job.isChecked(), tilt=job.auto_tilt_job.isChecked()
@@ -293,7 +297,9 @@ class Cropper(QObject):
         for i, image in enumerate(old):
             if self.end_m_task:
                 break
-            ut.crop(Path(image), job, face_worker, new=new[i])
+            x = Path(image)
+            if x.is_file():
+                ut.crop(Path(image), job, face_worker, new=new[i])
             self._update_progress(file_amount, FunctionType.MAPPING)
 
         if self.bar_value_m == file_amount or self.end_m_task:

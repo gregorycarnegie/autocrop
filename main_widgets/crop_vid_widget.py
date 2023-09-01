@@ -265,7 +265,7 @@ class CropVideoWidget(CropBatchWidget):
     def playback_bool(self,
                       a0: QtMultimedia.QMediaPlayer.PlaybackState = QtMultimedia.QMediaPlayer.PlaybackState.PausedState,
                       a1: QtMultimedia.QMediaPlayer.PlaybackState = QtMultimedia.QMediaPlayer.PlaybackState.StoppedState) -> \
-    Tuple[bool, bool]:
+            Tuple[bool, bool]:
         """Returns a tuple of bools comparing the playback state to the Class attributes of PyQt6.QtMultimedia.QMediaPlayer.PlaybackState"""
         return self.player.playbackState() == a0, self.player.playbackState() == a1
 

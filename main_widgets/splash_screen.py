@@ -16,7 +16,7 @@ class ClickableSplashScreen(QSplashScreen):
     def mousePressEvent(self, a0: Optional[QMouseEvent]) -> None:
         self.clicked.emit()
 
-    def show_message(self, message: str='Loading...', color: QColor=QColor(255, 255, 255)) -> None:
+    def show_message(self, message: str = 'Loading...', color: QColor = QColor(255, 255, 255)) -> None:
         self.show()
         self.showMessage(message, Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignCenter, color)
 

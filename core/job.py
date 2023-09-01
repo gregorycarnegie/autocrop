@@ -251,8 +251,7 @@ class Job(NamedTuple):
         self.destination.mkdir(exist_ok=True)
         return self.destination
 
-    @staticmethod
-    def _table_to_numpy(table: pd.DataFrame,
+    def _table_to_numpy(self, table: pd.DataFrame, *,
                         column_1: str,
                         column_2: str) -> Tuple[npt.NDArray[np.str_], npt.NDArray[np.str_]]:
         """
@@ -277,7 +276,17 @@ class Job(NamedTuple):
             ```
         """
 
-        return table[column_1].to_numpy().astype(str), table[column_2].to_numpy().astype(str)
+        # Convert columns to numpy arrays
+        old_file_list, new_file_list = map(lambda x: table[x].to_numpy().astype(np.str_), [column_1, column_2])
+
+        # Get a set of all files in the folder for membership checks
+        existing_files = set(self.folder_path.iterdir())
+
+        # Vectorized Check for file existence
+        mask: npt.NDArray[np.bool_] = np.array([self.folder_path / old_file in existing_files for old_file in old_file_list])
+        
+        # Filter using the mask and return
+        return old_file_list[mask], new_file_list[mask]
 
     def file_list_to_numpy(self) -> Optional[Tuple[npt.NDArray[np.str_], npt.NDArray[np.str_]]]:
         """
@@ -301,4 +310,4 @@ class Job(NamedTuple):
                 or not isinstance(self.column1, QComboBox)
                 or not isinstance(self.column2, QComboBox)):
             return None
-        return self._table_to_numpy(self.table, self.column1.currentText(), self.column2.currentText())
+        return self._table_to_numpy(self.table, column_1=self.column1.currentText(), column_2=self.column2.currentText())

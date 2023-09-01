@@ -14,5 +14,6 @@ def main():
     splash.finish(window)
     app.exec()
 
+
 if __name__ == '__main__':
     main()
