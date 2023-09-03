@@ -1,3 +1,3 @@
 from typing import Literal, TypeAlias
 
-ProcessIconAlias: TypeAlias = Literal['crop', 'cancel', 'folder', 'excel', 'clapperboard', 'picture']
+ProcessIconAlias: TypeAlias = Literal['crop', 'crop_video', 'cancel', 'folder', 'excel', 'clapperboard', 'picture']

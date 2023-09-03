@@ -128,11 +128,11 @@ class CustomCropWidget(QtWidgets.QWidget):
         pass
     
     @staticmethod
-    def all_filled(*line_edits: Union[PathLineEdit, NumberLineEdit, QtWidgets.QComboBox]) -> bool:
-        x = all(edit.state == LineEditState.VALID_INPUT
-                for edit in line_edits if isinstance(edit, (PathLineEdit, NumberLineEdit)))
-        y = all(edit.text() for edit in line_edits if isinstance(edit, (PathLineEdit, NumberLineEdit)))
-        z = all(edit.currentText() for edit in line_edits if isinstance(edit, QtWidgets.QComboBox))
+    def all_filled(*input_widget: Union[PathLineEdit, NumberLineEdit, QtWidgets.QComboBox]) -> bool:
+        x = all(widget.state == LineEditState.VALID_INPUT
+                for widget in input_widget if isinstance(widget, (PathLineEdit, NumberLineEdit)))
+        y = all(widget.text() for widget in input_widget if isinstance(widget, (PathLineEdit, NumberLineEdit)))
+        z = all(widget.currentText() for widget in input_widget if isinstance(widget, QtWidgets.QComboBox))
         return all((x, y, z))
 
     def disable_buttons(self) -> None:

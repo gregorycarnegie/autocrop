@@ -140,10 +140,10 @@ class Job(NamedTuple):
 
         if self.folder_path is not None:
             x = np.fromiter(self.folder_path.iterdir(), Path)
-            y: npt.NDArray[np.bool_] = np.array([pic.suffix.lower() in Photo.file_types for pic in x])
+            y = np.fromiter((pic.suffix.lower() in Photo.file_types for pic in x), np.bool_)
             result = x[y]
             return result, len(result)
-        return None
+        return
 
     def radio_tuple(self) -> Tuple[str, ...]:
         """
@@ -183,7 +183,7 @@ class Job(NamedTuple):
             ```
         """
 
-        x: npt.NDArray[np.bool_] = np.array([r.isChecked() for r in self.radio_buttons])
+        x = np.fromiter((r.isChecked() for r in self.radio_buttons), np.bool_)
         return self.radio_options[x][0]
 
     @property
@@ -247,7 +247,7 @@ class Job(NamedTuple):
         """
 
         if self.destination is None:
-            return None
+            return
         self.destination.mkdir(exist_ok=True)
         return self.destination
 
@@ -283,7 +283,7 @@ class Job(NamedTuple):
         existing_files = set(self.folder_path.iterdir())
 
         # Vectorized Check for file existence
-        mask: npt.NDArray[np.bool_] = np.array([self.folder_path / old_file in existing_files for old_file in old_file_list])
+        mask = np.fromiter((self.folder_path / old_file in existing_files for old_file in old_file_list), np.bool_)
         
         # Filter using the mask and return
         return old_file_list[mask], new_file_list[mask]
@@ -307,7 +307,7 @@ class Job(NamedTuple):
         """
 
         if (not isinstance(self.table, pd.DataFrame)
-                or not isinstance(self.column1, QComboBox)
-                or not isinstance(self.column2, QComboBox)):
-            return None
+            or not isinstance(self.column1, QComboBox)
+            or not isinstance(self.column2, QComboBox)):
+            return
         return self._table_to_numpy(self.table, column_1=self.column1.currentText(), column_2=self.column2.currentText())

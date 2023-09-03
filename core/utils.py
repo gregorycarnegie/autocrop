@@ -18,7 +18,6 @@ from PIL import Image
 
 from . import window_functions as wf
 from file_types import Photo
-from .face_worker import FaceWorker
 from .image_widget import ImageWidget
 from .job import Job
 
@@ -259,14 +258,14 @@ def rotate_image(image: Union[cvt.MatLike, npt.NDArray[np.uint8]],
 
 
 def align_head(image: Union[cvt.MatLike, npt.NDArray[np.uint8]],
-               face_worker: FaceWorker,
+               face_detection_tools: Tuple[Any, Any],
                tilt: bool) -> cvt.MatLike:
     """
     The function aligns the head in the provided image using facial landmarks and tilt correction.
 
     Args:
         image (Union[cvt.MatLike, npt.NDArray[np.uint8]]): The image to align the head.
-        face_worker (FaceWorker): The face worker object for face detection and landmark prediction.
+        face_detection_tools ( Tuple[Any, Any]): The face worker object for face detection and landmark prediction.
         tilt (bool): Flag indicating whether to perform tilt correction.
 
     Returns:
@@ -274,16 +273,16 @@ def align_head(image: Union[cvt.MatLike, npt.NDArray[np.uint8]],
 
     Example:
         ```python
-        from autocrop import cvt, FaceWorker
+        from autocrop import cvt,  Tuple[Any, Any]
 
         # Creating an image
         image = cvt.MatLike()
 
         # Creating a face worker
-        face_worker = FaceWorker()
+        face_detection_tools =  Tuple[Any, Any]()
 
         # Aligning the head in the image
-        aligned_image = align_head(image, face_worker, tilt=True)
+        aligned_image = align_head(image, face_detection_tools, tilt=True)
         ```
     """
 
@@ -298,7 +297,7 @@ def align_head(image: Union[cvt.MatLike, npt.NDArray[np.uint8]],
     if len(image_array.shape) >= 3:
         image_array = cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY)
 
-    face_detector, predictor = face_worker.worker_tuple()
+    face_detector, predictor = face_detection_tools
 
     faces = face_detector(image_array, 1)
     # If no faces are detected, return the original image.
@@ -316,15 +315,15 @@ def align_head(image: Union[cvt.MatLike, npt.NDArray[np.uint8]],
 
 
 def open_image(image: Path,
-               face_worker: FaceWorker, *,
+               face_detection_tools: Tuple[Any, Any], *,
                exposure: bool,
                tilt: bool) -> cvt.MatLike:
     """
-    The function opens an image file using `cv2` and performs color conversion, exposure correction, and head alignment using the provided `FaceWorker` object.
+    The function opens an image file using `cv2` and performs color conversion, exposure correction, and head alignment using the provided ` Tuple[Any, Any]` object.
 
     Args:
         image (Path): The path to the image file.
-        face_worker (FaceWorker): The FaceWorker object used for aligning the head.
+        face_detection_tools ( Tuple[Any, Any]): The  Tuple[Any, Any] object used for aligning the head.
         exposure (bool): Flag indicating whether to correct the exposure.
         tilt (bool): Flag indicating whether to align the head.
 
@@ -335,8 +334,8 @@ def open_image(image: Path,
         ```python
         # Opening an image file
         image_path = Path('/path/to/image.jpg')
-        face_worker = FaceWorker()
-        processed_image = open_image(image_path, face_worker, exposure=True, tilt=True)
+        face_detection_tools =  Tuple[Any, Any]()
+        processed_image = open_image(image_path, face_detection_tools, exposure=True, tilt=True)
         cv2.imshow('Processed Image', processed_image)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
@@ -346,19 +345,19 @@ def open_image(image: Path,
     img = cv2.imread(image.as_posix())
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = correct_exposure(img, exposure)
-    return align_head(img, face_worker, tilt)
+    return align_head(img, face_detection_tools, tilt)
 
 
 def open_raw(image: Path,
-             face_worker: FaceWorker, *,
+             face_detection_tools: Tuple[Any, Any], *,
              exposure: bool,
              tilt: bool) -> cvt.MatLike:
     """
-    The function opens a raw image file using `rawpy` and performs post-processing on the raw image data. It corrects the exposure and aligns the head using the provided `FaceWorker` object.
+    The function opens a raw image file using `rawpy` and performs post-processing on the raw image data. It corrects the exposure and aligns the head using the provided ` Tuple[Any, Any]` object.
 
     Args:
         image (Path): The path to the raw image file.
-        face_worker (FaceWorker): The FaceWorker object used for aligning the head.
+        face_detection_tools ( Tuple[Any, Any]): The  Tuple[Any, Any] object used for aligning the head.
         exposure (bool): Flag indicating whether to correct the exposure.
         tilt (bool): Flag indicating whether to align the head.
 
@@ -369,8 +368,8 @@ def open_raw(image: Path,
         ```python
         # Opening a raw image file
         image_path = Path('/path/to/image.CR2')
-        face_worker = FaceWorker()
-        processed_image = open_raw(image_path, face_worker, exposure=True, tilt=True)
+        face_detection_tools =  Tuple[Any, Any]()
+        processed_image = open_raw(image_path, face_detection_tools, exposure=True, tilt=True)
         cv2.imshow('Processed Image', processed_image)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
@@ -381,7 +380,7 @@ def open_raw(image: Path,
         # Post-process the raw image data
         img = raw.postprocess(use_camera_wb=True)
         img = correct_exposure(img, exposure)
-        return align_head(img, face_worker, tilt)
+        return align_head(img, face_detection_tools, tilt)
 
 
 def open_table(input_file: Path) -> pd.DataFrame:
@@ -412,7 +411,7 @@ def open_table(input_file: Path) -> pd.DataFrame:
 
 
 def open_pic(input_file: Union[Path, str],
-             face_worker: FaceWorker, *,
+             face_detection_tools: Tuple[Any, Any], *,
              exposure: bool,
              tilt: bool) -> Optional[cvt.MatLike]:
     """
@@ -420,7 +419,7 @@ def open_pic(input_file: Union[Path, str],
 
     Args:
         input_file (Union[Path, str]): The path or string representing the input image file.
-        face_worker (FaceWorker): The FaceWorker object used for aligning the head.
+        face_detection_tools ( Tuple[Any, Any]): The  Tuple[Any, Any] object used for aligning the head.
         exposure (bool): Flag indicating whether to correct the exposure.
         tilt (bool): Flag indicating whether to align the head.
 
@@ -431,8 +430,8 @@ def open_pic(input_file: Union[Path, str],
         ```python
         # Opening an image file
         image_path = Path('/path/to/image.jpg')
-        face_worker = FaceWorker()
-        processed_image = open_pic(image_path, face_worker, exposure=True, tilt=True)
+        face_detection_tools =  Tuple[Any, Any]()
+        processed_image = open_pic(image_path, face_detection_tools, exposure=True, tilt=True)
         if processed_image is not None:
             cv2.imshow('Processed Image', processed_image)
             cv2.waitKey(0)
@@ -445,9 +444,9 @@ def open_pic(input_file: Union[Path, str],
     input_file = Path(input_file) if isinstance(input_file, str) else input_file
     match input_file.suffix.lower():
         case extension if extension in Photo.CV2_TYPES:
-            return open_image(input_file, face_worker, exposure=exposure, tilt=tilt)
+            return open_image(input_file, face_detection_tools, exposure=exposure, tilt=tilt)
         case extension if extension in Photo.RAW_TYPES:
-            return open_raw(input_file, face_worker, exposure=exposure, tilt=tilt)
+            return open_raw(input_file, face_detection_tools, exposure=exposure, tilt=tilt)
         case _:
             return None
 
@@ -462,12 +461,14 @@ def get_angle_of_tilt(landmarks_array: npt.NDArray[np.int_], scaling_factor: flo
 
 
 def prepare_detections(image: cvt.MatLike,
-                       face_worker: FaceWorker) -> npt.NDArray[np.float64]:
+                       face_detection_tools: Tuple[Any, Any]) -> npt.NDArray[np.float64]:
     # Create blob from image
     # We standardize the image by scaling it and then subtracting the mean RGB values
     blob = cv2.dnn.blobFromImage(image, 1.0, (300, 300), (104.0, 177.0, 123.0), False, False)
     # Set the input for the neural network
-    caffe = face_worker.caffe_model()
+    # caffe = face_detection_tools.caffe_model()
+    caffe = cv2.dnn.readNetFromCaffe('resources\\weights\\deploy.prototxt.txt',
+                                     'resources\\models\\res10_300x300_ssd_iter_140000.caffemodel')
     caffe.setInput(blob)
     # Forward pass through the network to get detections
     return np.array(caffe.forward())
@@ -495,11 +496,11 @@ def get_multibox_coordinates(box_outputs: npt.NDArray[np.int_], job: Job) -> Ite
 
 def box(img: cvt.MatLike,
         job: Job,
-        face_worker: FaceWorker, *,
+        face_detection_tools: Tuple[Any, Any], *,
         width: int,
         height: int,) -> Optional[Tuple[int, int, int, int]]:
     # preprocess the image: resize and performs mean subtraction
-    detections = prepare_detections(img, face_worker)
+    detections = prepare_detections(img, face_detection_tools)
     output = np.squeeze(detections)
     # get the confidence
     confidence_list = output[:, 2]
@@ -521,17 +522,16 @@ def _draw_box_with_text(image: cvt.MatLike, confidence: np.float64, *, x0: int, 
 
 
 def get_multi_box_parameters(image: cvt.MatLike,
-                             face_worker: FaceWorker) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
-    # height, width = image.shape[:2]
-    detections = prepare_detections(convert_color_space(image), face_worker)
+                             face_detection_tools: Tuple[Any, Any]) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+    detections = prepare_detections(convert_color_space(image), face_detection_tools)
     confidences = detections[0, 0, :, 2] * 100
     outputs = detections[0, 0, :, 3:7]
     return detections, outputs, confidences
 
 
-def multi_box(image: cvt.MatLike, job: Job, face_worker: FaceWorker) -> cvt.MatLike:
+def multi_box(image: cvt.MatLike, job: Job, face_detection_tools: Tuple[Any, Any]) -> cvt.MatLike:
     height, width = image.shape[:2]
-    _, outputs, confidences = get_multi_box_parameters(image, face_worker)
+    _, outputs, confidences = get_multi_box_parameters(image, face_detection_tools)
 
     image = adjust_gamma(image, job.gamma)
     image = convert_color_space(image)
@@ -548,9 +548,9 @@ def multi_box(image: cvt.MatLike, job: Job, face_worker: FaceWorker) -> cvt.MatL
 
 def multi_box_positions(image: cvt.MatLike,
                         job: Job,
-                        face_worker: FaceWorker) -> Tuple[npt.NDArray[np.float_], Iterator[Tuple[int, int, int, int]]]:
+                        face_detection_tools: Tuple[Any, Any]) -> Tuple[npt.NDArray[np.float_], Iterator[Tuple[int, int, int, int]]]:
     height, width = image.shape[:2]
-    detections, outputs, confidences = get_multi_box_parameters(image, face_worker)
+    detections, outputs, confidences = get_multi_box_parameters(image, face_detection_tools)
 
     mask = confidences > job.threshold
     box_outputs = outputs[mask] * np.array([width, height, width, height])
@@ -560,13 +560,13 @@ def multi_box_positions(image: cvt.MatLike,
 
 def box_detect(img: cvt.MatLike,
                job: Job,
-               face_worker: FaceWorker) -> Optional[Tuple[int, int, int, int]]:
+               face_detection_tools: Tuple[Any, Any]) -> Optional[Tuple[int, int, int, int]]:
     try:
         # get width and height of the image
         height, width = img.shape[:2]
     except AttributeError:
         return None
-    return box(img, job, face_worker, width=width, height=height)
+    return box(img, job, face_detection_tools, width=width, height=height)
 
 
 def get_first_file(img_path: Path) -> Optional[Path]:
@@ -835,9 +835,9 @@ def get_frame_path(destination: Path,
 
 def save_detection(source_image: Path,
                    job: Job,
-                   face_worker: FaceWorker,
-                   crop_function: Callable[[Union[cvt.MatLike, Path], Job, FaceWorker], Optional[
-                       Union[cvt.MatLike, Generator[cvt.MatLike, None, None]]]],
+                   face_detection_tools: Tuple[Any, Any],
+                   crop_function: Callable[[Union[cvt.MatLike, Path], Job,  Tuple[Any, Any]],
+                                           Optional[Union[cvt.MatLike, Generator[cvt.MatLike, None, None]]]],
                    save_function: Callable[[Any, Path, int, bool], None],
                    image_name: Optional[Path] = None,
                    new: Optional[str] = None) -> None:
@@ -847,8 +847,8 @@ def save_detection(source_image: Path,
     Args:
         source_image (Path): The path to the source image file.
         job (Job): The job object containing additional parameters.
-        face_worker (FaceWorker): The face worker object used for face detection.
-        crop_function (Callable[[Union[cvt.MatLike, Path], Job, FaceWorker], Optional[Union[cvt.MatLike, Generator[cvt.MatLike, None, None]]]]): The function used for cropping the image.
+        face_detection_tools ( Tuple[Any, Any]): The face worker object used for face detection.
+        crop_function (Callable[[Union[cvt.MatLike, Path], Job,  Tuple[Any, Any]], Optional[Union[cvt.MatLike, Generator[cvt.MatLike, None, None]]]]): The function used for cropping the image.
         save_function (Callable[[Any, Path, int, bool], None]): The function used for saving the cropped images.
         image_name (Optional[Path], optional): The name of the image file. Defaults to None.
         new (Optional[str], optional): The name of the new image file. Defaults to None.
@@ -859,16 +859,16 @@ def save_detection(source_image: Path,
     Example:
         ```python
         from pathlib import Path
-        from autocrop import Job, FaceWorker
+        from autocrop import Job,  Tuple[Any, Any]
 
         # Creating a job object
         job = Job()
 
         # Creating a face worker object
-        face_worker = FaceWorker()
+        face_detection_tools =  Tuple[Any, Any]()
 
         # Defining the crop function
-        def crop_function(image, job, face_worker):
+        def crop_function(image, job, face_detection_tools):
             # Crop implementation
 
         # Defining the save function
@@ -877,7 +877,7 @@ def save_detection(source_image: Path,
 
         # Saving the cropped images
         source_image = Path("image.jpg")
-        save_detection(source_image, job, face_worker, crop_function, save_function)
+        save_detection(source_image, job, face_detection_tools, crop_function, save_function)
         ```
     """
 
@@ -885,7 +885,7 @@ def save_detection(source_image: Path,
         return None
 
     image_name = source_image if image_name is None else image_name
-    if (cropped_images := crop_function(source_image, job, face_worker)) is None:
+    if (cropped_images := crop_function(source_image, job, face_detection_tools)) is None:
         reject(source_image, destination_path, image_name)
         return None
 
@@ -895,14 +895,14 @@ def save_detection(source_image: Path,
 
 def crop_image(image: Union[Path, cvt.MatLike],
                job: Job,
-               face_worker: FaceWorker) -> Optional[cvt.MatLike]:
+               face_detection_tools: Tuple[Any, Any]) -> Optional[cvt.MatLike]:
     """
     The function crops an image based on the provided job parameters and returns the cropped image.
 
     Args:
         image (Union[Path, cvt.MatLike]): The image to be cropped, either as a file path or a cvt.MatLike object.
         job (Job): The job object containing additional parameters for cropping.
-        face_worker (FaceWorker): The face worker object used for face detection.
+        face_detection_tools ( Tuple[Any, Any]): The face worker object used for face detection.
 
     Returns:
         Optional[cvt.MatLike]: The cropped image as a cvt.MatLike object, or None if cropping fails.
@@ -910,27 +910,27 @@ def crop_image(image: Union[Path, cvt.MatLike],
     Example:
         ```python
         from pathlib import Path
-        from autocrop import Job, FaceWorker
+        from autocrop import Job,  Tuple[Any, Any]
 
         # Creating a job object
         job = Job()
 
         # Creating a face worker object
-        face_worker = FaceWorker()
+        face_detection_tools =  Tuple[Any, Any]()
 
         # Cropping an image
         image_path = Path("image.jpg")
-        cropped_image = crop_image(image_path, job, face_worker)
+        cropped_image = crop_image(image_path, job, face_detection_tools)
 
         # Displaying the cropped image
         cvt.imshow(cropped_image)
         ```
     """
 
-    pic_array = open_pic(image, face_worker, exposure=job.fix_exposure_job.isChecked(), tilt=job.auto_tilt_job.isChecked()) \
+    pic_array = open_pic(image, face_detection_tools, exposure=job.fix_exposure_job.isChecked(), tilt=job.auto_tilt_job.isChecked()) \
         if isinstance(image, Path) else image
     if pic_array is None: return None
-    if (bounding_box := box_detect(pic_array, job, face_worker)) is None: return None
+    if (bounding_box := box_detect(pic_array, job, face_detection_tools)) is None: return None
     cropped_pic = numpy_array_crop(pic_array, bounding_box)
     result = convert_color_space(cropped_pic) if len(cropped_pic.shape) >= 3 else cropped_pic
     return cv2.resize(result, job.size, interpolation=cv2.INTER_AREA)
@@ -938,14 +938,14 @@ def crop_image(image: Union[Path, cvt.MatLike],
 
 def multi_crop(source_image: Union[cvt.MatLike, Path],
                job: Job,
-               face_worker: FaceWorker) -> Optional[Generator[cvt.MatLike, None, None]]:
+               face_detection_tools: Tuple[Any, Any]) -> Optional[Generator[cvt.MatLike, None, None]]:
     """
     The function takes a source image, a job, and a face worker as input parameters. It returns a generator that yields cropped images of faces detected in the source image.
 
     Args:
         source_image (Union[cvt.MatLike, Path]): The source image from which to extract cropped images.
         job (Job): The job object containing additional parameters for cropping.
-        face_worker (FaceWorker): The face worker object used for face detection.
+        face_detection_tools ( Tuple[Any, Any]): The face worker object used for face detection.
 
     Returns:
         Optional[Generator[cvt.MatLike, None, None]]: A generator that yields cropped images of faces.
@@ -954,10 +954,10 @@ def multi_crop(source_image: Union[cvt.MatLike, Path],
         ```python
         source_image = cvt.MatLike()
         job = Job()
-        face_worker = FaceWorker()
+        face_detection_tools =  Tuple[Any, Any]()
 
         # Generating cropped images
-        cropped_images = multi_crop(source_image, job, face_worker)
+        cropped_images = multi_crop(source_image, job, face_detection_tools)
 
         # Printing the cropped images
         for image in cropped_images:
@@ -965,12 +965,12 @@ def multi_crop(source_image: Union[cvt.MatLike, Path],
         ```
     """
 
-    img = open_pic(source_image, face_worker, exposure=job.fix_exposure_job.isChecked(), tilt=job.auto_tilt_job.isChecked()) \
+    img = open_pic(source_image, face_detection_tools, exposure=job.fix_exposure_job.isChecked(), tilt=job.auto_tilt_job.isChecked()) \
         if isinstance(source_image, Path) else source_image
     if img is None:
         return None
 
-    detections, crop_positions = multi_box_positions(img, job, face_worker)
+    detections, crop_positions = multi_box_positions(img, job, face_detection_tools)
     # Check if any faces were detected
     if np.any(100 * detections[0, 0, :, 2] > job.threshold):
         # Cropped images
@@ -987,7 +987,7 @@ def multi_crop(source_image: Union[cvt.MatLike, Path],
 
 def crop(image: Path,
          job: Job,
-         face_worker: FaceWorker,
+         face_detection_tools: Tuple[Any, Any],
          new: Optional[str] = None) -> None:
     """
     The function performs cropping of an image based on the provided job parameters and saves the cropped image.
@@ -995,7 +995,7 @@ def crop(image: Path,
     Args:
         image (Path): The path to the image file to be cropped.
         job (Job): The job object containing additional parameters for cropping.
-        face_worker (FaceWorker): The face worker object used for face detection.
+        face_detection_tools ( Tuple[Any, Any]): The face worker object used for face detection.
         new (Optional[str], optional): The name of the new cropped image file. Defaults to None.
 
     Returns:
@@ -1004,17 +1004,17 @@ def crop(image: Path,
     Example:
         ```python
         from pathlib import Path
-        from autocrop import Job, FaceWorker
+        from autocrop import Job,  Tuple[Any, Any]
 
         # Creating a job object
         job = Job()
 
         # Creating a face worker object
-        face_worker = FaceWorker()
+        face_detection_tools =  Tuple[Any, Any]()
 
         # Cropping an image
         image_path = Path("image.jpg")
-        crop(image_path, job, face_worker, new="cropped_image.jpg")
+        crop(image_path, job, face_detection_tools, new="cropped_image.jpg")
         ```
     """
 
@@ -1022,21 +1022,21 @@ def crop(image: Path,
         # Data cropping
         path = job.folder_path.joinpath(image)
         if job.multi_face_job.isChecked():
-            save_detection(path, job, face_worker, multi_crop, multi_save_image, image, new)
+            save_detection(path, job, face_detection_tools, multi_crop, multi_save_image, image, new)
         else:
-            save_detection(path, job, face_worker, crop_image, save_image, image, new)
+            save_detection(path, job, face_detection_tools, crop_image, save_image, image, new)
     elif job.folder_path is not None:
         # Folder cropping
         source, image_name = job.folder_path, image.name
         path = source.joinpath(image_name)
         if job.multi_face_job.isChecked():
-            save_detection(path, job, face_worker, multi_crop, multi_save_image, Path(image_name))
+            save_detection(path, job, face_detection_tools, multi_crop, multi_save_image, Path(image_name))
         else:
-            save_detection(path, job, face_worker, crop_image, save_image, Path(image_name))
+            save_detection(path, job, face_detection_tools, crop_image, save_image, Path(image_name))
     elif job.multi_face_job.isChecked():
-        save_detection(image, job, face_worker, multi_crop, multi_save_image)
+        save_detection(image, job, face_detection_tools, multi_crop, multi_save_image)
     else:
-        save_detection(image, job, face_worker, crop_image, save_image)
+        save_detection(image, job, face_detection_tools, crop_image, save_image)
 
 
 def frame_save(cropped_image_data: cvt.MatLike,

@@ -252,7 +252,7 @@ class CropVideoWidget(CropBatchWidget):
                                                              Video.type_string())
         self.videoLineEdit.setText(file_name)
         if self.videoLineEdit.state is LineEditState.INVALID_INPUT:
-            return None
+            return
         self.player.setSource(QtCore.QUrl.fromLocalFile(file_name))
         self.playButton.setEnabled(True)
 
@@ -309,7 +309,7 @@ class CropVideoWidget(CropBatchWidget):
 
     def fast_forward(self) -> None:
         x, y = self.playback_bool()
-        if x ^ y: return None
+        if x ^ y: return
         VIDEO_SPEEDS = np.array([1.0, 1.25, 1.5, 1.75, 2.0])
         self.reverse = 0
         self.speed += 1
@@ -448,8 +448,8 @@ class CropVideoWidget(CropBatchWidget):
                                   start_position=self.start_position,
                                   stop_position=self.stop_position)
             self.player.pause()
-            self.run_batch_process(self.crop_worker.extract_frames,
-                                   lambda: self.crop_worker.reset_task(FunctionType.VIDEO), job)
+            self.run_batch_process(job, function=self.crop_worker.extract_frames,
+                                   reset_worker_func=lambda: self.crop_worker.reset_task(FunctionType.VIDEO))
 
         if Path(self.videoLineEdit.text()).parent == Path(self.destinationLineEdit.text()):
             match wf.show_warning(FunctionType.VIDEO):

@@ -48,9 +48,9 @@ class CropBatchWidget(CustomCropWidget):
         QtWidgets.QApplication.processEvents()
 
     @staticmethod
-    def run_batch_process(function: Callable[..., Any],
-                          reset_worker_func: Callable[..., Any],
-                          job: Job) -> None:
+    def run_batch_process(job: Job, *,
+                          function: Callable[..., Any],
+                          reset_worker_func: Callable[..., Any]) -> None:
         """Only sublasses of the CropBatchWidget class should implement this method"""
         reset_worker_func()
         process = Process(target=function, daemon=True, args=(job,))

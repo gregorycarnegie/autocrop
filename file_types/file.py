@@ -73,5 +73,5 @@ class File:
         """
 
         if not cls.file_types[0]:
-            return None
+            return
         return 'All Files (*);;' + ';;'.join(f'{_} Files (*{_})' for _ in np.sort(cls.file_types))

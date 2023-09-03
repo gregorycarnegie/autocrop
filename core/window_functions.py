@@ -369,7 +369,7 @@ def check_mime_data(event: Union[QtGui.QDragEnterEvent, QtGui.QDragMoveEvent]) -
     """
 
     if (mime_data := event.mimeData()) is None:
-        return None
+        return
 
     if mime_data.hasUrls():
         event.accept()

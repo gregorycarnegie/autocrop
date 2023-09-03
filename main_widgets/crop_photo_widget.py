@@ -85,7 +85,7 @@ class CropPhotoWidget(CustomCropWidget):
                     self, 'Open File', Photo.default_directory, Photo.type_string())
             line_edit.setText(f_name)
             if self.photoLineEdit.state is LineEditState.INVALID_INPUT:
-                return None
+                return
             self.load_data()
         elif line_edit is self.destinationLineEdit:
             f_name = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Directory', Photo.default_directory)
@@ -95,16 +95,16 @@ class CropPhotoWidget(CustomCropWidget):
         try:
             self.display_crop()
         except (IndexError, FileNotFoundError, ValueError, AttributeError):
-            return None
+            return
 
     def reload_widgets(self) -> None:
         def callback(input_path: Path) -> None:
             if not input_path.as_posix():
-                return None
+                return
             self.display_crop()
 
         if not self.widthLineEdit.text() or not self.heightLineEdit.text():
-            return None
+            return
         if self.selection_state == self.SELECTED:
             f_name = Path(self.photoLineEdit.text())
             callback(f_name)
@@ -122,7 +122,7 @@ class CropPhotoWidget(CustomCropWidget):
                                   FunctionType.PHOTO,
                                   photo_path=Path(self.photoLineEdit.text()),
                                   destination=Path(self.destinationLineEdit.text()))
-            self.crop_worker.photo_crop(Path(self.photoLineEdit.text()), job, self.crop_worker.face_workers[0])
+            self.crop_worker.photo_crop(Path(self.photoLineEdit.text()), job)
 
         if Path(self.photoLineEdit.text()).parent == Path(self.destinationLineEdit.text()):
             match wf.show_warning(FunctionType.PHOTO):

@@ -20,7 +20,7 @@ class DataFrameModel(QAbstractTableModel):
              role: int = Qt.ItemDataRole.DisplayRole) -> Optional[str]:
         if index.isValid() and role == Qt.ItemDataRole.DisplayRole:
             return str(self._df.iloc[index.row(), index.column()])
-        return None
+        return
 
     def load_dataframe(self, section: int, orientation: Qt.Orientation) -> Optional[str]:
         try:
@@ -30,7 +30,7 @@ class DataFrameModel(QAbstractTableModel):
                 case Qt.Orientation.Vertical:
                     return str(self._df.index[section])
         except IndexError:
-            return None
+            return
 
     def headerData(self, section: int,
                    orientation: Qt.Orientation,
@@ -39,4 +39,4 @@ class DataFrameModel(QAbstractTableModel):
             case Qt.ItemDataRole.DisplayRole:
                 return self.load_dataframe(section, orientation)
             case _:
-                return None
+                return

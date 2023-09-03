@@ -5,7 +5,6 @@ from .data_fame_model import DataFrameModel
 from .dialog import UiDialog
 from .enums import FunctionTabSelectionState, FunctionType, Preset
 from .ext_widget import ExtWidget
-from .face_worker import FaceWorker
 from .image_widget import ImageWidget
 from .job import Job
 from .literals import ProcessIconAlias

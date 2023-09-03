@@ -146,16 +146,16 @@ class CropMapWidget(CropBatchWidget):
         try:
             self.display_crop()
         except (IndexError, FileNotFoundError, ValueError, AttributeError):
-            return None
+            return
 
     def reload_widgets(self) -> None:
         def callback(input_path: Path) -> None:
             if not input_path.as_posix():
-                return None
+                return
             self.display_crop()
 
         if not self.widthLineEdit.text() or not self.heightLineEdit.text():
-            return None
+            return
         if self.selection_state == self.SELECTED:
             f_name = Path(self.folderLineEdit.text())
             callback(f_name)
@@ -186,7 +186,7 @@ class CropMapWidget(CropBatchWidget):
             self, 'Open File', Photo.default_directory, Table.type_string())
         self.tableLineEdit.setText(f_name)
         if self.tableLineEdit.state is LineEditState.INVALID_INPUT:
-            return None
+            return
         data = ut.open_table((Path(f_name)))
         self.validate_pandas_file(data)
 
@@ -194,7 +194,7 @@ class CropMapWidget(CropBatchWidget):
         try:
             assert isinstance(data, pd.DataFrame)
         except AssertionError:
-            return None
+            return
         self.process_data(data)
 
     def process_data(self, data: pd.DataFrame) -> None:
@@ -215,8 +215,8 @@ class CropMapWidget(CropBatchWidget):
                                   table=self.data_frame,
                                   column1=self.comboBox_1,
                                   column2=self.comboBox_2)
-            self.run_batch_process(self.crop_worker.mapping_crop,
-                                   lambda: self.crop_worker.reset_task(FunctionType.MAPPING), job)
+            self.run_batch_process(job, function=self.crop_worker.mapping_crop,
+                                   reset_worker_func=lambda: self.crop_worker.reset_task(FunctionType.MAPPING))
 
         if Path(self.folderLineEdit.text()) == Path(self.destinationLineEdit.text()):
             match wf.show_warning(FunctionType.MAPPING):

@@ -125,18 +125,18 @@ class CropFolderWidget(CropBatchWidget):
             self.treeView.setRootIndex(self.file_model.index(f_name))
             self.display_crop()
         except (IndexError, FileNotFoundError, ValueError, AttributeError):
-            return None
+            return
 
     def reload_widgets(self) -> None:
         def callback(input_path: Path) -> None:
             if not input_path.as_posix():
-                return None
+                return
             self.display_crop(input_path)
 
         if not self.widthLineEdit.text() or not self.heightLineEdit.text():
-            return None
+            return
         if self.selection_state == self.NOT_SELECTED:
-            return None
+            return
         if self.treeView.currentIndex().isValid():
             f_name = Path(self.file_model.filePath(self.treeView.currentIndex()))
         else:
@@ -156,8 +156,8 @@ class CropFolderWidget(CropBatchWidget):
                                   FunctionType.FOLDER,
                                   folder_path=Path(self.folderLineEdit.text()),
                                   destination=Path(self.destinationLineEdit.text()))
-            self.run_batch_process(self.crop_worker.crop_dir, lambda: self.crop_worker.reset_task(FunctionType.FOLDER),
-                                   job)
+            self.run_batch_process(job, function=self.crop_worker.crop_dir,
+                                   reset_worker_func=lambda: self.crop_worker.reset_task(FunctionType.FOLDER))
 
         if Path(self.folderLineEdit.text()) == Path(self.destinationLineEdit.text()):
             match wf.show_warning(FunctionType.FOLDER):

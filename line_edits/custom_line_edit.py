@@ -104,7 +104,7 @@ class CustomLineEdit(QLineEdit):
     def validate_path(self) -> None:
         """Validate path based on input and set color accordingly.
         Subclasses should implement this method!"""
-        return None
+        return
 
     def set_valid_color(self) -> None:
         """

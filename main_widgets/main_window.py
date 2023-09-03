@@ -263,7 +263,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         try:
             assert isinstance(a0, QtGui.QDragEnterEvent)
         except AssertionError:
-            return None
+            return
         wf.check_mime_data(a0)
 
     def dragMoveEvent(self, a0: Optional[QtGui.QDragMoveEvent]) -> None:
@@ -281,7 +281,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         try:
             assert isinstance(a0, QtGui.QDragMoveEvent)
         except AssertionError:
-            return None
+            return
         wf.check_mime_data(a0)
 
     def dropEvent(self, a0: Optional[QtGui.QDropEvent]) -> None:
@@ -299,10 +299,10 @@ class UiMainWindow(QtWidgets.QMainWindow):
         try:
             assert isinstance(a0, QtGui.QDropEvent)
         except AssertionError:
-            return None
+            return
 
         if (x := a0.mimeData()) is None:
-            return None
+            return
 
         if not x.hasUrls():
             a0.ignore()
@@ -340,7 +340,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
             assert isinstance(self.folder_Tab, CropFolderWidget)
             assert isinstance(self.photoTab, CropPhotoWidget)
         except AssertionError:
-            return None
+            return
 
         if self.photoTab.selection_state == self.photoTab.SELECTED:
             self.handle_function_tab_state(self.photoTab, self.folder_Tab, self.mappingTab, self.videoTab)
@@ -370,7 +370,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
             assert isinstance(self.mappingTab, CropMapWidget)
             assert isinstance(self.folder_Tab, CropFolderWidget)
         except AssertionError:
-            return None
+            return
         if any(mask):
             self.handle_path(file_path, FunctionType.MAPPING, self.mappingTab.folderLineEdit)
         else:
@@ -413,7 +413,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         try:
             assert isinstance(self.photoTab, CropPhotoWidget)
         except AssertionError:
-            return None
+            return
         self.handle_path(file_path, FunctionType.PHOTO, self.photoTab.photoLineEdit)
 
     def handle_video_file(self, file_path: Path) -> None:
@@ -433,7 +433,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         try:
             assert isinstance(self.videoTab, CropVideoWidget)
         except AssertionError:
-            return None
+            return
         self.videoTab.videoLineEdit.setText(file_path.as_posix())
         self.videoTab.playButton.setEnabled(True)
         self.videoTab.playButton.setIcon(QtGui.QIcon('resources\\icons\\multimedia_play.svg'))
@@ -455,7 +455,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         try:
             assert isinstance(self.mappingTab, CropMapWidget)
         except AssertionError:
-            return None
+            return
         self.mappingTab.tableLineEdit.setText(file_path.as_posix())
         data = ut.open_table(file_path)
         self.mappingTab.validate_pandas_file(data)
@@ -553,7 +553,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
             assert isinstance(self.photoTab, CropPhotoWidget)
             assert isinstance(self.videoTab, CropVideoWidget)
         except AssertionError:
-            return None
+            return
         # Photo logic
         wf.update_widget_state(
             self.all_filled(self.photoTab.photoLineEdit, self.photoTab.destinationLineEdit, *common_line_edits),
@@ -633,6 +633,6 @@ class UiMainWindow(QtWidgets.QMainWindow):
         try:
             assert isinstance(tab_widget, CropMapWidget)
         except AssertionError:
-            return None
+            return
         tab_widget.comboBox_1.currentTextChanged.connect(lambda: self.disable_buttons())
         tab_widget.comboBox_2.currentTextChanged.connect(lambda: self.disable_buttons())
