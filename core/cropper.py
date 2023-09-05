@@ -126,7 +126,8 @@ class Cropper(QObject):
                 A list of face detection and shape prediction tools.
         """
 
-        return [(dlib.get_frontal_face_detector(), dlib.shape_predictor(cls.LANDMARKS)) for _ in range(cls.THREAD_NUMBER)]
+        return [(dlib.get_frontal_face_detector(), dlib.shape_predictor(cls.LANDMARKS))
+                for _ in range(cls.THREAD_NUMBER)]
 
     def photo_crop(self, image: Path,
                    job: Job,
@@ -335,7 +336,8 @@ class Cropper(QObject):
         self.m_started.emit()
 
         executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)
-        _ = [executor.submit(self.mapping_worker, amount, job, self.face_detection_tools[i], old=old_file_list[i], new=new_file_list[i])
+        _ = [executor.submit(self.mapping_worker, amount, job, self.face_detection_tools[i],
+                             old=old_file_list[i], new=new_file_list[i])
              for i in range(len(new_file_list))]
 
     def crop_frame(self, job: Job, position_label: QLabel, timeline_slider: QSlider) -> None:
