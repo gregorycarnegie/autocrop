@@ -82,9 +82,14 @@ class CustomLineEdit(QLineEdit):
         """
 
         buttonSize = self.clearButton.sizeHint()
-        frameWidth = self.style().pixelMetric(QStyle.PixelMetric.PM_DefaultFrameWidth)
-        self.clearButton.move(self.rect().right() - frameWidth - buttonSize.width(),
-                              (self.rect().bottom() - buttonSize.height() + 1) >> 1)
+        if (style := self.style()) is None:
+            return
+        
+        frameWidth = style.pixelMetric(QStyle.PixelMetric.PM_DefaultFrameWidth)
+        rect = self.rect()
+        self.clearButton.move(rect.right() - frameWidth - buttonSize.width(),
+                              (rect.bottom() - buttonSize.height() + 1) >> 1)
+        
         super(CustomLineEdit, self).resizeEvent(a0)
 
     def updateClearButton(self, text: str) -> None:

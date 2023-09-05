@@ -10,6 +10,7 @@ def main():
     splash = ClickableSplashScreen()
     splash.show_message()
     window = UiMainWindow()
+    window.adjust_ui(app)
     window.show()
     splash.finish(window)
     app.exec()

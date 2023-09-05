@@ -36,7 +36,6 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.setAcceptDrops(True)
         self.crop_worker = Cropper()
         self.setObjectName('MainWindow')
-        self.resize(1_348, 894)
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap('resources\\logos\\logo.ico'), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         self.setWindowIcon(icon)
@@ -248,6 +247,27 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.action4_5_Ratio.setText(_translate('MainWindow', '4:5 Ratio'))
         self.actionCrop_Video.setText(_translate('MainWindow', 'Crop Video'))
 
+    def adjust_ui(self, app: QtWidgets.QApplication):        
+        if (screen := app.primaryScreen()) is None:
+            return
+        size = screen.size()
+        width, height = size.width(), size.height()
+        base_font_size = 12
+
+        # Adjust based on screen resolution
+        if width >= 3_840:
+            self.resize(width >> 1, height >> 1)
+        else:
+            self.resize(3 * width >> 2, 3 * height >> 2)
+
+        if height > 1_080:
+            scale_factor = height / 1_080
+            base_font_size = int(base_font_size * scale_factor)
+
+        font = app.font()
+        font.setPointSize(base_font_size)
+        app.setFont(font)
+    
     def dragEnterEvent(self, a0: Optional[QtGui.QDragEnterEvent]) -> None:
         """
         Handles the drag enter event by checking the event type and calling the check_mime_data method.
