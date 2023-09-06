@@ -12,11 +12,11 @@ import numpy.typing as npt
 from PyQt6.QtCore import pyqtSignal, QObject
 from PyQt6.QtWidgets import QLabel, QLineEdit, QSlider
 
+from .image_widget import ImageWidget
+from .job import Job
 from . import utils as ut
 from . import window_functions as wf
 from .enums import FunctionType
-from .image_widget import ImageWidget
-from .job import Job
 
 
 class Cropper(QObject):
@@ -87,7 +87,8 @@ class Cropper(QObject):
         self.bar_value_f, self.end_f_task, self.message_box_f = self.TASK_VALUES
         self.bar_value_m, self.end_m_task, self.message_box_m = self.TASK_VALUES
         self.bar_value_v, self.end_v_task, self.message_box_v = self.TASK_VALUES
-        self.face_detection_tools = self.generate_face_detection_tools()
+        self.face_detection_tools: List[Tuple[Any, Any]] = []
+        self.generate_face_detection_tools()
 
     def reset_task(self, function_type: FunctionType):
         """
@@ -110,24 +111,48 @@ class Cropper(QObject):
                 self.bar_value_v, self.end_v_task, self.message_box_v = self.TASK_VALUES
             case _:
                 pass
-    
+
     @classmethod
-    def generate_face_detection_tools(cls) -> List[Tuple[Any, Any]]:
+    def _create_tool_pair(cls) -> Tuple[Any, Any]:
         """
-        Generate a list of face detection and shape prediction tools.
-        
-        This method creates a list of tuples, where each tuple contains an instance of 
-        `dlib.fhog_object_detector` for frontal face detection and `dlib.shape_predictor` 
-        for facial landmark prediction. The number of tuples in the list is determined by 
-        the class attribute `THREAD_NUMBER`.
-        
+        Create a pair of face detection and shape prediction tools.
+
         Returns:
-            List[Tuple[dlib.fhog_object_detector, dlib.shape_predictor]]: 
-                A list of face detection and shape prediction tools.
+            Tuple[dlib.fhog_object_detector, dlib.shape_predictor]:
+                A pair of face detection and shape prediction tools.
         """
 
-        return [(dlib.get_frontal_face_detector(), dlib.shape_predictor(cls.LANDMARKS))
-                for _ in range(cls.THREAD_NUMBER)]
+        # Functions to create each tool
+        def create_detector() -> Any:
+            return dlib.get_frontal_face_detector()
+
+        def create_predictor() -> Any:
+            return dlib.shape_predictor(cls.LANDMARKS)
+
+        # Execute each function in a separate thread
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            d_future, p_future = executor.submit(create_detector), executor.submit(create_predictor)
+            # Now, wait for both tasks to complete and get the results
+            detector, predictor = d_future.result(), p_future.result()
+
+        return detector, predictor
+
+    def generate_face_detection_tools(self) -> None:
+        """
+        Generate a list of face detection and shape prediction tools.
+    
+        This method creates a list of tuples, where each tuple contains an instance of
+        `dlib.fhog_object_detector` for frontal face detection and `dlib.shape_predictor`
+        for facial landmark prediction. The number of tuples in the list is determined by
+        the class attribute `THREAD_NUMBER`.
+    
+        Returns:
+            List[Tuple[dlib.fhog_object_detector, dlib.shape_predictor]]:
+                A list of face detection and shape prediction tools.
+        """
+    
+        for _ in range(self.THREAD_NUMBER):
+            self.face_detection_tools.append(self._create_tool_pair())
 
     def photo_crop(self, image: Path,
                    job: Job,
@@ -138,7 +163,6 @@ class Cropper(QObject):
         Args:
             image (Path): The path to the image file.
             job (Job): The job containing the parameters for cropping.
-            face_detection_tools(FaceWorker): The worker for face-related tasks.
             new (Optional[str]): The optional new file name.
 
         Returns:
@@ -182,10 +206,10 @@ class Cropper(QObject):
         if pic_array is None: return
 
         if job.multi_face_job.isChecked():
-            pic = ut.multi_box(pic_array, job, self.face_detection_tools[0])
+            pic = ut.multi_box(pic_array, job)
             wf.display_image_on_widget(pic, image_widget)
         else:
-            bounding_box = ut.box_detect(pic_array, job, self.face_detection_tools[0])
+            bounding_box = ut.box_detect(pic_array, job)
             if bounding_box is None: return
             ut.crop_and_set(pic_array, bounding_box, job.gamma, image_widget)
 

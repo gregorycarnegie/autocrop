@@ -7,4 +7,4 @@ from .enums import FunctionTabSelectionState, FunctionType, Preset
 from .ext_widget import ExtWidget
 from .image_widget import ImageWidget
 from .job import Job
-from .literals import ProcessIconAlias
+from .literals import ProcessIconAlias, MediaIconAlias, TabIconAlias

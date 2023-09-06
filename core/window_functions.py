@@ -6,6 +6,7 @@ import cv2.typing as cvt
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from .enums import FunctionType
+# from . import ImageWidget, MediaIconAlias, TabIconAlias, UiDialog
 from .dialog import UiDialog
 from .image_widget import ImageWidget
 from .literals import MediaIconAlias, TabIconAlias
@@ -438,7 +439,7 @@ def create_tab(tab_widget: QtWidgets.QTabWidget,
 
     tab.setObjectName(tab_name)
     icon.addPixmap(QtGui.QPixmap(f'resources\\icons\\{icon_name}.svg'), QtGui.QIcon.Mode.Normal,
-                    QtGui.QIcon.State.Off)
+                   QtGui.QIcon.State.Off)
     tab_widget.addTab(tab, icon, '')
 
 

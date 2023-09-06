@@ -8,11 +8,7 @@ from core import utils as ut
 from core import window_functions as wf
 from file_types import Photo, Table, Video
 from line_edits import NumberLineEdit, PathLineEdit, LineEditState
-from .crop_folder_widget import CropFolderWidget
-from .crop_map_widget import CropMapWidget
-from .crop_photo_widget import CropPhotoWidget
-from .crop_vid_widget import CropVideoWidget
-from .custom_crop_widget import CustomCropWidget
+from . import CropFolderWidget, CropMapWidget, CropPhotoWidget, CropVideoWidget, CustomCropWidget
 
 
 class UiMainWindow(QtWidgets.QMainWindow):

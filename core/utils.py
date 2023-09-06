@@ -16,10 +16,10 @@ import rawpy
 import tifffile as tiff
 from PIL import Image
 
-from . import window_functions as wf
 from file_types import Photo
 from .image_widget import ImageWidget
 from .job import Job
+from . import window_functions as wf
 
 # Define constants
 GAMMA_THRESHOLD = .001
@@ -184,7 +184,7 @@ def crop_and_set(image: cvt.MatLike,
         adjusted_image = adjust_gamma(cropped_image, gamma_value)
         final_image = convert_color_space(adjusted_image)
     except (cv2.error, Image.DecompressionBombError):
-        return None
+        return
     wf.display_image_on_widget(final_image, image_widget)
 
 
@@ -448,7 +448,7 @@ def open_pic(input_file: Union[Path, str],
         case extension if extension in Photo.RAW_TYPES:
             return open_raw(input_file, face_detection_tools, exposure=exposure, tilt=tilt)
         case _:
-            return None
+            return
 
 
 def get_angle_of_tilt(landmarks_array: npt.NDArray[np.int_], scaling_factor: float) -> Tuple[float, float, float]:
@@ -460,13 +460,11 @@ def get_angle_of_tilt(landmarks_array: npt.NDArray[np.int_], scaling_factor: flo
     return np.arctan2(eye_diff[1], eye_diff[0]) * 180 / np.pi, center_x, center_y
 
 
-def prepare_detections(image: cvt.MatLike,
-                       face_detection_tools: Tuple[Any, Any]) -> npt.NDArray[np.float64]:
+def prepare_detections(image: cvt.MatLike) -> npt.NDArray[np.float64]:
     # Create blob from image
     # We standardize the image by scaling it and then subtracting the mean RGB values
     blob = cv2.dnn.blobFromImage(image, 1.0, (300, 300), (104.0, 177.0, 123.0), False, False)
     # Set the input for the neural network
-    # caffe = face_detection_tools.caffe_model()
     caffe = cv2.dnn.readNetFromCaffe('resources\\weights\\deploy.prototxt.txt',
                                      'resources\\models\\res10_300x300_ssd_iter_140000.caffemodel')
     caffe.setInput(blob)
@@ -486,8 +484,8 @@ def get_box_coordinates(output: Union[cvt.MatLike, npt.NDArray[np.generic]],
                         height: int,
                         x: Optional[npt.NDArray[np.generic]] = None) -> Tuple[int, int, int, int]:
     box_outputs = output * np.array([width, height, width, height])
-    box = box_outputs.astype(np.int_) if x is None else box_outputs[np.argmax(x)]
-    return rs_crop_positions(box, job)
+    _box = box_outputs.astype(np.int_) if x is None else box_outputs[np.argmax(x)]
+    return rs_crop_positions(_box, job)
 
 
 def get_multibox_coordinates(box_outputs: npt.NDArray[np.int_], job: Job) -> Iterator[Tuple[int, int, int, int]]:
@@ -495,17 +493,16 @@ def get_multibox_coordinates(box_outputs: npt.NDArray[np.int_], job: Job) -> Ite
 
 
 def box(img: cvt.MatLike,
-        job: Job,
-        face_detection_tools: Tuple[Any, Any], *,
+        job: Job, *,
         width: int,
         height: int,) -> Optional[Tuple[int, int, int, int]]:
     # preprocess the image: resize and performs mean subtraction
-    detections = prepare_detections(img, face_detection_tools)
+    detections = prepare_detections(img)
     output = np.squeeze(detections)
     # get the confidence
     confidence_list = output[:, 2]
     if np.max(confidence_list) * 100 < job.threshold:
-        return None
+        return
     return get_box_coordinates(output[:, 3:7], job, width=width, height=height, x=confidence_list)
 
 
@@ -521,17 +518,14 @@ def _draw_box_with_text(image: cvt.MatLike, confidence: np.float64, *, x0: int, 
     return image
 
 
-def get_multi_box_parameters(image: cvt.MatLike,
-                             face_detection_tools: Tuple[Any, Any]) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
-    detections = prepare_detections(convert_color_space(image), face_detection_tools)
-    confidences = detections[0, 0, :, 2] * 100
-    outputs = detections[0, 0, :, 3:7]
-    return detections, outputs, confidences
+def get_multi_box_parameters(image: cvt.MatLike) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+    detections = prepare_detections(convert_color_space(image))
+    return detections[0, 0, :, 3:7], detections[0, 0, :, 2] * 100
 
 
-def multi_box(image: cvt.MatLike, job: Job, face_detection_tools: Tuple[Any, Any]) -> cvt.MatLike:
+def multi_box(image: cvt.MatLike, job: Job) -> cvt.MatLike:
     height, width = image.shape[:2]
-    _, outputs, confidences = get_multi_box_parameters(image, face_detection_tools)
+    outputs, confidences = get_multi_box_parameters(image)
 
     image = adjust_gamma(image, job.gamma)
     image = convert_color_space(image)
@@ -547,26 +541,24 @@ def multi_box(image: cvt.MatLike, job: Job, face_detection_tools: Tuple[Any, Any
 
 
 def multi_box_positions(image: cvt.MatLike,
-                        job: Job,
-                        face_detection_tools: Tuple[Any, Any]) -> Tuple[npt.NDArray[np.float_], Iterator[Tuple[int, int, int, int]]]:
+                        job: Job) -> Tuple[npt.NDArray[np.float_], Iterator[Tuple[int, int, int, int]]]:
     height, width = image.shape[:2]
-    detections, outputs, confidences = get_multi_box_parameters(image, face_detection_tools)
+    outputs, confidences = get_multi_box_parameters(image)
 
     mask = confidences > job.threshold
     box_outputs = outputs[mask] * np.array([width, height, width, height])
     crop_positions = get_multibox_coordinates(box_outputs.astype(np.int_), job)
-    return detections, crop_positions
+    return confidences, crop_positions
 
 
 def box_detect(img: cvt.MatLike,
-               job: Job,
-               face_detection_tools: Tuple[Any, Any]) -> Optional[Tuple[int, int, int, int]]:
+               job: Job) -> Optional[Tuple[int, int, int, int]]:
     try:
         # get width and height of the image
         height, width = img.shape[:2]
     except AttributeError:
-        return None
-    return box(img, job, face_detection_tools, width=width, height=height)
+        return
+    return box(img, job, width=width, height=height)
 
 
 def get_first_file(img_path: Path) -> Optional[Path]:
@@ -667,10 +659,10 @@ def split_by_cpus(mask: npt.NDArray[np.bool_],
 
 
 @cache
-def set_filename(image_path: Path,
+def set_filename(radio_options: Tuple[str, ...], *,
+                 image_path: Path,
                  destination: Path,
                  radio_choice: str,
-                 radio_options: Tuple[str, ...],
                  new: Optional[str] = None) -> Tuple[Path, bool]:
     """
     The function sets the filename and extension for the image based on the provided parameters.
@@ -715,7 +707,7 @@ def set_filename(image_path: Path,
     return final_path, final_path.suffix in {'.tif', '.tiff'}
 
 
-def reject(path: Path,
+def reject(*, path: Path,
            destination: Path,
            image: Path) -> None:
     """
@@ -882,14 +874,16 @@ def save_detection(source_image: Path,
     """
 
     if (destination_path := job.get_destination()) is None:
-        return None
+        return
 
     image_name = source_image if image_name is None else image_name
     if (cropped_images := crop_function(source_image, job, face_detection_tools)) is None:
-        reject(source_image, destination_path, image_name)
-        return None
+        reject(path=source_image, destination=destination_path, image=image_name)
+        return
 
-    file_path, is_tiff = set_filename(image_name, destination_path, job.radio_choice(), job.radio_tuple(), new)
+    file_path, is_tiff = set_filename(job.radio_tuple(),
+                                      image_path=image_name, destination=destination_path,
+                                      radio_choice=job.radio_choice(), new=new)
     save_function(cropped_images, file_path, job.gamma, is_tiff)
 
 
@@ -929,8 +923,13 @@ def crop_image(image: Union[Path, cvt.MatLike],
 
     pic_array = open_pic(image, face_detection_tools, exposure=job.fix_exposure_job.isChecked(), tilt=job.auto_tilt_job.isChecked()) \
         if isinstance(image, Path) else image
-    if pic_array is None: return None
-    if (bounding_box := box_detect(pic_array, job, face_detection_tools)) is None: return None
+    
+    if pic_array is None:
+        return
+
+    if (bounding_box := box_detect(pic_array, job)) is None:
+        return
+
     cropped_pic = numpy_array_crop(pic_array, bounding_box)
     result = convert_color_space(cropped_pic) if len(cropped_pic.shape) >= 3 else cropped_pic
     return cv2.resize(result, job.size, interpolation=cv2.INTER_AREA)
@@ -967,22 +966,23 @@ def multi_crop(source_image: Union[cvt.MatLike, Path],
 
     img = open_pic(source_image, face_detection_tools, exposure=job.fix_exposure_job.isChecked(), tilt=job.auto_tilt_job.isChecked()) \
         if isinstance(source_image, Path) else source_image
+    
     if img is None:
-        return None
+        return
 
-    detections, crop_positions = multi_box_positions(img, job, face_detection_tools)
+    confidences, crop_positions = multi_box_positions(img, job)
     # Check if any faces were detected
-    if np.any(100 * detections[0, 0, :, 2] > job.threshold):
+    if np.any(confidences > job.threshold):
         # Cropped images
         images = map(lambda x: Image.fromarray(img).crop(x), crop_positions)
         # images as numpy arrays
-        image_array = map(lambda x: pillow_to_numpy(x), images)
+        image_arrays = map(lambda x: pillow_to_numpy(x), images)
         # numpy arrays with colour space converted
-        results = map(lambda x: convert_color_space(x), image_array)
+        results = map(lambda x: convert_color_space(x), image_arrays)
         # return resized results
         return (cv2.resize(src=result, dsize=job.size, interpolation=cv2.INTER_AREA) for result in results)
     else:
-        return None
+        return
 
 
 def crop(image: Path,
@@ -1078,6 +1078,7 @@ def grab_frame(position_slider: int,
     cap.set(cv2.CAP_PROP_POS_MSEC, position_slider)
     # Read frame from video capture object
     ret, frame = cap.read()
-    if not ret: return None
+    if not ret:
+        return
     cap.release()
     return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
