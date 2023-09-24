@@ -25,11 +25,11 @@ class File:
         # Creating an instance of the File class
         file = File()
 
-        # Getting file filters
+        # Getting file filters.
         filters = file.file_filter()
         print(filters)
 
-        # Getting the type string
+        # Getting the type string.
         types = file.type_string()
         print(types)
         ```
@@ -48,7 +48,7 @@ class File:
 
         Example:
             ```python
-            # Getting file filters
+            # Getting file filters.
             filters = File.file_filter()
             print(filters)
             ```
@@ -66,7 +66,7 @@ class File:
 
         Example:
             ```python
-            # Getting the type string
+            # Getting the type string.
             types = File.type_string()
             print(types)
             ```

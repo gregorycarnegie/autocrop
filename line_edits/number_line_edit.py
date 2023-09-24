@@ -15,9 +15,6 @@ class NumberLineEdit(CustomLineEdit):
         name (str): The object name of the widget.
         parent (Optional[QtWidgets.QWidget]): The parent widget. Defaults to None.
 
-    Attributes:
-        INVALID_CHARS_PATTERN (ClassVar[Pattern[str]]): A regular expression pattern to match invalid characters in a file path.
-
     Methods:
         validate_path(self): Validates the path by performing color logic and updating the style of the NumberLineEdit.
         value(self) -> int: Returns the integer value of the text input.

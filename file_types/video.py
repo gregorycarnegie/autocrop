@@ -23,11 +23,11 @@ class Video(File):
         # Creating an instance of the Video class
         video = Video()
 
-        # Getting the default directory
+        # Getting the default directory.
         directory = video.default_directory
         print(directory)
 
-        # Getting the file types
+        # Getting the file types.
         types = video.file_types
         print(types)
         ```

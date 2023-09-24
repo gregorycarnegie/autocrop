@@ -21,7 +21,7 @@ class Table(File):
         # Creating an instance of the Table class
         table = Table()
 
-        # Getting the file types
+        # Getting the file types.
         types = table.file_types
         print(types)
         ```

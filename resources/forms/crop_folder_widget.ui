@@ -6,18 +6,24 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1357</width>
-    <height>756</height>
+    <width>1249</width>
+    <height>649</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout_2">
+  <layout class="QVBoxLayout" name="verticalLayout_2" stretch="1,20,1">
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_1">
+    <layout class="QHBoxLayout" name="horizontalLayout_1" stretch="20,1">
      <item>
       <widget class="QLineEdit" name="folderLineEdit">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
        <property name="minimumSize">
         <size>
          <width>0</width>
@@ -27,7 +33,7 @@
        <property name="maximumSize">
         <size>
          <width>16777215</width>
-         <height>24</height>
+         <height>16777215</height>
         </size>
        </property>
        <property name="inputMethodHints">
@@ -40,6 +46,12 @@
      </item>
      <item>
       <widget class="QPushButton" name="folderButton">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
        <property name="minimumSize">
         <size>
          <width>124</width>
@@ -49,7 +61,7 @@
        <property name="maximumSize">
         <size>
          <width>16777215</width>
-         <height>24</height>
+         <height>16777215</height>
         </size>
        </property>
        <property name="text">
@@ -67,6 +79,12 @@
     <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="4,3">
      <item>
       <widget class="QFrame" name="frame">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
        <property name="styleSheet">
         <string notr="true">background: #1f2c33</string>
        </property>
@@ -78,7 +96,7 @@
        </property>
        <layout class="QVBoxLayout" name="verticalLayout" stretch="1,10,1,1">
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_4">
+         <layout class="QHBoxLayout" name="horizontalLayout_4" stretch="20,0,0,0">
           <item>
            <spacer name="horizontalSpacer">
             <property name="orientation">
@@ -94,6 +112,12 @@
           </item>
           <item>
            <widget class="QCheckBox" name="mfaceCheckBox">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="styleSheet">
              <string notr="true">QCheckBox:unchecked{color: red}
 QCheckBox:checked{color: white}
@@ -121,6 +145,12 @@ QCheckBox::indicator:unchecked:hover{
           </item>
           <item>
            <widget class="QCheckBox" name="tiltCheckBox">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="styleSheet">
              <string notr="true">QCheckBox:unchecked{color: red}
 QCheckBox:checked{color: white}
@@ -148,6 +178,12 @@ QCheckBox::indicator:unchecked:hover{
           </item>
           <item>
            <widget class="QCheckBox" name="exposureCheckBox">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="styleSheet">
              <string notr="true">QCheckBox:unchecked{color: red}
 QCheckBox:checked{color: white}
@@ -177,6 +213,18 @@ QCheckBox::indicator:unchecked:hover{
         </item>
         <item>
          <widget class="QWidget" name="imageWidget" native="true">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>200</width>
+            <height>200</height>
+           </size>
+          </property>
           <property name="styleSheet">
            <string notr="true"/>
           </property>
@@ -186,6 +234,12 @@ QCheckBox::indicator:unchecked:hover{
          <layout class="QHBoxLayout" name="horizontalLayout_5">
           <item>
            <widget class="QPushButton" name="cropButton">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="minimumSize">
              <size>
               <width>0</width>
@@ -195,7 +249,7 @@ QCheckBox::indicator:unchecked:hover{
             <property name="maximumSize">
              <size>
               <width>16777215</width>
-              <height>24</height>
+              <height>16777215</height>
              </size>
             </property>
             <property name="text">
@@ -209,6 +263,12 @@ QCheckBox::indicator:unchecked:hover{
           </item>
           <item>
            <widget class="QPushButton" name="cancelButton">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="minimumSize">
              <size>
               <width>0</width>
@@ -218,7 +278,7 @@ QCheckBox::indicator:unchecked:hover{
             <property name="maximumSize">
              <size>
               <width>16777215</width>
-              <height>24</height>
+              <height>16777215</height>
              </size>
             </property>
             <property name="text">
@@ -263,9 +323,15 @@ QCheckBox::indicator:unchecked:hover{
     </layout>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_2">
+    <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="20,1">
      <item>
       <widget class="QLineEdit" name="destinationLineEdit">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
        <property name="minimumSize">
         <size>
          <width>0</width>
@@ -275,7 +341,7 @@ QCheckBox::indicator:unchecked:hover{
        <property name="maximumSize">
         <size>
          <width>16777215</width>
-         <height>24</height>
+         <height>16777215</height>
         </size>
        </property>
        <property name="inputMethodHints">
@@ -288,6 +354,12 @@ QCheckBox::indicator:unchecked:hover{
      </item>
      <item>
       <widget class="QPushButton" name="destinationButton">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
        <property name="minimumSize">
         <size>
          <width>124</width>
@@ -297,7 +369,7 @@ QCheckBox::indicator:unchecked:hover{
        <property name="maximumSize">
         <size>
          <width>16777215</width>
-         <height>24</height>
+         <height>16777215</height>
         </size>
        </property>
        <property name="text">

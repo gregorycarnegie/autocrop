@@ -247,7 +247,7 @@ class Job(NamedTuple):
         """
 
         if self.destination is None:
-            return
+            return None
         self.destination.mkdir(exist_ok=True)
         return self.destination
 

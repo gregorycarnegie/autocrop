@@ -53,13 +53,13 @@ def pillow_to_numpy(image: Image.Image) -> npt.NDArray[np.uint8]:
         ```python
         from PIL import Image
 
-        # Creating a Pillow image
+        # Creating a Pillow image.
         image = Image.open("image.jpg")
 
-        # Converting the image to a NumPy array
+        # Converting the image to a NumPy array.
         numpy_array = pillow_to_numpy(image)
 
-        # Printing the shape of the NumPy array
+        # Printing the shape of the NumPy array.
         print(numpy_array.shape)
         ```
     """
@@ -108,10 +108,10 @@ def adjust_gamma(image: Union[cvt.MatLike, npt.NDArray[np.uint8]], gam: int) -> 
         ```python
         from autocrop import cvt
 
-        # Creating an image
+        # Creating an image.
         image = cvt.MatLike()
 
-        # Adjusting the gamma of the image
+        # Adjusting the gamma of the image.
         adjusted_image = adjust_gamma(image, gam=2)
         ```
     """
@@ -133,10 +133,10 @@ def convert_color_space(image: Union[cvt.MatLike, npt.NDArray[np.uint8]]) -> cvt
         ```python
         from autocrop import cvt
 
-        # Creating an image
+        # Creating an image.
         image = cvt.MatLike()
 
-        # Converting the color space of the image
+        # Converting the color space of the image.
         converted_image = convert_color_space(image)
         ```
     """
@@ -159,13 +159,13 @@ def numpy_array_crop(image: cvt.MatLike, bounding_box: Tuple[int, int, int, int]
         ```python
         from autocrop import cvt
 
-        # Creating an image
+        # Creating an image.
         image = cvt.MatLike()
 
-        # Defining the bounding box
+        # Defining the bounding box.
         bounding_box = (100, 100, 300, 300)
 
-        # Cropping the image
+        # Cropping the image.
         cropped_image = numpy_array_crop(image, bounding_box)
         ```
     """
@@ -204,10 +204,10 @@ def correct_exposure(image: Union[cvt.MatLike, npt.NDArray[np.uint8]],
         ```python
         from autocrop import cvt
 
-        # Creating an image
+        # Creating an image.
         image = cvt.MatLike()
 
-        # Correcting the exposure of the image
+        # Correcting the exposure of the image.
         corrected_image = correct_exposure(image, exposure=True)
         ```
     """
@@ -239,7 +239,7 @@ def rotate_image(image: Union[cvt.MatLike, npt.NDArray[np.uint8]],
         ```python
         from autocrop import cvt
 
-        # Creating an image
+        # Creating an image.
         image = cvt.MatLike()
 
         # Defining the rotation angle and center
@@ -275,13 +275,13 @@ def align_head(image: Union[cvt.MatLike, npt.NDArray[np.uint8]],
         ```python
         from autocrop import cvt,  Tuple[Any, Any]
 
-        # Creating an image
+        # Creating an image.
         image = cvt.MatLike()
 
-        # Creating a face worker
+        # Creating a face worker.
         face_detection_tools =  Tuple[Any, Any]()
 
-        # Aligning the head in the image
+        # Aligning the head in the image.
         aligned_image = align_head(image, face_detection_tools, tilt=True)
         ```
     """
@@ -332,7 +332,7 @@ def open_image(image: Path,
 
     Example:
         ```python
-        # Opening an image file
+        # Opening an image file.
         image_path = Path('/path/to/image.jpg')
         face_detection_tools =  Tuple[Any, Any]()
         processed_image = open_image(image_path, face_detection_tools, exposure=True, tilt=True)
@@ -366,7 +366,7 @@ def open_raw(image: Path,
 
     Example:
         ```python
-        # Opening a raw image file
+        # Opening a raw image file.
         image_path = Path('/path/to/image.CR2')
         face_detection_tools =  Tuple[Any, Any]()
         processed_image = open_raw(image_path, face_detection_tools, exposure=True, tilt=True)
@@ -395,12 +395,12 @@ def open_table(input_file: Path) -> pd.DataFrame:
 
     Example:
         ```python
-        # Opening a CSV file
+        # Opening a CSV file.
         csv_file = Path('/path/to/table.csv')
         csv_data = open_table(csv_file)
         print(csv_data.head())
 
-        # Opening an Excel file
+        # Opening an Excel file.
         excel_file = Path('/path/to/table.xlsx')
         excel_data = open_table(excel_file)
         print(excel_data.head())
@@ -428,7 +428,7 @@ def open_pic(input_file: Union[Path, str],
 
     Example:
         ```python
-        # Opening an image file
+        # Opening an image file.
         image_path = Path('/path/to/image.jpg')
         face_detection_tools =  Tuple[Any, Any]()
         processed_image = open_pic(image_path, face_detection_tools, exposure=True, tilt=True)
@@ -575,13 +575,13 @@ def get_first_file(img_path: Path) -> Optional[Path]:
         ```python
         from pathlib import Path
 
-        # Defining the image path
+        # Defining the image path.
         img_path = Path("images")
 
-        # Getting the first file
+        # Getting the first file.
         first_file = get_first_file(img_path)
 
-        # Printing the first file
+        # Printing the first file.
         print(first_file)
         ```
     """
@@ -603,13 +603,13 @@ def mask_extensions(file_list: npt.NDArray[np.str_]) -> Tuple[npt.NDArray[np.boo
         ```python
         import numpy as np
 
-        # Creating the file list
+        # Creating the file list.
         file_list = np.array(['file1.jpg', 'file2.png', 'file3.jpg', 'file4.tif'])
 
-        # Masking the file list
+        # Masking the file list.
         mask, size = mask_extensions(file_list)
 
-        # Printing the mask and size
+        # Printing the mask and size.
         print(mask)
         print(size)
         ```
@@ -639,17 +639,17 @@ def split_by_cpus(mask: npt.NDArray[np.bool_],
         ```python
         import numpy as np
 
-        # Creating the mask array
+        # Creating the mask array.
         mask = np.array([True, False, True, False])
 
-        # Creating the file lists
+        # Creating the file lists.
         file_list1 = np.array(['file1.jpg', 'file2.jpg', 'file3.jpg', 'file4.jpg'])
         file_list2 = np.array(['fileA.jpg', 'fileB.jpg', 'fileC.jpg', 'fileD.jpg'])
 
-        # Splitting the file lists
+        # Splitting the file lists.
         split_lists = split_by_cpus(mask, 2, file_list1, file_list2)
 
-        # Printing the split lists
+        # Printing the split lists.
         for split_list in split_lists:
             print(split_list)
         ```
@@ -682,18 +682,18 @@ def set_filename(radio_options: Tuple[str, ...], *,
         from pathlib import Path
         from typing import Tuple
 
-        # Defining the image path and destination
+        # Defining the image path and destination.
         image_path = Path("image.jpg")
         destination = Path("output")
 
-        # Defining the radio choice and options
+        # Defining the radio choice and options.
         radio_choice = "jpg"
         radio_options = ("jpg", "png", "tiff")
 
-        # Setting the filename and extension
+        # Setting the filename and extension.
         final_path, is_tiff = set_filename(image_path, destination, radio_choice, radio_options)
 
-        # Printing the final path and is_tiff flag
+        # Printing the final path and is_tiff flag.
         print(final_path)
         print(is_tiff)
         ```
@@ -725,11 +725,11 @@ def reject(*, path: Path,
         ```python
         from pathlib import Path
 
-        # Defining the path and destination
+        # Defining the path and destination.
         path = Path("image.jpg")
         destination = Path("output")
 
-        # Rejecting the image
+        # Rejecting the image.
         reject(path, destination, image=path.name)
         ```
     """
@@ -760,13 +760,13 @@ def save_image(image: cvt.MatLike,
         from pathlib import Path
         from autocrop import cvt
 
-        # Creating an image
+        # Creating an image.
         image = cvt.MatLike()
 
-        # Defining the file path
+        # Defining the file path.
         file_path = Path("image.jpg")
 
-        # Saving the image
+        # Saving the image.
         save_image(image, file_path, user_gam=2.2)
         ```
     """
@@ -853,21 +853,21 @@ def save_detection(source_image: Path,
         from pathlib import Path
         from autocrop import Job,  Tuple[Any, Any]
 
-        # Creating a job object
+        # Creating a job object.
         job = Job()
 
-        # Creating a face worker object
+        # Creating a face worker object.
         face_detection_tools =  Tuple[Any, Any]()
 
-        # Defining the crop function
+        # Defining the crop function.
         def crop_function(image, job, face_detection_tools):
             # Crop implementation
 
-        # Defining the save function
+        # Defining the save function.
         def save_function(cropped_images, file_path, gamma, is_tiff):
             # Save implementation
 
-        # Saving the cropped images
+        # Saving the cropped images.
         source_image = Path("image.jpg")
         save_detection(source_image, job, face_detection_tools, crop_function, save_function)
         ```
@@ -906,17 +906,17 @@ def crop_image(image: Union[Path, cvt.MatLike],
         from pathlib import Path
         from autocrop import Job,  Tuple[Any, Any]
 
-        # Creating a job object
+        # Creating a job object.
         job = Job()
 
-        # Creating a face worker object
+        # Creating a face worker object.
         face_detection_tools =  Tuple[Any, Any]()
 
-        # Cropping an image
+        # Cropping an image.
         image_path = Path("image.jpg")
         cropped_image = crop_image(image_path, job, face_detection_tools)
 
-        # Displaying the cropped image
+        # Displaying the cropped image.
         cvt.imshow(cropped_image)
         ```
     """
@@ -955,10 +955,10 @@ def multi_crop(source_image: Union[cvt.MatLike, Path],
         job = Job()
         face_detection_tools =  Tuple[Any, Any]()
 
-        # Generating cropped images
+        # Generating cropped images.
         cropped_images = multi_crop(source_image, job, face_detection_tools)
 
-        # Printing the cropped images
+        # Printing the cropped images.
         for image in cropped_images:
             print(image)
         ```
@@ -1006,13 +1006,13 @@ def crop(image: Path,
         from pathlib import Path
         from autocrop import Job,  Tuple[Any, Any]
 
-        # Creating a job object
+        # Creating a job object.
         job = Job()
 
-        # Creating a face worker object
+        # Creating a face worker object.
         face_detection_tools =  Tuple[Any, Any]()
 
-        # Cropping an image
+        # Cropping an image.
         image_path = Path("image.jpg")
         crop(image_path, job, face_detection_tools, new="cropped_image.jpg")
         ```

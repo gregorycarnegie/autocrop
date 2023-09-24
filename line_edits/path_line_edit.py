@@ -19,9 +19,6 @@ class PathLineEdit(CustomLineEdit):
         path_type (PathType): The type of path to be validated. Defaults to PathType.FOLDER.
         parent (Optional[QtWidgets.QWidget]): The parent widget. Defaults to None.
 
-    Attributes:
-        INVALID_CHARS_PATTERN (ClassVar[Pattern[str]]): A regular expression pattern to match invalid characters in a file path.
-
     Methods:
         insert_clipboard_path(self, text: str) -> None: Inserts the clipboard path into the text input.
         validate_path(self) -> None: Validates the path entered in the text input based on the selected path type.

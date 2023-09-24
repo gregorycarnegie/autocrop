@@ -6,7 +6,6 @@ import cv2.typing as cvt
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from .enums import FunctionType
-# from . import ImageWidget, MediaIconAlias, TabIconAlias, UiDialog
 from .dialog import UiDialog
 from .image_widget import ImageWidget
 from .literals import MediaIconAlias, TabIconAlias
@@ -35,7 +34,7 @@ def display_image_on_widget(image: cvt.MatLike, image_widget: ImageWidget) -> No
 
     height, width, channel = image.shape
     bytes_per_line = channel * width
-    q_image = QtGui.QImage(image.data, width, height, bytes_per_line, QtGui.QImage.Format.Format_BGR888)
+    q_image = QtGui.QImage(image.data.tobytes(), width, height, bytes_per_line, QtGui.QImage.Format.Format_BGR888)
     image_widget.setImage(QtGui.QPixmap.fromImage(q_image))
 
 

@@ -20,7 +20,7 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout_2">
     <item>
-     <layout class="QVBoxLayout" name="verticalLayout_2" stretch="13,3">
+     <layout class="QVBoxLayout" name="verticalLayout_2" stretch="13,0">
       <item>
        <widget class="QTabWidget" name="function_tabWidget">
         <property name="currentIndex">
@@ -93,7 +93,7 @@
          <enum>QTabWidget::Rounded</enum>
         </property>
         <property name="currentIndex">
-         <number>1</number>
+         <number>0</number>
         </property>
         <property name="tabsClosable">
          <bool>false</bool>
