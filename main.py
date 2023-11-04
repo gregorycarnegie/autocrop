@@ -1,13 +1,13 @@
 from PyQt6.QtWidgets import QApplication
 from qt_material import apply_stylesheet
 
-from main_widgets import UiMainWindow, ClickableSplashScreen
+from main_widgets import UiMainWindow, UiClickableSplashScreen
 
 
 def main():
     app = QApplication([])
     apply_stylesheet(app, theme='dark_teal.xml')
-    splash = ClickableSplashScreen()
+    splash = UiClickableSplashScreen()
     splash.show_message()
     window = UiMainWindow()
     window.adjust_ui(app)

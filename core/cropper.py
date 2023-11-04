@@ -12,11 +12,11 @@ import numpy.typing as npt
 from PyQt6.QtCore import pyqtSignal, QObject
 from PyQt6.QtWidgets import QLabel, QLineEdit, QSlider
 
-from .image_widget import ImageWidget
-from .job import Job
 from . import utils as ut
 from . import window_functions as wf
 from .enums import FunctionType
+from .image_widget import ImageWidget
+from .job import Job
 
 
 class Cropper(QObject):
@@ -150,7 +150,7 @@ class Cropper(QObject):
             List[Tuple[dlib.fhog_object_detector, dlib.shape_predictor]]:
                 A list of face detection and shape prediction tools.
         """
-    
+
         for _ in range(self.THREAD_NUMBER):
             self.face_detection_tools.append(self._create_tool_pair())
 
@@ -412,7 +412,6 @@ class Cropper(QObject):
         if cropped_image := ut.crop_image(frame, job, self.face_detection_tools[0]):
             ut.save_image(cropped_image, file_path, job.gamma, is_tiff)
 
-
     def process_multiface_frame_job(self, frame: cvt.MatLike,
                                     job: Job,
                                     file_enum: str,
@@ -463,9 +462,9 @@ class Cropper(QObject):
             ut.frame_save(cv2.cvtColor(cropped_image, cv2.COLOR_BGR2RGB), file_enum, destination, job)
 
     def frame_extraction(self, video: cv2.VideoCapture,
-                        frame_number: int,
-                        job: Job,
-                        progress_callback: Callable[..., Any]) -> None:
+                         frame_number: int,
+                         job: Job,
+                         progress_callback: Callable[..., Any]) -> None:
         """
         Performs frame extraction from a video based on the specified frame number and job parameters.
 
@@ -507,7 +506,6 @@ class Cropper(QObject):
 
         # Update progress
         progress_callback()
-
 
     def extract_frames(self, job: Job) -> None:
         """

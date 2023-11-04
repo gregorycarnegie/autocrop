@@ -1,125 +1,122 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Form</class>
- <widget class="QWidget" name="Form">
+ <class>FolderTab</class>
+ <widget class="QWidget" name="FolderTab">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1249</width>
-    <height>649</height>
+    <width>1116</width>
+    <height>754</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout_2" stretch="1,20,1">
+  <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0">
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_1" stretch="20,1">
-     <item>
-      <widget class="QLineEdit" name="folderLineEdit">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="minimumSize">
-        <size>
-         <width>0</width>
-         <height>24</height>
-        </size>
-       </property>
-       <property name="maximumSize">
-        <size>
-         <width>16777215</width>
-         <height>16777215</height>
-        </size>
-       </property>
-       <property name="inputMethodHints">
-        <set>Qt::ImhUrlCharactersOnly</set>
-       </property>
-       <property name="placeholderText">
-        <string>Choose the folder you want to crop</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="folderButton">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="minimumSize">
-        <size>
-         <width>124</width>
-         <height>24</height>
-        </size>
-       </property>
-       <property name="maximumSize">
-        <size>
-         <width>16777215</width>
-         <height>16777215</height>
-        </size>
-       </property>
-       <property name="text">
-        <string>Select Folder</string>
-       </property>
-       <property name="icon">
-        <iconset resource="../resources2.qrc">
-         <normaloff>:/resources/icons/folder.svg</normaloff>:/resources/icons/folder.svg</iconset>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </item>
-   <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="4,3">
-     <item>
-      <widget class="QFrame" name="frame">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="styleSheet">
-        <string notr="true">background: #1f2c33</string>
-       </property>
-       <property name="frameShape">
-        <enum>QFrame::StyledPanel</enum>
-       </property>
-       <property name="frameShadow">
-        <enum>QFrame::Raised</enum>
-       </property>
-       <layout class="QVBoxLayout" name="verticalLayout" stretch="1,10,1,1">
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_4" stretch="20,0,0,0">
+    <widget class="QToolBox" name="toolBox">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="QWidget" name="page_1">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>1098</width>
+        <height>676</height>
+       </rect>
+      </property>
+      <attribute name="label">
+       <string>Crop View</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_3">
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_4" stretch="1,0">
+         <item>
+          <widget class="QLineEdit" name="folderLineEdit">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>16777215</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="inputMethodHints">
+            <set>Qt::ImhUrlCharactersOnly</set>
+           </property>
+           <property name="placeholderText">
+            <string>Choose the folder you want to crop</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="folderButton">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>124</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>16777215</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>Select Folder</string>
+           </property>
+           <property name="icon">
+            <iconset resource="../resources2.qrc">
+             <normaloff>:/resources/icons/folder.svg</normaloff>:/resources/icons/folder.svg</iconset>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QFrame" name="frame">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background: #1f2c33</string>
+         </property>
+         <property name="frameShape">
+          <enum>QFrame::StyledPanel</enum>
+         </property>
+         <property name="frameShadow">
+          <enum>QFrame::Raised</enum>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0">
           <item>
-           <spacer name="horizontalSpacer">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item>
-           <widget class="QCheckBox" name="mfaceCheckBox">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">QCheckBox:unchecked{color: red}
+           <layout class="QHBoxLayout" name="horizontalLayout_1" stretch="0,20,0,0,0">
+            <item>
+             <widget class="QCheckBox" name="toggleCheckBox">
+              <property name="styleSheet">
+               <string notr="true">QCheckBox:unchecked{color: red}
 QCheckBox:checked{color: white}
 QCheckBox::indicator{
 	width: 20px;
@@ -137,22 +134,50 @@ QCheckBox::indicator:checked:hover{
 QCheckBox::indicator:unchecked:hover{
 	image: url(:/resources/icons/checkbox_unchecked_hover.svg);
 }</string>
-            </property>
-            <property name="text">
-             <string>Multi-Face</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QCheckBox" name="tiltCheckBox">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">QCheckBox:unchecked{color: red}
+              </property>
+              <property name="text">
+               <string>Toggle Settings</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="mfaceCheckBox">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QCheckBox:unchecked{color: red}
 QCheckBox:checked{color: white}
 QCheckBox::indicator{
 	width: 20px;
@@ -170,22 +195,34 @@ QCheckBox::indicator:checked:hover{
 QCheckBox::indicator:unchecked:hover{
 	image: url(:/resources/icons/checkbox_unchecked_hover.svg);
 }</string>
-            </property>
-            <property name="text">
-             <string>Autotilt</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QCheckBox" name="exposureCheckBox">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">QCheckBox:unchecked{color: red}
+              </property>
+              <property name="text">
+               <string>Multi-Face</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="tiltCheckBox">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QCheckBox:unchecked{color: red}
 QCheckBox:checked{color: white}
 QCheckBox::indicator{
 	width: 20px;
@@ -203,185 +240,252 @@ QCheckBox::indicator:checked:hover{
 QCheckBox::indicator:unchecked:hover{
 	image: url(:/resources/icons/checkbox_unchecked_hover.svg);
 }</string>
-            </property>
-            <property name="text">
-             <string>Autocorrect</string>
-            </property>
-           </widget>
+              </property>
+              <property name="text">
+               <string>Autotilt</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="exposureCheckBox">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QCheckBox:unchecked{color: red}
+QCheckBox:checked{color: white}
+QCheckBox::indicator{
+	width: 20px;
+	height: 20px;
+}
+QCheckBox::indicator:checked{
+	image: url(:/resources/icons/checkbox_checked.svg);
+}
+QCheckBox::indicator:unchecked{
+	image: url(:/resources/icons/checkbox_unchecked.svg);
+}
+QCheckBox::indicator:checked:hover{
+	image: url(:/resources/icons/checkbox_checked_hover.svg);
+}
+QCheckBox::indicator:unchecked:hover{
+	image: url(:/resources/icons/checkbox_unchecked_hover.svg);
+}</string>
+              </property>
+              <property name="text">
+               <string>Autocorrect</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </item>
-         </layout>
-        </item>
-        <item>
-         <widget class="QWidget" name="imageWidget" native="true">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="minimumSize">
-           <size>
-            <width>200</width>
-            <height>200</height>
-           </size>
-          </property>
-          <property name="styleSheet">
-           <string notr="true"/>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_5">
           <item>
-           <widget class="QPushButton" name="cropButton">
+           <widget class="QWidget" name="imageWidget" native="true">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
+              <horstretch>1</horstretch>
+              <verstretch>1</verstretch>
              </sizepolicy>
             </property>
             <property name="minimumSize">
              <size>
               <width>0</width>
-              <height>24</height>
+              <height>0</height>
              </size>
             </property>
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>16777215</height>
-             </size>
+            <property name="styleSheet">
+             <string notr="true"/>
             </property>
-            <property name="text">
-             <string/>
-            </property>
-            <property name="icon">
-             <iconset resource="../resources2.qrc">
-              <normaloff>:/resources/icons/crop.svg</normaloff>:/resources/icons/crop.svg</iconset>
-            </property>
+            <layout class="QHBoxLayout" name="horizontalLayout" stretch="0">
+             <item>
+              <widget class="QWidget" name="controlWidget" native="true"/>
+             </item>
+            </layout>
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="cancelButton">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
+           <layout class="QHBoxLayout" name="horizontalLayout_2">
+            <item>
+             <widget class="QPushButton" name="cropButton">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>40</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>40</height>
+               </size>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset resource="../resources2.qrc">
+                <normaloff>:/resources/icons/crop.svg</normaloff>:/resources/icons/crop.svg</iconset>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="cancelButton">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>40</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>40</height>
+               </size>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset resource="../resources2.qrc">
+                <normaloff>:/resources/icons/cancel.svg</normaloff>:/resources/icons/cancel.svg</iconset>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QProgressBar" name="progressBar">
             <property name="minimumSize">
              <size>
               <width>0</width>
-              <height>24</height>
+              <height>12</height>
              </size>
             </property>
             <property name="maximumSize">
              <size>
               <width>16777215</width>
-              <height>16777215</height>
+              <height>12</height>
              </size>
             </property>
-            <property name="text">
-             <string/>
+            <property name="value">
+             <number>0</number>
             </property>
-            <property name="icon">
-             <iconset resource="../resources2.qrc">
-              <normaloff>:/resources/icons/cancel.svg</normaloff>:/resources/icons/cancel.svg</iconset>
+            <property name="textVisible">
+             <bool>false</bool>
             </property>
            </widget>
           </item>
          </layout>
-        </item>
-        <item>
-         <widget class="QProgressBar" name="progressBar">
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>12</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>16777215</width>
-            <height>12</height>
-           </size>
-          </property>
-          <property name="value">
-           <number>0</number>
-          </property>
-          <property name="textVisible">
-           <bool>false</bool>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-     </item>
-     <item>
-      <widget class="QTreeView" name="treeView"/>
-     </item>
-    </layout>
-   </item>
-   <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="20,1">
-     <item>
-      <widget class="QLineEdit" name="destinationLineEdit">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="minimumSize">
-        <size>
-         <width>0</width>
-         <height>24</height>
-        </size>
-       </property>
-       <property name="maximumSize">
-        <size>
-         <width>16777215</width>
-         <height>16777215</height>
-        </size>
-       </property>
-       <property name="inputMethodHints">
-        <set>Qt::ImhUrlCharactersOnly</set>
-       </property>
-       <property name="placeholderText">
-        <string>Choose where you want to save the cropped images</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="destinationButton">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="minimumSize">
-        <size>
-         <width>124</width>
-         <height>24</height>
-        </size>
-       </property>
-       <property name="maximumSize">
-        <size>
-         <width>16777215</width>
-         <height>16777215</height>
-        </size>
-       </property>
-       <property name="text">
-        <string>Destination Folder</string>
-       </property>
-       <property name="icon">
-        <iconset resource="../resources2.qrc">
-         <normaloff>:/resources/icons/folder.svg</normaloff>:/resources/icons/folder.svg</iconset>
-       </property>
-      </widget>
-     </item>
-    </layout>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="1,0">
+         <item>
+          <widget class="QLineEdit" name="destinationLineEdit">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>16777215</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="inputMethodHints">
+            <set>Qt::ImhUrlCharactersOnly</set>
+           </property>
+           <property name="placeholderText">
+            <string>Choose where you want to save the cropped images</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="destinationButton">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>124</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>16777215</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>Destination Folder</string>
+           </property>
+           <property name="icon">
+            <iconset resource="../resources2.qrc">
+             <normaloff>:/resources/icons/folder.svg</normaloff>:/resources/icons/folder.svg</iconset>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="page_2">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>1098</width>
+        <height>676</height>
+       </rect>
+      </property>
+      <attribute name="label">
+       <string>Folder View</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_4">
+       <item>
+        <widget class="QTreeView" name="treeView"/>
+       </item>
+      </layout>
+     </widget>
+    </widget>
    </item>
   </layout>
  </widget>

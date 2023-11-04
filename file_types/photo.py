@@ -1,6 +1,5 @@
 from typing import ClassVar, Set
 
-import dlib
 import numpy as np
 import numpy.typing as npt
 

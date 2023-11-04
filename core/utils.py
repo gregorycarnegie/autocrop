@@ -12,19 +12,22 @@ import cv2.typing as cvt
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-import rawpy
+# import rawpy
 import tifffile as tiff
 from PIL import Image
 
 from file_types import Photo
+from . import window_functions as wf
 from .image_widget import ImageWidget
 from .job import Job
-from . import window_functions as wf
 
 # Define constants
 GAMMA_THRESHOLD = .001
 L_EYE_START, L_EYE_END = 42, 48
 R_EYE_START, R_EYE_END = 36, 42
+
+type Box = Tuple[int, int, int, int]
+type ImageArray = Union[cvt.MatLike, npt.NDArray[np.uint8]]
 
 
 def profile_it(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -87,13 +90,12 @@ def gamma(gam: Union[int, float] = 1.0) -> npt.NDArray[np.generic]:
         print(corrected_array)
         ```
     """
-    
+
     intensity_values = np.arange(256) / 255
     return np.power(intensity_values, 1.0 / gam) * 255 if gam != 1.0 else intensity_values * 255
 
 
-
-def adjust_gamma(image: Union[cvt.MatLike, npt.NDArray[np.uint8]], gam: int) -> cvt.MatLike:
+def adjust_gamma(image: ImageArray, gam: int) -> cvt.MatLike:
     """
     The function adjusts the gamma of the provided image using a lookup table.
 
@@ -119,7 +121,7 @@ def adjust_gamma(image: Union[cvt.MatLike, npt.NDArray[np.uint8]], gam: int) -> 
     return cv2.LUT(image, gamma(gam * GAMMA_THRESHOLD).astype('uint8'))
 
 
-def convert_color_space(image: Union[cvt.MatLike, npt.NDArray[np.uint8]]) -> cvt.MatLike:
+def convert_color_space(image: ImageArray) -> cvt.MatLike:
     """
     The function converts the color space of the provided image from BGR to RGB.
 
@@ -144,7 +146,7 @@ def convert_color_space(image: Union[cvt.MatLike, npt.NDArray[np.uint8]]) -> cvt
     return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
 
-def numpy_array_crop(image: cvt.MatLike, bounding_box: Tuple[int, int, int, int]) -> npt.NDArray[np.uint8]:
+def numpy_array_crop(image: cvt.MatLike, bounding_box: Box) -> npt.NDArray[np.uint8]:
     """
     The function crops the provided image using the specified bounding box and returns the cropped image as a NumPy array.
 
@@ -176,7 +178,7 @@ def numpy_array_crop(image: cvt.MatLike, bounding_box: Tuple[int, int, int, int]
 
 
 def crop_and_set(image: cvt.MatLike,
-                 bounding_box: Tuple[int, int, int, int],
+                 bounding_box: Box,
                  gamma_value: int,
                  image_widget: ImageWidget) -> None:
     try:
@@ -188,7 +190,7 @@ def crop_and_set(image: cvt.MatLike,
     wf.display_image_on_widget(final_image, image_widget)
 
 
-def correct_exposure(image: Union[cvt.MatLike, npt.NDArray[np.uint8]],
+def correct_exposure(image: ImageArray,
                      exposure: bool) -> cvt.MatLike:
     """
     The function corrects the exposure of the provided image using histogram equalization.
@@ -221,7 +223,7 @@ def correct_exposure(image: Union[cvt.MatLike, npt.NDArray[np.uint8]],
     return cv2.convertScaleAbs(src=image, alpha=alpha, beta=beta)
 
 
-def rotate_image(image: Union[cvt.MatLike, npt.NDArray[np.uint8]],
+def rotate_image(image: ImageArray,
                  angle: float,
                  center: Tuple[float, float]) -> cvt.MatLike:
     """
@@ -257,7 +259,7 @@ def rotate_image(image: Union[cvt.MatLike, npt.NDArray[np.uint8]],
     return cv2.warpAffine(image, rotation_matrix, (image.shape[1], image.shape[0]))
 
 
-def align_head(image: Union[cvt.MatLike, npt.NDArray[np.uint8]],
+def align_head(image: ImageArray,
                face_detection_tools: Tuple[Any, Any],
                tilt: bool) -> cvt.MatLike:
     """
@@ -348,39 +350,39 @@ def open_image(image: Path,
     return align_head(img, face_detection_tools, tilt)
 
 
-def open_raw(image: Path,
-             face_detection_tools: Tuple[Any, Any], *,
-             exposure: bool,
-             tilt: bool) -> cvt.MatLike:
-    """
-    The function opens a raw image file using `rawpy` and performs post-processing on the raw image data. It corrects the exposure and aligns the head using the provided ` Tuple[Any, Any]` object.
-
-    Args:
-        image (Path): The path to the raw image file.
-        face_detection_tools ( Tuple[Any, Any]): The  Tuple[Any, Any] object used for aligning the head.
-        exposure (bool): Flag indicating whether to correct the exposure.
-        tilt (bool): Flag indicating whether to align the head.
-
-    Returns:
-        cvt.MatLike: The processed image data.
-
-    Example:
-        ```python
-        # Opening a raw image file.
-        image_path = Path('/path/to/image.CR2')
-        face_detection_tools =  Tuple[Any, Any]()
-        processed_image = open_raw(image_path, face_detection_tools, exposure=True, tilt=True)
-        cv2.imshow('Processed Image', processed_image)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-        ```
-    """
-
-    with rawpy.imread(image.as_posix()) as raw:
-        # Post-process the raw image data
-        img = raw.postprocess(use_camera_wb=True)
-        img = correct_exposure(img, exposure)
-        return align_head(img, face_detection_tools, tilt)
+# def open_raw(image: Path,
+#              face_detection_tools: Tuple[Any, Any], *,
+#              exposure: bool,
+#              tilt: bool) -> cvt.MatLike:
+#     """
+#     The function opens a raw image file using `rawpy` and performs post-processing on the raw image data. It corrects the exposure and aligns the head using the provided ` Tuple[Any, Any]` object.
+#
+#     Args:
+#         image (Path): The path to the raw image file.
+#         face_detection_tools ( Tuple[Any, Any]): The  Tuple[Any, Any] object used for aligning the head.
+#         exposure (bool): Flag indicating whether to correct the exposure.
+#         tilt (bool): Flag indicating whether to align the head.
+#
+#     Returns:
+#         cvt.MatLike: The processed image data.
+#
+#     Example:
+#         ```python
+#         # Opening a raw image file.
+#         image_path = Path('/path/to/image.CR2')
+#         face_detection_tools =  Tuple[Any, Any]()
+#         processed_image = open_raw(image_path, face_detection_tools, exposure=True, tilt=True)
+#         cv2.imshow('Processed Image', processed_image)
+#         cv2.waitKey(0)
+#         cv2.destroyAllWindows()
+#         ```
+#     """
+#
+#     with rawpy.imread(image.as_posix()) as raw:
+#         # Post-process the raw image data
+#         img = raw.postprocess(use_camera_wb=True)
+#         img = correct_exposure(img, exposure)
+#         return align_head(img, face_detection_tools, tilt)
 
 
 def open_table(input_file: Path) -> pd.DataFrame:
@@ -446,7 +448,8 @@ def open_pic(input_file: Union[Path, str],
         case extension if extension in Photo.CV2_TYPES:
             return open_image(input_file, face_detection_tools, exposure=exposure, tilt=tilt)
         case extension if extension in Photo.RAW_TYPES:
-            return open_raw(input_file, face_detection_tools, exposure=exposure, tilt=tilt)
+            # return open_raw(input_file, face_detection_tools, exposure=exposure, tilt=tilt)
+            return
         case _:
             return
 
@@ -472,7 +475,7 @@ def prepare_detections(image: cvt.MatLike) -> npt.NDArray[np.float64]:
     return np.array(caffe.forward())
 
 
-def rs_crop_positions(box_outputs: npt.NDArray[np.int_], job: Job) -> Tuple[int, int, int, int]:
+def rs_crop_positions(box_outputs: npt.NDArray[np.int_], job: Job) -> Box:
     x0, y0, x1, y1 = box_outputs
     return autocrop_rs.crop_positions(x0, y0, x1 - x0, y1 - y0, job.face_percent, job.width,
                                       job.height, job.top, job.bottom, job.left, job.right)
@@ -482,20 +485,20 @@ def get_box_coordinates(output: Union[cvt.MatLike, npt.NDArray[np.generic]],
                         job: Job, *,
                         width: int,
                         height: int,
-                        x: Optional[npt.NDArray[np.generic]] = None) -> Tuple[int, int, int, int]:
+                        x: Optional[npt.NDArray[np.generic]] = None) -> Box:
     box_outputs = output * np.array([width, height, width, height])
     _box = box_outputs.astype(np.int_) if x is None else box_outputs[np.argmax(x)]
     return rs_crop_positions(_box, job)
 
 
-def get_multibox_coordinates(box_outputs: npt.NDArray[np.int_], job: Job) -> Iterator[Tuple[int, int, int, int]]:
+def get_multibox_coordinates(box_outputs: npt.NDArray[np.int_], job: Job) -> Iterator[Box]:
     return map(lambda x: rs_crop_positions(x, job), box_outputs)
 
 
 def box(img: cvt.MatLike,
         job: Job, *,
         width: int,
-        height: int,) -> Optional[Tuple[int, int, int, int]]:
+        height: int, ) -> Optional[Box]:
     # preprocess the image: resize and performs mean subtraction
     detections = prepare_detections(img)
     output = np.squeeze(detections)
@@ -506,7 +509,8 @@ def box(img: cvt.MatLike,
     return get_box_coordinates(output[:, 3:7], job, width=width, height=height, x=confidence_list)
 
 
-def _draw_box_with_text(image: cvt.MatLike, confidence: np.float64, *, x0: int, y0: int, x1: int, y1: int) -> cvt.MatLike:
+def _draw_box_with_text(image: cvt.MatLike, confidence: np.float64, *, x0: int, y0: int, x1: int,
+                        y1: int) -> cvt.MatLike:
     COLOURS = (255, 0, 0), (0, 255, 0), (0, 0, 255)
     colour = random.choice(COLOURS)
     FONT_SCALE, LINE_WIDTH, TEXT_OFFSET = .45, 2, 10
@@ -541,7 +545,7 @@ def multi_box(image: cvt.MatLike, job: Job) -> cvt.MatLike:
 
 
 def multi_box_positions(image: cvt.MatLike,
-                        job: Job) -> Tuple[npt.NDArray[np.float_], Iterator[Tuple[int, int, int, int]]]:
+                        job: Job) -> Tuple[npt.NDArray[np.float_], Iterator[Box]]:
     height, width = image.shape[:2]
     outputs, confidences = get_multi_box_parameters(image)
 
@@ -552,7 +556,7 @@ def multi_box_positions(image: cvt.MatLike,
 
 
 def box_detect(img: cvt.MatLike,
-               job: Job) -> Optional[Tuple[int, int, int, int]]:
+               job: Job) -> Optional[Box]:
     try:
         # get width and height of the image
         height, width = img.shape[:2]
@@ -618,7 +622,6 @@ def mask_extensions(file_list: npt.NDArray[np.str_]) -> Tuple[npt.NDArray[np.boo
     file_suffixes = np.char.lower([Path(file).suffix for file in file_list])
     mask = np.isin(file_suffixes, Photo.file_types)
     return mask, np.count_nonzero(mask)
-
 
 
 def split_by_cpus(mask: npt.NDArray[np.bool_],
@@ -828,8 +831,10 @@ def get_frame_path(destination: Path,
 def save_detection(source_image: Path,
                    job: Job,
                    face_detection_tools: Tuple[Any, Any],
-                   crop_function: Callable[[Union[cvt.MatLike, Path], Job,  Tuple[Any, Any]],
-                                           Optional[Union[cvt.MatLike, Generator[cvt.MatLike, None, None]]]],
+                   crop_function: Callable[
+                       [Union[cvt.MatLike, Path], Job, Tuple[Any, Any]],
+                       Optional[Union[cvt.MatLike, Generator[cvt.MatLike, None, None]]]
+                   ],
                    save_function: Callable[[Any, Path, int, bool], None],
                    image_name: Optional[Path] = None,
                    new: Optional[str] = None) -> None:
@@ -921,9 +926,10 @@ def crop_image(image: Union[Path, cvt.MatLike],
         ```
     """
 
-    pic_array = open_pic(image, face_detection_tools, exposure=job.fix_exposure_job.isChecked(), tilt=job.auto_tilt_job.isChecked()) \
+    pic_array = open_pic(image, face_detection_tools, exposure=job.fix_exposure_job.isChecked(),
+                         tilt=job.auto_tilt_job.isChecked()) \
         if isinstance(image, Path) else image
-    
+
     if pic_array is None:
         return
 
@@ -964,9 +970,10 @@ def multi_crop(source_image: Union[cvt.MatLike, Path],
         ```
     """
 
-    img = open_pic(source_image, face_detection_tools, exposure=job.fix_exposure_job.isChecked(), tilt=job.auto_tilt_job.isChecked()) \
+    img = open_pic(source_image, face_detection_tools, exposure=job.fix_exposure_job.isChecked(),
+                   tilt=job.auto_tilt_job.isChecked()) \
         if isinstance(source_image, Path) else source_image
-    
+
     if img is None:
         return
 

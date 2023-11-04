@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1348</width>
-    <height>903</height>
+    <width>1256</width>
+    <height>652</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -20,7 +20,7 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout_2">
     <item>
-     <layout class="QVBoxLayout" name="verticalLayout_2" stretch="13,0">
+     <layout class="QVBoxLayout" name="verticalLayout_1" stretch="13">
       <item>
        <widget class="QTabWidget" name="function_tabWidget">
         <property name="currentIndex">
@@ -29,7 +29,7 @@
         <property name="movable">
          <bool>true</bool>
         </property>
-        <widget class="QWidget" name="photoTab">
+        <widget class="QWidget" name="photo_tab">
          <attribute name="icon">
           <iconset resource="../resources2.qrc">
            <normaloff>:/resources/icons/picture.svg</normaloff>:/resources/icons/picture.svg</iconset>
@@ -37,13 +37,13 @@
          <attribute name="title">
           <string>Photo Crop</string>
          </attribute>
-         <layout class="QVBoxLayout" name="verticalLayout_8" stretch="0">
+         <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0">
           <item>
-           <widget class="QWidget" name="widget" native="true"/>
+           <widget class="QWidget" name="photo_tab_widget" native="true"/>
           </item>
          </layout>
         </widget>
-        <widget class="QWidget" name="folder_Tab">
+        <widget class="QWidget" name="folder_tab">
          <attribute name="icon">
           <iconset resource="../resources2.qrc">
            <normaloff>:/resources/icons/folder.svg</normaloff>:/resources/icons/folder.svg</iconset>
@@ -51,13 +51,13 @@
          <attribute name="title">
           <string>Folder Crop</string>
          </attribute>
-         <layout class="QVBoxLayout" name="verticalLayout_15" stretch="0">
+         <layout class="QVBoxLayout" name="verticalLayout_3" stretch="0">
           <item>
-           <widget class="QWidget" name="widget_2" native="true"/>
+           <widget class="QWidget" name="folder_tab_widget" native="true"/>
           </item>
          </layout>
         </widget>
-        <widget class="QWidget" name="mappingTab">
+        <widget class="QWidget" name="mapping_tab">
          <attribute name="icon">
           <iconset resource="../resources2.qrc">
            <normaloff>:/resources/icons/excel.svg</normaloff>:/resources/icons/excel.svg</iconset>
@@ -65,13 +65,13 @@
          <attribute name="title">
           <string>Mapping Crop</string>
          </attribute>
-         <layout class="QVBoxLayout" name="verticalLayout_17" stretch="0">
+         <layout class="QVBoxLayout" name="verticalLayout_4" stretch="0">
           <item>
-           <widget class="QWidget" name="widget_3" native="true"/>
+           <widget class="QWidget" name="mapping_tab_widget" native="true"/>
           </item>
          </layout>
         </widget>
-        <widget class="QWidget" name="videoTab">
+        <widget class="QWidget" name="video_tab">
          <attribute name="icon">
           <iconset resource="../resources2.qrc">
            <normaloff>:/resources/icons/clapperboard.svg</normaloff>:/resources/icons/clapperboard.svg</iconset>
@@ -79,154 +79,9 @@
          <attribute name="title">
           <string>Video Crop</string>
          </attribute>
-         <layout class="QVBoxLayout" name="verticalLayout_22" stretch="0">
+         <layout class="QVBoxLayout" name="verticalLayout_5" stretch="0">
           <item>
-           <widget class="QWidget" name="widget_4" native="true"/>
-          </item>
-         </layout>
-        </widget>
-       </widget>
-      </item>
-      <item>
-       <widget class="QTabWidget" name="settings_tabWidget">
-        <property name="tabShape">
-         <enum>QTabWidget::Rounded</enum>
-        </property>
-        <property name="currentIndex">
-         <number>0</number>
-        </property>
-        <property name="tabsClosable">
-         <bool>false</bool>
-        </property>
-        <property name="movable">
-         <bool>true</bool>
-        </property>
-        <property name="tabBarAutoHide">
-         <bool>false</bool>
-        </property>
-        <widget class="QWidget" name="settingsTab">
-         <attribute name="icon">
-          <iconset resource="../resources2.qrc">
-           <normaloff>:/resources/icons/settings.svg</normaloff>:/resources/icons/settings.svg</iconset>
-         </attribute>
-         <attribute name="title">
-          <string>Settings</string>
-         </attribute>
-         <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="1,1,1,0,2">
-          <item>
-           <widget class="QWidget" name="widget_5" native="true"/>
-          </item>
-          <item>
-           <widget class="QWidget" name="widget_6" native="true"/>
-          </item>
-          <item>
-           <widget class="QWidget" name="widget_7" native="true"/>
-          </item>
-          <item>
-           <spacer name="horizontalSpacer_4">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item>
-           <layout class="QVBoxLayout" name="verticalLayout_6">
-            <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_9">
-              <item>
-               <layout class="QVBoxLayout" name="verticalLayout_9">
-                <item>
-                 <widget class="QLabel" name="label_4">
-                  <property name="text">
-                   <string>Width (px)</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QLineEdit" name="widthLineEdit">
-                  <property name="inputMethodHints">
-                   <set>Qt::ImhDigitsOnly</set>
-                  </property>
-                  <property name="text">
-                   <string/>
-                  </property>
-                  <property name="placeholderText">
-                   <string>Try typing a number e.g. 400</string>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </item>
-              <item>
-               <layout class="QVBoxLayout" name="verticalLayout_10">
-                <item>
-                 <widget class="QLabel" name="label_5">
-                  <property name="text">
-                   <string>Height (px)</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QLineEdit" name="heightLineEdit">
-                  <property name="inputMethodHints">
-                   <set>Qt::ImhDigitsOnly</set>
-                  </property>
-                  <property name="text">
-                   <string/>
-                  </property>
-                  <property name="placeholderText">
-                   <string>Try typing a number e.g. 400</string>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </item>
-             </layout>
-            </item>
-            <item alignment="Qt::AlignHCenter">
-             <widget class="QLabel" name="label_7">
-              <property name="text">
-               <string>Padding</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_10">
-              <item>
-               <widget class="QWidget" name="widget_8" native="true"/>
-              </item>
-              <item>
-               <widget class="QWidget" name="widget_9" native="true"/>
-              </item>
-              <item>
-               <widget class="QWidget" name="widget_11" native="true"/>
-              </item>
-              <item>
-               <widget class="QWidget" name="widget_10" native="true"/>
-              </item>
-             </layout>
-            </item>
-           </layout>
-          </item>
-         </layout>
-        </widget>
-        <widget class="QWidget" name="formatTab">
-         <attribute name="icon">
-          <iconset resource="../resources2.qrc">
-           <normaloff>:/resources/icons/memory_card.svg</normaloff>:/resources/icons/memory_card.svg</iconset>
-         </attribute>
-         <attribute name="title">
-          <string>Format Conversion</string>
-         </attribute>
-         <layout class="QHBoxLayout" name="horizontalLayout_27">
-          <item>
-           <widget class="QWidget" name="widget_12" native="true"/>
+           <widget class="QWidget" name="video_tab_widget" native="true"/>
           </item>
          </layout>
         </widget>
@@ -241,7 +96,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1348</width>
+     <width>1256</width>
      <height>22</height>
     </rect>
    </property>

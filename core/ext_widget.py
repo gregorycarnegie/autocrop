@@ -3,8 +3,8 @@ from typing import ClassVar, Optional
 
 from PyQt6 import QtCore, QtWidgets
 
-from .literals import FileExtension
 from core import window_functions as wf
+from .literals import FileExtension
 
 
 class ExtWidget(QtWidgets.QWidget):

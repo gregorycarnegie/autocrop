@@ -5,13 +5,13 @@ from PyQt6.QtGui import QColor, QGuiApplication, QMouseEvent, QPixmap
 from PyQt6.QtWidgets import QSplashScreen
 
 
-class ClickableSplashScreen(QSplashScreen):
+class UiClickableSplashScreen(QSplashScreen):
     clicked = pyqtSignal()
     image_path: ClassVar[str] = 'resources\\logos\\logo.svg'
 
     def __init__(self):
         pixmap = self.get_scaled_pixmap(self.image_path)
-        super(ClickableSplashScreen, self).__init__(pixmap, Qt.WindowType.WindowStaysOnTopHint)
+        super(UiClickableSplashScreen, self).__init__(pixmap, Qt.WindowType.WindowStaysOnTopHint)
 
     def mousePressEvent(self, a0: Optional[QMouseEvent]) -> None:
         self.clicked.emit()

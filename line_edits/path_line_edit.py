@@ -35,23 +35,9 @@ class PathLineEdit(CustomLineEdit):
         self.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
         self.setValidator(FilePathValidator(parent=self))
         self.path_type = path_type
-        self.textChanged.connect(self.insert_clipboard_path)
+        # self.textChanged.connect(self.insert_clipboard_path)
 
-    def insert_clipboard_path(self, text: str) -> None:
-        """
-        Inserts the clipboard path into the text input with quotation marks removed.
 
-        Args:
-            self: The PathLineEdit instance.
-            text (str): The text to be inserted.
-
-        Returns:
-            None
-        """
-
-        if (text.startswith('"') & text.endswith('"')) ^ (text.startswith("'") & text.endswith("'")):
-            text = text[1:-1]
-        self.setText(text)
 
     def validate_path(self) -> None:
         """

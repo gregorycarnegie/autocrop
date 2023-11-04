@@ -1,14 +1,91 @@
 from os import startfile
-from typing import Optional, Union
 from pathlib import Path
+from typing import Optional, Union
 
 import cv2.typing as cvt
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-from .enums import FunctionType
+from line_edits import LineEditState, NumberLineEdit, PathLineEdit
 from .dialog import UiDialog
+from .enums import FunctionType, GuiIcon
 from .image_widget import ImageWidget
 from .literals import MediaIconAlias, TabIconAlias
+
+
+def setup_hbox(name: str, parent: Optional[QtWidgets.QWidget] = None) -> QtWidgets.QHBoxLayout:
+    horizontal_layout = QtWidgets.QHBoxLayout(parent)
+    horizontal_layout.setObjectName(name)
+    return horizontal_layout
+
+
+def setup_vbox(name: str, parent: Optional[QtWidgets.QWidget] = None) -> QtWidgets.QVBoxLayout:
+    vertical_layout = QtWidgets.QVBoxLayout(parent)
+    vertical_layout.setObjectName(name)
+    return vertical_layout
+
+
+def apply_size_policy(widget: QtWidgets.QWidget,
+                      size_policy: QtWidgets.QSizePolicy,
+                      min_size: QtCore.QSize = QtCore.QSize(0, 30),
+                      max_size: QtCore.QSize = QtCore.QSize(16_777_215, 30)) -> None:
+    size_policy.setHeightForWidth(widget.sizePolicy().hasHeightForWidth())
+    widget.setSizePolicy(size_policy)
+    widget.setMinimumSize(min_size)
+    widget.setMaximumSize(max_size)
+
+
+def create_main_button(name: str,
+                       size_policy: QtWidgets.QSizePolicy,
+                       icon_file: GuiIcon,
+                       parent: QtWidgets.QWidget) -> QtWidgets.QPushButton:
+    button = QtWidgets.QPushButton(parent)
+    button.setObjectName(name)
+    size_policy.setHeightForWidth(button.sizePolicy().hasHeightForWidth())
+    button.setSizePolicy(size_policy)
+    button.setMinimumSize(QtCore.QSize(0, 40))
+    button.setMaximumSize(QtCore.QSize(16_777_215, 40))
+    icon = QtGui.QIcon()
+    icon.addFile(icon_file.value, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+    button.setIcon(icon)
+    button.setIconSize(QtCore.QSize(18, 18))
+    return button
+
+
+def create_frame(name: str,
+                 parent: QtWidgets.QWidget,
+                 size_policy: QtWidgets.QSizePolicy) -> QtWidgets.QFrame:
+    frame = QtWidgets.QFrame(parent)
+    frame.setObjectName(name)
+    size_policy.setHeightForWidth(frame.sizePolicy().hasHeightForWidth())
+    frame.setSizePolicy(size_policy)
+    frame.setStyleSheet(u"background: #1f2c33")
+    frame.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)
+    frame.setFrameShadow(QtWidgets.QFrame.Shadow.Raised)
+    return frame
+
+
+def create_button_icon(icon_resource: GuiIcon,
+                       size: QtCore.QSize = QtCore.QSize(),
+                       mode: QtGui.QIcon.Mode = QtGui.QIcon.Mode.Normal,
+                       state: QtGui.QIcon.State = QtGui.QIcon.State.Off) -> QtGui.QIcon:
+    icon = QtGui.QIcon()
+    icon.addFile(icon_resource.value, size, mode, state)
+    return icon
+
+
+def setup_image_widget(parent: QtWidgets.QWidget) -> ImageWidget:
+    image_widget = ImageWidget(parent=parent)
+    image_widget.setStyleSheet('')
+    image_widget.setObjectName('imageWidget')
+    return image_widget
+
+
+def all_filled(*input_widgets: Union[PathLineEdit, NumberLineEdit, QtWidgets.QComboBox]) -> bool:
+    x = all(widget.state == LineEditState.VALID_INPUT
+            for widget in input_widgets if isinstance(widget, (PathLineEdit, NumberLineEdit)))
+    y = all(widget.text() for widget in input_widgets if isinstance(widget, (PathLineEdit, NumberLineEdit)))
+    z = all(widget.currentText() for widget in input_widgets if isinstance(widget, QtWidgets.QComboBox))
+    return all((x, y, z))
 
 
 def display_image_on_widget(image: cvt.MatLike, image_widget: ImageWidget) -> None:
@@ -19,7 +96,7 @@ def display_image_on_widget(image: cvt.MatLike, image_widget: ImageWidget) -> No
         image (cvt.MatLike): The image to display.
         image_widget (ImageWidget): The image widget to display the image on.
 
-    Returns:
+    Returns:`
         None
 
     Example:

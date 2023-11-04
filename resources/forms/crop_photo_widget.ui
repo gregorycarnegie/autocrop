@@ -1,25 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Form</class>
- <widget class="QWidget" name="Form">
+ <class>PhotoTab</class>
+ <widget class="QWidget" name="PhotoTab">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1246</width>
-    <height>651</height>
+    <width>1136</width>
+    <height>757</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout_2" stretch="1,20,1">
+  <layout class="QVBoxLayout" name="verticalLayout_2">
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="20,1">
+    <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="1,0">
      <item>
       <widget class="QLineEdit" name="photoLineEdit">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
@@ -27,13 +27,13 @@
        <property name="minimumSize">
         <size>
          <width>0</width>
-         <height>24</height>
+         <height>30</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
          <width>16777215</width>
-         <height>16777215</height>
+         <height>30</height>
         </size>
        </property>
        <property name="inputMethodHints">
@@ -47,7 +47,7 @@
      <item>
       <widget class="QPushButton" name="photoButton">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
@@ -55,13 +55,13 @@
        <property name="minimumSize">
         <size>
          <width>124</width>
-         <height>24</height>
+         <height>30</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
          <width>16777215</width>
-         <height>16777215</height>
+         <height>30</height>
         </size>
        </property>
        <property name="text">
@@ -92,9 +92,39 @@
      <property name="frameShadow">
       <enum>QFrame::Raised</enum>
      </property>
-     <layout class="QVBoxLayout" name="verticalLayout" stretch="1,20,1">
+     <layout class="QVBoxLayout" name="verticalLayout_4" stretch="0,0,0">
       <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_1" stretch="20,0,0,0">
+       <layout class="QHBoxLayout" name="horizontalLayout_1" stretch="0,20,0,0,0">
+        <item>
+         <widget class="QCheckBox" name="toggleCheckBox">
+          <property name="styleSheet">
+           <string notr="true">QCheckBox:unchecked{color: red}
+QCheckBox:checked{color: white}
+QCheckBox::indicator{
+	width: 20px;
+	height: 20px;
+}
+QCheckBox::indicator:checked{
+	image: url(:/resources/icons/checkbox_checked.svg);
+}
+QCheckBox::indicator:unchecked{
+	image: url(:/resources/icons/checkbox_unchecked.svg);
+}
+QCheckBox::indicator:checked:hover{
+	image: url(:/resources/icons/checkbox_checked_hover.svg);
+}
+QCheckBox::indicator:unchecked:hover{
+	image: url(:/resources/icons/checkbox_unchecked_hover.svg);
+}</string>
+          </property>
+          <property name="text">
+           <string>Toggle Settings</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
         <item>
          <spacer name="horizontalSpacer">
           <property name="orientation">
@@ -111,10 +141,22 @@
         <item>
          <widget class="QCheckBox" name="mfaceCheckBox">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>30</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>30</height>
+           </size>
           </property>
           <property name="styleSheet">
            <string notr="true">QCheckBox:unchecked{color: red}
@@ -144,10 +186,22 @@ QCheckBox::indicator:unchecked:hover{
         <item>
          <widget class="QCheckBox" name="tiltCheckBox">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>30</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>30</height>
+           </size>
           </property>
           <property name="styleSheet">
            <string notr="true">QCheckBox:unchecked{color: red}
@@ -177,10 +231,22 @@ QCheckBox::indicator:unchecked:hover{
         <item>
          <widget class="QCheckBox" name="exposureCheckBox">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>30</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>30</height>
+           </size>
           </property>
           <property name="styleSheet">
            <string notr="true">QCheckBox:unchecked{color: red}
@@ -213,25 +279,30 @@ QCheckBox::indicator:unchecked:hover{
        <widget class="QWidget" name="imageWidget" native="true">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
+          <horstretch>1</horstretch>
+          <verstretch>1</verstretch>
          </sizepolicy>
         </property>
         <property name="minimumSize">
          <size>
-          <width>200</width>
-          <height>200</height>
+          <width>0</width>
+          <height>0</height>
          </size>
         </property>
         <property name="styleSheet">
          <string notr="true"/>
         </property>
+        <layout class="QHBoxLayout" name="horizontalLayout" stretch="0">
+         <item>
+          <widget class="QWidget" name="controlWidget" native="true"/>
+         </item>
+        </layout>
        </widget>
       </item>
       <item>
        <widget class="QPushButton" name="cropButton">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
@@ -239,13 +310,13 @@ QCheckBox::indicator:unchecked:hover{
         <property name="minimumSize">
          <size>
           <width>0</width>
-          <height>24</height>
+          <height>40</height>
          </size>
         </property>
         <property name="maximumSize">
          <size>
           <width>16777215</width>
-          <height>16777215</height>
+          <height>40</height>
          </size>
         </property>
         <property name="text">
@@ -261,11 +332,11 @@ QCheckBox::indicator:unchecked:hover{
     </widget>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="20,1">
+    <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="1,0">
      <item>
       <widget class="QLineEdit" name="destinationLineEdit">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
@@ -273,13 +344,13 @@ QCheckBox::indicator:unchecked:hover{
        <property name="minimumSize">
         <size>
          <width>0</width>
-         <height>24</height>
+         <height>30</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
          <width>16777215</width>
-         <height>16777215</height>
+         <height>30</height>
         </size>
        </property>
        <property name="inputMethodHints">
@@ -293,7 +364,7 @@ QCheckBox::indicator:unchecked:hover{
      <item>
       <widget class="QPushButton" name="destinationButton">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
@@ -301,13 +372,13 @@ QCheckBox::indicator:unchecked:hover{
        <property name="minimumSize">
         <size>
          <width>124</width>
-         <height>24</height>
+         <height>30</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
          <width>16777215</width>
-         <height>16777215</height>
+         <height>30</height>
         </size>
        </property>
        <property name="text">
@@ -326,5 +397,22 @@ QCheckBox::indicator:unchecked:hover{
  <resources>
   <include location="../resources2.qrc"/>
  </resources>
- <connections/>
+ <connections>
+  <connection>
+   <sender>toggleCheckBox</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>controlWidget</receiver>
+   <slot>setVisible(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>94</x>
+     <y>72</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>183</x>
+     <y>228</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>

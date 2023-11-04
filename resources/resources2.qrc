@@ -32,8 +32,8 @@
     <file>icons/multimedia_right.svg</file>
     <file>icons/multimedia_stop.svg</file>
     <file>logos/logo.ico</file>
-    <file>logos/logo.png</file>
     <file>icons/cancel.svg</file>
+    <file>logos/logo.svg</file>
     <file>icons/checkbox_checked.svg</file>
     <file>icons/checkbox_checked_hover.svg</file>
     <file>icons/checkbox_unchecked.svg</file>
