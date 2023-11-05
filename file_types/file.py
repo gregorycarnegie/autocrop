@@ -36,7 +36,7 @@ class File:
     """
 
     file_types: npt.NDArray[np.str_] = np.array([''])
-    default_directory = f'{Path.home()}\\Pictures'
+    default_directory = Path.home().joinpath('Pictures').as_posix()
 
     @classmethod
     def file_filter(cls) -> npt.NDArray[np.str_]:

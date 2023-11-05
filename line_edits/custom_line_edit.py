@@ -56,17 +56,18 @@ class CustomLineEdit(QLineEdit):
 
     def __init__(self, parent: Optional[QWidget] = None):
         super(CustomLineEdit, self).__init__(parent)
+        self.state = LineEditState.INVALID_INPUT
+        self.colour = self.INVALID_COLOR
         self.clearButton = QToolButton(self)
         self.clearButton.setIcon(QIcon(QPixmap('resources\\icons\\clear.svg')))
         self.clearButton.setCursor(Qt.CursorShape.ArrowCursor)
         self.clearButton.setStyleSheet('QToolButton { border: none; padding: 0px; }')
         self.clearButton.hide()
         self.clearButton.clicked.connect(self.clear)
-        self.textChanged.connect(self.updateClearButton)
 
-        self.state = LineEditState.INVALID_INPUT
+        self.textChanged.connect(self.updateClearButton)
         self.textChanged.connect(self.validate_path)
-        self.colour = self.INVALID_COLOR
+
         self.update_style()
 
     def resizeEvent(self, a0: Optional[QResizeEvent]):

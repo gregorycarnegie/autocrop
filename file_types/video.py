@@ -33,5 +33,5 @@ class Video(File):
         ```
     """
 
-    default_directory = f'{Path.home()}\\Videos'
+    default_directory = Path.home().joinpath('Videos').as_posix()
     file_types = np.array(['.avi', '.m4v', '.mkv', '.mov', '.mp4'])

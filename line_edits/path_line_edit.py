@@ -35,8 +35,17 @@ class PathLineEdit(CustomLineEdit):
         self.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
         self.setValidator(FilePathValidator(parent=self))
         self.path_type = path_type
-        # self.textChanged.connect(self.insert_clipboard_path)
+        self.textChanged.connect(self.insert_clipboard_path)
 
+
+    def insert_clipboard_path(self):
+        """
+        Removes the quotation marks from the passed path
+        """
+        text = self.text()
+        x, y = text.startswith("'") & text.endswith("'"), text.startswith('"') & text.endswith('"')
+        if x ^ y:
+            self.setText(text[1:][:-1])
 
 
     def validate_path(self) -> None:
@@ -55,57 +64,31 @@ class PathLineEdit(CustomLineEdit):
             return
 
         file_path = Path(path)
+        self.color_logic(self.is_valid_path(file_path))
+        self.update_style()
+
+    
+    def is_valid_path(self, path: Path) -> bool:
+        """
+        Checks if the given path is valid.
+
+        Args:
+            path (Path): The path to the file/folder.
+
+        Returns:
+            bool: True if the path is valid, False otherwise.
+        """
+        is_file, suffix = path.is_file(), path.suffix.lower()
 
         match self.path_type:
             case PathType.IMAGE:
-                self.color_logic(self.is_valid_image(file_path))
+                valid_suffix = suffix in Photo.file_types
+                return is_file & valid_suffix
             case PathType.TABLE:
-                self.color_logic(self.is_valid_table(file_path))
+                valid_suffix = suffix in Table.file_types
+                return is_file & valid_suffix
             case PathType.VIDEO:
-                self.color_logic(self.is_valid_video(file_path))
+                valid_suffix = suffix in Video.file_types
+                return is_file & valid_suffix
             case PathType.FOLDER:
-                self.color_logic(file_path.is_dir())
-
-        self.update_style()
-
-    @staticmethod
-    def is_valid_image(path: Path) -> bool:
-        """
-        Checks if the given path is a valid image file.
-
-        Args:
-            path (Path): The path to the file.
-
-        Returns:
-            bool: True if the path is a valid image file, False otherwise.
-        """
-
-        return path.is_file() and path.suffix.lower() in Photo.file_types
-
-    @staticmethod
-    def is_valid_table(path: Path) -> bool:
-        """
-        Checks if the given path is a valid table file.
-
-        Args:
-            path (Path): The path to the file.
-
-        Returns:
-            bool: True if the path is a valid table file, False otherwise.
-        """
-
-        return path.is_file() and path.suffix.lower() in Table.file_types
-
-    @staticmethod
-    def is_valid_video(path: Path) -> bool:
-        """
-        Checks if the given path is a valid video file.
-
-        Args:
-            path (Path): The path to the file.
-
-        Returns:
-            bool: True if the path is a valid video file, False otherwise.
-        """
-
-        return path.is_file() and path.suffix.lower() in Video.file_types
+                return path.is_dir()
