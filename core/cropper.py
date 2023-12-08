@@ -190,11 +190,13 @@ class Cropper(QObject):
 
         img_path = line_edit if isinstance(line_edit, Path) else Path(line_edit.text())
         # if input field is empty, then do nothing
-        if not img_path or img_path.as_posix() in {'', '.', None}: return
+        if not img_path or img_path.as_posix() in {'', '.', None}:
+            return
 
         if img_path.is_dir():
             first_file = ut.get_first_file(img_path)
-            if first_file is None: return
+            if first_file is None:
+                return
             img_path = first_file
 
         if not img_path.is_file():
@@ -203,14 +205,16 @@ class Cropper(QObject):
         pic_array = ut.open_pic(img_path, self.face_detection_tools[0],
                                 exposure=job.fix_exposure_job.isChecked(),
                                 tilt=job.auto_tilt_job.isChecked())
-        if pic_array is None: return
+        if pic_array is None:
+            return
 
         if job.multi_face_job.isChecked():
             pic = ut.multi_box(pic_array, job)
             wf.display_image_on_widget(pic, image_widget)
         else:
             bounding_box = ut.box_detect(pic_array, job)
-            if bounding_box is None: return
+            if bounding_box is None:
+                return
             ut.crop_and_set(pic_array, bounding_box, job.gamma, image_widget)
 
     def _update_progress(self, file_amount: int,
@@ -291,7 +295,8 @@ class Cropper(QObject):
             None
         """
 
-        if (file_tuple := job.file_list()) is None: return
+        if (file_tuple := job.file_list()) is None:
+            return
         file_list, amount = file_tuple
         # Split the file list into chunks.
         split_array = np.array_split(file_list, self.THREAD_NUMBER)
@@ -347,7 +352,8 @@ class Cropper(QObject):
             None
         """
 
-        if (file_tuple := job.file_list_to_numpy()) is None: return
+        if (file_tuple := job.file_list_to_numpy()) is None:
+            return
         file_list1, file_list2 = file_tuple
         # Get the extensions of the file names and
         # Create a mask that indicates which files have supported extensions.
