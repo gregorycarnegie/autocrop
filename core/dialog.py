@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import QDialog, QLabel, QSizePolicy
 from . import window_functions as wf
 from .image_widget import ImageWidget
 
+from core.enums import GuiIcon
 
 class UiDialog(QDialog):
     def __init__(self):
@@ -21,8 +22,8 @@ class UiDialog(QDialog):
         self.verticalLayout = wf.setup_vbox('verticalLayout', self)
         self.widget = ImageWidget(parent=self)
         self.widget.setObjectName('widget')
-        self.widget.setImage(QPixmap('resources\\logos\\logo.svg'))
-        self.setWindowIcon(QIcon('resources\\logos\\logo.ico'))
+        self.widget.setImage(QPixmap(GuiIcon.LOGO.value))
+        self.setWindowIcon(QIcon(GuiIcon.ICON.value))
         self.verticalLayout.addWidget(self.widget)
         self.frame = wf.setup_frame('frame', parent=self)
         self.horizontalLayout_2 = wf.setup_hbox(u'horizontalLayout_2', self.frame)

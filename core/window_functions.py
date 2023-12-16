@@ -298,55 +298,55 @@ def show_warning(function_type: FunctionType) -> int:
     return msg_box.exec()
 
 
-def create_media_button(*, name: str,
-                        icon_resource: MediaIconAlias,
-                        layout: Union[QtWidgets.QHBoxLayout, QtWidgets.QVBoxLayout],
-                        size: int = 88,
-                        icon_size: int = 58,
-                        icon_mode: QtGui.QIcon.Mode = QtGui.QIcon.Mode.Normal,
-                        icon_state: QtGui.QIcon.State = QtGui.QIcon.State.Off,
-                        parent: Optional[QtWidgets.QWidget] = None) -> QtWidgets.QPushButton:
-    """
-    Creates a media button with the specified name, icon, layout, size, icon size, icon mode, icon state, and parent.
+# def create_media_button(*, name: str,
+#                         icon_resource: GuiIcon,
+#                         layout: Union[QtWidgets.QHBoxLayout, QtWidgets.QVBoxLayout],
+#                         size: int = 88,
+#                         icon_size: int = 58,
+#                         icon_mode: QtGui.QIcon.Mode = QtGui.QIcon.Mode.Normal,
+#                         icon_state: QtGui.QIcon.State = QtGui.QIcon.State.Off,
+#                         parent: Optional[QtWidgets.QWidget] = None) -> QtWidgets.QPushButton:
+#     """
+#     Creates a media button with the specified name, icon, layout, size, icon size, icon mode, icon state, and parent.
 
-    Args:
-        name (str): The name of the media button object.
-        icon_resource (MediaIconAlias): The alias for the icon resource.
-        layout (Union[QtWidgets.QHBoxLayout, QtWidgets.QVBoxLayout]): The layout to add the media button to.
-        size (int, optional): The size of the media button. Defaults to 88.
-        icon_size (int, optional): The size of the icon. Defaults to 58.
-        icon_mode (QtGui.QIcon.Mode, optional): The mode of the icon. Defaults to QtGui.QIcon.Mode.Normal.
-        icon_state (QtGui.QIcon.State, optional): The state of the icon. Defaults to QtGui.QIcon.State.Off.
-        parent (Optional[QtWidgets.QWidget], optional): The parent widget for the media button. Defaults to None.
+#     Args:
+#         name (str): The name of the media button object.
+#         icon_resource (MediaIconAlias): The alias for the icon resource.
+#         layout (Union[QtWidgets.QHBoxLayout, QtWidgets.QVBoxLayout]): The layout to add the media button to.
+#         size (int, optional): The size of the media button. Defaults to 88.
+#         icon_size (int, optional): The size of the icon. Defaults to 58.
+#         icon_mode (QtGui.QIcon.Mode, optional): The mode of the icon. Defaults to QtGui.QIcon.Mode.Normal.
+#         icon_state (QtGui.QIcon.State, optional): The state of the icon. Defaults to QtGui.QIcon.State.Off.
+#         parent (Optional[QtWidgets.QWidget], optional): The parent widget for the media button. Defaults to None.
 
-    Returns:
-        QtWidgets.QPushButton: The created media button object.
+#     Returns:
+#         QtWidgets.QPushButton: The created media button object.
 
-    Example:
-        ```python
-        layout = QtWidgets.QHBoxLayout()
-        button_name = 'playButton'
-        icon_resource = 'play'
-        size = 100
-        icon_size = 80
+#     Example:
+#         ```python
+#         layout = QtWidgets.QHBoxLayout()
+#         button_name = 'playButton'
+#         icon_resource = 'play'
+#         size = 100
+#         icon_size = 80
 
-        # Create a media button with the specified properties
-        media_button = create_media_button(name=button_name, icon_resource=icon_resource, layout=layout, size=size, icon_size=icon_size)
-        ```
-    """
+#         # Create a media button with the specified properties
+#         media_button = create_media_button(name=button_name, icon_resource=icon_resource, layout=layout, size=size, icon_size=icon_size)
+#         ```
+#     """
 
-    playButton = QtWidgets.QPushButton(parent=parent)
-    playButton.setEnabled(True)
-    playButton.setMinimumSize(QtCore.QSize(size, size))
-    playButton.setMaximumSize(QtCore.QSize(size, size))
-    playButton.setText('')
-    icon = QtGui.QIcon()
-    icon.addPixmap(QtGui.QPixmap(f'resources\\icons\\multimedia_{icon_resource}.svg'), icon_mode, icon_state)
-    playButton.setIcon(icon)
-    playButton.setIconSize(QtCore.QSize(icon_size, icon_size))
-    playButton.setObjectName(name)
-    layout.addWidget(playButton)
-    return playButton
+#     playButton = QtWidgets.QPushButton(parent=parent)
+#     playButton.setEnabled(True)
+#     playButton.setMinimumSize(QtCore.QSize(size, size))
+#     playButton.setMaximumSize(QtCore.QSize(size, size))
+#     playButton.setText('')
+#     icon = QtGui.QIcon()
+#     icon.addPixmap(QtGui.QPixmap(icon_resource.value), icon_mode, icon_state)
+#     playButton.setIcon(icon)
+#     playButton.setIconSize(QtCore.QSize(icon_size, icon_size))
+#     playButton.setObjectName(name)
+#     layout.addWidget(playButton)
+#     return playButton
 
 
 def disable_widget(*args: QtWidgets.QWidget) -> None:

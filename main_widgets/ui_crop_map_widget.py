@@ -259,7 +259,7 @@ class UiMappingTabWidget(UiCropBatchWidget):
     def disable_buttons(self) -> None:
         wf.update_widget_state(
             wf.all_filled(self.inputLineEdit, self.tableLineEdit, self.destinationLineEdit, self.comboBox_1,
-                            self.comboBox_2, self.controlWidget.widthLineEdit, self.controlWidget.heightLineEdit),
+                          self.comboBox_2, self.controlWidget.widthLineEdit, self.controlWidget.heightLineEdit),
             self.cropButton)
 
     def open_table(self) -> None:

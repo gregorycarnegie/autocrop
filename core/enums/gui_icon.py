@@ -3,9 +3,8 @@ from pathlib import Path
 import sys
 
 def resource_path(relative_path: str) -> str:
-    base_path = getattr(sys, '_MEIPASS2', Path().resolve())
-
-    return (Path(base_path) / relative_path).as_posix()
+    base_path = Path(getattr(sys, '_MEIPASS2', Path().resolve()))
+    return (base_path / relative_path).as_posix()
 
 
 class GuiIcon(Enum):
@@ -14,6 +13,7 @@ class GuiIcon(Enum):
     CROP = resource_path('resources\\icons\\crop.svg')
     EXCEL = resource_path('resources\\icons\\excel.svg')
     FOLDER = resource_path('resources\\icons\\folder.svg')
+    ICON = resource_path('resources\\logos\\logo.ico')
     LOGO = resource_path('resources\\logos\\logo.svg')
     MULTIMEDIA_MUTE = resource_path('resources\\icons\\multimedia_mute.svg')
     MULTIMEDIA_PAUSE = resource_path('resources\\icons\\multimedia_pause.svg')

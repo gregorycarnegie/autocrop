@@ -1,4 +1,5 @@
 import re
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count
 from pathlib import Path
@@ -18,6 +19,9 @@ from .enums import FunctionType
 from .image_widget import ImageWidget
 from .job import Job
 
+def resource_path(relative_path: str) -> str:
+    base_path = Path(getattr(sys, '_MEIPASS2', Path().resolve()))
+    return (base_path / relative_path).as_posix()
 
 class Cropper(QObject):
     """
@@ -76,7 +80,7 @@ class Cropper(QObject):
 
     THREAD_NUMBER: ClassVar[int] = min(cpu_count(), 8)
     TASK_VALUES: ClassVar[Tuple[int, bool, bool]] = 0, False, True
-    LANDMARKS: ClassVar[str] = 'resources\\models\\shape_predictor_68_face_landmarks.dat'
+    LANDMARKS: ClassVar[str] = resource_path('resources\\models\\shape_predictor_68_face_landmarks.dat')
 
     f_started, f_finished, f_progress = pyqtSignal(), pyqtSignal(), pyqtSignal(object)
     m_started, m_finished, m_progress = pyqtSignal(), pyqtSignal(), pyqtSignal(object)
@@ -391,9 +395,8 @@ class Cropper(QObject):
         if (frame := ut.grab_frame(timeline_slider.value(), job.video_path.as_posix())) is None:
             return
 
-        # Precompute values used multiple times
         destination = job.destination
-        base_name = job.video_path.stem
+        # base_name = job.video_path.stem
         destination.mkdir(exist_ok=True)
 
         # Swap ':' to '_' in position text
@@ -402,7 +405,7 @@ class Cropper(QObject):
         # Determine file suffix based on radio choice
         file_suffix = job.radio_options[2] if job.radio_choice() == job.radio_options[0] else job.radio_choice()
 
-        file_path = destination.joinpath(f'{base_name} - ({position}){file_suffix}')
+        file_path = destination.joinpath(f'{job.video_path.stem} - ({position}){file_suffix}')
         is_tiff = file_path.suffix in {'.tif', '.tiff'}
 
         # Handle multi-face job
@@ -531,13 +534,16 @@ class Cropper(QObject):
         video = cv2.VideoCapture(job.video_path.as_posix())
         fps = video.get(cv2.CAP_PROP_FPS)
         start_frame, end_frame = int(job.start_position * fps), int(job.stop_position * fps)
-        frame_numbers = np.arange(start_frame, end_frame + 1)
-        x = frame_numbers.size
+        # frame_numbers = np.arange(start_frame, end_frame + 1)
+        # x = frame_numbers.size
+        # frame_numbers = range(start_frame, end_frame + 1)
+        # x = len(frame_numbers)
+        x = 1 + end_frame - start_frame
 
         self.v_progress.emit((0, x))
         self.v_started.emit()
 
-        for frame_number in frame_numbers:
+        for frame_number in range(start_frame, end_frame + 1):
             if self.end_v_task:
                 break
             self.frame_extraction(video, frame_number, job,
