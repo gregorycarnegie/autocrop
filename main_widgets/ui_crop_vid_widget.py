@@ -501,11 +501,13 @@ class UiVideoTabWidget(UiCropBatchWidget):
     def stop_playback(self) -> None:
         self.timelineSlider_1.setDisabled(True)
         x, y = self.playback_bool(a1=QtMultimedia.QMediaPlayer.PlaybackState.PlayingState)
-        if x ^ y: self.player.stop()
+        if x ^ y:
+            self.player.stop()
 
     def fast_forward(self) -> None:
         x, y = self.playback_bool()
-        if x ^ y: return
+        if x ^ y:
+            return
         VIDEO_SPEEDS = np.array([1.0, 1.25, 1.5, 1.75, 2.0])
         self.reverse = 0
         self.speed += 1

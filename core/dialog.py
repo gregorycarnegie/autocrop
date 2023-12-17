@@ -7,6 +7,7 @@ from .image_widget import ImageWidget
 
 from core.enums import GuiIcon
 
+
 class UiDialog(QDialog):
     def __init__(self):
         super(UiDialog, self).__init__()

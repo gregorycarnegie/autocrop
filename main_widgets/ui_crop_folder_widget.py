@@ -218,7 +218,7 @@ class UiFolderTabWidget(UiCropBatchWidget):
     def disable_buttons(self) -> None:
         wf.update_widget_state(
             wf.all_filled(self.inputLineEdit, self.destinationLineEdit, self.controlWidget.widthLineEdit,
-                            self.controlWidget.heightLineEdit),
+                          self.controlWidget.heightLineEdit),
             self.cropButton)
 
     def folder_process(self) -> None:

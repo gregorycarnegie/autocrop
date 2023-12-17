@@ -43,14 +43,14 @@ class UiCropBatchWidget(UiCropWidget):
 
     @classmethod
     def create_progress_bar(cls, name: str, parent: Optional[QtWidgets.QWidget] = None) -> QtWidgets.QProgressBar:
-        progressBar = QtWidgets.QProgressBar() if parent is None else QtWidgets.QProgressBar(parent)
-        progressBar.setObjectName(name)
-        progressBar.setMinimumSize(QtCore.QSize(0, 12))
-        progressBar.setMaximumSize(QtCore.QSize(16_777_215, 12))
-        progressBar.setRange(0, cls.PROGRESSBAR_STEPS)
-        progressBar.setValue(0)
-        progressBar.setTextVisible(False)
-        return progressBar
+        progress_bar = QtWidgets.QProgressBar() if parent is None else QtWidgets.QProgressBar(parent)
+        progress_bar.setObjectName(name)
+        progress_bar.setMinimumSize(QtCore.QSize(0, 12))
+        progress_bar.setMaximumSize(QtCore.QSize(16_777_215, 12))
+        progress_bar.setRange(0, cls.PROGRESSBAR_STEPS)
+        progress_bar.setValue(0)
+        progress_bar.setTextVisible(False)
+        return progress_bar
     
     def update_progress(self, data: Tuple[int, int]) -> None:
         """Only sublasses of the CropBatchWidget class should implement this method"""

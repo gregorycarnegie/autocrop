@@ -91,46 +91,6 @@ class UiCropWidget(QtWidgets.QWidget):
         # This method should be overridden by the specific classes to provide their own implementations
         pass
 
-    # @staticmethod
-    # def apply_size_policy(widget: QtWidgets.QWidget,
-    #                       size_policy: QtWidgets.QSizePolicy,
-    #                       min_size: QtCore.QSize = QtCore.QSize(0, 30),
-    #                       max_size: QtCore.QSize = QtCore.QSize(16_777_215, 30)) -> None:
-    #     size_policy.setHeightForWidth(widget.sizePolicy().hasHeightForWidth())
-    #     widget.setSizePolicy(size_policy)
-    #     widget.setMinimumSize(min_size)
-    #     widget.setMaximumSize(max_size)
-
-    # @staticmethod
-    # def create_main_button(name: str,
-    #                        size_policy: QtWidgets.QSizePolicy,
-    #                        icon_file: GuiIcon,
-    #                        parent: QtWidgets.QWidget) -> QtWidgets.QPushButton:
-    #     button = QtWidgets.QPushButton(parent)
-    #     button.setObjectName(name)
-    #     size_policy.setHeightForWidth(button.sizePolicy().hasHeightForWidth())
-    #     button.setSizePolicy(size_policy)
-    #     button.setMinimumSize(QtCore.QSize(0, 40))
-    #     button.setMaximumSize(QtCore.QSize(16_777_215, 40))
-    #     icon = QtGui.QIcon()
-    #     icon.addFile(icon_file.value, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-    #     button.setIcon(icon)
-    #     button.setIconSize(QtCore.QSize(18, 18))
-    #     return button
-
-    # @staticmethod
-    # def create_frame(name: str,
-    #                  parent: QtWidgets.QWidget,
-    #                  size_policy: QtWidgets.QSizePolicy) -> QtWidgets.QFrame:
-    #     frame = QtWidgets.QFrame(parent)
-    #     frame.setObjectName(name)
-    #     size_policy.setHeightForWidth(frame.sizePolicy().hasHeightForWidth())
-    #     frame.setSizePolicy(size_policy)
-    #     frame.setStyleSheet(u"background: #1f2c33")
-    #     frame.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)
-    #     frame.setFrameShadow(QtWidgets.QFrame.Shadow.Raised)
-    #     return frame
-
     def create_checkbox(self, name: str) -> QtWidgets.QCheckBox:
         checkBox = QtWidgets.QCheckBox()
         checkBox.setObjectName(name)
@@ -160,13 +120,6 @@ class UiCropWidget(QtWidgets.QWidget):
     #     icon.addFile(icon_resource.value, size, mode, state)
     #     return icon
 
-    # @staticmethod
-    # def setup_image_widget(parent: QtWidgets.QWidget) -> ImageWidget:
-    #     image_widget = ImageWidget(parent=parent)
-    #     image_widget.setStyleSheet('')
-    #     image_widget.setObjectName('imageWidget')
-    #     return image_widget
-
     # def setup_process_button(self, name: str, icon_name: ProcessIconAlias, button_type: ButtonType) -> QtWidgets.QPushButton:
     #     icon = QtGui.QIcon()
     #     icon.addPixmap(QtGui.QPixmap(f'resources\\icons\\{icon_name}.svg'), QtGui.QIcon.Mode.Normal,
@@ -194,14 +147,6 @@ class UiCropWidget(QtWidgets.QWidget):
     def reload_widgets(self) -> None:
         """Only sublasses of the CustomCropWidget class should implement this method"""
         pass
-
-    # @staticmethod
-    # def all_filled(*input_widgets: Union[PathLineEdit, NumberLineEdit, QtWidgets.QComboBox]) -> bool:
-    #     x = all(widget.state == LineEditState.VALID_INPUT
-    #             for widget in input_widgets if isinstance(widget, (PathLineEdit, NumberLineEdit)))
-    #     y = all(widget.text() for widget in input_widgets if isinstance(widget, (PathLineEdit, NumberLineEdit)))
-    #     z = all(widget.currentText() for widget in input_widgets if isinstance(widget, QtWidgets.QComboBox))
-    #     return all((x, y, z))
 
     def disable_buttons(self) -> None:
         """Only sublasses of the CustomCropWidget class should implement this method"""
@@ -334,7 +279,8 @@ class UiCropWidget(QtWidgets.QWidget):
         match self.inputLineEdit.path_type:
             case PathType.FOLDER:
                 self.load_data()
-            case _: pass
+            case _:
+                pass
 
     def load_data(self) -> None:
         """Only sublasses of the CustomCropWidget class should implement this method"""

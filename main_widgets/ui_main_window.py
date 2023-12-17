@@ -16,6 +16,8 @@ from .ui_crop_photo_widget import UiPhotoTabWidget
 from .ui_crop_vid_widget import UiVideoTabWidget
 from .ui_crop_widget import UiCropWidget
 
+type TabWidget = Union[UiPhotoTabWidget, UiFolderTabWidget, UiMappingTabWidget, UiVideoTabWidget]
+
 
 class UiMainWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -517,7 +519,8 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 callback(self.mapping_tab_widget.controlWidget)
             case 3:
                 callback(self.video_tab_widget.controlWidget)
-            case _: pass
+            case _:
+                pass
 
     @staticmethod
     def all_filled(*line_edits: Union[PathLineEdit, NumberLineEdit, QtWidgets.QComboBox]) -> bool:
@@ -526,7 +529,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         y = all(edit.currentText() for edit in line_edits if isinstance(edit, QtWidgets.QComboBox))
         return x and y
 
-    def disable_buttons(self, tab_widget: Union[UiPhotoTabWidget, UiFolderTabWidget, UiMappingTabWidget, UiVideoTabWidget]) -> None:
+    def disable_buttons(self, tab_widget: TabWidget) -> None:
         """
         Disables buttons based on the filled state of line edits and combo boxes.
 
@@ -575,36 +578,6 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 )
             case _:
                 pass
-
-        # common_line_edits = (self.widthLineEdit, self.heightLineEdit)
-        # try:
-        #     assert isinstance(self.mapping_tab_widget, UiMappingTabWidget)
-        #     assert isinstance(self.folder_tab_widget, UiFolderTabWidget)
-        #     assert isinstance(self.photo_tab_widget, UiPhotoTabWidget)
-        #     assert isinstance(self.video_tab_widget, UiVideoTabWidget)
-        # except AssertionError:
-        #     return
-        # # Photo logic
-        # wf.update_widget_state(
-        #     self.all_filled(self.photo_tab_widget.inputLineEdit, self.photo_tab_widget.destinationLineEdit,
-        #                     *common_line_edits),
-        #     self.photo_tab_widget.cropButton)
-        # # Folder logic
-        # wf.update_widget_state(
-        #     self.all_filled(self.folder_tab_widget.inputLineEdit, self.folder_tab_widget.destinationLineEdit,
-        #                     *common_line_edits),
-        #     self.folder_tab_widget.cropButton)
-        # # Mapping logic
-        # wf.update_widget_state(
-        #     self.all_filled(self.mapping_tab_widget.inputLineEdit, self.mapping_tab_widget.tableLineEdit,
-        #                     self.mapping_tab_widget.destinationLineEdit, self.mapping_tab_widget.comboBox_1,
-        #                     self.mapping_tab_widget.comboBox_2, *common_line_edits),
-        #     self.mapping_tab_widget.cropButton)
-        # # Video logic
-        # wf.update_widget_state(
-        #     self.all_filled(self.video_tab_widget.inputLineEdit, self.video_tab_widget.destinationLineEdit,
-        #                     *common_line_edits),
-        #     self.video_tab_widget.cropButton, self.video_tab_widget.videocropButton)
 
     def connect_combo_boxes(self, tab_widget: UiCropWidget) -> None:
         """

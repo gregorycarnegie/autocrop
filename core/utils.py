@@ -12,7 +12,7 @@ import cv2.typing as cvt
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-# import rawpy
+import rawpy
 import tifffile as tiff
 from PIL import Image
 
@@ -214,7 +214,8 @@ def correct_exposure(image: ImageArray,
         ```
     """
 
-    if not exposure: return image
+    if not exposure:
+        return image
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if len(image.shape) > 2 else image
     # Grayscale histogram
     hist, _ = np.histogram(gray.ravel(), bins=256, range=(0, 256))
@@ -350,39 +351,39 @@ def open_image(image: Path,
     return align_head(img, face_detection_tools, tilt)
 
 
-# def open_raw(image: Path,
-#              face_detection_tools: Tuple[Any, Any], *,
-#              exposure: bool,
-#              tilt: bool) -> cvt.MatLike:
-#     """
-#     The function opens a raw image file using `rawpy` and performs post-processing on the raw image data. It corrects the exposure and aligns the head using the provided ` Tuple[Any, Any]` object.
-#
-#     Args:
-#         image (Path): The path to the raw image file.
-#         face_detection_tools ( Tuple[Any, Any]): The  Tuple[Any, Any] object used for aligning the head.
-#         exposure (bool): Flag indicating whether to correct the exposure.
-#         tilt (bool): Flag indicating whether to align the head.
-#
-#     Returns:
-#         cvt.MatLike: The processed image data.
-#
-#     Example:
-#         ```python
-#         # Opening a raw image file.
-#         image_path = Path('/path/to/image.CR2')
-#         face_detection_tools =  Tuple[Any, Any]()
-#         processed_image = open_raw(image_path, face_detection_tools, exposure=True, tilt=True)
-#         cv2.imshow('Processed Image', processed_image)
-#         cv2.waitKey(0)
-#         cv2.destroyAllWindows()
-#         ```
-#     """
-#
-#     with rawpy.imread(image.as_posix()) as raw:
-#         # Post-process the raw image data
-#         img = raw.postprocess(use_camera_wb=True)
-#         img = correct_exposure(img, exposure)
-#         return align_head(img, face_detection_tools, tilt)
+def open_raw(image: Path,
+             face_detection_tools: Tuple[Any, Any], *,
+             exposure: bool,
+             tilt: bool) -> cvt.MatLike:
+    """
+    The function opens a raw image file using `rawpy` and performs post-processing on the raw image data. It corrects the exposure and aligns the head using the provided ` Tuple[Any, Any]` object.
+
+    Args:
+        image (Path): The path to the raw image file.
+        face_detection_tools ( Tuple[Any, Any]): The  Tuple[Any, Any] object used for aligning the head.
+        exposure (bool): Flag indicating whether to correct the exposure.
+        tilt (bool): Flag indicating whether to align the head.
+
+    Returns:
+        cvt.MatLike: The processed image data.
+
+    Example:
+        ```python
+        # Opening a raw image file.
+        image_path = Path('/path/to/image.CR2')
+        face_detection_tools =  Tuple[Any, Any]()
+        processed_image = open_raw(image_path, face_detection_tools, exposure=True, tilt=True)
+        cv2.imshow('Processed Image', processed_image)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+        ```
+    """
+
+    with rawpy.imread(image.as_posix()) as raw:
+        # Post-process the raw image data
+        img = raw.postprocess(use_camera_wb=True)
+        img = correct_exposure(img, exposure)
+        return align_head(img, face_detection_tools, tilt)
 
 
 def open_table(input_file: Path) -> pd.DataFrame:
@@ -448,8 +449,7 @@ def open_pic(input_file: Union[Path, str],
         case extension if extension in Photo.CV2_TYPES:
             return open_image(input_file, face_detection_tools, exposure=exposure, tilt=tilt)
         case extension if extension in Photo.RAW_TYPES:
-            # return open_raw(input_file, face_detection_tools, exposure=exposure, tilt=tilt)
-            return
+            return open_raw(input_file, face_detection_tools, exposure=exposure, tilt=tilt)
         case _:
             return
 
@@ -511,14 +511,14 @@ def box(img: cvt.MatLike,
 
 def _draw_box_with_text(image: cvt.MatLike, confidence: np.float64, *, x0: int, y0: int, x1: int,
                         y1: int) -> cvt.MatLike:
-    COLOURS = (255, 0, 0), (0, 255, 0), (0, 0, 255)
-    colour = random.choice(COLOURS)
-    FONT_SCALE, LINE_WIDTH, TEXT_OFFSET = .45, 2, 10
+    colours = (255, 0, 0), (0, 255, 0), (0, 0, 255)
+    colour = random.choice(colours)
+    font_scale, line_width, text_offset = .45, 2, 10
 
     text = "{:.2f}%".format(confidence)
-    y_text = y0 - TEXT_OFFSET if y0 > 20 else y0 + TEXT_OFFSET
-    cv2.rectangle(image, (x0, y0), (x1, y1), colour, LINE_WIDTH)
-    cv2.putText(image, text, (x0, y_text), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, colour, LINE_WIDTH)
+    y_text = y0 - text_offset if y0 > 20 else y0 + text_offset
+    cv2.rectangle(image, (x0, y0), (x1, y1), colour, line_width)
+    cv2.putText(image, text, (x0, y_text), cv2.FONT_HERSHEY_SIMPLEX, font_scale, colour, line_width)
     return image
 
 

@@ -59,7 +59,7 @@ class UiCropControlWidget(QtWidgets.QWidget):
         self.verticalLayout_1.addWidget(self.radioButton_tiff)
 
         self.radioButton_webp = self.create_radio_button(sizePolicy, u"radioButton_webp", RADIO_WEBP)
-        
+
         self.verticalLayout_1.addWidget(self.radioButton_webp)
         self.verticalSpacer_1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Policy.Minimum,
                                                       QtWidgets.QSizePolicy.Policy.Expanding)

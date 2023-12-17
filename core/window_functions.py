@@ -9,7 +9,7 @@ from line_edits import LineEditState, NumberLineEdit, PathLineEdit
 from .dialog import UiDialog
 from .enums import FunctionType, GuiIcon
 from .image_widget import ImageWidget
-from .literals import MediaIconAlias, TabIconAlias
+# from .literals import MediaIconAlias, TabIconAlias
 
 
 def setup_hbox(name: str, parent: Optional[QtWidgets.QWidget] = None) -> QtWidgets.QHBoxLayout:
@@ -73,11 +73,11 @@ def create_button_icon(icon_resource: GuiIcon,
     return icon
 
 
-def setup_image_widget(parent: QtWidgets.QWidget) -> ImageWidget:
-    image_widget = ImageWidget(parent=parent)
-    image_widget.setStyleSheet('')
-    image_widget.setObjectName('imageWidget')
-    return image_widget
+# def setup_image_widget(parent: QtWidgets.QWidget) -> ImageWidget:
+#     image_widget = ImageWidget(parent=parent)
+#     image_widget.setStyleSheet('')
+#     image_widget.setObjectName('imageWidget')
+#     return image_widget
 
 
 def all_filled(*input_widgets: Union[PathLineEdit, NumberLineEdit, QtWidgets.QComboBox]) -> bool:
@@ -115,31 +115,31 @@ def display_image_on_widget(image: cvt.MatLike, image_widget: ImageWidget) -> No
     image_widget.setImage(QtGui.QPixmap.fromImage(q_image))
 
 
-def add_widgets(base_widget: Union[QtWidgets.QHBoxLayout, QtWidgets.QVBoxLayout], *widgets: QtWidgets.QWidget) -> None:
-    """
-    Adds the specified widgets to the base widget.
+# def add_widgets(base_widget: Union[QtWidgets.QHBoxLayout, QtWidgets.QVBoxLayout], *widgets: QtWidgets.QWidget) -> None:
+#     """
+#     Adds the specified widgets to the base widget.
 
-    Args:
-        base_widget (Union[QtWidgets.QHBoxLayout, QtWidgets.QVBoxLayout]): The base widget to add the widgets to.
-        *widgets (QtWidgets.QWidget): Variable number of widgets to add.
+#     Args:
+#         base_widget (Union[QtWidgets.QHBoxLayout, QtWidgets.QVBoxLayout]): The base widget to add the widgets to.
+#         *widgets (QtWidgets.QWidget): Variable number of widgets to add.
 
-    Returns:
-        None
+#     Returns:
+#         None
 
-    Example:
-        ```python
-        layout = QtWidgets.QHBoxLayout()
-        widget1 = QtWidgets.QWidget()
-        widget2 = QtWidgets.QWidget()
-        widget3 = QtWidgets.QWidget()
+#     Example:
+#         ```python
+#         layout = QtWidgets.QHBoxLayout()
+#         widget1 = QtWidgets.QWidget()
+#         widget2 = QtWidgets.QWidget()
+#         widget3 = QtWidgets.QWidget()
 
-        # Add the widgets to the layout
-        add_widgets(layout, widget1, widget2, widget3)
-        ```
-    """
+#         # Add the widgets to the layout
+#         add_widgets(layout, widget1, widget2, widget3)
+#         ```
+#     """
 
-    for widget in widgets:
-        base_widget.addWidget(widget)
+#     for widget in widgets:
+#         base_widget.addWidget(widget)
 
 
 def uncheck_boxes(*checkboxes: QtWidgets.QCheckBox) -> None:
@@ -298,57 +298,6 @@ def show_warning(function_type: FunctionType) -> int:
     return msg_box.exec()
 
 
-# def create_media_button(*, name: str,
-#                         icon_resource: GuiIcon,
-#                         layout: Union[QtWidgets.QHBoxLayout, QtWidgets.QVBoxLayout],
-#                         size: int = 88,
-#                         icon_size: int = 58,
-#                         icon_mode: QtGui.QIcon.Mode = QtGui.QIcon.Mode.Normal,
-#                         icon_state: QtGui.QIcon.State = QtGui.QIcon.State.Off,
-#                         parent: Optional[QtWidgets.QWidget] = None) -> QtWidgets.QPushButton:
-#     """
-#     Creates a media button with the specified name, icon, layout, size, icon size, icon mode, icon state, and parent.
-
-#     Args:
-#         name (str): The name of the media button object.
-#         icon_resource (MediaIconAlias): The alias for the icon resource.
-#         layout (Union[QtWidgets.QHBoxLayout, QtWidgets.QVBoxLayout]): The layout to add the media button to.
-#         size (int, optional): The size of the media button. Defaults to 88.
-#         icon_size (int, optional): The size of the icon. Defaults to 58.
-#         icon_mode (QtGui.QIcon.Mode, optional): The mode of the icon. Defaults to QtGui.QIcon.Mode.Normal.
-#         icon_state (QtGui.QIcon.State, optional): The state of the icon. Defaults to QtGui.QIcon.State.Off.
-#         parent (Optional[QtWidgets.QWidget], optional): The parent widget for the media button. Defaults to None.
-
-#     Returns:
-#         QtWidgets.QPushButton: The created media button object.
-
-#     Example:
-#         ```python
-#         layout = QtWidgets.QHBoxLayout()
-#         button_name = 'playButton'
-#         icon_resource = 'play'
-#         size = 100
-#         icon_size = 80
-
-#         # Create a media button with the specified properties
-#         media_button = create_media_button(name=button_name, icon_resource=icon_resource, layout=layout, size=size, icon_size=icon_size)
-#         ```
-#     """
-
-#     playButton = QtWidgets.QPushButton(parent=parent)
-#     playButton.setEnabled(True)
-#     playButton.setMinimumSize(QtCore.QSize(size, size))
-#     playButton.setMaximumSize(QtCore.QSize(size, size))
-#     playButton.setText('')
-#     icon = QtGui.QIcon()
-#     icon.addPixmap(QtGui.QPixmap(icon_resource.value), icon_mode, icon_state)
-#     playButton.setIcon(icon)
-#     playButton.setIconSize(QtCore.QSize(icon_size, icon_size))
-#     playButton.setObjectName(name)
-#     layout.addWidget(playButton)
-#     return playButton
-
-
 def disable_widget(*args: QtWidgets.QWidget) -> None:
     """
     Disables multiple widgets.
@@ -482,41 +431,41 @@ def setup_frame(name: str, *, parent: QtWidgets.QWidget) -> QtWidgets.QFrame:
     return frame
 
 
-def create_tab(tab_widget: QtWidgets.QTabWidget,
-               tab: QtWidgets.QWidget,
-               icon: QtGui.QIcon, *,
-               tab_name: str,
-               icon_name: TabIconAlias) -> None:
-    """
-    Creates a new tab in a tab widget with the specified widget and icon.
+# def create_tab(tab_widget: QtWidgets.QTabWidget,
+#                tab: QtWidgets.QWidget,
+#                icon: QtGui.QIcon, *,
+#                tab_name: str,
+#                icon_name: TabIconAlias) -> None:
+#     """
+#     Creates a new tab in a tab widget with the specified widget and icon.
 
-    Args:
-        tab_widget (QtWidgets.QTabWidget): The tab widget to add the new tab to.
-        tab (QtWidgets.QWidget): The widget to be added as a tab.
-        icon (QtGui.QIcon): The icon for the tab.
-        tab_name (str): The name of the tab object.
-        icon_name (TabIconAlias): The name of the icon file.
+#     Args:
+#         tab_widget (QtWidgets.QTabWidget): The tab widget to add the new tab to.
+#         tab (QtWidgets.QWidget): The widget to be added as a tab.
+#         icon (QtGui.QIcon): The icon for the tab.
+#         tab_name (str): The name of the tab object.
+#         icon_name (TabIconAlias): The name of the icon file.
 
-    Returns:
-        None
+#     Returns:
+#         None
 
-    Example:
-        ```python
-        tab_widget = QtWidgets.QTabWidget()
-        tab = QtWidgets.QWidget()
-        icon = QtGui.QIcon()
-        tab_name = 'myTab'
-        icon_name = 'myIcon'
+#     Example:
+#         ```python
+#         tab_widget = QtWidgets.QTabWidget()
+#         tab = QtWidgets.QWidget()
+#         icon = QtGui.QIcon()
+#         tab_name = 'myTab'
+#         icon_name = 'myIcon'
 
-        # Create a new tab with the specified widget and icon
-        create_tab(tab_widget, tab, icon, tab_name=tab_name, icon_name=icon_name)
-        ```
-    """
+#         # Create a new tab with the specified widget and icon
+#         create_tab(tab_widget, tab, icon, tab_name=tab_name, icon_name=icon_name)
+#         ```
+#     """
 
-    tab.setObjectName(tab_name)
-    icon.addPixmap(QtGui.QPixmap(f'resources\\icons\\{icon_name}.svg'), QtGui.QIcon.Mode.Normal,
-                   QtGui.QIcon.State.Off)
-    tab_widget.addTab(tab, icon, '')
+#     tab.setObjectName(tab_name)
+#     icon.addPixmap(QtGui.QPixmap(f'resources\\icons\\{icon_name}.svg'), QtGui.QIcon.Mode.Normal,
+#                    QtGui.QIcon.State.Off)
+#     tab_widget.addTab(tab, icon, '')
 
 
 def update_widget_state(condition: bool, *widgets: QtWidgets.QWidget) -> None:
@@ -545,31 +494,31 @@ def update_widget_state(condition: bool, *widgets: QtWidgets.QWidget) -> None:
         change_widget_state(condition, widget)
 
 
-def adjust_pushbutton(btn: QtWidgets.QPushButton,
-                      icon: QtGui.QIcon,
-                      name: str) -> QtWidgets.QPushButton:
-    """
-    Adjusts a QPushButton with the specified icon and name.
+# def adjust_pushbutton(btn: QtWidgets.QPushButton,
+#                       icon: QtGui.QIcon,
+#                       name: str) -> QtWidgets.QPushButton:
+#     """
+#     Adjusts a QPushButton with the specified icon and name.
 
-    Args:
-        btn (QtWidgets.QPushButton): The QPushButton object to configure.
-        icon (QtGui.QIcon): The QIcon to set as the button's icon.
-        name (str): The name to set as the button's object name.
+#     Args:
+#         btn (QtWidgets.QPushButton): The QPushButton object to configure.
+#         icon (QtGui.QIcon): The QIcon to set as the button's icon.
+#         name (str): The name to set as the button's object name.
 
-    Returns:
-        QtWidgets.QPushButton: The configured QPushButton object.
+#     Returns:
+#         QtWidgets.QPushButton: The configured QPushButton object.
 
-    Example:
-        ```python
-        btn = QtWidgets.QPushButton()
-        icon = QtGui.QIcon('path/to/icon.png')
-        name = 'my_button'
-        result = create_pushbutton(btn, icon, name)
-        ```
-    """
+#     Example:
+#         ```python
+#         btn = QtWidgets.QPushButton()
+#         icon = QtGui.QIcon('path/to/icon.png')
+#         name = 'my_button'
+#         result = create_pushbutton(btn, icon, name)
+#         ```
+#     """
 
-    btn.setMaximumSize(QtCore.QSize(16_777_215, 24))
-    btn.setText('')
-    btn.setIcon(icon)
-    btn.setObjectName(name)
-    return btn
+#     btn.setMaximumSize(QtCore.QSize(16_777_215, 24))
+#     btn.setText('')
+#     btn.setIcon(icon)
+#     btn.setObjectName(name)
+#     return btn

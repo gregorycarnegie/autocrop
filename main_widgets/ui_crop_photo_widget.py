@@ -90,7 +90,7 @@ class UiPhotoTabWidget(UiCropWidget):
                                    self.controlWidget.fpctDial, self.controlWidget.gammaDial,
                                    self.controlWidget.topDial, self.controlWidget.bottomDial,
                                    self.controlWidget.leftDial, self.controlWidget.rightDial)
-        
+
         self.toggleCheckBox.toggled.connect(self.controlWidget.setVisible)
 
         self.controlWidget.widthLineEdit.textChanged.connect(lambda: self.reload_widgets())
@@ -155,7 +155,7 @@ class UiPhotoTabWidget(UiCropWidget):
     def disable_buttons(self) -> None:
         wf.update_widget_state(
             wf.all_filled(self.inputLineEdit, self.destinationLineEdit, self.controlWidget.widthLineEdit,
-                            self.controlWidget.heightLineEdit),
+                          self.controlWidget.heightLineEdit),
             self.cropButton)
 
     def crop_photo(self) -> None:

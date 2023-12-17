@@ -19,9 +19,11 @@ from .enums import FunctionType
 from .image_widget import ImageWidget
 from .job import Job
 
+
 def resource_path(relative_path: str) -> str:
     base_path = Path(getattr(sys, '_MEIPASS2', Path().resolve()))
     return (base_path / relative_path).as_posix()
+
 
 class Cropper(QObject):
     """
