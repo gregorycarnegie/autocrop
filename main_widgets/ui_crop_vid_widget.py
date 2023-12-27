@@ -416,19 +416,23 @@ class UiVideoTabWidget(UiCropBatchWidget):
         self.crop_worker.v_finished.connect(lambda: wf.show_message_box(self.destination))
         self.crop_worker.v_progress.connect(self.update_progress)
 
-    def setup_label(self, name: str) -> QtWidgets.QLabel:
+    def setup_label(self, name: GuiIcon = Union[GuiIcon.MULTIMEDIA_LABEL_A, GuiIcon.MULTIMEDIA_LABEL_B]) -> QtWidgets.QLabel:
         label = QtWidgets.QLabel(parent=self)
-        sizePolicy = QtWidgets.QSizePolicy(
+        size_policy = QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Preferred)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(label.sizePolicy().hasHeightForWidth())
-        label.setSizePolicy(sizePolicy)
+        size_policy.setHorizontalStretch(0)
+        size_policy.setVerticalStretch(0)
+        size_policy.setHeightForWidth(label.sizePolicy().hasHeightForWidth())
+        label.setSizePolicy(size_policy)
         label.setMaximumSize(QtCore.QSize(14, 14))
         label.setText('')
-        label.setPixmap(QtGui.QPixmap(f'resources\\icons\\marker_label_{name.lower()}.svg'))
-        label.setScaledContents(True)
-        label.setObjectName(f'label_{name.upper()}')
+        label.setPixmap(QtGui.QPixmap(name.value))
+        label.setScaledContents(True)        
+        match name:
+            case GuiIcon.MULTIMEDIA_LABEL_A:
+                label.setObjectName(u'label_A')
+            case GuiIcon.MULTIMEDIA_LABEL_B:
+                label.setObjectName(u'label_B')                
         return label
 
     def open_folder(self, line_edit: PathLineEdit) -> None:
@@ -449,17 +453,18 @@ class UiVideoTabWidget(UiCropBatchWidget):
 
     def change_audio_icon(self) -> None:
         if self.audio.isMuted():
-            self.muteButton_1.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_UNMUTE))
-            self.muteButton_2.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_UNMUTE))
+            self.muteButton_1.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_UNMUTE.value))
+            self.muteButton_2.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_UNMUTE.value))
         else:
-            self.muteButton_1.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_MUTE))
-            self.muteButton_2.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_MUTE))
+            self.muteButton_1.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_MUTE.value))
+            self.muteButton_2.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_MUTE.value))
 
     def playback_bool(self,
                       a0: QtMultimedia.QMediaPlayer.PlaybackState = QtMultimedia.QMediaPlayer.PlaybackState.PausedState,
                       a1: QtMultimedia.QMediaPlayer.PlaybackState = QtMultimedia.QMediaPlayer.PlaybackState.StoppedState) -> \
             Tuple[bool, bool]:
-        """Returns a tuple of bools comparing the playback state to the Class attributes of PyQt6.QtMultimedia.QMediaPlayer.PlaybackState"""
+        """Returns a tuple of bools comparing the playback state to the Class attributes of
+        PyQt6.QtMultimedia.QMediaPlayer.PlaybackState"""
         return self.player.playbackState() == a0, self.player.playbackState() == a1
 
     def check_playback_state(self) -> None:
@@ -477,13 +482,13 @@ class UiVideoTabWidget(UiCropBatchWidget):
 
     def change_playback_icons(self):
         if self.player.playbackState() == QtMultimedia.QMediaPlayer.PlaybackState.PlayingState:
-            self.mediacontrolWidget_1.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PAUSE))
-            self.mediacontrolWidget_2.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PAUSE))
+            self.mediacontrolWidget_1.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PAUSE.value))
+            self.mediacontrolWidget_2.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PAUSE.value))
             self.timelineSlider_1.setEnabled(True)
             self.player.setPlaybackRate(1)
         else:
-            self.mediacontrolWidget_1.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PLAY))
-            self.mediacontrolWidget_2.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PLAY))
+            self.mediacontrolWidget_1.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PLAY.value))
+            self.mediacontrolWidget_2.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PLAY.value))
 
     def change_media_widget_state(self, *buttons: QtWidgets.QPushButton):
         x, y = self.playback_bool()
@@ -508,13 +513,13 @@ class UiVideoTabWidget(UiCropBatchWidget):
         x, y = self.playback_bool()
         if x ^ y:
             return
-        VIDEO_SPEEDS = np.array([1.0, 1.25, 1.5, 1.75, 2.0])
+        video_speeds = np.array([1.0, 1.25, 1.5, 1.75, 2.0])
         self.reverse = 0
         self.speed += 1
-        if self.speed > VIDEO_SPEEDS.size - 1:
-            self.player.setPlaybackRate(VIDEO_SPEEDS[-1])
+        if self.speed > video_speeds.size - 1:
+            self.player.setPlaybackRate(video_speeds[-1])
         else:
-            self.player.setPlaybackRate(VIDEO_SPEEDS[self.speed])
+            self.player.setPlaybackRate(video_speeds[self.speed])
 
     def step_forward(self):
         if (new_position := self.player.position() + 10_000) >= self.player.duration():
@@ -613,7 +618,7 @@ class UiVideoTabWidget(UiCropBatchWidget):
                 case NumberLineEdit() | PathLineEdit():
                     input_widget.textChanged.connect(lambda: self.disable_buttons())
                 case QtWidgets.QCheckBox():
-                    self.connect_checkboxs(input_widget)
+                    self.connect_checkbox(input_widget)
                 case _:
                     pass
 

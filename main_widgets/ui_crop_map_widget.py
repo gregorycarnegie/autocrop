@@ -252,7 +252,7 @@ class UiMappingTabWidget(UiCropBatchWidget):
                 case QtWidgets.QComboBox():
                     input_widget.currentTextChanged.connect(lambda: self.disable_buttons())
                 case QtWidgets.QCheckBox():
-                    self.connect_checkboxs(input_widget)
+                    self.connect_checkbox(input_widget)
                 case _:
                     pass
 

@@ -18,6 +18,7 @@ from PIL import Image
 
 from file_types import Photo
 from . import window_functions as wf
+from .enums import ResourcePath
 from .image_widget import ImageWidget
 from .job import Job
 
@@ -73,7 +74,8 @@ def pillow_to_numpy(image: Image.Image) -> npt.NDArray[np.uint8]:
 @cache
 def gamma(gam: Union[int, float] = 1.0) -> npt.NDArray[np.generic]:
     """
-    The function applies a gamma correction to an array of intensity values ranging from 0 to 255. It returns the corrected array.
+    The function applies a gamma correction to an array of intensity values ranging from 0 to 255. It returns the
+    corrected array.
 
     Args:
         gam (Union[int, float], optional): The gamma value for the correction. Defaults to 1.0.
@@ -148,7 +150,8 @@ def convert_color_space(image: ImageArray) -> cvt.MatLike:
 
 def numpy_array_crop(image: cvt.MatLike, bounding_box: Box) -> npt.NDArray[np.uint8]:
     """
-    The function crops the provided image using the specified bounding box and returns the cropped image as a NumPy array.
+    The function crops the provided image using the specified bounding box and returns the cropped image as a NumPy
+    array.
 
     Args:
         image (cvt.MatLike): The image to be cropped.
@@ -322,7 +325,8 @@ def open_image(image: Path,
                exposure: bool,
                tilt: bool) -> cvt.MatLike:
     """
-    The function opens an image file using `cv2` and performs color conversion, exposure correction, and head alignment using the provided ` Tuple[Any, Any]` object.
+    The function opens an image file using `cv2` and performs color conversion, exposure correction,
+    and head alignment using the provided ` Tuple[Any, Any]` object.
 
     Args:
         image (Path): The path to the image file.
@@ -356,7 +360,8 @@ def open_raw(image: Path,
              exposure: bool,
              tilt: bool) -> cvt.MatLike:
     """
-    The function opens a raw image file using `rawpy` and performs post-processing on the raw image data. It corrects the exposure and aligns the head using the provided ` Tuple[Any, Any]` object.
+    The function opens a raw image file using `rawpy` and performs post-processing on the raw image data. It corrects
+    the exposure and aligns the head using the provided ` Tuple[Any, Any]` object.
 
     Args:
         image (Path): The path to the raw image file.
@@ -388,7 +393,8 @@ def open_raw(image: Path,
 
 def open_table(input_file: Path) -> pd.DataFrame:
     """
-    The function opens a table file and returns its contents as a `pd.DataFrame` object. If the file has a `.csv` extension, the function uses `pd.read_csv` to read the file. Otherwise, it uses `pd.read_excel`.
+    The function opens a table file and returns its contents as a `pd.DataFrame` object. If the file has a `.csv`
+    extension, the function uses `pd.read_csv` to read the file. Otherwise, it uses `pd.read_excel`.
 
     Args:
         input_file (Path): The path to the table file.
@@ -418,7 +424,10 @@ def open_pic(input_file: Union[Path, str],
              exposure: bool,
              tilt: bool) -> Optional[cvt.MatLike]:
     """
-    The function opens an image file based on its extension. If the extension is in the list of supported CV2 types, the function calls `open_image` to open the image using `cv2`. If the extension is in the list of supported RAW types, the function calls `open_raw` to open the raw image using `rawpy`. If the extension is not supported, the function returns None.
+    The function opens an image file based on its extension. If the extension is in the list of supported CV2 types,
+    the function calls `open_image` to open the image using `cv2`. If the extension is in the list of supported RAW
+    types, the function calls `open_raw` to open the raw image using `rawpy`. If the extension is not supported,
+    the function returns None.
 
     Args:
         input_file (Union[Path, str]): The path or string representing the input image file.
@@ -468,8 +477,9 @@ def prepare_detections(image: cvt.MatLike) -> npt.NDArray[np.float64]:
     # We standardize the image by scaling it and then subtracting the mean RGB values
     blob = cv2.dnn.blobFromImage(image, 1.0, (300, 300), (104.0, 177.0, 123.0), False, False)
     # Set the input for the neural network
-    caffe = cv2.dnn.readNetFromCaffe('resources\\weights\\deploy.prototxt.txt',
-                                     'resources\\models\\res10_300x300_ssd_iter_140000.caffemodel')
+    prototxt = ResourcePath('resources\\weights\\deploy.prototxt.txt').meipass_path
+    caffemodel = ResourcePath('resources\\models\\res10_300x300_ssd_iter_140000.caffemodel').meipass_path
+    caffe = cv2.dnn.readNetFromCaffe(prototxt, caffemodel)
     caffe.setInput(blob)
     # Forward pass through the network to get detections
     return np.array(caffe.forward())
@@ -595,7 +605,8 @@ def get_first_file(img_path: Path) -> Optional[Path]:
 
 def mask_extensions(file_list: npt.NDArray[np.str_]) -> Tuple[npt.NDArray[np.bool_], int]:
     """
-    The function masks the file list based on the file extensions and returns a tuple containing the mask array and the size of the masked file list.
+    The function masks the file list based on the file extensions and returns a tuple containing the mask array and
+    the size of the masked file list.
 
     Args:
         file_list (npt.NDArray[np.str_]): The file list to be masked.
@@ -628,7 +639,8 @@ def split_by_cpus(mask: npt.NDArray[np.bool_],
                   core_count: int,
                   *file_lists: npt.NDArray[np.str_]) -> Generator[List[npt.NDArray[np.str_]], None, None]:
     """
-    The function splits the provided file lists based on the given mask and core count, and returns a generator of the split lists.
+    The function splits the provided file lists based on the given mask and core count, and returns a generator of
+    the split lists.
 
     Args:
         mask (npt.NDArray[np.bool_]): The mask array used for splitting.
@@ -839,16 +851,16 @@ def save_detection(source_image: Path,
                    image_name: Optional[Path] = None,
                    new: Optional[str] = None) -> None:
     """
-    The function saves the cropped images obtained from the `crop_function` using the `save_function` based on the provided job parameters.
+    The function saves the cropped images obtained from the `crop_function` using the `save_function` based on the
+    provided job parameters.
 
-    Args:
-        source_image (Path): The path to the source image file.
-        job (Job): The job object containing additional parameters.
-        face_detection_tools ( Tuple[Any, Any]): The face worker object used for face detection.
-        crop_function (Callable[[Union[cvt.MatLike, Path], Job,  Tuple[Any, Any]], Optional[Union[cvt.MatLike, Generator[cvt.MatLike, None, None]]]]): The function used for cropping the image.
-        save_function (Callable[[Any, Path, int, bool], None]): The function used for saving the cropped images.
-        image_name (Optional[Path], optional): The name of the image file. Defaults to None.
-        new (Optional[str], optional): The name of the new image file. Defaults to None.
+    Args: source_image (Path): The path to the source image file. job (Job): The job object containing additional
+    parameters. face_detection_tools ( Tuple[Any, Any]): The face worker object used for face detection.
+    crop_function (Callable[[Union[cvt.MatLike, Path], Job,  Tuple[Any, Any]], Optional[Union[cvt.MatLike,
+    Generator[cvt.MatLike, None, None]]]]): The function used for cropping the image. save_function (Callable[[Any,
+    Path, int, bool], None]): The function used for saving the cropped images. image_name (Optional[Path],
+    optional): The name of the image file. Defaults to None. new (Optional[str], optional): The name of the new image
+    file. Defaults to None.
 
     Returns:
         None
@@ -926,8 +938,8 @@ def crop_image(image: Union[Path, cvt.MatLike],
         ```
     """
 
-    pic_array = open_pic(image, face_detection_tools, exposure=job.fix_exposure_job.isChecked(),
-                         tilt=job.auto_tilt_job.isChecked()) \
+    pic_array = open_pic(image, face_detection_tools, exposure=job.fix_exposure_job,
+                         tilt=job.auto_tilt_job) \
         if isinstance(image, Path) else image
 
     if pic_array is None:
@@ -945,7 +957,8 @@ def multi_crop(source_image: Union[cvt.MatLike, Path],
                job: Job,
                face_detection_tools: Tuple[Any, Any]) -> Optional[Generator[cvt.MatLike, None, None]]:
     """
-    The function takes a source image, a job, and a face worker as input parameters. It returns a generator that yields cropped images of faces detected in the source image.
+    The function takes a source image, a job, and a face worker as input parameters. It returns a generator that
+    yields cropped images of faces detected in the source image.
 
     Args:
         source_image (Union[cvt.MatLike, Path]): The source image from which to extract cropped images.
@@ -970,8 +983,7 @@ def multi_crop(source_image: Union[cvt.MatLike, Path],
         ```
     """
 
-    img = open_pic(source_image, face_detection_tools, exposure=job.fix_exposure_job.isChecked(),
-                   tilt=job.auto_tilt_job.isChecked()) \
+    img = open_pic(source_image, face_detection_tools, exposure=job.fix_exposure_job, tilt=job.auto_tilt_job) \
         if isinstance(source_image, Path) else source_image
 
     if img is None:
@@ -1028,7 +1040,7 @@ def crop(image: Path,
     if job.table is not None and job.folder_path is not None and new is not None:
         # Data cropping
         path = job.folder_path.joinpath(image)
-        if job.multi_face_job.isChecked():
+        if job.multi_face_job:
             save_detection(path, job, face_detection_tools, multi_crop, multi_save_image, image, new)
         else:
             save_detection(path, job, face_detection_tools, crop_image, save_image, image, new)
@@ -1036,11 +1048,11 @@ def crop(image: Path,
         # Folder cropping
         source, image_name = job.folder_path, image.name
         path = source.joinpath(image_name)
-        if job.multi_face_job.isChecked():
+        if job.multi_face_job:
             save_detection(path, job, face_detection_tools, multi_crop, multi_save_image, Path(image_name))
         else:
             save_detection(path, job, face_detection_tools, crop_image, save_image, Path(image_name))
-    elif job.multi_face_job.isChecked():
+    elif job.multi_face_job:
         save_detection(image, job, face_detection_tools, multi_crop, multi_save_image)
     else:
         save_detection(image, job, face_detection_tools, crop_image, save_image)

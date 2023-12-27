@@ -1,34 +1,31 @@
 from enum import Enum
-from pathlib import Path
-import sys
 
-def resource_path(relative_path: str) -> str:
-    base_path = Path(getattr(sys, '_MEIPASS2', Path().resolve()))
-    return (base_path / relative_path).as_posix()
+from .resource_path import ResourcePath
 
 
 class GuiIcon(Enum):
-    CLAPPERBOARD = resource_path('resources\\icons\\clapperboard.svg')
-    CANCEL = resource_path('resources\\icons\\cancel.svg')
-    CROP = resource_path('resources\\icons\\crop.svg')
-    EXCEL = resource_path('resources\\icons\\excel.svg')
-    FOLDER = resource_path('resources\\icons\\folder.svg')
-    ICON = resource_path('resources\\logos\\logo.ico')
-    LOGO = resource_path('resources\\logos\\logo.svg')
-    MULTIMEDIA_MUTE = resource_path('resources\\icons\\multimedia_mute.svg')
-    MULTIMEDIA_PAUSE = resource_path('resources\\icons\\multimedia_pause.svg')
-    MULTIMEDIA_PLAY = resource_path('resources\\icons\\multimedia_play.svg')
-    MULTIMEDIA_UNMUTE = resource_path('resources\\icons\\multimedia_unmute.svg')
-    MULTIMEDIA_STOP = resource_path('resources\\icons\\multimedia_stop.svg')
-    MULTIMEDIA_LEFT = resource_path('resources\\icons\\multimedia_left.svg')
-    MULTIMEDIA_RIGHT = resource_path('resources\\icons\\multimedia_right.svg')
-    MULTIMEDIA_REWIND = resource_path('resources\\icons\\multimedia_rewind.svg')
-    MULTIMEDIA_FASTFWD = resource_path('resources\\icons\\multimedia_fastfwd.svg')
-    MULTIMEDIA_BEGINING = resource_path('resources\\icons\\multimedia_begining.svg')
-    MULTIMEDIA_END = resource_path('resources\\icons\\multimedia_end.svg')
-    MULTIMEDIA_LEFTMARKER = resource_path('resources\\icons\\multimedia_leftmarker.svg')
-    MULTIMEDIA_RIGHTMARKER = resource_path('resources\\icons\\multimedia_rightmarker.svg')
-    MULTIMEDIA_CROPVIDEO = resource_path('resources\\icons\\crop_video.svg')
-    MULTIMEDIA_LABEL_A = resource_path('resources\\icons\\marker_label_a.svg')
-    MULTIMEDIA_LABEL_B = resource_path('resources\\icons\\marker_label_b.svg')
-    PICTURE = resource_path('resources\\icons\\picture.svg')
+    CLAPPERBOARD = ResourcePath('resources\\icons\\clapperboard.svg').meipass_path
+    CLEAR = ResourcePath('resources\\icons\\clear.svg').meipass_path
+    CANCEL = ResourcePath('resources\\icons\\cancel.svg').meipass_path
+    CROP = ResourcePath('resources\\icons\\crop.svg').meipass_path
+    EXCEL = ResourcePath('resources\\icons\\excel.svg').meipass_path
+    FOLDER = ResourcePath('resources\\icons\\folder.svg').meipass_path
+    ICON = ResourcePath('resources\\logos\\logo.ico').meipass_path
+    LOGO = ResourcePath('resources\\logos\\logo.svg').meipass_path
+    MULTIMEDIA_MUTE = ResourcePath('resources\\icons\\multimedia_mute.svg').meipass_path
+    MULTIMEDIA_PAUSE = ResourcePath('resources\\icons\\multimedia_pause.svg').meipass_path
+    MULTIMEDIA_PLAY = ResourcePath('resources\\icons\\multimedia_play.svg').meipass_path
+    MULTIMEDIA_UNMUTE = ResourcePath('resources\\icons\\multimedia_unmute.svg').meipass_path
+    MULTIMEDIA_STOP = ResourcePath('resources\\icons\\multimedia_stop.svg').meipass_path
+    MULTIMEDIA_LEFT = ResourcePath('resources\\icons\\multimedia_left.svg').meipass_path
+    MULTIMEDIA_RIGHT = ResourcePath('resources\\icons\\multimedia_right.svg').meipass_path
+    MULTIMEDIA_REWIND = ResourcePath('resources\\icons\\multimedia_rewind.svg').meipass_path
+    MULTIMEDIA_FASTFWD = ResourcePath('resources\\icons\\multimedia_fastfwd.svg').meipass_path
+    MULTIMEDIA_BEGINING = ResourcePath('resources\\icons\\multimedia_begining.svg').meipass_path
+    MULTIMEDIA_END = ResourcePath('resources\\icons\\multimedia_end.svg').meipass_path
+    MULTIMEDIA_LEFTMARKER = ResourcePath('resources\\icons\\multimedia_leftmarker.svg').meipass_path
+    MULTIMEDIA_RIGHTMARKER = ResourcePath('resources\\icons\\multimedia_rightmarker.svg').meipass_path
+    MULTIMEDIA_CROPVIDEO = ResourcePath('resources\\icons\\crop_video.svg').meipass_path
+    MULTIMEDIA_LABEL_A = ResourcePath('resources\\icons\\marker_label_a.svg').meipass_path
+    MULTIMEDIA_LABEL_B = ResourcePath('resources\\icons\\marker_label_b.svg').meipass_path
+    PICTURE = ResourcePath('resources\\icons\\picture.svg').meipass_path

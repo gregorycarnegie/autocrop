@@ -73,7 +73,7 @@ class UiCropWidget(QtWidgets.QWidget):
         self.imageWidget = ImageWidget()
         self.imageWidget.setObjectName(u"imageWidget")
         wf.apply_size_policy(self.imageWidget, sizePolicy, min_size=QtCore.QSize(0, 0),
-                               max_size=QtCore.QSize(16_777_215, 16_777_215))
+                             max_size=QtCore.QSize(16_777_215, 16_777_215))
         self.imageWidget.setStyleSheet(u"")
         self.horizontalLayout = wf.setup_hbox(u"horizontalLayout", self.imageWidget)
         self.controlWidget = UiCropControlWidget(self.imageWidget)
@@ -92,18 +92,18 @@ class UiCropWidget(QtWidgets.QWidget):
         pass
 
     def create_checkbox(self, name: str) -> QtWidgets.QCheckBox:
-        checkBox = QtWidgets.QCheckBox()
-        checkBox.setObjectName(name)
-        wf.apply_size_policy(checkBox, self.size_policy1)
-        checkBox.setStyleSheet(self.CHECKBOX_STYLESHEET)
-        return checkBox
+        check_box = QtWidgets.QCheckBox()
+        check_box.setObjectName(name)
+        wf.apply_size_policy(check_box, self.size_policy1)
+        check_box.setStyleSheet(self.CHECKBOX_STYLESHEET)
+        return check_box
 
     def create_str_line_edit(self, name: str, path_type: PathType) -> PathLineEdit:
-        lineEdit = PathLineEdit(path_type=path_type)
-        lineEdit.setObjectName(name)
-        wf.apply_size_policy(lineEdit, self.size_policy1)
-        lineEdit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
-        return lineEdit
+        line_edit = PathLineEdit(path_type=path_type)
+        line_edit.setObjectName(name)
+        wf.apply_size_policy(line_edit, self.size_policy1)
+        line_edit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
+        return line_edit
 
     def create_nav_button(self, name: str) -> QtWidgets.QPushButton:
         button = QtWidgets.QPushButton()
@@ -111,32 +111,8 @@ class UiCropWidget(QtWidgets.QWidget):
         wf.apply_size_policy(button, self.size_policy1, min_size=QtCore.QSize(124, 30))
         return button
 
-    # @staticmethod
-    # def create_button_icon(icon_resource: GuiIcon,
-    #                        size: QtCore.QSize = QtCore.QSize(),
-    #                        mode: QtGui.QIcon.Mode = QtGui.QIcon.Mode.Normal,
-    #                        state: QtGui.QIcon.State = QtGui.QIcon.State.Off) -> QtGui.QIcon:
-    #     icon = QtGui.QIcon()
-    #     icon.addFile(icon_resource.value, size, mode, state)
-    #     return icon
-
-    # def setup_process_button(self, name: str, icon_name: ProcessIconAlias, button_type: ButtonType) -> QtWidgets.QPushButton:
-    #     icon = QtGui.QIcon()
-    #     icon.addPixmap(QtGui.QPixmap(f'resources\\icons\\{icon_name}.svg'), QtGui.QIcon.Mode.Normal,
-    #                    QtGui.QIcon.State.Off)
-
-    #     match button_type:
-    #         case ButtonType.PROCESS_BUTTON:
-    #             button = QtWidgets.QPushButton(parent=self.frame)
-    #             button.setMinimumSize(QtCore.QSize(0, 24))
-    #             return wf.adjust_pushbutton(button, icon, name)
-    #         case ButtonType.NAVIGATION_BUTTON:
-    #             button = QtWidgets.QPushButton(parent=self)
-    #             button.setMinimumSize(QtCore.QSize(200, 24))
-    #             return wf.adjust_pushbutton(button, icon, name)
-
     def setup_path_line_edit(self, name: str, path_type: PathType = PathType.FOLDER) -> PathLineEdit:
-        """Only sublasses of the CustomCropWidget class should implement this method"""
+        """Only subclasses of the CustomCropWidget class should implement this method"""
         line_edit = PathLineEdit(path_type=path_type, parent=self)
         line_edit.setMinimumSize(QtCore.QSize(0, 24))
         line_edit.setMaximumSize(QtCore.QSize(16_777_215, 24))
@@ -145,15 +121,15 @@ class UiCropWidget(QtWidgets.QWidget):
         return line_edit
 
     def reload_widgets(self) -> None:
-        """Only sublasses of the CustomCropWidget class should implement this method"""
+        """Only subclasses of the CustomCropWidget class should implement this method"""
         pass
 
     def disable_buttons(self) -> None:
-        """Only sublasses of the CustomCropWidget class should implement this method"""
+        """Only subclasses of the CustomCropWidget class should implement this method"""
         pass
 
-    def connect_checkboxs(self, checkbox: QtWidgets.QCheckBox) -> None:
-        """Only sublasses of the CustomCropWidget class should implement this method"""
+    def connect_checkbox(self, checkbox: QtWidgets.QCheckBox) -> None:
+        """Only subclasses of the CustomCropWidget class should implement this method"""
         checkbox.stateChanged.connect(lambda: self.reload_widgets())
         match checkbox:
             case self.mfaceCheckBox:
@@ -165,7 +141,7 @@ class UiCropWidget(QtWidgets.QWidget):
                 pass
 
     def connect_input_widgets(self, *input_widgets: QtWidgets.QWidget) -> None:
-        """Only sublasses of the CustomCropWidget class should implement this method"""
+        """Only subclasses of the CustomCropWidget class should implement this method"""
         for input_widget in input_widgets:
             match input_widget:
                 case NumberLineEdit() | PathLineEdit():
@@ -174,7 +150,7 @@ class UiCropWidget(QtWidgets.QWidget):
                 case QtWidgets.QDial():
                     input_widget.valueChanged.connect(lambda: self.reload_widgets())
                 case QtWidgets.QCheckBox():
-                    self.connect_checkboxs(input_widget)
+                    self.connect_checkbox(input_widget)
                 case _:
                     pass
 
@@ -235,7 +211,7 @@ class UiCropWidget(QtWidgets.QWidget):
                    video_path: Optional[Path] = None,
                    start_position: Optional[float] = None,
                    stop_position: Optional[float] = None) -> Job:
-        """Only sublasses of the CustomCropWidget class should implement this method"""
+        """Only subclasses of the CustomCropWidget class should implement this method"""
         if function_type is not None:
             match function_type:
                 case FunctionType.FOLDER | FunctionType.MAPPING:
@@ -251,9 +227,9 @@ class UiCropWidget(QtWidgets.QWidget):
 
         return Job(self.controlWidget.widthLineEdit.value(),
                    self.controlWidget.heightLineEdit.value(),
-                   self.exposureCheckBox,
-                   self.mfaceCheckBox,
-                   self.tiltCheckBox,
+                   self.exposureCheckBox.isChecked(),
+                   self.mfaceCheckBox.isChecked(),
+                   self.tiltCheckBox.isChecked(),
                    self.controlWidget.sensitivityDial.value(),
                    self.controlWidget.fpctDial.value(),
                    self.controlWidget.gammaDial.value(),
@@ -261,7 +237,7 @@ class UiCropWidget(QtWidgets.QWidget):
                    self.controlWidget.bottomDial.value(),
                    self.controlWidget.leftDial.value(),
                    self.controlWidget.rightDial.value(),
-                   self.controlWidget.radioTuple,
+                   self.controlWidget.radio_tuple,
                    photo_path=photo_path,
                    destination=destination,
                    folder_path=folder_path,
@@ -273,7 +249,7 @@ class UiCropWidget(QtWidgets.QWidget):
                    stop_position=stop_position)
 
     def open_folder(self, line_edit: PathLineEdit) -> None:
-        """Only sublasses of the CustomCropWidget class should implement this method"""
+        """Only subclasses of the CustomCropWidget class should implement this method"""
         f_name = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Directory', Photo.default_directory)
         line_edit.setText(f_name)
         match self.inputLineEdit.path_type:
@@ -283,5 +259,5 @@ class UiCropWidget(QtWidgets.QWidget):
                 pass
 
     def load_data(self) -> None:
-        """Only sublasses of the CustomCropWidget class should implement this method"""
+        """Only subclasses of the CustomCropWidget class should implement this method"""
         pass

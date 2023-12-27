@@ -1,5 +1,4 @@
 import re
-import sys
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count
 from pathlib import Path
@@ -15,14 +14,9 @@ from PyQt6.QtWidgets import QLabel, QLineEdit, QSlider
 
 from . import utils as ut
 from . import window_functions as wf
-from .enums import FunctionType
+from .enums import FunctionType, ResourcePath
 from .image_widget import ImageWidget
 from .job import Job
-
-
-def resource_path(relative_path: str) -> str:
-    base_path = Path(getattr(sys, '_MEIPASS2', Path().resolve()))
-    return (base_path / relative_path).as_posix()
 
 
 class Cropper(QObject):
@@ -82,7 +76,7 @@ class Cropper(QObject):
 
     THREAD_NUMBER: ClassVar[int] = min(cpu_count(), 8)
     TASK_VALUES: ClassVar[Tuple[int, bool, bool]] = 0, False, True
-    LANDMARKS: ClassVar[str] = resource_path('resources\\models\\shape_predictor_68_face_landmarks.dat')
+    LANDMARKS: ClassVar[str] = ResourcePath('resources\\models\\shape_predictor_68_face_landmarks.dat').meipass_path
 
     f_started, f_finished, f_progress = pyqtSignal(), pyqtSignal(), pyqtSignal(object)
     m_started, m_finished, m_progress = pyqtSignal(), pyqtSignal(), pyqtSignal(object)
@@ -209,12 +203,12 @@ class Cropper(QObject):
             return
 
         pic_array = ut.open_pic(img_path, self.face_detection_tools[0],
-                                exposure=job.fix_exposure_job.isChecked(),
-                                tilt=job.auto_tilt_job.isChecked())
+                                exposure=job.fix_exposure_job,
+                                tilt=job.auto_tilt_job)
         if pic_array is None:
             return
 
-        if job.multi_face_job.isChecked():
+        if job.multi_face_job:
             pic = ut.multi_box(pic_array, job)
             wf.display_image_on_widget(pic, image_widget)
         else:
@@ -411,7 +405,7 @@ class Cropper(QObject):
         is_tiff = file_path.suffix in {'.tif', '.tiff'}
 
         # Handle multi-face job
-        if job.multi_face_job.isChecked():
+        if job.multi_face_job:
             if (images := ut.multi_crop(frame, job, self.face_detection_tools[0])) is None:
                 return
 
@@ -510,7 +504,7 @@ class Cropper(QObject):
         file_enum = f'{job.video_path.stem}_frame_{frame_number:06d}'
 
         # Process the frame based on whether it's a multi-face job or single-face job
-        if job.multi_face_job.isChecked():
+        if job.multi_face_job:
             self.process_multiface_frame_job(frame, job, file_enum, destination)
         else:
             self.process_singleface_frame_job(frame, job, file_enum, destination)

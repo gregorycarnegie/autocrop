@@ -1,9 +1,10 @@
 from typing import ClassVar, Optional
 
-from PyQt6.QtWidgets import QLineEdit, QStyle, QToolButton, QWidget
-from PyQt6.QtGui import QIcon, QPixmap, QResizeEvent
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QIcon, QPixmap, QResizeEvent
+from PyQt6.QtWidgets import QLineEdit, QStyle, QToolButton, QWidget
 
+from core.enums import GuiIcon
 from .enums import LineEditState
 
 
@@ -19,7 +20,7 @@ class CustomLineEdit(QLineEdit):
 
     Methods:
         resizeEvent(a0: Optional[QResizeEvent]): Overrides the resize event to handle the positioning of the clear button.
-        updateClearButton(text: str) -> None: Updates the visibility of the clear button based on the text input.
+        update_clear_button(text: str) -> None: Updates the visibility of the clear button based on the text input.
         validate_path() -> None: Validates the input path and sets the color accordingly.
         set_valid_color() -> None: Sets the color to the valid color.
         set_invalid_color() -> None: Sets the color to the invalid color.
@@ -35,7 +36,7 @@ class CustomLineEdit(QLineEdit):
         line_edit.resizeEvent(None)
 
         # Updating the clear button visibility
-        line_edit.updateClearButton("Text")
+        line_edit.update_clear_button("Text")
 
         # Validating the input path
         line_edit.validate_path()
@@ -59,13 +60,13 @@ class CustomLineEdit(QLineEdit):
         self.state = LineEditState.INVALID_INPUT
         self.colour = self.INVALID_COLOR
         self.clearButton = QToolButton(self)
-        self.clearButton.setIcon(QIcon(QPixmap('resources\\icons\\clear.svg')))
+        self.clearButton.setIcon(QIcon(QPixmap(GuiIcon.CLEAR.value)))
         self.clearButton.setCursor(Qt.CursorShape.ArrowCursor)
         self.clearButton.setStyleSheet('QToolButton { border: none; padding: 0px; }')
         self.clearButton.hide()
         self.clearButton.clicked.connect(self.clear)
 
-        self.textChanged.connect(self.updateClearButton)
+        self.textChanged.connect(self.update_clear_button)
         self.textChanged.connect(self.validate_path)
 
         self.update_style()
@@ -82,18 +83,18 @@ class CustomLineEdit(QLineEdit):
             None
         """
 
-        buttonSize = self.clearButton.sizeHint()
+        button_size = self.clearButton.sizeHint()
         if (style := self.style()) is None:
             return
         
-        frameWidth = style.pixelMetric(QStyle.PixelMetric.PM_DefaultFrameWidth)
+        frame_width = style.pixelMetric(QStyle.PixelMetric.PM_DefaultFrameWidth)
         rect = self.rect()
-        self.clearButton.move(rect.right() - frameWidth - buttonSize.width(),
-                              (rect.bottom() - buttonSize.height() + 1) >> 1)
+        self.clearButton.move(rect.right() - frame_width - button_size.width(),
+                              (rect.bottom() - button_size.height() + 1) >> 1)
         
         super(CustomLineEdit, self).resizeEvent(a0)
 
-    def updateClearButton(self, text: str) -> None:
+    def update_clear_button(self, text: str) -> None:
         """
         Updates the visibility of the clear button based on the text input.
 

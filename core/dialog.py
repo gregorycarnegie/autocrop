@@ -2,10 +2,9 @@ from PyQt6.QtCore import QCoreApplication, QMetaObject, QSize
 from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtWidgets import QDialog, QLabel, QSizePolicy
 
+from core.enums import GuiIcon
 from . import window_functions as wf
 from .image_widget import ImageWidget
-
-from core.enums import GuiIcon
 
 
 class UiDialog(QDialog):

@@ -37,7 +37,6 @@ class PathLineEdit(CustomLineEdit):
         self.path_type = path_type
         self.textChanged.connect(self.insert_clipboard_path)
 
-
     def insert_clipboard_path(self):
         """
         Removes the quotation marks from the passed path
@@ -46,7 +45,6 @@ class PathLineEdit(CustomLineEdit):
         x, y = text.startswith("'") & text.endswith("'"), text.startswith('"') & text.endswith('"')
         if x ^ y:
             self.setText(text[1:][:-1])
-
 
     def validate_path(self) -> None:
         """
@@ -67,7 +65,6 @@ class PathLineEdit(CustomLineEdit):
         self.color_logic(self.is_valid_path(file_path))
         self.update_style()
 
-    
     def is_valid_path(self, path: Path) -> bool:
         """
         Checks if the given path is valid.

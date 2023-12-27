@@ -1,6 +1,5 @@
-from typing import Optional
-
 from pathlib import Path
+from typing import ClassVar, Optional
 
 import numpy as np
 import numpy.typing as npt
@@ -35,8 +34,8 @@ class File:
         ```
     """
 
-    file_types: npt.NDArray[np.str_] = np.array([''])
-    default_directory = Path.home().joinpath('Pictures').as_posix()
+    file_types: ClassVar[npt.NDArray[np.str_]] = np.array([''])
+    default_directory: ClassVar[str] = Path.home().joinpath('Pictures').as_posix()
 
     @classmethod
     def file_filter(cls) -> npt.NDArray[np.str_]:

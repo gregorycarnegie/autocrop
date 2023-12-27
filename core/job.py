@@ -4,7 +4,7 @@ from typing import Any, NamedTuple, Optional, Tuple
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-from PyQt6.QtWidgets import QCheckBox, QComboBox, QRadioButton
+from PyQt6.QtWidgets import QComboBox
 
 from file_types import Photo
 
@@ -16,9 +16,9 @@ class Job(NamedTuple):
     Attributes:
         width (int): The width of the job.
         height (int): The height of the job.
-        fix_exposure_job (QCheckBox): The checkbox for fixing exposure.
-        multi_face_job (QCheckBox): The checkbox for multi-face detection.
-        auto_tilt_job (QCheckBox): The checkbox for auto tilt correction.
+        fix_exposure_job (bool): The checkbox for fixing exposure.
+        multi_face_job (bool): The checkbox for multi-face detection.
+        auto_tilt_job (bool): The checkbox for auto tilt correction.
         sensitivity (int): The sensitivity value.
         face_percent (int): The face percentage value.
         gamma (int): The gamma value.
@@ -26,7 +26,7 @@ class Job(NamedTuple):
         bottom (int): The bottom value.
         left (int): The left value.
         right (int): The right value.
-        radio_buttons (Tuple[QRadioButton, ...]): The tuple of radio buttons.
+        radio_buttons (Tuple[bool, ...]): The tuple of radio buttons.
         radio_options (npt.NDArray[np.str_]): The array of radio button options.
         destination (Optional[Path]): The optional destination path.
         photo_path (Optional[Path]): The optional photo path.
@@ -98,9 +98,9 @@ class Job(NamedTuple):
 
     width: int
     height: int
-    fix_exposure_job: QCheckBox
-    multi_face_job: QCheckBox
-    auto_tilt_job: QCheckBox
+    fix_exposure_job: bool
+    multi_face_job: bool
+    auto_tilt_job: bool
     sensitivity: int
     face_percent: int
     gamma: int
@@ -108,7 +108,7 @@ class Job(NamedTuple):
     bottom: int
     left: int
     right: int
-    radio_buttons: Tuple[QRadioButton, ...]
+    radio_buttons: Tuple[bool, ...]
     radio_options: npt.NDArray[np.str_] = np.array(['No', '.bmp', '.jpg', '.png', '.tiff', '.webp'])
     destination: Optional[Path] = None
     photo_path: Optional[Path] = None
@@ -183,8 +183,8 @@ class Job(NamedTuple):
             ```
         """
 
-        x = np.fromiter((r.isChecked() for r in self.radio_buttons), np.bool_)
-        return self.radio_options[x][0]
+        # x = np.fromiter((r for r in self.radio_buttons), np.bool_)
+        return self.radio_options[self.radio_buttons][0]
 
     @property
     def size(self) -> Tuple[int, int]:
