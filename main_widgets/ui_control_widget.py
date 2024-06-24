@@ -4,6 +4,7 @@ from typing import Tuple
 
 from PyQt6 import QtCore, QtWidgets
 
+from core import ResourcePath
 from core import window_functions as wf
 from line_edits import NumberLineEdit
 
@@ -290,6 +291,9 @@ class UiCropControlWidget(QtWidgets.QWidget):
         self.fpctLabel.setText(QtCore.QCoreApplication.translate("self", u"Face%:", None))
 
     # retranslateUi
+    @staticmethod
+    def resource_const(*args: str) -> tuple[str, ...]:
+        return tuple(ResourcePath(arg).meipass_path for arg in args)
 
     @property
     def radio_tuple(self) -> RadioTuple:
@@ -303,6 +307,7 @@ class UiCropControlWidget(QtWidgets.QWidget):
         radio_button.setObjectName(name)
         size_policy.setHeightForWidth(radio_button.sizePolicy().hasHeightForWidth())
         radio_button.setSizePolicy(size_policy)
+        icon_resource = self.resource_const(*icon_resource)
         stylesheet = re.sub('true', icon_resource[0], self.RADIO_STYLESHEET)
         stylesheet = re.sub('false', icon_resource[1], stylesheet)
         radio_button.setStyleSheet(stylesheet)

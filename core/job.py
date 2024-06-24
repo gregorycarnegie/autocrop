@@ -8,6 +8,8 @@ from PyQt6.QtWidgets import QComboBox
 
 from file_types import Photo
 
+StringArrayTuple = Tuple[npt.NDArray[np.str_], npt.NDArray[np.str_]]
+
 
 class Job(NamedTuple):
     """
@@ -157,7 +159,7 @@ class Job(NamedTuple):
             # Creating a job instance
             job = Job(radio_options=np.array(['No', '.bmp']))
 
-            # Getting the radio button options
+            # Getting the radio button options.
             options = job.radio_tuple()
             print(options)
             ```
@@ -183,8 +185,8 @@ class Job(NamedTuple):
             ```
         """
 
-        # x = np.fromiter((r for r in self.radio_buttons), np.bool_)
-        return self.radio_options[self.radio_buttons][0]
+        bool_iter = np.fromiter(iter(self.radio_buttons), np.bool_)
+        return str(self.radio_options[bool_iter][0])
 
     @property
     def size(self) -> Tuple[int, int]:
@@ -253,7 +255,7 @@ class Job(NamedTuple):
 
     def _table_to_numpy(self, table: pd.DataFrame, *,
                         column_1: str,
-                        column_2: str) -> Tuple[npt.NDArray[np.str_], npt.NDArray[np.str_]]:
+                        column_2: str) -> StringArrayTuple:
         """
         The function converts a specified table to a NumPy array of strings. It requires a `pd.DataFrame` object and the names of two columns in the table. The function returns a tuple containing two NumPy arrays of strings representing the values in the specified columns.
 
@@ -284,11 +286,11 @@ class Job(NamedTuple):
 
         # Vectorized Check for file existence
         mask = np.fromiter((self.folder_path / old_file in existing_files for old_file in old_file_list), np.bool_)
-        
+
         # Filter using the mask and return
         return old_file_list[mask], new_file_list[mask]
 
-    def file_list_to_numpy(self) -> Optional[Tuple[npt.NDArray[np.str_], npt.NDArray[np.str_]]]:
+    def file_list_to_numpy(self) -> Optional[StringArrayTuple]:
         """
         The method converts a table to a NumPy array of strings. It requires a `pd.DataFrame` object, a `QComboBox` object for column 1, and a `QComboBox` object for column 2. If any of these requirements are not met, the method returns None.
 
@@ -306,8 +308,7 @@ class Job(NamedTuple):
             ```
         """
 
-        if (not isinstance(self.table, pd.DataFrame)
-            or not isinstance(self.column1, QComboBox)
-            or not isinstance(self.column2, QComboBox)):
+        if any(_ is None for _ in (self.table, self.column1, self.column2)):
             return
-        return self._table_to_numpy(self.table, column_1=self.column1.currentText(), column_2=self.column2.currentText())
+        return self._table_to_numpy(self.table, column_1=self.column1.currentText(),
+                                    column_2=self.column2.currentText())

@@ -8,6 +8,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 from line_edits import LineEditState, NumberLineEdit, PathLineEdit
 from .dialog import UiDialog
 from .enums import FunctionType, GuiIcon
+from .resource_path import ResourcePath
 from .image_widget import ImageWidget
 
 
@@ -134,14 +135,14 @@ def uncheck_boxes(*checkboxes: QtWidgets.QCheckBox) -> None:
 
 def load_about_form() -> None:
     """
-    Loads and displays the about form.
+    Loads and displays the `about` form.
 
     Returns:
         None
 
     Example:
         ```python
-        # Load and display the about form
+        # Load and display the `about` form
         load_about_form()
         ```
     """
@@ -168,9 +169,9 @@ def initialise_message_box(window_title: str) -> QtWidgets.QMessageBox:
         message_box = initialise_message_box(title)
         ```
     """
-
+    path = ResourcePath('resources\\logos\\logo.ico').meipass_path
     msg_box = QtWidgets.QMessageBox()
-    msg_box.setWindowIcon(QtGui.QIcon('resources\\logos\\logo.ico'))
+    msg_box.setWindowIcon(QtGui.QIcon(path))
     msg_box.setWindowTitle(window_title)
     return msg_box
 

@@ -3,8 +3,7 @@ from threading import Thread
 from typing import Tuple, Union
 
 import numpy as np
-from PyQt6 import QtCore, QtGui, QtMultimedia, QtWidgets
-from PyQt6 import QtMultimediaWidgets
+from PyQt6 import QtCore, QtGui, QtMultimedia, QtMultimediaWidgets, QtWidgets
 
 from core import Cropper
 from core import window_functions as wf
@@ -315,14 +314,14 @@ class UiVideoTabWidget(UiCropBatchWidget):
             control.goto_beginingButton.clicked.connect(lambda: self.goto_beginning())
             control.goto_endButton.clicked.connect(lambda: self.goto_end())
             control.startmarkerButton.clicked.connect(
-                lambda: self.set_startPosition(control.selectStartMarkerButton))
+                lambda: self.set_start_position(control.selectStartMarkerButton))
             control.endmarkerButton.clicked.connect(
-                lambda: self.set_stopPosition(control.selectEndMarkerButton))
+                lambda: self.set_stop_position(control.selectEndMarkerButton))
             control.selectStartMarkerButton.clicked.connect(
                 lambda: self.goto(control.selectStartMarkerButton))
             control.selectEndMarkerButton.clicked.connect(
                 lambda: self.goto(control.selectEndMarkerButton))
-        
+
         self.muteButton_1.clicked.connect(lambda: self.volume_mute())
         self.muteButton_2.clicked.connect(lambda: self.volume_mute())
 
@@ -416,7 +415,8 @@ class UiVideoTabWidget(UiCropBatchWidget):
         self.crop_worker.v_finished.connect(lambda: wf.show_message_box(self.destination))
         self.crop_worker.v_progress.connect(self.update_progress)
 
-    def setup_label(self, name: GuiIcon = Union[GuiIcon.MULTIMEDIA_LABEL_A, GuiIcon.MULTIMEDIA_LABEL_B]) -> QtWidgets.QLabel:
+    def setup_label(self,
+                    name: GuiIcon = Union[GuiIcon.MULTIMEDIA_LABEL_A, GuiIcon.MULTIMEDIA_LABEL_B]) -> QtWidgets.QLabel:
         label = QtWidgets.QLabel(parent=self)
         size_policy = QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Preferred)
@@ -427,12 +427,12 @@ class UiVideoTabWidget(UiCropBatchWidget):
         label.setMaximumSize(QtCore.QSize(14, 14))
         label.setText('')
         label.setPixmap(QtGui.QPixmap(name.value))
-        label.setScaledContents(True)        
+        label.setScaledContents(True)
         match name:
             case GuiIcon.MULTIMEDIA_LABEL_A:
                 label.setObjectName(u'label_A')
             case GuiIcon.MULTIMEDIA_LABEL_B:
-                label.setObjectName(u'label_B')                
+                label.setObjectName(u'label_B')
         return label
 
     def open_folder(self, line_edit: PathLineEdit) -> None:
@@ -499,7 +499,7 @@ class UiVideoTabWidget(UiCropBatchWidget):
                        self.mediacontrolWidget_2.stopButton, self.mediacontrolWidget_2.fastfwdButton):
             button.setEnabled(x)
 
-    def create_mediaPlayer(self) -> None:
+    def create_media_player(self) -> None:
         self.player.setAudioOutput(self.audio)
         self.player.setVideoOutput(self.videoWidget)
 
@@ -589,14 +589,14 @@ class UiVideoTabWidget(UiCropBatchWidget):
         hours, minutes = divmod(minutes, 60)
         button.setText(QtCore.QTime(hours, minutes, seconds).toString())
 
-    def set_startPosition(self, button: QtWidgets.QPushButton) -> None:
+    def set_start_position(self, button: QtWidgets.QPushButton) -> None:
         x: bool = (time_value := self.timelineSlider_1.value() * .001) < self.stop_position
         y: bool = self.start_position == .0 and self.stop_position == .0
         if x | y:
             self.start_position = time_value
             self.set_marker_time(button, self.start_position)
 
-    def set_stopPosition(self, button: QtWidgets.QPushButton) -> None:
+    def set_stop_position(self, button: QtWidgets.QPushButton) -> None:
         x: bool = (time_value := self.timelineSlider_1.value() * .001) > self.start_position
         y: bool = self.start_position == .0 and self.stop_position == .0
         if x | y:
@@ -625,7 +625,7 @@ class UiVideoTabWidget(UiCropBatchWidget):
     def disable_buttons(self) -> None:
         wf.update_widget_state(
             wf.all_filled(self.inputLineEdit, self.destinationLineEdit, self.controlWidget.widthLineEdit,
-                            self.controlWidget.heightLineEdit),
+                          self.controlWidget.heightLineEdit),
             self.mediacontrolWidget_1.cropButton, self.mediacontrolWidget_1.videocropButton,
             self.mediacontrolWidget_2.cropButton, self.mediacontrolWidget_2.videocropButton)
 

@@ -160,10 +160,10 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.function_tabWidget.currentChanged.connect(lambda: self.video_tab_widget.player.pause())
 
         self.retranslateUi()
-        self.actionCrop_File.triggered.connect(self.function_tabWidget.setFocus)
-        self.actionCrop_Folder.triggered.connect(self.function_tabWidget.setFocus)
-        self.actionCrop_Video.triggered.connect(self.function_tabWidget.setFocus)
-        self.actionUse_Mapping.triggered.connect(self.function_tabWidget.setFocus)
+        self.actionCrop_File.triggered.connect(lambda: self.function_tabWidget.setFocus())
+        self.actionCrop_Folder.triggered.connect(lambda: self.function_tabWidget.setFocus())
+        self.actionCrop_Video.triggered.connect(lambda: self.function_tabWidget.setFocus())
+        self.actionUse_Mapping.triggered.connect(lambda: self.function_tabWidget.setFocus())
 
         self.function_tabWidget.setCurrentIndex(0)
 
@@ -491,6 +491,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         Returns:
             None
         """
+
         def callback(control: UiCropControlWidget) -> None:
             if any(line.state is LineEditState.INVALID_INPUT for line in
                    (control.widthLineEdit, control.heightLineEdit)):
@@ -508,7 +509,6 @@ class UiMainWindow(QtWidgets.QMainWindow):
                         control.heightLineEdit.setText(str(int(control.widthLineEdit.value() * phi.value)))
                     else:
                         control.widthLineEdit.setText(str(int(control.heightLineEdit.value() / phi.value)))
-
 
         match self.function_tabWidget.currentIndex():
             case 0:
@@ -535,6 +535,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
         Args:
             self: The instance of the class.
+            tab_widget: The tab widget.
 
         Returns:
             None

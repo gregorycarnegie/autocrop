@@ -78,7 +78,7 @@ fn crop_positions(x_loc: f64, y_loc: f64, width_dim: f64, height_dim: f64, perce
 
 /// A Python module implemented in Rust.
 #[pymodule]
-fn autocrop_rs(_py: Python, m: &PyModule) -> PyResult<()> {
+fn autocrop_rs<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(crop_positions, m)?)?;
     m.add_function(wrap_pyfunction!(calc_alpha_beta, m)?)?;
     Ok(())

@@ -9,6 +9,8 @@ from typing import Any, Callable, Generator, Iterator, List, Optional, Tuple, Un
 import autocrop_rs
 import cv2
 import cv2.typing as cvt
+import ffmpeg
+import numba
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
@@ -18,17 +20,20 @@ from PIL import Image
 
 from file_types import Photo
 from . import window_functions as wf
-from .enums import ResourcePath
+from .resource_path import ResourcePath
 from .image_widget import ImageWidget
 from .job import Job
+from .operation_types import Box, FaceToolPair, ImageArray, SaveFunction
 
 # Define constants
 GAMMA_THRESHOLD = .001
 L_EYE_START, L_EYE_END = 42, 48
 R_EYE_START, R_EYE_END = 36, 42
 
-type Box = Tuple[int, int, int, int]
-type ImageArray = Union[cvt.MatLike, npt.NDArray[np.uint8]]
+CropFunction = Callable[
+    [Union[cvt.MatLike, Path], Job, Tuple[Any, Any]],
+    Optional[Union[cvt.MatLike, Iterator[cvt.MatLike]]]
+]
 
 
 def profile_it(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -43,36 +48,38 @@ def profile_it(func: Callable[..., Any]) -> Callable[..., Any]:
     return wrapper
 
 
-def pillow_to_numpy(input_image: Image.Image) -> npt.NDArray[np.uint8]:
-    """
-    The function takes an image in Pillow format as input and converts it to a NumPy array.
+# def pillow_to_numpy(input_image: Image.Image) -> npt.NDArray[np.uint8]:
+#     """
+#     The function takes an image in Pillow format as input and converts it to a NumPy array.
 
-    Args:
-        input_image (Image.Image): The image in Pillow format to be converted.
+#     Args:
+#         input_image (Image.Image): The image in Pillow format to be converted.
 
-    Returns:
-        npt.NDArray[np.uint8]: The converted image as a NumPy array.
+#     Returns:
+#         npt.NDArray[np.uint8]: The converted image as a NumPy array.
 
-    Example:
-        ```python
-        from PIL import Image
+#     Example:
+#         ```python
+#         from PIL import Image
 
-        # Creating a Pillow image.
-        image = Image.open("image.jpg")
+#         # Creating a Pillow image.
+#         image = Image.open("image.jpg")
 
-        # Converting the image to a NumPy array.
-        numpy_array = pillow_to_numpy(image)
+#         # Converting the image to a NumPy array.
+#         numpy_array = pillow_to_numpy(image)
 
-        # Printing the shape of the NumPy array.
-        print(numpy_array.shape)
-        ```
-    """
+#         # Printing the shape of the NumPy array.
+#         print(numpy_array.shape)
+#         ```
+#     """
 
-    return np.frombuffer(input_image.tobytes(), dtype=np.uint8).reshape((input_image.size[1], input_image.size[0], len(input_image.getbands())))
+#     # dims = (input_image.size[1], input_image.size[0], len(input_image.getbands()))
+#     # return np.frombuffer(input_image.tobytes()).reshape(dims).astype(np.uint8)
+#     return np.array(input_image)
 
 
-@cache
-def gamma(gamma_value: Union[int, float] = 1.0) -> npt.NDArray[np.generic]:
+@numba.njit(cache=True)
+def gamma(gamma_value: Union[int, float] = 1.0) -> npt.NDArray[np.float64]:
     """
     The function applies a gamma correction to an array of intensity values ranging from 0 to 255. It returns the
     corrected array.
@@ -93,8 +100,8 @@ def gamma(gamma_value: Union[int, float] = 1.0) -> npt.NDArray[np.generic]:
         ```
     """
 
-    intensity_values = np.arange(256) / 255
-    return np.power(intensity_values, 1.0 / gamma_value) * 255 if gamma_value != 1.0 else intensity_values * 255
+    return np.arange(256, dtype=np.float64) if gamma_value <= 1.0 else np.power(np.arange(256) / 255,
+                                                                                1.0 / gamma_value) * 255.0
 
 
 def adjust_gamma(input_image: ImageArray, gam: int) -> cvt.MatLike:
@@ -177,7 +184,8 @@ def numpy_array_crop(input_image: cvt.MatLike, bounding_box: Box) -> npt.NDArray
 
     # Load and crop image using PIL
     picture = Image.fromarray(input_image).crop(bounding_box)
-    return pillow_to_numpy(picture)
+    # return pillow_to_numpy(picture)
+    return np.array(picture)
 
 
 def crop_and_set(input_image: cvt.MatLike,
@@ -263,8 +271,61 @@ def rotate_image(input_image: ImageArray,
     return cv2.warpAffine(input_image, rotation_matrix, (input_image.shape[1], input_image.shape[0]))
 
 
+@numba.njit
+def get_dimensions(input_image: ImageArray, output_height: int) -> Tuple[int, float]:
+    height, width = input_image.shape[:2]
+    scaling_factor = output_height / height
+    return int(width * scaling_factor), scaling_factor
+
+
+def format_image(input_image: ImageArray) -> Tuple[cvt.MatLike, float]:
+    output_height = 256
+    output_width, scaling_factor = get_dimensions(input_image, output_height)
+    image_array = cv2.resize(input_image, (output_width, output_height), interpolation=cv2.INTER_AREA)
+    return cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY) if len(image_array.shape) >= 3 else image_array.astype(np.int8), scaling_factor
+
+
+# # TODO: JIT this function
+# def get_angle_of_tilt(landmarks_array: npt.NDArray[np.int_], scaling_factor: float) -> Tuple[float, float, float]:
+#     # Find the eyes in the image (l_eye - r_eye).
+#     print(landmarks_array.shape)
+#     eye_diff = np.mean(landmarks_array[L_EYE_START:L_EYE_END], axis=0) - \
+#                np.mean(landmarks_array[R_EYE_START:R_EYE_END], axis=0)
+#     # Find the center of the face.
+#     center_x, center_y = np.mean(landmarks_array[R_EYE_START:L_EYE_END], axis=0) / scaling_factor
+#     return np.arctan2(eye_diff[1], eye_diff[0]) * 180 / np.pi, center_x, center_y
+
+@numba.njit
+def mean_axis0(arr: npt.NDArray[np.int_]) -> npt.NDArray[np.float64]:
+    """Calculate mean along axis 0."""
+    n, m = arr.shape
+    mean = np.zeros(m)
+    for i in range(m):
+        sum_ = 0.0
+        for j in range(n):
+            sum_ += arr[j, i]
+        mean[i] = sum_ / n
+    return mean
+
+
+@numba.njit
+def get_angle_of_tilt(landmarks_array: npt.NDArray[np.int_], scaling_factor: float) -> Tuple[float, float, float]:
+    # Find the eyes in the image (l_eye - r_eye).
+    left_eye_mean = mean_axis0(landmarks_array[L_EYE_START:L_EYE_END])
+    right_eye_mean = mean_axis0(landmarks_array[R_EYE_START:R_EYE_END])
+    eye_diff = left_eye_mean - right_eye_mean
+
+    # Find the center of the face.
+    face_center_mean = mean_axis0(landmarks_array[R_EYE_START:L_EYE_END])
+    center_x, center_y = face_center_mean / scaling_factor
+
+    angle = np.arctan2(eye_diff[1], eye_diff[0]) * 180 / np.pi
+
+    return angle, center_x, center_y
+
+
 def align_head(input_image: ImageArray,
-               face_detection_tools: Tuple[Any, Any],
+               face_detection_tools: FaceToolPair,
                tilt: bool) -> cvt.MatLike:
     """
     The function aligns the head in the provided image using facial landmarks and tilt correction.
@@ -292,16 +353,13 @@ def align_head(input_image: ImageArray,
         ```
     """
 
+    # TODO: Add support for tilt correction.
+    tilt = False
+
     if not tilt:
         return input_image
-    height, width = input_image.shape[:2]
-    output_height = 256
-    scaling_factor = output_height / height
-    output_width = int(width * scaling_factor)
-    image_array = cv2.resize(input_image, (output_width, output_height), interpolation=cv2.INTER_AREA)
-    # Detect the faces in the image.
-    if len(image_array.shape) >= 3:
-        image_array = cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY)
+
+    image_array, scaling_factor = format_image(input_image)
 
     face_detector, predictor = face_detection_tools
 
@@ -321,9 +379,9 @@ def align_head(input_image: ImageArray,
 
 
 def open_image(input_image: Path,
-               face_detection_tools: Tuple[Any, Any], *,
+               face_detection_tools: FaceToolPair, *,
                exposure: bool,
-               tilt: bool) -> cvt.MatLike:
+               tilt: bool) -> Optional[cvt.MatLike]:
     """
     The function opens an image file using `cv2` and performs color conversion, exposure correction,
     and head alignment using the provided ` Tuple[Any, Any]` object.
@@ -350,15 +408,18 @@ def open_image(input_image: Path,
     """
 
     img = cv2.imread(input_image.as_posix())
+    # handle file error
+    if img is None:
+        return None
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = correct_exposure(img, exposure)
     return align_head(img, face_detection_tools, tilt)
 
 
 def open_raw(input_image: Path,
-             face_detection_tools: Tuple[Any, Any], *,
+             face_detection_tools: FaceToolPair, *,
              exposure: bool,
-             tilt: bool) -> cvt.MatLike:
+             tilt: bool) -> Optional[cvt.MatLike]:
     """
     The function opens a raw image file using `rawpy` and performs post-processing on the raw image data. It corrects
     the exposure and aligns the head using the provided ` Tuple[Any, Any]` object.
@@ -386,6 +447,9 @@ def open_raw(input_image: Path,
 
     with rawpy.imread(input_image.as_posix()) as raw:
         # Post-process the raw image data
+        # # handle file error
+        if raw is None:
+            return None
         img = raw.postprocess(use_camera_wb=True)
         img = correct_exposure(img, exposure)
         return align_head(img, face_detection_tools, tilt)
@@ -420,7 +484,7 @@ def open_table(input_file: Path) -> pd.DataFrame:
 
 
 def open_pic(input_file: Union[Path, str],
-             face_detection_tools: Tuple[Any, Any], *,
+             face_detection_tools: FaceToolPair, *,
              exposure: bool,
              tilt: bool) -> Optional[cvt.MatLike]:
     """
@@ -461,15 +525,6 @@ def open_pic(input_file: Union[Path, str],
             return open_raw(input_file, face_detection_tools, exposure=exposure, tilt=tilt)
         case _:
             return
-
-
-def get_angle_of_tilt(landmarks_array: npt.NDArray[np.int_], scaling_factor: float) -> Tuple[float, float, float]:
-    # Find the eyes in the image (l_eye - r_eye).
-    eye_diff = np.mean(landmarks_array[L_EYE_START:L_EYE_END], axis=0) - \
-               np.mean(landmarks_array[R_EYE_START:R_EYE_END], axis=0)
-    # Find the center of the face.
-    center_x, center_y = np.mean(landmarks_array[R_EYE_START:L_EYE_END], axis=0) / scaling_factor
-    return np.arctan2(eye_diff[1], eye_diff[0]) * 180 / np.pi, center_x, center_y
 
 
 def prepare_detections(input_image: cvt.MatLike) -> npt.NDArray[np.float64]:
@@ -538,7 +593,7 @@ def _draw_box_with_text(input_image: cvt.MatLike,
 
 def get_multi_box_parameters(input_image: cvt.MatLike) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
     detections = prepare_detections(convert_color_space(input_image))
-    return detections[0, 0, :, 3:7], detections[0, 0, :, 2] * 100
+    return detections[0, 0, :, 3:7], detections[0, 0, :, 2] * 100.0
 
 
 def multi_box(input_image: cvt.MatLike, job: Job) -> cvt.MatLike:
@@ -553,13 +608,13 @@ def multi_box(input_image: cvt.MatLike, job: Job) -> cvt.MatLike:
 
     for idx in valid_indices:
         x0, y0, x1, y1 = get_box_coordinates(outputs[idx], job, width=width, height=height)
-        input_image = _draw_box_with_text(input_image, confidences[idx], x0=x0, y0=y0, x1=x1, y1=y1)
+        input_image = _draw_box_with_text(input_image, np.float64(confidences[idx]), x0=x0, y0=y0, x1=x1, y1=y1)
 
     return input_image
 
 
 def multi_box_positions(input_image: cvt.MatLike,
-                        job: Job) -> Tuple[npt.NDArray[np.float_], Iterator[Box]]:
+                        job: Job) -> Tuple[npt.NDArray[np.float64], Iterator[Box]]:
     height, width = input_image.shape[:2]
     outputs, confidences = get_multi_box_parameters(input_image)
 
@@ -641,7 +696,7 @@ def mask_extensions(file_list: npt.NDArray[np.str_]) -> Tuple[npt.NDArray[np.boo
 
 def split_by_cpus(mask: npt.NDArray[np.bool_],
                   core_count: int,
-                  *file_lists: npt.NDArray[np.str_]) -> Generator[List[npt.NDArray[np.str_]], None, None]:
+                  *file_lists: npt.NDArray[np.str_]) -> Iterator[List[npt.NDArray[np.str_]]]: # Generator[List[npt.NDArray[np.str_]], None, None]:
     """
     The function splits the provided file lists based on the given mask and core count, and returns a generator of
     the split lists.
@@ -673,9 +728,17 @@ def split_by_cpus(mask: npt.NDArray[np.bool_],
             print(split_list)
         ```
     """
+    return map(lambda x: np.array_split(x[mask], core_count), file_lists)
+    # return (np.array_split(file_list[mask], core_count) for file_list in file_lists)
 
-    return (np.array_split(file_list[mask], core_count) for file_list in file_lists)
 
+
+def join_path_suffix(file_str: str, destination: Path) -> Tuple[Path, bool]:
+    """
+    The function joins the given path and suffix and returns the resulting path.
+    """
+    path = destination.joinpath(file_str)
+    return path, path.suffix in Photo.TIFF_TYPES
 
 @cache
 def set_filename(radio_options: Tuple[str, ...], *,
@@ -722,8 +785,9 @@ def set_filename(radio_options: Tuple[str, ...], *,
         selected_extension = radio_options[2] if radio_choice == radio_options[0] else radio_choice
     else:
         selected_extension = suffix if radio_choice == radio_options[0] else radio_choice
-    final_path = destination.joinpath(f'{new or image_path.stem}{selected_extension}')
-    return final_path, final_path.suffix in {'.tif', '.tiff'}
+    # final_path = destination.joinpath(f'{new or image_path.stem}{selected_extension}')
+    # return final_path, final_path.suffix in Photo.TIFF_TYPES
+    return join_path_suffix(f'{new or image_path.stem}{selected_extension}', destination)
 
 
 def reject(*, path: Path,
@@ -798,7 +862,7 @@ def save_image(image: cvt.MatLike,
         cv2.imwrite(file_path.as_posix(), cv2.LUT(image, gamma(user_gam * GAMMA_THRESHOLD)))
 
 
-def multi_save_image(cropped_images: List[cvt.MatLike],
+def multi_save_image(cropped_images: Iterator[cvt.MatLike],
                      file_path: Path,
                      gamma_value: int,
                      is_tiff: bool) -> None:
@@ -840,18 +904,16 @@ def get_frame_path(destination: Path,
                    file_enum: str,
                    job: Job) -> Tuple[Path, bool]:
     file_str = f'{file_enum}.jpg' if job.radio_choice() == job.radio_options[0] else file_enum + job.radio_choice()
-    file_path = destination.joinpath(file_str)
-    return file_path, file_path.suffix in {'.tif', '.tiff'}
+    # file_path = destination.joinpath(file_str)
+    # return file_path, file_path.suffix in Photo.TIFF_TYPES
+    return join_path_suffix(file_str, destination)
 
 
 def save_detection(source_image: Path,
                    job: Job,
-                   face_detection_tools: Tuple[Any, Any],
-                   crop_function: Callable[
-                       [Union[cvt.MatLike, Path], Job, Tuple[Any, Any]],
-                       Optional[Union[cvt.MatLike, Generator[cvt.MatLike, None, None]]]
-                   ],
-                   save_function: Callable[[Any, Path, int, bool], None],
+                   face_detection_tools: FaceToolPair,
+                   crop_function: CropFunction,
+                   save_function: SaveFunction,
                    image_name: Optional[Path] = None,
                    new: Optional[str] = None) -> None:
     """
@@ -910,7 +972,7 @@ def save_detection(source_image: Path,
 
 def crop_image(input_image: Union[Path, cvt.MatLike],
                job: Job,
-               face_detection_tools: Tuple[Any, Any]) -> Optional[cvt.MatLike]:
+               face_detection_tools: FaceToolPair) -> Optional[cvt.MatLike]:
     """
     The function crops an image based on the provided job parameters and returns the cropped image.
 
@@ -957,9 +1019,17 @@ def crop_image(input_image: Union[Path, cvt.MatLike],
     return cv2.resize(result, job.size, interpolation=cv2.INTER_AREA)
 
 
+def process_image(image: cvt.MatLike, job: Job, crop_position: Box):
+    cropped_image = Image.fromarray(image).crop(crop_position)
+    image_array = np.array(cropped_image)
+    color_converted = convert_color_space(image_array)
+    return cv2.resize(
+        src=color_converted, dsize=job.size, interpolation=cv2.INTER_AREA
+    )
+
 def multi_crop(source_image: Union[cvt.MatLike, Path],
                job: Job,
-               face_detection_tools: Tuple[Any, Any]) -> Optional[Generator[cvt.MatLike, None, None]]:
+               face_detection_tools: FaceToolPair) -> Optional[Iterator[cvt.MatLike]]:
     """
     The function takes a source image, a job, and a face worker as input parameters. It returns a generator that
     yields cropped images of faces detected in the source image.
@@ -997,20 +1067,14 @@ def multi_crop(source_image: Union[cvt.MatLike, Path],
     # Check if any faces were detected
     if np.any(confidences > job.threshold):
         # Cropped images
-        images = map(lambda x: Image.fromarray(img).crop(x), crop_positions)
-        # images as numpy arrays
-        image_arrays = map(lambda x: pillow_to_numpy(x), images)
-        # numpy arrays with colour space converted
-        results = map(lambda x: convert_color_space(x), image_arrays)
-        # return resized results
-        return (cv2.resize(src=result, dsize=job.size, interpolation=cv2.INTER_AREA) for result in results)
+        return map(lambda x: process_image(img, job, x), crop_positions)
     else:
         return
 
 
 def crop(input_image: Path,
          job: Job,
-         face_detection_tools: Tuple[Any, Any],
+         face_detection_tools: FaceToolPair,
          new: Optional[str] = None) -> None:
     """
     The function performs cropping of an image based on the provided job parameters and saves the cropped image.
@@ -1105,3 +1169,35 @@ def grab_frame(position_slider: int,
         return
     cap.release()
     return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+# TODO: try ffmpeg
+# def grab_frame(position_slider: int, video_line_edit: str) -> Optional[cvt.MatLike]:
+#     try:
+#         # Calculate the timestamp in seconds
+#         timestamp = position_slider / 1000
+#
+#         # Use ffmpeg to grab the frame
+#         input_node: ffmpeg.nodes.InputNode = ffmpeg.input(video_line_edit, ss=timestamp)
+#         output_stream: ffmpeg.nodes.OutputStream = input_node.output('pipe:', vframes=1, format='image2', vcodec='png')
+#
+#         # Run the ffmpeg command asynchronously
+#         process = output_stream.run_async(pipe_stdout=True, pipe_stderr=True)
+#
+#         # Capture stdout and stderr
+#         stdout, stderr = process.communicate()
+#
+#         # Check for errors
+#         if stderr:
+#             print("ffmpeg error: ", stderr.decode('utf-8'))
+#             return None
+#
+#         # Convert the output to a numpy array and then to an OpenCV image
+#         frame = np.frombuffer(stdout, dtype=np.uint8)
+#         frame = cv2.imdecode(frame, cv2.IMREAD_COLOR)
+#
+#         if frame is not None:
+#             return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+#     except ffmpeg.Error as err:
+#         print("An error occurred while grabbing the frame:", err)
+#         return None
+    

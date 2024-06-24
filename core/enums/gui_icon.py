@@ -1,6 +1,6 @@
 from enum import Enum
 
-from .resource_path import ResourcePath
+from core.resource_path import ResourcePath
 
 
 class GuiIcon(Enum):

@@ -184,7 +184,7 @@ class UiFolderTabWidget(UiCropBatchWidget):
             self.crop_worker.display_crop(job, selection, self.imageWidget)
 
     def open_folder(self, line_edit: PathLineEdit) -> None:
-        """Only sublasses of the CustomCropWidget class should implement this method"""
+        """Only subclasses of the CustomCropWidget class should implement this method"""
         f_name = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Directory', Photo.default_directory)
         line_edit.setText(f_name)
         if line_edit is self.inputLineEdit:

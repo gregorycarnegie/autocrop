@@ -41,4 +41,5 @@ class Photo(File):
     RAW_TYPES: ClassVar[npt.NDArray[np.str_]] = np.array(['.dng', '.arw', '.cr2', '.crw', '.erf',
                                                           '.kdc', '.nef', '.nrw', '.orf', '.pef',
                                                           '.raf', '.raw', '.sr2', '.srw', '.x3f'])
+    TIFF_TYPES: ClassVar[Set[str]] = {'.tiff', '.tif'}
     file_types = np.concatenate((CV2_TYPES, RAW_TYPES))

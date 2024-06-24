@@ -9,15 +9,17 @@ import cv2.typing as cvt
 import dlib
 import numpy as np
 import numpy.typing as npt
-from PyQt6.QtCore import pyqtSignal, QObject
+from PyQt6.QtCore import pyqtSignal, QObject, pyqtBoundSignal
 from PyQt6.QtWidgets import QLabel, QLineEdit, QSlider
 
 from . import utils as ut
 from . import window_functions as wf
-from .enums import FunctionType, ResourcePath
+from .enums import FunctionType
+from .resource_path import ResourcePath
 from .image_widget import ImageWidget
 from .job import Job
-
+from .operation_types import FaceToolPair
+ 
 
 class Cropper(QObject):
     """
@@ -87,7 +89,7 @@ class Cropper(QObject):
         self.bar_value_f, self.end_f_task, self.message_box_f = self.TASK_VALUES
         self.bar_value_m, self.end_m_task, self.message_box_m = self.TASK_VALUES
         self.bar_value_v, self.end_v_task, self.message_box_v = self.TASK_VALUES
-        self.face_detection_tools: List[Tuple[Any, Any]] = []
+        self.face_detection_tools: List[FaceToolPair] = []
         self.generate_face_detection_tools()
 
     def reset_task(self, function_type: FunctionType):
@@ -231,35 +233,33 @@ class Cropper(QObject):
             None
         """
 
+        def _update_bar(attr_name: str, *,
+                        progress_signal: pyqtBoundSignal,
+                        finished_signal: pyqtBoundSignal) -> None:
+            """Updates the progress bar value."""
+            current_value = getattr(self, attr_name)
+            current_value += 1
+            setattr(self, attr_name, current_value)
+            if current_value == file_amount:
+                progress_signal.emit((file_amount, file_amount))
+                finished_signal.emit()
+            elif current_value < file_amount:
+                progress_signal.emit((current_value, file_amount))
+
         match process_type:
             case FunctionType.FOLDER:
-                self.bar_value_f += 1
-                if self.bar_value_f == file_amount:
-                    self.f_progress.emit((file_amount, file_amount))
-                    self.f_finished.emit()
-                elif self.bar_value_f < file_amount:
-                    self.f_progress.emit((self.bar_value_f, file_amount))
+                _update_bar('bar_value_f', progress_signal=self.f_progress, finished_signal=self.f_finished)
             case FunctionType.MAPPING:
-                self.bar_value_m += 1
-                if self.bar_value_m == file_amount:
-                    self.m_progress.emit((file_amount, file_amount))
-                    self.m_finished.emit()
-                elif self.bar_value_m < file_amount:
-                    self.m_progress.emit((self.bar_value_m, file_amount))
+                _update_bar('bar_value_m', progress_signal=self.m_progress, finished_signal=self.m_finished)
             case FunctionType.VIDEO:
-                self.bar_value_v += 1
-                if self.bar_value_v == file_amount:
-                    self.v_progress.emit((file_amount, file_amount))
-                    self.v_finished.emit()
-                elif self.bar_value_v < file_amount:
-                    self.v_progress.emit((self.bar_value_v, file_amount))
+                _update_bar('bar_value_v', progress_signal=self.v_progress, finished_signal=self.v_finished)
             case _:
                 pass
 
     def folder_worker(self, file_amount: int,
                       file_list: npt.NDArray[Any],
                       job: Job,
-                      face_detection_tools: Tuple[Any, Any]) -> None:
+                      face_detection_tools: FaceToolPair) -> None:
         """
         Performs cropping for a folder job by iterating over the file list, cropping each image, and updating the progress.
 
@@ -311,7 +311,7 @@ class Cropper(QObject):
 
     def mapping_worker(self, file_amount: int,
                        job: Job,
-                       face_detection_tools: Tuple[Any, Any], *,
+                       face_detection_tools: FaceToolPair, *,
                        old: npt.NDArray[np.str_],
                        new: npt.NDArray[np.str_]) -> None:
         """
@@ -530,10 +530,7 @@ class Cropper(QObject):
         video = cv2.VideoCapture(job.video_path.as_posix())
         fps = video.get(cv2.CAP_PROP_FPS)
         start_frame, end_frame = int(job.start_position * fps), int(job.stop_position * fps)
-        # frame_numbers = np.arange(start_frame, end_frame + 1)
-        # x = frame_numbers.size
-        # frame_numbers = range(start_frame, end_frame + 1)
-        # x = len(frame_numbers)
+        
         x = 1 + end_frame - start_frame
 
         self.v_progress.emit((0, x))
