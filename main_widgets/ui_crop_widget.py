@@ -108,7 +108,7 @@ class UiCropWidget(QtWidgets.QWidget):
     def create_nav_button(self, name: str) -> QtWidgets.QPushButton:
         button = QtWidgets.QPushButton()
         button.setObjectName(name)
-        wf.apply_size_policy(button, self.size_policy1, min_size=QtCore.QSize(124, 30))
+        wf.apply_size_policy(button, self.size_policy1, min_size=QtCore.QSize(186, 30))
         return button
 
     def setup_path_line_edit(self, name: str, path_type: PathType = PathType.FOLDER) -> PathLineEdit:

@@ -48,36 +48,6 @@ def profile_it(func: Callable[..., Any]) -> Callable[..., Any]:
     return wrapper
 
 
-# def pillow_to_numpy(input_image: Image.Image) -> npt.NDArray[np.uint8]:
-#     """
-#     The function takes an image in Pillow format as input and converts it to a NumPy array.
-
-#     Args:
-#         input_image (Image.Image): The image in Pillow format to be converted.
-
-#     Returns:
-#         npt.NDArray[np.uint8]: The converted image as a NumPy array.
-
-#     Example:
-#         ```python
-#         from PIL import Image
-
-#         # Creating a Pillow image.
-#         image = Image.open("image.jpg")
-
-#         # Converting the image to a NumPy array.
-#         numpy_array = pillow_to_numpy(image)
-
-#         # Printing the shape of the NumPy array.
-#         print(numpy_array.shape)
-#         ```
-#     """
-
-#     # dims = (input_image.size[1], input_image.size[0], len(input_image.getbands()))
-#     # return np.frombuffer(input_image.tobytes()).reshape(dims).astype(np.uint8)
-#     return np.array(input_image)
-
-
 @numba.njit(cache=True)
 def gamma(gamma_value: Union[int, float] = 1.0) -> npt.NDArray[np.float64]:
     """
@@ -273,16 +243,20 @@ def rotate_image(input_image: ImageArray,
 
 @numba.njit
 def get_dimensions(input_image: ImageArray, output_height: int) -> Tuple[int, float]:
-    height, width = input_image.shape[:2]
-    scaling_factor = output_height / height
-    return int(width * scaling_factor), scaling_factor
+    # height, width = input_image.shape[:2]
+    # scaling_factor = output_height / height
+    # return int(width * scaling_factor), scaling_factor
+    # height, width = input_image.shape[:2]
+    scaling_factor = output_height / input_image.shape[:2][0]
+    return int(input_image.shape[:2][1] * scaling_factor), scaling_factor
 
 
 def format_image(input_image: ImageArray) -> Tuple[cvt.MatLike, float]:
     output_height = 256
     output_width, scaling_factor = get_dimensions(input_image, output_height)
     image_array = cv2.resize(input_image, (output_width, output_height), interpolation=cv2.INTER_AREA)
-    return cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY) if len(image_array.shape) >= 3 else image_array.astype(np.int8), scaling_factor
+    return cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY) if len(image_array.shape) >= 3 else image_array.astype(
+        np.int8), scaling_factor
 
 
 # # TODO: JIT this function
@@ -311,9 +285,9 @@ def mean_axis0(arr: npt.NDArray[np.int_]) -> npt.NDArray[np.float64]:
 @numba.njit
 def get_angle_of_tilt(landmarks_array: npt.NDArray[np.int_], scaling_factor: float) -> Tuple[float, float, float]:
     # Find the eyes in the image (l_eye - r_eye).
-    left_eye_mean = mean_axis0(landmarks_array[L_EYE_START:L_EYE_END])
-    right_eye_mean = mean_axis0(landmarks_array[R_EYE_START:R_EYE_END])
-    eye_diff = left_eye_mean - right_eye_mean
+    # left_eye_mean = mean_axis0(landmarks_array[L_EYE_START:L_EYE_END])
+    # right_eye_mean = mean_axis0(landmarks_array[R_EYE_START:R_EYE_END])
+    eye_diff = mean_axis0(landmarks_array[L_EYE_START:L_EYE_END]) - mean_axis0(landmarks_array[R_EYE_START:R_EYE_END])
 
     # Find the center of the face.
     face_center_mean = mean_axis0(landmarks_array[R_EYE_START:L_EYE_END])
@@ -532,9 +506,9 @@ def prepare_detections(input_image: cvt.MatLike) -> npt.NDArray[np.float64]:
     # We standardize the image by scaling it and then subtracting the mean RGB values
     blob = cv2.dnn.blobFromImage(input_image, 1.0, (300, 300), (104.0, 177.0, 123.0), False, False)
     # Set the input for the neural network
-    prototxt = ResourcePath('resources\\weights\\deploy.prototxt.txt').meipass_path
-    caffemodel = ResourcePath('resources\\models\\res10_300x300_ssd_iter_140000.caffemodel').meipass_path
-    caffe = cv2.dnn.readNetFromCaffe(prototxt, caffemodel)
+    proto_txt = ResourcePath('resources\\weights\\deploy.prototxt.txt').meipass_path
+    caffe_model = ResourcePath('resources\\models\\res10_300x300_ssd_iter_140000.caffemodel').meipass_path
+    caffe = cv2.dnn.readNetFromCaffe(proto_txt, caffe_model)
     caffe.setInput(blob)
     # Forward pass through the network to get detections
     return np.array(caffe.forward())
@@ -732,13 +706,13 @@ def split_by_cpus(mask: npt.NDArray[np.bool_],
     # return (np.array_split(file_list[mask], core_count) for file_list in file_lists)
 
 
-
 def join_path_suffix(file_str: str, destination: Path) -> Tuple[Path, bool]:
     """
     The function joins the given path and suffix and returns the resulting path.
     """
     path = destination.joinpath(file_str)
     return path, path.suffix in Photo.TIFF_TYPES
+
 
 @cache
 def set_filename(radio_options: Tuple[str, ...], *,
@@ -1019,13 +993,16 @@ def crop_image(input_image: Union[Path, cvt.MatLike],
     return cv2.resize(result, job.size, interpolation=cv2.INTER_AREA)
 
 
-def process_image(image: cvt.MatLike, job: Job, crop_position: Box):
+def process_image(image: cvt.MatLike,
+                  job: Job,
+                  crop_position: Box) -> cvt.MatLike:
     cropped_image = Image.fromarray(image).crop(crop_position)
     image_array = np.array(cropped_image)
     color_converted = convert_color_space(image_array)
     return cv2.resize(
         src=color_converted, dsize=job.size, interpolation=cv2.INTER_AREA
     )
+
 
 def multi_crop(source_image: Union[cvt.MatLike, Path],
                job: Job,
@@ -1178,10 +1155,10 @@ def grab_frame(position_slider: int,
 #
 #         # Use ffmpeg to grab the frame
 #         input_node: ffmpeg.nodes.InputNode = ffmpeg.input(video_line_edit, ss=timestamp)
-#         output_stream: ffmpeg.nodes.OutputStream = input_node.output('pipe:', vframes=1, format='image2', vcodec='png')
+#         out_stream: ffmpeg.nodes.OutputStream = input_node.output('pipe:', vframes=1, format='image2', vcodec='png')
 #
 #         # Run the ffmpeg command asynchronously
-#         process = output_stream.run_async(pipe_stdout=True, pipe_stderr=True)
+#         process = out_stream.run_async(pipe_stdout=True, pipe_stderr=True)
 #
 #         # Capture stdout and stderr
 #         stdout, stderr = process.communicate()
@@ -1200,4 +1177,3 @@ def grab_frame(position_slider: int,
 #     except ffmpeg.Error as err:
 #         print("An error occurred while grabbing the frame:", err)
 #         return None
-    
