@@ -156,6 +156,28 @@ class UiMappingTabWidget(UiCropBatchWidget):
 
         self.verticalLayout_100.addWidget(self.FolderTab)
 
+        # Connect Widgets
+        self.inputButton.clicked.connect(lambda: self.open_folder(self.inputLineEdit))
+        self.tableButton.clicked.connect(lambda: self.open_table())
+        self.destinationButton.clicked.connect(lambda: self.open_folder(self.destinationLineEdit))
+
+        self.cancelButton.clicked.connect(lambda: self.mapping_process())
+        self.cancelButton.clicked.connect(lambda: self.crop_worker.terminate(FunctionType.MAPPING))
+        self.cancelButton.clicked.connect(lambda: self.cancel_button_operation(self.cancelButton, self.cropButton))
+
+        self.comboBox_1.currentTextChanged.connect(lambda text: self.comboBox_3.setCurrentText(text))
+        self.comboBox_2.currentTextChanged.connect(lambda text: self.comboBox_4.setCurrentText(text))
+        self.comboBox_3.currentTextChanged.connect(lambda text: self.comboBox_1.setCurrentText(text))
+        self.comboBox_4.currentTextChanged.connect(lambda text: self.comboBox_2.setCurrentText(text))
+
+        self.connect_input_widgets(self.inputLineEdit, self.controlWidget.widthLineEdit,
+                                   self.controlWidget.heightLineEdit, self.destinationLineEdit, self.exposureCheckBox,
+                                   self.tableLineEdit, self.comboBox_1, self.comboBox_2,
+                                   self.mfaceCheckBox, self.tiltCheckBox, self.controlWidget.sensitivityDial,
+                                   self.controlWidget.fpctDial, self.controlWidget.gammaDial,
+                                   self.controlWidget.topDial, self.controlWidget.bottomDial,
+                                   self.controlWidget.leftDial, self.controlWidget.rightDial)
+
         self.toggleCheckBox.toggled.connect(self.controlWidget.setVisible)
 
         self.controlWidget.widthLineEdit.textChanged.connect(lambda: self.reload_widgets())
@@ -205,6 +227,7 @@ class UiMappingTabWidget(UiCropBatchWidget):
                        self.controlWidget.sensitivityDial, self.controlWidget.fpctDial, self.controlWidget.gammaDial,
                        self.controlWidget.topDial, self.controlWidget.bottomDial, self.controlWidget.leftDial,
                        self.controlWidget.rightDial, self.inputLineEdit, self.destinationLineEdit,
+                       self.tableButton,
                        self.destinationButton, self.inputButton, self.tableLineEdit, self.comboBox_1, self.comboBox_2,
                        self.controlWidget.radioButton_none, self.controlWidget.radioButton_bmp,
                        self.controlWidget.radioButton_jpg, self.controlWidget.radioButton_png,
@@ -257,7 +280,7 @@ class UiMappingTabWidget(UiCropBatchWidget):
                     pass
 
     def disable_buttons(self) -> None:
-        wf.update_widget_state(
+        wf.change_widget_state(
             wf.all_filled(self.inputLineEdit, self.tableLineEdit, self.destinationLineEdit, self.comboBox_1,
                           self.comboBox_2, self.controlWidget.widthLineEdit, self.controlWidget.heightLineEdit),
             self.cropButton)
@@ -291,6 +314,8 @@ class UiMappingTabWidget(UiCropBatchWidget):
         self.tableView.setModel(self.model)
         self.comboBox_1.addItems(self.data_frame.columns.to_numpy())
         self.comboBox_2.addItems(self.data_frame.columns.to_numpy())
+        self.comboBox_3.addItems(self.data_frame.columns.to_numpy())
+        self.comboBox_4.addItems(self.data_frame.columns.to_numpy())
 
     def mapping_process(self) -> None:
         def callback():

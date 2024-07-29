@@ -545,7 +545,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
         match tab_widget:
             case tab_widget if isinstance(tab_widget, (UiPhotoTabWidget, UiFolderTabWidget)):
-                wf.update_widget_state(
+                wf.change_widget_state(
                     self.all_filled(
                         tab_widget.inputLineEdit,
                         tab_widget.destinationLineEdit,
@@ -554,7 +554,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
                     tab_widget.cropButton,
                 )
             case tab_widget if isinstance(tab_widget, UiMappingTabWidget):
-                wf.update_widget_state(
+                wf.change_widget_state(
                     self.all_filled(
                         tab_widget.inputLineEdit,
                         tab_widget.tableLineEdit,
@@ -566,7 +566,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
                     self.mapping_tab_widget.cropButton
                 )
             case tab_widget if isinstance(tab_widget, UiVideoTabWidget):
-                wf.update_widget_state(
+                wf.change_widget_state(
                     self.all_filled(
                         tab_widget.inputLineEdit,
                         tab_widget.destinationLineEdit,

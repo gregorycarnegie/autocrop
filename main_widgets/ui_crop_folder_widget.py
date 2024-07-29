@@ -103,6 +103,7 @@ class UiFolderTabWidget(UiCropBatchWidget):
 
         self.verticalLayout_100.addWidget(self.toolBox)
 
+        # Connect Widgets
         self.inputButton.clicked.connect(lambda: self.open_folder(self.inputLineEdit))
         self.destinationButton.clicked.connect(lambda: self.open_folder(self.destinationLineEdit))
         self.inputLineEdit.textChanged.connect(lambda: self.load_data())
@@ -216,7 +217,7 @@ class UiFolderTabWidget(UiCropBatchWidget):
         callback(f_name)
 
     def disable_buttons(self) -> None:
-        wf.update_widget_state(
+        wf.change_widget_state(
             wf.all_filled(self.inputLineEdit, self.destinationLineEdit, self.controlWidget.widthLineEdit,
                           self.controlWidget.heightLineEdit),
             self.cropButton)

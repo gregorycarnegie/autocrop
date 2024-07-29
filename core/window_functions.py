@@ -397,27 +397,27 @@ def setup_frame(name: str, *, parent: QtWidgets.QWidget) -> QtWidgets.QFrame:
     return frame
 
 
-def update_widget_state(condition: bool, *widgets: QtWidgets.QWidget) -> None:
-    """
-    Updates the state of multiple widgets based on a given condition.
-
-    Args:
-        condition (bool): The condition to determine the state of the widgets.
-        *widgets (QtWidgets.QWidget): Variable number of widgets to update.
-
-    Returns:
-        None
-
-    Example:
-        ```python
-        button1 = QtWidgets.QPushButton()
-        button2 = QtWidgets.QPushButton()
-        button3 = QtWidgets.QPushButton()
-
-        # Update the state of the buttons based on the condition
-        update_widget_state(condition=True, button1, button2, button3)
-        ```
-    """
-
-    for widget in widgets:
-        change_widget_state(condition, widget)
+# def update_widget_state(condition: bool, *widgets: QtWidgets.QWidget) -> None:
+#     """
+#     Updates the state of multiple widgets based on a given condition.
+#
+#     Args:
+#         condition (bool): The condition to determine the state of the widgets.
+#         *widgets (QtWidgets.QWidget): Variable number of widgets to update.
+#
+#     Returns:
+#         None
+#
+#     Example:
+#         ```python
+#         button1 = QtWidgets.QPushButton()
+#         button2 = QtWidgets.QPushButton()
+#         button3 = QtWidgets.QPushButton()
+#
+#         # Update the state of the buttons based on the condition
+#         update_widget_state(condition=True, button1, button2, button3)
+#         ```
+#     """
+#
+#     for widget in widgets:
+#         change_widget_state(condition, widget)

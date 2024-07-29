@@ -26,12 +26,12 @@ class UiVideoTabWidget(UiCropBatchWidget):
         self.speed = 0
         self.reverse = 0
 
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred,
-                                           QtWidgets.QSizePolicy.Policy.Expanding)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.sizePolicy().hasHeightForWidth())
-        self.setSizePolicy(sizePolicy)
+        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred,
+                                            QtWidgets.QSizePolicy.Policy.Expanding)
+        size_policy.setHorizontalStretch(0)
+        size_policy.setVerticalStretch(0)
+        size_policy.setHeightForWidth(self.sizePolicy().hasHeightForWidth())
+        self.setSizePolicy(size_policy)
 
         self.toolBox = QtWidgets.QToolBox(self)
         self.toolBox.setObjectName(u"toolBox")
@@ -63,11 +63,11 @@ class UiVideoTabWidget(UiCropBatchWidget):
 
         self.volumeSlider_1 = QtWidgets.QSlider(self.frame_1)
         self.volumeSlider_1.setObjectName(u"volumeSlider_1")
-        sizePolicy3 = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed)
-        sizePolicy3.setHorizontalStretch(0)
-        sizePolicy3.setVerticalStretch(0)
-        sizePolicy3.setHeightForWidth(self.volumeSlider_1.sizePolicy().hasHeightForWidth())
-        self.volumeSlider_1.setSizePolicy(sizePolicy3)
+        size_policy3 = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed)
+        size_policy3.setHorizontalStretch(0)
+        size_policy3.setVerticalStretch(0)
+        size_policy3.setHeightForWidth(self.volumeSlider_1.sizePolicy().hasHeightForWidth())
+        self.volumeSlider_1.setSizePolicy(size_policy3)
         self.volumeSlider_1.setMinimumSize(QtCore.QSize(0, 30))
         self.volumeSlider_1.setMaximumSize(QtCore.QSize(16_777_215, 30))
         self.volumeSlider_1.setMinimum(-1)
@@ -79,11 +79,11 @@ class UiVideoTabWidget(UiCropBatchWidget):
 
         self.positionLabel_1 = QtWidgets.QLabel(self.frame_1)
         self.positionLabel_1.setObjectName(u"positionLabel_1")
-        sizePolicy4 = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Fixed)
-        sizePolicy4.setHorizontalStretch(0)
-        sizePolicy4.setVerticalStretch(0)
-        sizePolicy4.setHeightForWidth(self.positionLabel_1.sizePolicy().hasHeightForWidth())
-        self.positionLabel_1.setSizePolicy(sizePolicy4)
+        size_policy4 = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Fixed)
+        size_policy4.setHorizontalStretch(0)
+        size_policy4.setVerticalStretch(0)
+        size_policy4.setHeightForWidth(self.positionLabel_1.sizePolicy().hasHeightForWidth())
+        self.positionLabel_1.setSizePolicy(size_policy4)
         self.positionLabel_1.setMinimumSize(QtCore.QSize(0, 30))
         self.positionLabel_1.setMaximumSize(QtCore.QSize(16_777_215, 30))
 
@@ -91,11 +91,11 @@ class UiVideoTabWidget(UiCropBatchWidget):
 
         self.timelineSlider_1 = QtWidgets.QSlider(self.frame_1)
         self.timelineSlider_1.setObjectName(u"timelineSlider_1")
-        sizePolicy5 = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
-        sizePolicy5.setHorizontalStretch(1)
-        sizePolicy5.setVerticalStretch(0)
-        sizePolicy5.setHeightForWidth(self.timelineSlider_1.sizePolicy().hasHeightForWidth())
-        self.timelineSlider_1.setSizePolicy(sizePolicy5)
+        size_policy5 = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
+        size_policy5.setHorizontalStretch(1)
+        size_policy5.setVerticalStretch(0)
+        size_policy5.setHeightForWidth(self.timelineSlider_1.sizePolicy().hasHeightForWidth())
+        self.timelineSlider_1.setSizePolicy(size_policy5)
         self.timelineSlider_1.setMinimumSize(QtCore.QSize(0, 30))
         self.timelineSlider_1.setMaximumSize(QtCore.QSize(16_777_215, 30))
         self.timelineSlider_1.setOrientation(QtCore.Qt.Orientation.Horizontal)
@@ -104,8 +104,8 @@ class UiVideoTabWidget(UiCropBatchWidget):
 
         self.durationLabel_1 = QtWidgets.QLabel(self.frame_1)
         self.durationLabel_1.setObjectName(u"durationLabel_1")
-        sizePolicy4.setHeightForWidth(self.durationLabel_1.sizePolicy().hasHeightForWidth())
-        self.durationLabel_1.setSizePolicy(sizePolicy4)
+        size_policy4.setHeightForWidth(self.durationLabel_1.sizePolicy().hasHeightForWidth())
+        self.durationLabel_1.setSizePolicy(size_policy4)
         self.durationLabel_1.setMinimumSize(QtCore.QSize(0, 30))
         self.durationLabel_1.setMaximumSize(QtCore.QSize(16_777_215, 30))
 
@@ -177,8 +177,8 @@ class UiVideoTabWidget(UiCropBatchWidget):
 
         self.volumeSlider_2 = QtWidgets.QSlider(self.frame_2)
         self.volumeSlider_2.setObjectName(u"volumeSlider_2")
-        sizePolicy3.setHeightForWidth(self.volumeSlider_2.sizePolicy().hasHeightForWidth())
-        self.volumeSlider_2.setSizePolicy(sizePolicy3)
+        size_policy3.setHeightForWidth(self.volumeSlider_2.sizePolicy().hasHeightForWidth())
+        self.volumeSlider_2.setSizePolicy(size_policy3)
         self.volumeSlider_2.setMinimumSize(QtCore.QSize(0, 30))
         self.volumeSlider_2.setMaximumSize(QtCore.QSize(16_777_215, 30))
         self.volumeSlider_2.setMinimum(-1)
@@ -190,8 +190,8 @@ class UiVideoTabWidget(UiCropBatchWidget):
 
         self.positionLabel_2 = QtWidgets.QLabel(self.frame_2)
         self.positionLabel_2.setObjectName(u"positionLabel_2")
-        sizePolicy4.setHeightForWidth(self.positionLabel_2.sizePolicy().hasHeightForWidth())
-        self.positionLabel_2.setSizePolicy(sizePolicy4)
+        size_policy4.setHeightForWidth(self.positionLabel_2.sizePolicy().hasHeightForWidth())
+        self.positionLabel_2.setSizePolicy(size_policy4)
         self.positionLabel_2.setMinimumSize(QtCore.QSize(0, 30))
         self.positionLabel_2.setMaximumSize(QtCore.QSize(16_777_215, 30))
 
@@ -199,8 +199,8 @@ class UiVideoTabWidget(UiCropBatchWidget):
 
         self.timelineSlider_2 = QtWidgets.QSlider(self.frame_2)
         self.timelineSlider_2.setObjectName(u"timelineSlider_2")
-        sizePolicy5.setHeightForWidth(self.timelineSlider_2.sizePolicy().hasHeightForWidth())
-        self.timelineSlider_2.setSizePolicy(sizePolicy5)
+        size_policy5.setHeightForWidth(self.timelineSlider_2.sizePolicy().hasHeightForWidth())
+        self.timelineSlider_2.setSizePolicy(size_policy5)
         self.timelineSlider_2.setMinimumSize(QtCore.QSize(0, 30))
         self.timelineSlider_2.setMaximumSize(QtCore.QSize(16_777_215, 30))
         self.timelineSlider_2.setOrientation(QtCore.Qt.Orientation.Horizontal)
@@ -209,8 +209,8 @@ class UiVideoTabWidget(UiCropBatchWidget):
 
         self.durationLabel_2 = QtWidgets.QLabel(self.frame_2)
         self.durationLabel_2.setObjectName(u"durationLabel_2")
-        sizePolicy4.setHeightForWidth(self.durationLabel_2.sizePolicy().hasHeightForWidth())
-        self.durationLabel_2.setSizePolicy(sizePolicy4)
+        size_policy4.setHeightForWidth(self.durationLabel_2.sizePolicy().hasHeightForWidth())
+        self.durationLabel_2.setSizePolicy(size_policy4)
         self.durationLabel_2.setMinimumSize(QtCore.QSize(0, 30))
         self.durationLabel_2.setMaximumSize(QtCore.QSize(16_777_215, 30))
 
@@ -623,7 +623,7 @@ class UiVideoTabWidget(UiCropBatchWidget):
                     pass
 
     def disable_buttons(self) -> None:
-        wf.update_widget_state(
+        wf.change_widget_state(
             wf.all_filled(self.inputLineEdit, self.destinationLineEdit, self.controlWidget.widthLineEdit,
                           self.controlWidget.heightLineEdit),
             self.mediacontrolWidget_1.cropButton, self.mediacontrolWidget_1.videocropButton,

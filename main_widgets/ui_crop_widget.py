@@ -65,14 +65,14 @@ class UiCropWidget(QtWidgets.QWidget):
         self.destinationButton = self.create_nav_button(u"destinationButton")
         self.destinationLineEdit = self.create_str_line_edit(u"destinationLineEdit", PathType.FOLDER)
 
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
-                                           QtWidgets.QSizePolicy.Policy.Expanding)
-        sizePolicy.setHorizontalStretch(1)
-        sizePolicy.setVerticalStretch(1)
+        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
+                                            QtWidgets.QSizePolicy.Policy.Expanding)
+        size_policy.setHorizontalStretch(1)
+        size_policy.setVerticalStretch(1)
 
         self.imageWidget = ImageWidget()
         self.imageWidget.setObjectName(u"imageWidget")
-        wf.apply_size_policy(self.imageWidget, sizePolicy, min_size=QtCore.QSize(0, 0),
+        wf.apply_size_policy(self.imageWidget, size_policy, min_size=QtCore.QSize(0, 0),
                              max_size=QtCore.QSize(16_777_215, 16_777_215))
         self.imageWidget.setStyleSheet(u"")
         self.horizontalLayout = wf.setup_hbox(u"horizontalLayout", self.imageWidget)

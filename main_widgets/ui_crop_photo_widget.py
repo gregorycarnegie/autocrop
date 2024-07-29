@@ -153,7 +153,7 @@ class UiPhotoTabWidget(UiCropWidget):
             callback(f_name)
 
     def disable_buttons(self) -> None:
-        wf.update_widget_state(
+        wf.change_widget_state(
             wf.all_filled(self.inputLineEdit, self.destinationLineEdit, self.controlWidget.widthLineEdit,
                           self.controlWidget.heightLineEdit),
             self.cropButton)

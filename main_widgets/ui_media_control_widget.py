@@ -9,47 +9,47 @@ class UiMediaControlWidget(QtWidgets.QWidget):
         super().__init__(parent)
         self.setObjectName(u"MediaControlWidget")
         self.horizontalLayout = wf.setup_hbox(u"horizontalLayout", self)
-        sizePolicy1 = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
-        sizePolicy1.setHorizontalStretch(1)
-        sizePolicy1.setVerticalStretch(1)
+        size_policy1 = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
+        size_policy1.setHorizontalStretch(1)
+        size_policy1.setVerticalStretch(1)
 
-        self.playButton = self.create_media_button(sizePolicy1, name=u"playButton",
+        self.playButton = self.create_media_button(size_policy1, name=u"playButton",
                                                    icon_resource=GuiIcon.MULTIMEDIA_PLAY)
         self.horizontalLayout.addWidget(self.playButton)
 
-        self.stopButton = self.create_media_button(sizePolicy1, name=u"stopButton",
+        self.stopButton = self.create_media_button(size_policy1, name=u"stopButton",
                                                    icon_resource=GuiIcon.MULTIMEDIA_STOP)
         self.horizontalLayout.addWidget(self.stopButton)
 
-        self.stepbackButton = self.create_media_button(sizePolicy1, name=u"stepbackButton",
+        self.stepbackButton = self.create_media_button(size_policy1, name=u"stepbackButton",
                                                        icon_resource=GuiIcon.MULTIMEDIA_LEFT)
         self.horizontalLayout.addWidget(self.stepbackButton)
 
-        self.stepfwdButton = self.create_media_button(sizePolicy1, name=u"stepfwdButton",
+        self.stepfwdButton = self.create_media_button(size_policy1, name=u"stepfwdButton",
                                                       icon_resource=GuiIcon.MULTIMEDIA_RIGHT)
         self.horizontalLayout.addWidget(self.stepfwdButton)
 
-        self.rewindButton = self.create_media_button(sizePolicy1, name=u"rewindButton",
+        self.rewindButton = self.create_media_button(size_policy1, name=u"rewindButton",
                                                      icon_resource=GuiIcon.MULTIMEDIA_REWIND)
         self.horizontalLayout.addWidget(self.rewindButton)
 
-        self.fastfwdButton = self.create_media_button(sizePolicy1, name=u"fastfwdButton",
+        self.fastfwdButton = self.create_media_button(size_policy1, name=u"fastfwdButton",
                                                       icon_resource=GuiIcon.MULTIMEDIA_FASTFWD)
         self.horizontalLayout.addWidget(self.fastfwdButton)
 
-        self.goto_beginingButton = self.create_media_button(sizePolicy1, name=u"goto_beginingButton",
+        self.goto_beginingButton = self.create_media_button(size_policy1, name=u"goto_beginingButton",
                                                             icon_resource=GuiIcon.MULTIMEDIA_BEGINING)
         self.horizontalLayout.addWidget(self.goto_beginingButton)
 
-        self.goto_endButton = self.create_media_button(sizePolicy1, name=u"goto_endButton",
+        self.goto_endButton = self.create_media_button(size_policy1, name=u"goto_endButton",
                                                        icon_resource=GuiIcon.MULTIMEDIA_END)
         self.horizontalLayout.addWidget(self.goto_endButton)
 
-        self.startmarkerButton = self.create_media_button(sizePolicy1, name=u"startmarkerButton",
+        self.startmarkerButton = self.create_media_button(size_policy1, name=u"startmarkerButton",
                                                           icon_resource=GuiIcon.MULTIMEDIA_LEFTMARKER)
         self.horizontalLayout.addWidget(self.startmarkerButton)
 
-        self.endmarkerButton = self.create_media_button(sizePolicy1, name=u"endmarkerButton",
+        self.endmarkerButton = self.create_media_button(size_policy1, name=u"endmarkerButton",
                                                         icon_resource=GuiIcon.MULTIMEDIA_RIGHTMARKER)
         self.horizontalLayout.addWidget(self.endmarkerButton)
 
@@ -58,20 +58,20 @@ class UiMediaControlWidget(QtWidgets.QWidget):
 
         self.horizontalLayout.addItem(self.horizontalSpacer_1)
 
-        sizePolicy2 = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
-        sizePolicy2.setHorizontalStretch(0)
-        sizePolicy2.setVerticalStretch(0)
+        size_policy2 = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
+        size_policy2.setHorizontalStretch(0)
+        size_policy2.setVerticalStretch(0)
 
-        self.cropButton = self.create_media_button(sizePolicy2, name=u"cropButton",
+        self.cropButton = self.create_media_button(size_policy2, name=u"cropButton",
                                                    icon_resource=GuiIcon.CROP)
         self.cropButton.setDisabled(True)
         self.horizontalLayout.addWidget(self.cropButton)
 
-        self.videocropButton = self.create_media_button(sizePolicy2, name=u"videocropButton",
+        self.videocropButton = self.create_media_button(size_policy2, name=u"videocropButton",
                                                         icon_resource=GuiIcon.CLAPPERBOARD)
         self.horizontalLayout.addWidget(self.videocropButton)
 
-        self.cancelButton = self.create_media_button(sizePolicy2, name=u"cancelButton",
+        self.cancelButton = self.create_media_button(size_policy2, name=u"cancelButton",
                                                      icon_resource=GuiIcon.CANCEL)
         self.cancelButton.setDisabled(True)
         self.horizontalLayout.addWidget(self.cancelButton)
@@ -84,16 +84,16 @@ class UiMediaControlWidget(QtWidgets.QWidget):
         self.gridLayout = QtWidgets.QGridLayout()
         self.gridLayout.setObjectName(u"gridLayout")
 
-        self.label_A = self.create_label(sizePolicy2, name=u"label_A", icon_resource=GuiIcon.MULTIMEDIA_LABEL_A)
+        self.label_A = self.create_label(size_policy2, name=u"label_A", icon_resource=GuiIcon.MULTIMEDIA_LABEL_A)
         self.gridLayout.addWidget(self.label_A, 0, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
 
-        self.selectStartMarkerButton = self.create_marker_button(sizePolicy2, u"selectStartMarkerButton")
+        self.selectStartMarkerButton = self.create_marker_button(size_policy2, u"selectStartMarkerButton")
         self.gridLayout.addWidget(self.selectStartMarkerButton, 0, 1, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
 
-        self.label_B = self.create_label(sizePolicy2, name=u"label_B", icon_resource=GuiIcon.MULTIMEDIA_LABEL_B)
+        self.label_B = self.create_label(size_policy2, name=u"label_B", icon_resource=GuiIcon.MULTIMEDIA_LABEL_B)
         self.gridLayout.addWidget(self.label_B, 1, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
 
-        self.selectEndMarkerButton = self.create_marker_button(sizePolicy2, u"selectEndMarkerButton")
+        self.selectEndMarkerButton = self.create_marker_button(size_policy2, u"selectEndMarkerButton")
         self.gridLayout.addWidget(self.selectEndMarkerButton, 1, 1, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
 
         self.horizontalLayout.addLayout(self.gridLayout)
