@@ -4,18 +4,21 @@ from typing import Any, Optional
 import pandas as pd
 from PyQt6 import QtCore, QtWidgets
 
-from core import DataFrameModel, Cropper
+from core import DataFrameModel, MappingCropper
 from core import utils as ut
 from core import window_functions as wf
 from core.enums import FunctionType, GuiIcon
+from core.operation_types import FaceToolPair
 from file_types import Photo, Table
 from line_edits import LineEditState, NumberLineEdit, PathLineEdit, PathType
 from .ui_crop_batch_widget import UiCropBatchWidget
 
 
 class UiMappingTabWidget(UiCropBatchWidget):
-    def __init__(self, crop_worker: Cropper, object_name: str, parent: QtWidgets.QWidget):
-        super().__init__(crop_worker, object_name, parent)
+    def __init__(self, crop_worker: MappingCropper, object_name: str, parent: QtWidgets.QWidget, face_tool_list: list[FaceToolPair]):
+        super().__init__(object_name, parent, face_tool_list)
+        self.crop_worker = crop_worker
+        
         self.model: Optional[DataFrameModel] = None
         self.data_frame: Optional[pd.DataFrame] = None
 
@@ -162,7 +165,7 @@ class UiMappingTabWidget(UiCropBatchWidget):
         self.destinationButton.clicked.connect(lambda: self.open_folder(self.destinationLineEdit))
 
         self.cancelButton.clicked.connect(lambda: self.mapping_process())
-        self.cancelButton.clicked.connect(lambda: self.crop_worker.terminate(FunctionType.MAPPING))
+        self.cancelButton.clicked.connect(lambda: self.crop_worker.terminate())
         self.cancelButton.clicked.connect(lambda: self.cancel_button_operation(self.cancelButton, self.cropButton))
 
         self.comboBox_1.currentTextChanged.connect(lambda text: self.comboBox_3.setCurrentText(text))
@@ -234,17 +237,17 @@ class UiMappingTabWidget(UiCropBatchWidget):
                        self.controlWidget.radioButton_tiff, self.controlWidget.radioButton_webp, self.cropButton,
                        self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox)
         # Mapping start connection
-        self.crop_worker.m_started.connect(lambda: wf.disable_widget(*widget_list))
-        self.crop_worker.m_started.connect(lambda: wf.enable_widget(self.cancelButton))
+        self.crop_worker.started.connect(lambda: wf.disable_widget(*widget_list))
+        self.crop_worker.started.connect(lambda: wf.enable_widget(self.cancelButton))
         # Mapping end connection
-        self.crop_worker.m_finished.connect(lambda: wf.enable_widget(*widget_list))
-        self.crop_worker.m_finished.connect(lambda: wf.disable_widget(self.cancelButton))
-        self.crop_worker.m_finished.connect(lambda: wf.show_message_box(self.destination))
-        self.crop_worker.m_progress.connect(self.update_progress)
+        self.crop_worker.finished.connect(lambda: wf.enable_widget(*widget_list))
+        self.crop_worker.finished.connect(lambda: wf.disable_widget(self.cancelButton))
+        self.crop_worker.finished.connect(lambda: wf.show_message_box(self.destination))
+        self.crop_worker.progress.connect(self.update_progress)
 
     def display_crop(self) -> None:
         job = self.create_job()
-        self.crop_worker.display_crop(job, self.inputLineEdit, self.imageWidget)
+        ut.display_crop(job, self.inputLineEdit, self.imageWidget, self.face_tool_list[0])
 
     def load_data(self) -> None:
         try:
@@ -325,8 +328,8 @@ class UiMappingTabWidget(UiCropBatchWidget):
                                   table=self.data_frame,
                                   column1=self.comboBox_1,
                                   column2=self.comboBox_2)
-            self.run_batch_process(job, function=self.crop_worker.mapping_crop,
-                                   reset_worker_func=lambda: self.crop_worker.reset_task(FunctionType.MAPPING))
+            self.run_batch_process(job, function=self.crop_worker.crop,
+                                   reset_worker_func=lambda: self.crop_worker.reset_task())
 
         if Path(self.inputLineEdit.text()) == Path(self.destinationLineEdit.text()):
             match wf.show_warning(FunctionType.MAPPING):

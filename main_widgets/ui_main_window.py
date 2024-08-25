@@ -3,7 +3,8 @@ from typing import Union, Optional
 
 from PyQt6 import QtCore, QtWidgets, QtGui
 
-from core import Cropper
+from core import FolderCropper, PhotoCropper, MappingCropper, VideoCropper
+from core import face_tools as ft
 from core import utils as ut
 from core import window_functions as wf
 from core.enums import FunctionType, Preset, GuiIcon
@@ -23,7 +24,11 @@ class UiMainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
         self.setAcceptDrops(True)
-        self.crop_worker = Cropper()
+        face_tool_list = ft.generate_face_detection_tools()
+        self.folder_worker = FolderCropper(face_tool_list)
+        self.photo_worker = PhotoCropper(face_tool_list)
+        self.mapping_worker = MappingCropper(face_tool_list)
+        self.video_worker = VideoCropper(face_tool_list)
         self.setObjectName(u"MainWindow")
         self.resize(1256, 652)
         icon = QtGui.QIcon()
@@ -73,7 +78,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.photo_tab = QtWidgets.QWidget()
         self.photo_tab.setObjectName(u"photo_tab")
         self.verticalLayout_2 = wf.setup_vbox(u"verticalLayout_2", self.photo_tab)
-        self.photo_tab_widget = UiPhotoTabWidget(self.crop_worker, u"photo_tab_widget", self.photo_tab)
+        self.photo_tab_widget = UiPhotoTabWidget(self.photo_worker, u"photo_tab_widget", self.photo_tab, face_tool_list)
 
         self.verticalLayout_2.addWidget(self.photo_tab_widget)
 
@@ -81,7 +86,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.folder_tab = QtWidgets.QWidget()
         self.folder_tab.setObjectName(u"folder_tab")
         self.verticalLayout_3 = wf.setup_vbox(u"verticalLayout_3", self.folder_tab)
-        self.folder_tab_widget = UiFolderTabWidget(self.crop_worker, u"folder_tab_widget", self.folder_tab)
+        self.folder_tab_widget = UiFolderTabWidget(self.folder_worker, u"folder_tab_widget", self.folder_tab, face_tool_list)
 
         self.verticalLayout_3.addWidget(self.folder_tab_widget)
 
@@ -89,7 +94,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.mapping_tab = QtWidgets.QWidget()
         self.mapping_tab.setObjectName(u"mapping_tab")
         self.verticalLayout_4 = wf.setup_vbox(u"verticalLayout_4", self.mapping_tab)
-        self.mapping_tab_widget = UiMappingTabWidget(self.crop_worker, u"mapping_tab_widget", self.mapping_tab)
+        self.mapping_tab_widget = UiMappingTabWidget(self.mapping_worker, u"mapping_tab_widget", self.mapping_tab, face_tool_list)
 
         self.verticalLayout_4.addWidget(self.mapping_tab_widget)
 
@@ -97,7 +102,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.video_tab = QtWidgets.QWidget()
         self.video_tab.setObjectName(u"video_tab")
         self.verticalLayout_5 = wf.setup_vbox(u"verticalLayout_5", self.video_tab)
-        self.video_tab_widget = UiVideoTabWidget(self.crop_worker, u"video_tab_widget", self.video_tab)
+        self.video_tab_widget = UiVideoTabWidget(self.video_worker, u"video_tab_widget", self.video_tab, face_tool_list)
 
         self.verticalLayout_5.addWidget(self.video_tab_widget)
 

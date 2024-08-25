@@ -5,9 +5,10 @@ from typing import Tuple, Union
 import numpy as np
 from PyQt6 import QtCore, QtGui, QtMultimedia, QtMultimediaWidgets, QtWidgets
 
-from core import Cropper
+from core import VideoCropper
 from core import window_functions as wf
 from core.enums import FunctionType, GuiIcon
+from core.operation_types import FaceToolPair
 from file_types import Photo, Video
 from line_edits import LineEditState, NumberLineEdit, PathLineEdit, PathType
 from .ui_crop_batch_widget import UiCropBatchWidget
@@ -15,8 +16,9 @@ from .ui_media_control_widget import UiMediaControlWidget
 
 
 class UiVideoTabWidget(UiCropBatchWidget):
-    def __init__(self, crop_worker: Cropper, object_name: str, parent: QtWidgets.QWidget):
-        super().__init__(crop_worker, object_name, parent)
+    def __init__(self, crop_worker: VideoCropper, object_name: str, parent: QtWidgets.QWidget, face_tool_list: list[FaceToolPair]):
+        super().__init__(object_name, parent, face_tool_list)
+        self.crop_worker = crop_worker
         self.vol_cache = 70
         self.rewind_timer = QtCore.QTimer()
         self.default_directory = Video.default_directory
@@ -272,7 +274,7 @@ class UiVideoTabWidget(UiCropBatchWidget):
         self.tiltCheckBox_2.toggled.connect(self.tiltCheckBox.setChecked)
         self.mfaceCheckBox_2.toggled.connect(self.mfaceCheckBox.setChecked)
 
-        self.crop_worker.v_progress.connect(self.update_progress)
+        self.crop_worker.progress.connect(self.update_progress)
         self.player.positionChanged.connect(self.position_changed)
         self.player.durationChanged.connect(self.duration_changed)
         self.volumeSlider_1.sliderMoved.connect(self.volume_slider_changed)
@@ -285,7 +287,7 @@ class UiVideoTabWidget(UiCropBatchWidget):
         for control in [self.mediacontrolWidget_1, self.mediacontrolWidget_2]:
             control.cropButton.clicked.connect(lambda: self.crop_frame())
             control.videocropButton.clicked.connect(lambda: self.video_process())
-            control.cancelButton.clicked.connect(lambda: self.crop_worker.terminate(FunctionType.VIDEO))
+            control.cancelButton.clicked.connect(lambda: self.crop_worker.terminate())
             control.cancelButton.clicked.connect(
                 lambda: self.cancel_button_operation(control.cancelButton,
                                                      control.videocropButton,
@@ -376,8 +378,6 @@ class UiVideoTabWidget(UiCropBatchWidget):
         self.toolBox.setItemText(self.toolBox.indexOf(self.page_2),
                                  QtCore.QCoreApplication.translate("self", u"Crop View", None))
 
-    # retranslateUi
-
     def update_progress(self, data: Tuple[int, int]) -> None:
         """Only sublasses of the CropBatchWidget class should implement this method"""
         x, y = data
@@ -396,8 +396,8 @@ class UiVideoTabWidget(UiCropBatchWidget):
                        self.mfaceCheckBox, self.tiltCheckBox, self.exposureCheckBox_2, self.mfaceCheckBox_2,
                        self.tiltCheckBox_2)
 
-        self.crop_worker.v_started.connect(lambda: wf.disable_widget(*widget_list))  # Video start connection
-        self.crop_worker.v_finished.connect(lambda: wf.enable_widget(*widget_list))  # Video end connection
+        self.crop_worker.started.connect(lambda: wf.disable_widget(*widget_list))  # Video start connection
+        self.crop_worker.finished.connect(lambda: wf.enable_widget(*widget_list))  # Video end connection
 
         for control in [self.mediacontrolWidget_1, self.mediacontrolWidget_2]:
             controls = (control.cropButton, control.videocropButton, control.playButton, control.stopButton,
@@ -406,14 +406,14 @@ class UiVideoTabWidget(UiCropBatchWidget):
                         control.endmarkerButton, control.selectStartMarkerButton, control.selectEndMarkerButton)
 
             # Video start connection
-            self.crop_worker.v_started.connect(lambda: wf.disable_widget(*controls))
-            self.crop_worker.v_started.connect(lambda: wf.enable_widget(control.cancelButton))
+            self.crop_worker.started.connect(lambda: wf.disable_widget(*controls))
+            self.crop_worker.started.connect(lambda: wf.enable_widget(control.cancelButton))
             # Video end connection
-            self.crop_worker.v_finished.connect(lambda: wf.enable_widget(*controls))
-            self.crop_worker.v_finished.connect(lambda: wf.disable_widget(control.cancelButton))
+            self.crop_worker.finished.connect(lambda: wf.enable_widget(*controls))
+            self.crop_worker.finished.connect(lambda: wf.disable_widget(control.cancelButton))
 
-        self.crop_worker.v_finished.connect(lambda: wf.show_message_box(self.destination))
-        self.crop_worker.v_progress.connect(self.update_progress)
+        self.crop_worker.finished.connect(lambda: wf.show_message_box(self.destination))
+        self.crop_worker.progress.connect(self.update_progress)
 
     def setup_label(self,
                     name: GuiIcon = Union[GuiIcon.MULTIMEDIA_LABEL_A, GuiIcon.MULTIMEDIA_LABEL_B]) -> QtWidgets.QLabel:
@@ -654,7 +654,7 @@ class UiVideoTabWidget(UiCropBatchWidget):
                                   stop_position=self.stop_position)
             self.player.pause()
             self.run_batch_process(job, function=self.crop_worker.extract_frames,
-                                   reset_worker_func=lambda: self.crop_worker.reset_task(FunctionType.VIDEO))
+                                   reset_worker_func=lambda: self.crop_worker.reset_task())
 
         if Path(self.inputLineEdit.text()).parent == Path(self.destinationLineEdit.text()):
             match wf.show_warning(FunctionType.VIDEO):

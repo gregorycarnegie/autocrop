@@ -2,17 +2,20 @@ from pathlib import Path
 
 from PyQt6 import QtCore, QtWidgets
 
-from core import Cropper
+from core import PhotoCropper
+from core import utils as ut
 from core import window_functions as wf
 from core.enums import FunctionType, GuiIcon
+from core.operation_types import FaceToolPair
 from file_types import Photo
 from line_edits import LineEditState, PathLineEdit, PathType
 from .ui_crop_widget import UiCropWidget
 
 
 class UiPhotoTabWidget(UiCropWidget):
-    def __init__(self, crop_worker: Cropper, object_name: str, parent: QtWidgets.QWidget):
-        super().__init__(crop_worker, parent)
+    def __init__(self, crop_worker: PhotoCropper, object_name: str, parent: QtWidgets.QWidget, face_tool_list: list[FaceToolPair]):
+        super().__init__(parent, face_tool_list)
+        self.crop_worker = crop_worker
         self.setObjectName(object_name)
         self.selection_state = self.SELECTED
 
@@ -120,7 +123,7 @@ class UiPhotoTabWidget(UiCropWidget):
 
     def display_crop(self) -> None:
         job = self.create_job()
-        self.crop_worker.display_crop(job, self.inputLineEdit, self.imageWidget)
+        ut.display_crop(job, self.inputLineEdit, self.imageWidget, self.face_tool_list[0])
 
     def open_folder(self, line_edit: PathLineEdit) -> None:
         if line_edit is self.inputLineEdit:
@@ -163,7 +166,7 @@ class UiPhotoTabWidget(UiCropWidget):
             job = self.create_job(FunctionType.PHOTO,
                                   photo_path=Path(self.inputLineEdit.text()),
                                   destination=Path(self.destinationLineEdit.text()))
-            self.crop_worker.photo_crop(Path(self.inputLineEdit.text()), job)
+            self.crop_worker.crop(Path(self.inputLineEdit.text()), job)
 
         if Path(self.inputLineEdit.text()).parent == Path(self.destinationLineEdit.text()):
             match wf.show_warning(FunctionType.PHOTO):

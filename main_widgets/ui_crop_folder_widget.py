@@ -3,17 +3,20 @@ from typing import Optional
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-from core import Cropper
+from core import FolderCropper
+from core import utils as ut
 from core import window_functions as wf
 from core.enums import FunctionType, GuiIcon
+from core.operation_types import FaceToolPair
 from file_types import Photo
 from line_edits import PathLineEdit
 from .ui_crop_batch_widget import UiCropBatchWidget
 
 
 class UiFolderTabWidget(UiCropBatchWidget):
-    def __init__(self, crop_worker: Cropper, object_name: str, parent: QtWidgets.QWidget):
-        super().__init__(crop_worker, object_name, parent)
+    def __init__(self, crop_worker: FolderCropper, object_name: str, parent: QtWidgets.QWidget, face_tool_list: list[FaceToolPair]):
+        super().__init__(object_name, parent, face_tool_list)
+        self.crop_worker = crop_worker
 
         self.file_model = QtGui.QFileSystemModel(self)
         self.file_model.setFilter(QtCore.QDir.Filter.NoDotAndDotDot | QtCore.QDir.Filter.Files)
@@ -109,7 +112,7 @@ class UiFolderTabWidget(UiCropBatchWidget):
         self.inputLineEdit.textChanged.connect(lambda: self.load_data())
         self.treeView.selectionModel().selectionChanged.connect(lambda: self.reload_widgets())
         self.cropButton.clicked.connect(lambda: self.folder_process())
-        self.cancelButton.clicked.connect(lambda: self.crop_worker.terminate(FunctionType.FOLDER))
+        self.cancelButton.clicked.connect(lambda: self.crop_worker.terminate())
         self.cancelButton.clicked.connect(lambda: self.cancel_button_operation(self.cancelButton, self.cropButton))
 
         self.connect_input_widgets(self.inputLineEdit, self.controlWidget.widthLineEdit,
@@ -168,21 +171,21 @@ class UiFolderTabWidget(UiCropBatchWidget):
                        self.tiltCheckBox)
 
         # Folder start connection
-        self.crop_worker.f_started.connect(lambda: wf.disable_widget(*widget_list))
-        self.crop_worker.f_started.connect(lambda: wf.enable_widget(self.cancelButton))
+        self.crop_worker.started.connect(lambda: wf.disable_widget(*widget_list))
+        self.crop_worker.started.connect(lambda: wf.enable_widget(self.cancelButton))
 
         # Folder end connection
-        self.crop_worker.f_finished.connect(lambda: wf.enable_widget(*widget_list))
-        self.crop_worker.f_finished.connect(lambda: wf.disable_widget(self.cancelButton))
-        self.crop_worker.f_finished.connect(lambda: wf.show_message_box(self.destination))
-        self.crop_worker.f_progress.connect(self.update_progress)
+        self.crop_worker.finished.connect(lambda: wf.enable_widget(*widget_list))
+        self.crop_worker.finished.connect(lambda: wf.disable_widget(self.cancelButton))
+        self.crop_worker.finished.connect(lambda: wf.show_message_box(self.destination))
+        self.crop_worker.progress.connect(self.update_progress)
 
     def display_crop(self, selection: Optional[Path] = None) -> None:
         job = self.create_job()
         if selection is None:
-            self.crop_worker.display_crop(job, self.inputLineEdit, self.imageWidget)
+            ut.display_crop(job, self.inputLineEdit, self.imageWidget, self.face_tool_list[0])
         else:
-            self.crop_worker.display_crop(job, selection, self.imageWidget)
+            ut.display_crop(job, selection, self.imageWidget, self.face_tool_list[0])
 
     def open_folder(self, line_edit: PathLineEdit) -> None:
         """Only subclasses of the CustomCropWidget class should implement this method"""
@@ -227,8 +230,8 @@ class UiFolderTabWidget(UiCropBatchWidget):
             job = self.create_job(FunctionType.FOLDER,
                                   folder_path=Path(self.inputLineEdit.text()),
                                   destination=Path(self.destinationLineEdit.text()))
-            self.run_batch_process(job, function=self.crop_worker.crop_dir,
-                                   reset_worker_func=lambda: self.crop_worker.reset_task(FunctionType.FOLDER))
+            self.run_batch_process(job, function=self.crop_worker.crop,
+                                   reset_worker_func=lambda: self.crop_worker.reset_task())
 
         if Path(self.inputLineEdit.text()) == Path(self.destinationLineEdit.text()):
             match wf.show_warning(FunctionType.FOLDER):

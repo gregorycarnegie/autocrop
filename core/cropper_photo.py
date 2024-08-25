@@ -1,13 +1,13 @@
-from multiprocessing import cpu_count
-from typing import ClassVar, Optional, Tuple
+from pathlib import Path
+from typing import Optional
 
-from PyQt6.QtCore import pyqtSignal, QObject, pyqtBoundSignal
-
-from .resource_path import ResourcePath
+from . import utils as ut
+from .cropper import Cropper
 from .job import Job
- 
+from .operation_types import FaceToolPair
 
-class Cropper(QObject):
+
+class PhotoCropper(Cropper):
     """
     A class that represents a Cropper that inherits from the QObject class.
 
@@ -16,7 +16,7 @@ class Cropper(QObject):
         TASK_VALUES: ClassVar[Tuple[int, bool, bool]] = 0, False, True
 
     Methods:
-        reset_task():
+        reset_task(function_type: FunctionType):
             Resets the task values based on the provided function type.
 
         photo_crop(image: Path, job: Job, face_detection_tools: Tuple[Any, Any], new: Optional[str] = None) -> None:
@@ -58,67 +58,23 @@ class Cropper(QObject):
         terminate(self, series: FunctionType) -> None:
             Terminates the specified series of tasks.
     """
+    def __init__(self, face_detection_tools: list[FaceToolPair]):
+        super().__init__()
+        self.face_detection_tools = face_detection_tools
 
-    THREAD_NUMBER: ClassVar[int] = min(cpu_count(), 8)
-    TASK_VALUES: ClassVar[Tuple[int, bool, bool]] = 0, False, True
-    LANDMARKS: ClassVar[str] = ResourcePath('resources\\models\\shape_predictor_68_face_landmarks.dat').meipass_path
-
-    started, finished, progress = pyqtSignal(), pyqtSignal(), pyqtSignal(object)
-
-    def __init__(self, parent: Optional[QObject] = None):
-        super(Cropper, self).__init__(parent)
-        self.bar_value, self.end_task, self.message_box = self.TASK_VALUES
-
-    def worker(self):
-        pass
-    
-    def crop(self, job: Job):
-        pass
-
-    def reset_task(self):
+    def crop(self, image: Path,
+             job: Job,
+             new: Optional[str] = None) -> None:
         """
-        Resets the task values based on the provided function type.
-
-        Returns:
-            None
-        """
-
-        self.bar_value, self.end_task, self.message_box = self.TASK_VALUES
-
-    def _update_progress(self, file_amount: int) -> None:
-        """
-        Updates the progress bar value based on the process type.
+        Crops the photo image based on the provided job parameters.
 
         Args:
-            self: The Cropper instance.
-            file_amount (int): The total number of files to process.
+            image (Path): The path to the image file.
+            job (Job): The job containing the parameters for cropping.
+            new (Optional[str]): The optional new file name.
 
         Returns:
             None
         """
-
-        def _update_bar(attr_name: str, *,
-                        progress_signal: pyqtBoundSignal,
-                        finished_signal: pyqtBoundSignal) -> None:
-            """Updates the progress bar value."""
-            current_value = getattr(self, attr_name)
-            current_value += 1
-            setattr(self, attr_name, current_value)
-            if current_value == file_amount:
-                progress_signal.emit((file_amount, file_amount))
-                finished_signal.emit()
-            elif current_value < file_amount:
-                progress_signal.emit((current_value, file_amount))
-
-        _update_bar('bar_value', progress_signal=self.progress, finished_signal=self.finished)
-
-    def terminate(self) -> None:
-        """
-        Terminates the specified series of tasks.
-
-        Returns:
-            None
-        """
-
-        self.end_task = True
-        self.finished.emit()
+        if image.is_file():
+            ut.crop(image, job, self.face_detection_tools[0], new)

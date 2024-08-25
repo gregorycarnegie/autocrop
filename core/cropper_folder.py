@@ -1,13 +1,16 @@
-from multiprocessing import cpu_count
-from typing import ClassVar, Optional, Tuple
+from concurrent.futures import ThreadPoolExecutor
+from typing import Any
 
-from PyQt6.QtCore import pyqtSignal, QObject, pyqtBoundSignal
+import numpy as np
+import numpy.typing as npt
 
-from .resource_path import ResourcePath
+from . import utils as ut
+from .cropper import Cropper
 from .job import Job
- 
+from .operation_types import FaceToolPair
 
-class Cropper(QObject):
+
+class FolderCropper(Cropper):
     """
     A class that represents a Cropper that inherits from the QObject class.
 
@@ -16,7 +19,7 @@ class Cropper(QObject):
         TASK_VALUES: ClassVar[Tuple[int, bool, bool]] = 0, False, True
 
     Methods:
-        reset_task():
+        reset_task(function_type: FunctionType):
             Resets the task values based on the provided function type.
 
         photo_crop(image: Path, job: Job, face_detection_tools: Tuple[Any, Any], new: Optional[str] = None) -> None:
@@ -58,67 +61,59 @@ class Cropper(QObject):
         terminate(self, series: FunctionType) -> None:
             Terminates the specified series of tasks.
     """
+    def __init__(self, face_detection_tools: list[FaceToolPair]):
+        super().__init__()
+        self.face_detection_tools = face_detection_tools
 
-    THREAD_NUMBER: ClassVar[int] = min(cpu_count(), 8)
-    TASK_VALUES: ClassVar[Tuple[int, bool, bool]] = 0, False, True
-    LANDMARKS: ClassVar[str] = ResourcePath('resources\\models\\shape_predictor_68_face_landmarks.dat').meipass_path
-
-    started, finished, progress = pyqtSignal(), pyqtSignal(), pyqtSignal(object)
-
-    def __init__(self, parent: Optional[QObject] = None):
-        super(Cropper, self).__init__(parent)
-        self.bar_value, self.end_task, self.message_box = self.TASK_VALUES
-
-    def worker(self):
-        pass
-    
-    def crop(self, job: Job):
-        pass
-
-    def reset_task(self):
+    def worker(self, file_amount: int,
+               file_list: npt.NDArray[Any],
+               job: Job,
+               face_detection_tools: FaceToolPair) -> None:
         """
-        Resets the task values based on the provided function type.
-
-        Returns:
-            None
-        """
-
-        self.bar_value, self.end_task, self.message_box = self.TASK_VALUES
-
-    def _update_progress(self, file_amount: int) -> None:
-        """
-        Updates the progress bar value based on the process type.
+        Performs cropping for a folder job by iterating over the file list, cropping each image, and updating the progress.
 
         Args:
             self: The Cropper instance.
             file_amount (int): The total number of files to process.
+            file_list (npt.NDArray[Any]): The array of file paths.
+            job (Job): The job containing the parameters for cropping.
+            face_detection_tools(Tuple[Any, Any]): The worker for face-related tasks.
 
         Returns:
             None
         """
 
-        def _update_bar(attr_name: str, *,
-                        progress_signal: pyqtBoundSignal,
-                        finished_signal: pyqtBoundSignal) -> None:
-            """Updates the progress bar value."""
-            current_value = getattr(self, attr_name)
-            current_value += 1
-            setattr(self, attr_name, current_value)
-            if current_value == file_amount:
-                progress_signal.emit((file_amount, file_amount))
-                finished_signal.emit()
-            elif current_value < file_amount:
-                progress_signal.emit((current_value, file_amount))
+        for image in file_list:
+            if self.end_task:
+                break
+            ut.crop(image, job, face_detection_tools)
+            self._update_progress(file_amount)
 
-        _update_bar('bar_value', progress_signal=self.progress, finished_signal=self.finished)
+        if self.bar_value == file_amount or self.end_task:
+            self.message_box = False
 
-    def terminate(self) -> None:
+    def crop(self, job: Job) -> None:
         """
-        Terminates the specified series of tasks.
+        Crops all files in a directory by splitting the file list into chunks and running folder workers in separate threads.
+
+        Args:
+            self: The Cropper instance.
+            job (Job): The job containing the file list.
 
         Returns:
             None
         """
 
-        self.end_task = True
-        self.finished.emit()
+        if (file_tuple := job.file_list()) is None:
+            return
+        file_list, amount = file_tuple
+        # Split the file list into chunks.
+        split_array = np.array_split(file_list, self.THREAD_NUMBER)
+
+        self.bar_value = 0
+        self.progress.emit((self.bar_value, amount))
+        self.started.emit()
+
+        executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)
+        _ = [executor.submit(self.worker, amount, split_array[i], job, self.face_detection_tools[i])
+             for i in range(len(split_array))]

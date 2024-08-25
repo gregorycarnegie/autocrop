@@ -4,12 +4,11 @@ import random
 import shutil
 from functools import cache, wraps
 from pathlib import Path
-from typing import Any, Callable, Generator, Iterator, List, Optional, Tuple, Union
+from typing import Any, Callable, Iterator, List, Optional, Tuple, Union
 
 import autocrop_rs
 import cv2
 import cv2.typing as cvt
-import ffmpeg
 import numba
 import numpy as np
 import numpy.typing as npt
@@ -17,6 +16,7 @@ import pandas as pd
 import rawpy
 import tifffile as tiff
 from PIL import Image
+from PyQt6.QtWidgets import QLineEdit
 
 from file_types import Photo
 from . import window_functions as wf
@@ -154,7 +154,6 @@ def numpy_array_crop(input_image: cvt.MatLike, bounding_box: Box) -> npt.NDArray
 
     # Load and crop image using PIL
     picture = Image.fromarray(input_image).crop(bounding_box)
-    # return pillow_to_numpy(picture)
     return np.array(picture)
 
 
@@ -243,10 +242,6 @@ def rotate_image(input_image: ImageArray,
 
 @numba.njit
 def get_dimensions(input_image: ImageArray, output_height: int) -> Tuple[int, float]:
-    # height, width = input_image.shape[:2]
-    # scaling_factor = output_height / height
-    # return int(width * scaling_factor), scaling_factor
-    # height, width = input_image.shape[:2]
     scaling_factor = output_height / input_image.shape[:2][0]
     return int(input_image.shape[:2][1] * scaling_factor), scaling_factor
 
@@ -421,7 +416,7 @@ def open_raw(input_image: Path,
 
     with rawpy.imread(input_image.as_posix()) as raw:
         # Post-process the raw image data
-        # # handle file error
+        # handle file error
         if raw is None:
             return None
         img = raw.postprocess(use_camera_wb=True)
@@ -670,7 +665,7 @@ def mask_extensions(file_list: npt.NDArray[np.str_]) -> Tuple[npt.NDArray[np.boo
 
 def split_by_cpus(mask: npt.NDArray[np.bool_],
                   core_count: int,
-                  *file_lists: npt.NDArray[np.str_]) -> Iterator[List[npt.NDArray[np.str_]]]: # Generator[List[npt.NDArray[np.str_]], None, None]:
+                  *file_lists: npt.NDArray[np.str_]) -> Iterator[List[npt.NDArray[np.str_]]]:
     """
     The function splits the provided file lists based on the given mask and core count, and returns a generator of
     the split lists.
@@ -703,7 +698,6 @@ def split_by_cpus(mask: npt.NDArray[np.bool_],
         ```
     """
     return map(lambda x: np.array_split(x[mask], core_count), file_lists)
-    # return (np.array_split(file_list[mask], core_count) for file_list in file_lists)
 
 
 def join_path_suffix(file_str: str, destination: Path) -> Tuple[Path, bool]:
@@ -1147,33 +1141,49 @@ def grab_frame(position_slider: int,
     cap.release()
     return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-# TODO: try ffmpeg
-# def grab_frame(position_slider: int, video_line_edit: str) -> Optional[cvt.MatLike]:
-#     try:
-#         # Calculate the timestamp in seconds
-#         timestamp = position_slider / 1000
-#
-#         # Use ffmpeg to grab the frame
-#         input_node: ffmpeg.nodes.InputNode = ffmpeg.input(video_line_edit, ss=timestamp)
-#         out_stream: ffmpeg.nodes.OutputStream = input_node.output('pipe:', vframes=1, format='image2', vcodec='png')
-#
-#         # Run the ffmpeg command asynchronously
-#         process = out_stream.run_async(pipe_stdout=True, pipe_stderr=True)
-#
-#         # Capture stdout and stderr
-#         stdout, stderr = process.communicate()
-#
-#         # Check for errors
-#         if stderr:
-#             print("ffmpeg error: ", stderr.decode('utf-8'))
-#             return None
-#
-#         # Convert the output to a numpy array and then to an OpenCV image
-#         frame = np.frombuffer(stdout, dtype=np.uint8)
-#         frame = cv2.imdecode(frame, cv2.IMREAD_COLOR)
-#
-#         if frame is not None:
-#             return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-#     except ffmpeg.Error as err:
-#         print("An error occurred while grabbing the frame:", err)
-#         return None
+
+def display_crop(job: Job,
+                 line_edit: Union[Path, QLineEdit],
+                 image_widget: ImageWidget,
+                 face_detection_tools: FaceToolPair) -> None:
+    """
+    Displays the cropped image on the image widget based on the provided job parameters.
+
+    Args:
+        job (Job): The job containing the parameters for cropping.
+        line_edit (Union[Path, QLineEdit]): The input field for the image path.
+        image_widget (ImageWidget): The widget to display the cropped image.
+        face_detection_tools:
+
+    Returns:
+        None
+    """
+
+    img_path = line_edit if isinstance(line_edit, Path) else Path(line_edit.text())
+    # if input field is empty, then do nothing
+    if not img_path or img_path.as_posix() in {'', '.', None}:
+        return
+
+    if img_path.is_dir():
+        first_file = get_first_file(img_path)
+        if first_file is None:
+            return
+        img_path = first_file
+
+    if not img_path.is_file():
+        return
+
+    pic_array = open_pic(img_path, face_detection_tools,
+                         exposure=job.fix_exposure_job,
+                         tilt=job.auto_tilt_job)
+    if pic_array is None:
+        return
+
+    if job.multi_face_job:
+        pic = multi_box(pic_array, job)
+        wf.display_image_on_widget(pic, image_widget)
+    else:
+        bounding_box = box_detect(pic_array, job)
+        if bounding_box is None:
+            return
+        crop_and_set(pic_array, bounding_box, job.gamma, image_widget)
