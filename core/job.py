@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, NamedTuple, Optional
+from typing import NamedTuple, Optional
 
 import numpy as np
 import numpy.typing as npt
@@ -122,7 +122,7 @@ class Job(NamedTuple):
     column1: Optional[QComboBox] = None
     column2: Optional[QComboBox] = None
 
-    def file_list(self) -> Optional[tuple[npt.NDArray[Any], int]]:
+    def file_list(self) -> Optional[tuple[list[Path], int]]:
         """
         The method retrieves a list of files from the specified folder path. It filters the files based on their suffix and returns the filtered list along with its length.
 
@@ -141,13 +141,16 @@ class Job(NamedTuple):
         """
 
         if self.folder_path is not None:
-            x = np.fromiter(self.folder_path.iterdir(), Path)
-            y = np.fromiter((pic.suffix.lower() in Photo.file_types for pic in x), np.bool_)
-            result = x[y]
-            return result, len(result)
+            if result := [
+                i
+                for i in self.folder_path.iterdir()
+                if i.suffix.lower() in Photo.file_types
+            ]:
+                return result, len(result)
+            return
         return
 
-    def radio_tuple(self) -> tuple[str, ...]:
+    def radio_tuple(self) -> tuple[np.str_, ...]:
         """
         The method returns a tuple of radio button options.
 
@@ -167,7 +170,7 @@ class Job(NamedTuple):
 
         return tuple(self.radio_options)
 
-    def radio_choice(self) -> str:
+    def radio_choice(self) -> np.str_:
         """
         The method gets the selected image format from the radio buttons.
 

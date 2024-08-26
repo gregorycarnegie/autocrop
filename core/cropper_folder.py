@@ -104,16 +104,18 @@ class FolderCropper(Cropper):
             None
         """
 
-        if (file_tuple := job.file_list()) is None:
+        if file_tuple := job.file_list():
+            # return
+            file_list, amount = file_tuple
+            # Split the file list into chunks.
+            split_array = np.array_split(file_list, self.THREAD_NUMBER)
+
+            self.bar_value = 0
+            self.progress.emit((self.bar_value, amount))
+            self.started.emit()
+
+            executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)
+            _ = [executor.submit(self.worker, amount, split_array[i], job, self.face_detection_tools[i])
+                for i in range(len(split_array))]
+        else:
             return
-        file_list, amount = file_tuple
-        # Split the file list into chunks.
-        split_array = np.array_split(file_list, self.THREAD_NUMBER)
-
-        self.bar_value = 0
-        self.progress.emit((self.bar_value, amount))
-        self.started.emit()
-
-        executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)
-        _ = [executor.submit(self.worker, amount, split_array[i], job, self.face_detection_tools[i])
-             for i in range(len(split_array))]
