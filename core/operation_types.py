@@ -1,11 +1,12 @@
+import collections.abc as c
 from pathlib import Path
-from typing import Any, Callable, Tuple, Union
+from typing import Any, Union
 
 import cv2.typing as cvt
 import numpy as np
 import numpy.typing as npt
 
-Box = Tuple[int, int, int, int]
+Box = tuple[int, int, int, int]
 ImageArray = Union[cvt.MatLike, npt.NDArray[np.uint8]]
-SaveFunction = Callable[[Any, Path, int, bool], None]
-FaceToolPair = Tuple[Any, Any]
+SaveFunction = c.Callable[[Any, Path, int, bool], None]
+FaceToolPair = tuple[Any, Any]

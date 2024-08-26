@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, NamedTuple, Optional, Tuple
+from typing import Any, NamedTuple, Optional
 
 import numpy as np
 import numpy.typing as npt
@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import QComboBox
 
 from file_types import Photo
 
-StringArrayTuple = Tuple[npt.NDArray[np.str_], npt.NDArray[np.str_]]
+StringArrayTuple = tuple[npt.NDArray[np.str_], npt.NDArray[np.str_]]
 
 
 class Job(NamedTuple):
@@ -110,7 +110,7 @@ class Job(NamedTuple):
     bottom: int
     left: int
     right: int
-    radio_buttons: Tuple[bool, ...]
+    radio_buttons: tuple[bool, ...]
     radio_options: npt.NDArray[np.str_] = np.array(['No', '.bmp', '.jpg', '.png', '.tiff', '.webp'])
     destination: Optional[Path] = None
     photo_path: Optional[Path] = None
@@ -122,7 +122,7 @@ class Job(NamedTuple):
     column1: Optional[QComboBox] = None
     column2: Optional[QComboBox] = None
 
-    def file_list(self) -> Optional[Tuple[npt.NDArray[Any], int]]:
+    def file_list(self) -> Optional[tuple[npt.NDArray[Any], int]]:
         """
         The method retrieves a list of files from the specified folder path. It filters the files based on their suffix and returns the filtered list along with its length.
 
@@ -147,7 +147,7 @@ class Job(NamedTuple):
             return result, len(result)
         return
 
-    def radio_tuple(self) -> Tuple[str, ...]:
+    def radio_tuple(self) -> tuple[str, ...]:
         """
         The method returns a tuple of radio button options.
 
@@ -189,7 +189,7 @@ class Job(NamedTuple):
         return str(self.radio_options[bool_iter][0])
 
     @property
-    def size(self) -> Tuple[int, int]:
+    def size(self) -> tuple[int, int]:
         """
         The property returns the size of the job as a tuple of width and height.
 

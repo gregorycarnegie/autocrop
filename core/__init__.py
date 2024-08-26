@@ -1,6 +1,5 @@
 from . import utils, window_functions, face_tools
 from .cropper import Cropper
-from .cropper_display import DisplayCropper
 from .cropper_folder import FolderCropper
 from .cropper_mapping import MappingCropper
 from .cropper_photo import PhotoCropper

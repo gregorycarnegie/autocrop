@@ -1,5 +1,5 @@
 import re
-from typing import ClassVar, Optional, Pattern, Tuple
+from typing import ClassVar, Optional
 
 from PyQt6.QtGui import QValidator
 
@@ -15,9 +15,9 @@ class FilePathValidator(QValidator):
         validate(self, a0: Optional[str], a1: int) -> Tuple[QValidator.State, str, int]: Validates the input string based on the INVALID_CHARS_PATTERN and returns the validation state, the modified string, and an integer value.
     """
 
-    INVALID_CHARS_PATTERN: ClassVar[Pattern[str]] = re.compile(r'[*?<>|]')
+    INVALID_CHARS_PATTERN: ClassVar[re.Pattern[str]] = re.compile(r'[*?<>|]')
 
-    def validate(self, a0: Optional[str], a1: int) -> Tuple[QValidator.State, str, int]:
+    def validate(self, a0: Optional[str], a1: int) -> tuple[QValidator.State, str, int]:
         """
     Validates the input string based on a regular expression pattern and returns the validation state, the modified string, and an integer value.
 

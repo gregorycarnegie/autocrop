@@ -1,6 +1,5 @@
 import re
 from typing import ClassVar, Optional
-from typing import Tuple
 
 from PyQt6 import QtCore, QtWidgets
 
@@ -8,13 +7,13 @@ from core import ResourcePath
 from core import window_functions as wf
 from line_edits import NumberLineEdit
 
-RADIO_NONE: Tuple[str, str] = 'resources/icons/file_no_checked.svg', 'resources/icons/file_no_unchecked.svg'
-RADIO_BMP: Tuple[str, str] = 'resources/icons/file_bmp_checked.svg', 'resources/icons/file_bmp_unchecked.svg'
-RADIO_JPG: Tuple[str, str] = 'resources/icons/file_jpg_checked.svg', 'resources/icons/file_jpg_unchecked.svg'
-RADIO_PNG: Tuple[str, str] = 'resources/icons/file_png_checked.svg', 'resources/icons/file_png_unchecked.svg'
-RADIO_TIFF: Tuple[str, str] = 'resources/icons/file_tiff_checked.svg', 'resources/icons/file_tiff_unchecked.svg'
-RADIO_WEBP: Tuple[str, str] = 'resources/icons/file_webp_checked.svg', 'resources/icons/file_webp_unchecked.svg'
-type RadioTuple = Tuple[bool, bool, bool, bool, bool, bool]
+RADIO_NONE: tuple[str, str] = 'resources/icons/file_no_checked.svg', 'resources/icons/file_no_unchecked.svg'
+RADIO_BMP: tuple[str, str] = 'resources/icons/file_bmp_checked.svg', 'resources/icons/file_bmp_unchecked.svg'
+RADIO_JPG: tuple[str, str] = 'resources/icons/file_jpg_checked.svg', 'resources/icons/file_jpg_unchecked.svg'
+RADIO_PNG: tuple[str, str] = 'resources/icons/file_png_checked.svg', 'resources/icons/file_png_unchecked.svg'
+RADIO_TIFF: tuple[str, str] = 'resources/icons/file_tiff_checked.svg', 'resources/icons/file_tiff_unchecked.svg'
+RADIO_WEBP: tuple[str, str] = 'resources/icons/file_webp_checked.svg', 'resources/icons/file_webp_unchecked.svg'
+type RadioTuple = tuple[bool, bool, bool, bool, bool, bool]
 
 
 class UiCropControlWidget(QtWidgets.QWidget):
@@ -39,28 +38,28 @@ class UiCropControlWidget(QtWidgets.QWidget):
         # self.resize(1254, 539)
         self.horizontalLayout = wf.setup_hbox(u"horizontalLayout", self)
         self.verticalLayout_1 = wf.setup_vbox(u"verticalLayout_1")
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
-                                           QtWidgets.QSizePolicy.Policy.Expanding)
-        sizePolicy.setHorizontalStretch(1)
-        sizePolicy.setVerticalStretch(1)
+        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
+                                            QtWidgets.QSizePolicy.Policy.Expanding)
+        size_policy.setHorizontalStretch(1)
+        size_policy.setVerticalStretch(1)
 
-        self.radioButton_none = self.create_radio_button(sizePolicy, u"radioButton_none", RADIO_NONE)
+        self.radioButton_none = self.create_radio_button(size_policy, u"radioButton_none", RADIO_NONE)
         self.verticalLayout_1.addWidget(self.radioButton_none)
         self.radioButton_none.setChecked(True)
 
-        self.radioButton_bmp = self.create_radio_button(sizePolicy, u"radioButton_bmp", RADIO_BMP)
+        self.radioButton_bmp = self.create_radio_button(size_policy, u"radioButton_bmp", RADIO_BMP)
         self.verticalLayout_1.addWidget(self.radioButton_bmp)
 
-        self.radioButton_jpg = self.create_radio_button(sizePolicy, u"radioButton_jpg", RADIO_JPG)
+        self.radioButton_jpg = self.create_radio_button(size_policy, u"radioButton_jpg", RADIO_JPG)
         self.verticalLayout_1.addWidget(self.radioButton_jpg)
 
-        self.radioButton_png = self.create_radio_button(sizePolicy, u"radioButton_png", RADIO_PNG)
+        self.radioButton_png = self.create_radio_button(size_policy, u"radioButton_png", RADIO_PNG)
         self.verticalLayout_1.addWidget(self.radioButton_png)
 
-        self.radioButton_tiff = self.create_radio_button(sizePolicy, u"radioButton_tiff", RADIO_TIFF)
+        self.radioButton_tiff = self.create_radio_button(size_policy, u"radioButton_tiff", RADIO_TIFF)
         self.verticalLayout_1.addWidget(self.radioButton_tiff)
 
-        self.radioButton_webp = self.create_radio_button(sizePolicy, u"radioButton_webp", RADIO_WEBP)
+        self.radioButton_webp = self.create_radio_button(size_policy, u"radioButton_webp", RADIO_WEBP)
 
         self.verticalLayout_1.addWidget(self.radioButton_webp)
         self.verticalSpacer_1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Policy.Minimum,
@@ -302,7 +301,7 @@ class UiCropControlWidget(QtWidgets.QWidget):
                 self.radioButton_tiff.isChecked(), self.radioButton_webp.isChecked())
 
     def create_radio_button(self, size_policy: QtWidgets.QSizePolicy, name: str,
-                            icon_resource: Tuple[str, str]) -> QtWidgets.QRadioButton:
+                            icon_resource: tuple[str, str]) -> QtWidgets.QRadioButton:
         radio_button = QtWidgets.QRadioButton(self)
         radio_button.setObjectName(name)
         size_policy.setHeightForWidth(radio_button.sizePolicy().hasHeightForWidth())

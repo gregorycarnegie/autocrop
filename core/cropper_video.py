@@ -1,6 +1,7 @@
+import collections.abc as c
 import re
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import cv2
 import cv2.typing as cvt
@@ -167,7 +168,7 @@ class VideoCropper(Cropper):
     def frame_extraction(self, video: cv2.VideoCapture,
                          frame_number: int,
                          job: Job,
-                         progress_callback: Callable[..., Any]) -> None:
+                         progress_callback: c.Callable[..., Any]) -> None:
         """
         Performs frame extraction from a video based on the specified frame number and job parameters.
 

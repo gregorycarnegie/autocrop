@@ -1,6 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count
-from typing import Any, List
+from typing import Any
 
 import dlib
 
@@ -36,7 +36,7 @@ def _create_tool_pair() -> FaceToolPair:
     return detector, predictor
 
 
-def generate_face_detection_tools() -> List[FaceToolPair]:
+def generate_face_detection_tools() -> list[FaceToolPair]:
     """
     Generate a list of face detection and shape prediction tools.
 

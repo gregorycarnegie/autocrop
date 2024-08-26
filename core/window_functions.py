@@ -8,8 +8,8 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 from line_edits import LineEditState, NumberLineEdit, PathLineEdit
 from .dialog import UiDialog
 from .enums import FunctionType, GuiIcon
-from .resource_path import ResourcePath
 from .image_widget import ImageWidget
+from .resource_path import ResourcePath
 
 
 def setup_hbox(name: str, parent: Optional[QtWidgets.QWidget] = None) -> QtWidgets.QHBoxLayout:

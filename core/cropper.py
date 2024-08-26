@@ -1,11 +1,11 @@
 from multiprocessing import cpu_count
-from typing import ClassVar, Optional, Tuple
+from typing import ClassVar, Optional
 
 from PyQt6.QtCore import pyqtSignal, QObject, pyqtBoundSignal
 
-from .resource_path import ResourcePath
 from .job import Job
- 
+from .resource_path import ResourcePath
+
 
 class Cropper(QObject):
     """
@@ -60,7 +60,7 @@ class Cropper(QObject):
     """
 
     THREAD_NUMBER: ClassVar[int] = min(cpu_count(), 8)
-    TASK_VALUES: ClassVar[Tuple[int, bool, bool]] = 0, False, True
+    TASK_VALUES: ClassVar[tuple[int, bool, bool]] = 0, False, True
     LANDMARKS: ClassVar[str] = ResourcePath('resources\\models\\shape_predictor_68_face_landmarks.dat').meipass_path
 
     started, finished, progress = pyqtSignal(), pyqtSignal(), pyqtSignal(object)

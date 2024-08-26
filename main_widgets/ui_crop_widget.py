@@ -1,5 +1,6 @@
+import collections.abc as c
 from pathlib import Path
-from typing import ClassVar, Optional, Set
+from typing import ClassVar, Optional
 
 import pandas as pd
 from PyQt6 import QtCore, QtWidgets
@@ -157,12 +158,12 @@ class UiCropWidget(QtWidgets.QWidget):
                     pass
 
     @staticmethod
-    def _get_file_names_without_extension(directory: Path) -> Set[str]:
+    def _get_file_names_without_extension(directory: Path) -> c.Set[str]:
         """Return a set of filenames (without extensions) in the given directory."""
         return {p.stem for p in directory.iterdir() if p.is_file()}
 
     @staticmethod
-    def _check_matching_files(destination: Path, filenames: Set[str], extensions: Set[str]) -> bool:
+    def _check_matching_files(destination: Path, filenames: c.Set[str], extensions: c.Set[str]) -> bool:
         """Recursively check if destination contains any files with the given extensions that match the filenames."""
         return any(p.is_file()
                    and p.suffix.lower() in extensions
@@ -170,7 +171,7 @@ class UiCropWidget(QtWidgets.QWidget):
                    for p in destination.rglob('*'))
 
     @staticmethod
-    def _create_unique_folder(base_path: Path, valid_extensions: Set[str]) -> Path:
+    def _create_unique_folder(base_path: Path, valid_extensions: c.Set[str]) -> Path:
         if not base_path.exists():
             return base_path
         if all(file.suffix not in valid_extensions
@@ -185,7 +186,7 @@ class UiCropWidget(QtWidgets.QWidget):
         new_path.mkdir(parents=True, exist_ok=True)
         return new_path
 
-    def _handle_folder_path(self, destination: Path, folder_path: Path, extensions: Set[str]) -> Path:
+    def _handle_folder_path(self, destination: Path, folder_path: Path, extensions: c.Set[str]) -> Path:
         if destination.exists():
             folder_filenames = self._get_file_names_without_extension(folder_path)
             if self._check_matching_files(destination, folder_filenames, extensions):
@@ -195,7 +196,7 @@ class UiCropWidget(QtWidgets.QWidget):
 
     def _handle_video_path(self, destination: Path,
                            video_path: Path,
-                           extensions: Set[str]) -> Path:
+                           extensions: c.Set[str]) -> Path:
         if destination.exists():
             folder_filenames = self._get_file_names_without_extension(video_path.parent)
             if any(video_path.name.lower() in name.lower() for name in folder_filenames):

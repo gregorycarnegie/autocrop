@@ -1,10 +1,11 @@
 import cProfile
+import collections.abc as c
 import pstats
 import random
 import shutil
 from functools import cache, wraps
 from pathlib import Path
-from typing import Any, Callable, Iterator, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import autocrop_rs
 import cv2
@@ -20,23 +21,23 @@ from PyQt6.QtWidgets import QLineEdit
 
 from file_types import Photo
 from . import window_functions as wf
-from .resource_path import ResourcePath
 from .image_widget import ImageWidget
 from .job import Job
 from .operation_types import Box, FaceToolPair, ImageArray, SaveFunction
+from .resource_path import ResourcePath
 
 # Define constants
 GAMMA_THRESHOLD = .001
 L_EYE_START, L_EYE_END = 42, 48
 R_EYE_START, R_EYE_END = 36, 42
 
-CropFunction = Callable[
-    [Union[cvt.MatLike, Path], Job, Tuple[Any, Any]],
-    Optional[Union[cvt.MatLike, Iterator[cvt.MatLike]]]
+CropFunction = c.Callable[
+    [Union[cvt.MatLike, Path], Job, tuple[Any, Any]],
+    Optional[Union[cvt.MatLike, c.Iterator[cvt.MatLike]]]
 ]
 
 
-def profile_it(func: Callable[..., Any]) -> Callable[..., Any]:
+def profile_it(func: c.Callable[..., Any]) -> c.Callable[..., Any]:
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any):
         with cProfile.Profile() as profile:
@@ -206,7 +207,7 @@ def correct_exposure(input_image: ImageArray,
 
 def rotate_image(input_image: ImageArray,
                  angle: float,
-                 center: Tuple[float, float]) -> cvt.MatLike:
+                 center: tuple[float, float]) -> cvt.MatLike:
     """
     The function rotates the provided image by the specified angle around the given center.
 
@@ -241,12 +242,12 @@ def rotate_image(input_image: ImageArray,
 
 
 @numba.njit
-def get_dimensions(input_image: ImageArray, output_height: int) -> Tuple[int, float]:
+def get_dimensions(input_image: ImageArray, output_height: int) -> tuple[int, float]:
     scaling_factor = output_height / input_image.shape[:2][0]
     return int(input_image.shape[:2][1] * scaling_factor), scaling_factor
 
 
-def format_image(input_image: ImageArray) -> Tuple[cvt.MatLike, float]:
+def format_image(input_image: ImageArray) -> tuple[cvt.MatLike, float]:
     output_height = 256
     output_width, scaling_factor = get_dimensions(input_image, output_height)
     image_array = cv2.resize(input_image, (output_width, output_height), interpolation=cv2.INTER_AREA)
@@ -278,7 +279,7 @@ def mean_axis0(arr: npt.NDArray[np.int_]) -> npt.NDArray[np.float64]:
 
 
 @numba.njit
-def get_angle_of_tilt(landmarks_array: npt.NDArray[np.int_], scaling_factor: float) -> Tuple[float, float, float]:
+def get_angle_of_tilt(landmarks_array: npt.NDArray[np.int_], scaling_factor: float) -> tuple[float, float, float]:
     # Find the eyes in the image (l_eye - r_eye).
     # left_eye_mean = mean_axis0(landmarks_array[L_EYE_START:L_EYE_END])
     # right_eye_mean = mean_axis0(landmarks_array[R_EYE_START:R_EYE_END])
@@ -525,7 +526,7 @@ def get_box_coordinates(output: Union[cvt.MatLike, npt.NDArray[np.generic]],
     return rs_crop_positions(_box, job)
 
 
-def get_multibox_coordinates(box_outputs: npt.NDArray[np.int_], job: Job) -> Iterator[Box]:
+def get_multibox_coordinates(box_outputs: npt.NDArray[np.int_], job: Job) -> c.Iterator[Box]:
     return map(lambda x: rs_crop_positions(x, job), box_outputs)
 
 
@@ -560,7 +561,7 @@ def _draw_box_with_text(input_image: cvt.MatLike,
     return input_image
 
 
-def get_multi_box_parameters(input_image: cvt.MatLike) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+def get_multi_box_parameters(input_image: cvt.MatLike) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
     detections = prepare_detections(convert_color_space(input_image))
     return detections[0, 0, :, 3:7], detections[0, 0, :, 2] * 100.0
 
@@ -583,7 +584,7 @@ def multi_box(input_image: cvt.MatLike, job: Job) -> cvt.MatLike:
 
 
 def multi_box_positions(input_image: cvt.MatLike,
-                        job: Job) -> Tuple[npt.NDArray[np.float64], Iterator[Box]]:
+                        job: Job) -> tuple[npt.NDArray[np.float64], c.Iterator[Box]]:
     height, width = input_image.shape[:2]
     outputs, confidences = get_multi_box_parameters(input_image)
 
@@ -631,7 +632,7 @@ def get_first_file(img_path: Path) -> Optional[Path]:
     return next((file for file in img_path.iterdir() if file.suffix.lower() in Photo.file_types), None)
 
 
-def mask_extensions(file_list: npt.NDArray[np.str_]) -> Tuple[npt.NDArray[np.bool_], int]:
+def mask_extensions(file_list: npt.NDArray[np.str_]) -> tuple[npt.NDArray[np.bool_], int]:
     """
     The function masks the file list based on the file extensions and returns a tuple containing the mask array and
     the size of the masked file list.
@@ -665,7 +666,7 @@ def mask_extensions(file_list: npt.NDArray[np.str_]) -> Tuple[npt.NDArray[np.boo
 
 def split_by_cpus(mask: npt.NDArray[np.bool_],
                   core_count: int,
-                  *file_lists: npt.NDArray[np.str_]) -> Iterator[List[npt.NDArray[np.str_]]]:
+                  *file_lists: npt.NDArray[np.str_]) -> c.Iterator[list[npt.NDArray[np.str_]]]:
     """
     The function splits the provided file lists based on the given mask and core count, and returns a generator of
     the split lists.
@@ -700,7 +701,7 @@ def split_by_cpus(mask: npt.NDArray[np.bool_],
     return map(lambda x: np.array_split(x[mask], core_count), file_lists)
 
 
-def join_path_suffix(file_str: str, destination: Path) -> Tuple[Path, bool]:
+def join_path_suffix(file_str: str, destination: Path) -> tuple[Path, bool]:
     """
     The function joins the given path and suffix and returns the resulting path.
     """
@@ -709,11 +710,11 @@ def join_path_suffix(file_str: str, destination: Path) -> Tuple[Path, bool]:
 
 
 @cache
-def set_filename(radio_options: Tuple[str, ...], *,
+def set_filename(radio_options: tuple[str, ...], *,
                  image_path: Path,
                  destination: Path,
                  radio_choice: str,
-                 new: Optional[str] = None) -> Tuple[Path, bool]:
+                 new: Optional[str] = None) -> tuple[Path, bool]:
     """
     The function sets the filename and extension for the image based on the provided parameters.
 
@@ -830,7 +831,7 @@ def save_image(image: cvt.MatLike,
         cv2.imwrite(file_path.as_posix(), cv2.LUT(image, gamma(user_gam * GAMMA_THRESHOLD)))
 
 
-def multi_save_image(cropped_images: Iterator[cvt.MatLike],
+def multi_save_image(cropped_images: c.Iterator[cvt.MatLike],
                      file_path: Path,
                      gamma_value: int,
                      is_tiff: bool) -> None:
@@ -870,7 +871,7 @@ def multi_save_image(cropped_images: Iterator[cvt.MatLike],
 
 def get_frame_path(destination: Path,
                    file_enum: str,
-                   job: Job) -> Tuple[Path, bool]:
+                   job: Job) -> tuple[Path, bool]:
     file_str = f'{file_enum}.jpg' if job.radio_choice() == job.radio_options[0] else file_enum + job.radio_choice()
     # file_path = destination.joinpath(file_str)
     # return file_path, file_path.suffix in Photo.TIFF_TYPES
@@ -1000,7 +1001,7 @@ def process_image(image: cvt.MatLike,
 
 def multi_crop(source_image: Union[cvt.MatLike, Path],
                job: Job,
-               face_detection_tools: FaceToolPair) -> Optional[Iterator[cvt.MatLike]]:
+               face_detection_tools: FaceToolPair) -> Optional[c.Iterator[cvt.MatLike]]:
     """
     The function takes a source image, a job, and a face worker as input parameters. It returns a generator that
     yields cropped images of faces detected in the source image.

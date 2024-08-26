@@ -1,6 +1,6 @@
 from pathlib import Path
 from threading import Thread
-from typing import Tuple, Union
+from typing import Union
 
 import numpy as np
 from PyQt6 import QtCore, QtGui, QtMultimedia, QtMultimediaWidgets, QtWidgets
@@ -378,7 +378,7 @@ class UiVideoTabWidget(UiCropBatchWidget):
         self.toolBox.setItemText(self.toolBox.indexOf(self.page_2),
                                  QtCore.QCoreApplication.translate("self", u"Crop View", None))
 
-    def update_progress(self, data: Tuple[int, int]) -> None:
+    def update_progress(self, data: tuple[int, int]) -> None:
         """Only sublasses of the CropBatchWidget class should implement this method"""
         x, y = data
         self.progressBar.setValue(int(self.PROGRESSBAR_STEPS * x / y))
@@ -462,7 +462,7 @@ class UiVideoTabWidget(UiCropBatchWidget):
     def playback_bool(self,
                       a0: QtMultimedia.QMediaPlayer.PlaybackState = QtMultimedia.QMediaPlayer.PlaybackState.PausedState,
                       a1: QtMultimedia.QMediaPlayer.PlaybackState = QtMultimedia.QMediaPlayer.PlaybackState.StoppedState) -> \
-            Tuple[bool, bool]:
+            tuple[bool, bool]:
         """Returns a tuple of bools comparing the playback state to the Class attributes of
         PyQt6.QtMultimedia.QMediaPlayer.PlaybackState"""
         return self.player.playbackState() == a0, self.player.playbackState() == a1

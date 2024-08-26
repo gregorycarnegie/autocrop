@@ -1,12 +1,13 @@
+import collections.abc as c
 from multiprocessing import Process
-from typing import Any, Callable, ClassVar, Tuple, Optional
+from typing import Any, ClassVar, Optional
 
 from PyQt6 import QtCore, QtWidgets
 
 from core import Job
-from core.operation_types import FaceToolPair
 from core import window_functions as wf
 from core.enums import GuiIcon
+from core.operation_types import FaceToolPair
 from .ui_crop_widget import UiCropWidget
 
 
@@ -53,7 +54,7 @@ class UiCropBatchWidget(UiCropWidget):
         progress_bar.setTextVisible(False)
         return progress_bar
     
-    def update_progress(self, data: Tuple[int, int]) -> None:
+    def update_progress(self, data: tuple[int, int]) -> None:
         """Only sublasses of the CropBatchWidget class should implement this method"""
         x, y = data
         self.progressBar.setValue(int(self.PROGRESSBAR_STEPS * x / y))
@@ -61,8 +62,8 @@ class UiCropBatchWidget(UiCropWidget):
 
     @staticmethod
     def run_batch_process(job: Job, *,
-                          function: Callable[..., Any],
-                          reset_worker_func: Callable[..., Any]) -> None:
+                          function: c.Callable[..., Any],
+                          reset_worker_func: c.Callable[..., Any]) -> None:
         """Only sublasses of the CropBatchWidget class should implement this method"""
         reset_worker_func()
         process = Process(target=function, daemon=True, args=(job,))
