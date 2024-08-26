@@ -323,9 +323,6 @@ def align_head(input_image: ImageArray,
         ```
     """
 
-    # TODO: Add support for tilt correction.
-    tilt = False
-
     if not tilt:
         return input_image
 

@@ -1,5 +1,5 @@
-dlib==19.24.2
-maturin>=1.7.0
+dlib>=19.24.6
+maturin>=1.7.1
 numba>=0.60.0
 numpy>=2.0.1
 opencv-python>=4.10.0.84
