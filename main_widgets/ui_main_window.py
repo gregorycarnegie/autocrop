@@ -3,10 +3,10 @@ from typing import Union, Optional
 
 from PyQt6 import QtCore, QtWidgets, QtGui
 
-from core import FolderCropper, PhotoCropper, MappingCropper, VideoCropper
 from core import face_tools as ft
 from core import utils as ut
 from core import window_functions as wf
+from core.croppers import FolderCropper, PhotoCropper, MappingCropper, VideoCropper
 from core.enums import FunctionType, Preset, GuiIcon
 from file_types import Photo, Table, Video
 from line_edits import NumberLineEdit, PathLineEdit, LineEditState
@@ -177,7 +177,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
     # setupUi
 
     def retranslateUi(self):
-        self.setWindowTitle(QtCore.QCoreApplication.translate("self", u"self", None))
+        self.setWindowTitle(QtCore.QCoreApplication.translate("self", u"Face Cropper", None))
         self.actionAbout_Face_Cropper.setText(QtCore.QCoreApplication.translate("self", u"About Face Cropper", None))
         self.actionUse_Mapping.setText(QtCore.QCoreApplication.translate("self", u"Use Mapping", None))
         self.actionCrop_File.setText(QtCore.QCoreApplication.translate("self", u"Crop File", None))
@@ -585,7 +585,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
             case _:
                 pass
 
-    def connect_combo_boxes(self, tab_widget: UiCropWidget) -> None:
+    def connect_combo_boxes(self, tab_widget: TabWidget) -> None:
         """
         Connects the combo boxes in the tab widget to the disable_buttons method.
 

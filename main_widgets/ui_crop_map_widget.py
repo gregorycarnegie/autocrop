@@ -4,9 +4,10 @@ from typing import Any, Optional
 import pandas as pd
 from PyQt6 import QtCore, QtWidgets
 
-from core import DataFrameModel, MappingCropper
+from core import DataFrameModel
 from core import utils as ut
 from core import window_functions as wf
+from core.croppers import MappingCropper
 from core.enums import FunctionType, GuiIcon
 from core.operation_types import FaceToolPair
 from file_types import Photo, Table

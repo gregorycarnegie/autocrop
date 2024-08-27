@@ -7,10 +7,10 @@ import cv2
 import cv2.typing as cvt
 from PyQt6.QtWidgets import QLabel, QSlider
 
-from . import utils as ut
+from core import utils as ut
 from .cropper import Cropper
-from .job import Job
-from .operation_types import FaceToolPair
+from core.job import Job
+from core.operation_types import FaceToolPair
 
 
 class VideoCropper(Cropper):

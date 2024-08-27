@@ -5,8 +5,8 @@ from typing import Union
 import numpy as np
 from PyQt6 import QtCore, QtGui, QtMultimedia, QtMultimediaWidgets, QtWidgets
 
-from core import VideoCropper
 from core import window_functions as wf
+from core.croppers import VideoCropper
 from core.enums import FunctionType, GuiIcon
 from core.operation_types import FaceToolPair
 from file_types import Photo, Video

@@ -3,9 +3,9 @@ from typing import Optional
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-from core import FolderCropper
 from core import utils as ut
 from core import window_functions as wf
+from core.croppers import FolderCropper
 from core.enums import FunctionType, GuiIcon
 from core.operation_types import FaceToolPair
 from file_types import Photo

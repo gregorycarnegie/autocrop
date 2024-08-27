@@ -2,9 +2,9 @@ from pathlib import Path
 
 from PyQt6 import QtCore, QtWidgets
 
-from core import PhotoCropper
 from core import utils as ut
 from core import window_functions as wf
+from core.croppers import PhotoCropper
 from core.enums import FunctionType, GuiIcon
 from core.operation_types import FaceToolPair
 from file_types import Photo
