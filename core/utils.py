@@ -751,8 +751,6 @@ def set_filename(radio_options: tuple[str, ...], *,
         selected_extension = radio_options[2] if radio_choice == radio_options[0] else radio_choice
     else:
         selected_extension = suffix if radio_choice == radio_options[0] else radio_choice
-    # final_path = destination.joinpath(f'{new or image_path.stem}{selected_extension}')
-    # return final_path, final_path.suffix in Photo.TIFF_TYPES
     return join_path_suffix(f'{new or image_path.stem}{selected_extension}', destination)
 
 
@@ -764,7 +762,6 @@ def reject(*, path: Path,
     Args:
         path (Path): The path to the image file.
         destination (Path): The destination folder path.
-        image (Path): The name of the image file.
 
     Returns:
         None
@@ -778,7 +775,7 @@ def reject(*, path: Path,
         destination = Path("output")
 
         # Rejecting the image.
-        reject(path, destination, image=path.name)
+        reject(path, destination)
         ```
     """
 
@@ -869,8 +866,6 @@ def get_frame_path(destination: Path,
                    file_enum: str,
                    job: Job) -> tuple[Path, bool]:
     file_str = f'{file_enum}.jpg' if job.radio_choice() == job.radio_options[0] else file_enum + job.radio_choice()
-    # file_path = destination.joinpath(file_str)
-    # return file_path, file_path.suffix in Photo.TIFF_TYPES
     return join_path_suffix(file_str, destination)
 
 

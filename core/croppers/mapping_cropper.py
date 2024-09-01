@@ -35,7 +35,6 @@ class MappingCropper(Cropper):
             None
         """
         for old, new in zip(old.tolist(), new.tolist()):
-            # old, new = image
             if self.end_task:
                 break
 
@@ -43,7 +42,7 @@ class MappingCropper(Cropper):
             new_path: Path = job.destination / (new + old_path.suffix) if job.radio_choice() == 'No' else job.destination / (new + job.radio_choice())
 
             if old_path.is_file():
-                ut.crop(old_path, job, face_detection_tools, new=new_path)
+                ut.crop(old_path, job, face_detection_tools, new_path)
             self._update_progress(file_amount)
 
         if self.bar_value == file_amount or self.end_task:
