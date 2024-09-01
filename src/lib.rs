@@ -49,7 +49,6 @@ fn cropped_lengths(rect: &Rectangle, output_width: u32, output_height: u32, perc
     } else {
         (cropfactor.0, output_height as f64 * cropfactor.0 / output_width as f64)
     }
-    
 }
 
 fn calculate_edge(rect: &Rectangle, cropped_width: f64, cropped_height: f64,  top: u32, bottom: u32, left: u32, right: u32) -> BoxCoordinates {
