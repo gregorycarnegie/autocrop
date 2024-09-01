@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count
 from typing import ClassVar, Optional
 
@@ -12,6 +13,7 @@ class Cropper(QObject):
 
     def __init__(self, parent: Optional[QObject] = None):
         super(Cropper, self).__init__(parent)
+        self.executor: Optional[ThreadPoolExecutor] = None
         self.bar_value, self.end_task, self.message_box = self.TASK_VALUES
 
     def reset_task(self):
@@ -43,3 +45,7 @@ class Cropper(QObject):
 
         self.end_task = True
         self.finished.emit()
+
+        if self.executor:
+            self.executor.shutdown(wait=True)
+            self.executor = None

@@ -74,7 +74,8 @@ class MappingCropper(Cropper):
         self.progress.emit((self.bar_value, amount))
         self.started.emit()
 
-        executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)
-        _ = [executor.submit(self.worker, amount, job, self.face_detection_tools[i],
-                             old=old_file_list[i], new=new_file_list[i])
-             for i in range(len(new_file_list))]
+        self.executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)
+        _futures = [
+            self.executor.submit(self.worker, amount, job, tool_pair, old=old_chunk, new=new_chunk)
+            for tool_pair, old_chunk, new_chunk in zip(self.face_detection_tools, old_file_list, new_file_list)
+        ]

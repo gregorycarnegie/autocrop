@@ -64,8 +64,8 @@ class FolderCropper(Cropper):
             self.progress.emit((self.bar_value, amount))
             self.started.emit()
     
-            executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)
-            _ = [executor.submit(self.worker, amount, split_array[i], job, self.face_detection_tools[i])
-                for i in range(len(split_array))]
-        else:
-            return
+            self.executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)
+            _futures = [
+                self.executor.submit(self.worker, amount, chunk, job, tool_pair)
+                for chunk, tool_pair in zip(split_array, self.face_detection_tools)
+            ]
