@@ -8,9 +8,9 @@ import cv2.typing as cvt
 from PyQt6.QtWidgets import QLabel, QSlider
 
 from core import utils as ut
-from .cropper import Cropper
 from core.job import Job
 from core.operation_types import FaceToolPair
+from .cropper import Cropper
 
 
 class VideoCropper(Cropper):

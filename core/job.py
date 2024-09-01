@@ -170,7 +170,7 @@ class Job(NamedTuple):
 
         return tuple(self.radio_options)
 
-    def radio_choice(self) -> np.str_:
+    def radio_choice(self) -> str:
         """
         The method gets the selected image format from the radio buttons.
 
@@ -289,7 +289,7 @@ class Job(NamedTuple):
 
         # Vectorized Check for file existence
         mask = np.fromiter((self.folder_path / old_file in existing_files for old_file in old_file_list), np.bool_)
-
+        
         # Filter using the mask and return
         return old_file_list[mask], new_file_list[mask]
 

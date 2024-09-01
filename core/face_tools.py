@@ -1,6 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count
-from typing import Any
 
 import dlib
 
@@ -21,10 +20,10 @@ def _create_tool_pair() -> FaceToolPair:
     """
 
     # Functions to create each tool
-    def create_detector() -> Any:
+    def create_detector() -> dlib.fhog_object_detector:
         return dlib.get_frontal_face_detector()
 
-    def create_predictor() -> Any:
+    def create_predictor() -> dlib.shape_predictor:
         return dlib.shape_predictor(LANDMARKS)
 
     # Execute each function in a separate thread

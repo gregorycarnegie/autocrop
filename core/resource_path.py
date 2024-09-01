@@ -1,6 +1,6 @@
 import sys
 from pathlib import Path
-from typing import Union
+from typing import Union, cast
 
 
 class ResourcePath(Path):
@@ -13,7 +13,8 @@ class ResourcePath(Path):
         """
         Create a new instance of ResourcePath.
         """
-        return super().__new__(cls, *args, **kwargs)
+        instance = super().__new__(cls, *args, **kwargs)
+        return cast(ResourcePath, instance)
 
     @property
     def meipass_path(self) -> str:

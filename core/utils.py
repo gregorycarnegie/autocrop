@@ -757,8 +757,7 @@ def set_filename(radio_options: tuple[str, ...], *,
 
 
 def reject(*, path: Path,
-           destination: Path,
-           image: Path) -> None:
+           destination: Path) -> None:
     """
     The function moves the specified image file to a "rejects" folder within the destination folder.
 
@@ -785,7 +784,7 @@ def reject(*, path: Path,
 
     reject_folder = destination.joinpath('rejects')
     reject_folder.mkdir(exist_ok=True)
-    shutil.copy(path, reject_folder.joinpath(image.name))
+    shutil.copy(path, reject_folder.joinpath(path.name))
 
 
 def save_image(image: cvt.MatLike,
@@ -880,7 +879,6 @@ def save_detection(source_image: Path,
                    face_detection_tools: FaceToolPair,
                    crop_function: CropFunction,
                    save_function: SaveFunction,
-                   image_name: Optional[Path] = None,
                    new: Optional[str] = None) -> None:
     """
     The function saves the cropped images obtained from the `crop_function` using the `save_function` based on the
@@ -923,17 +921,21 @@ def save_detection(source_image: Path,
     """
 
     if (destination_path := job.get_destination()) is None:
+        # print(f'{source_image} is not a valid image.')
         return
 
-    image_name = source_image if image_name is None else image_name
     if (cropped_images := crop_function(source_image, job, face_detection_tools)) is None:
-        reject(path=source_image, destination=destination_path, image=image_name)
+        # print(f'{source_image} is no face')
+        reject(path=source_image, destination=destination_path)
         return
 
+    # print(f'{source_image} is a face')
     file_path, is_tiff = set_filename(job.radio_tuple(),
-                                      image_path=image_name, destination=destination_path,
+                                      image_path=source_image, destination=destination_path,
                                       radio_choice=job.radio_choice(), new=new)
+    # print(f'{source_image} is cropped')
     save_function(cropped_images, file_path, job.gamma, is_tiff)
+    # print(f'{source_image} is saved')
 
 
 def crop_image(input_image: Union[Path, cvt.MatLike],
@@ -1041,58 +1043,27 @@ def multi_crop(source_image: Union[cvt.MatLike, Path],
         return
 
 
-def crop(input_image: Path,
+def get_crop_save_functions(job: Job) -> tuple[CropFunction, SaveFunction]:
+    return (multi_crop, multi_save_image) if job.multi_face_job else (crop_image, save_image)
+
+
+def crop(input_image: Union[Path, str],
          job: Job,
          face_detection_tools: FaceToolPair,
          new: Optional[str] = None) -> None:
     """
-    The function performs cropping of an image based on the provided job parameters and saves the cropped image.
-
-    Args:
-        input_image (Path): The path to the image file to be cropped.
-        job (Job): The job object containing additional parameters for cropping.
-        face_detection_tools ( Tuple[Any, Any]): The face worker object used for face detection.
-        new (Optional[str], optional): The name of the new cropped image file. Defaults to None.
-
-    Returns:
-        None
-
-    Example:
-        ```python
-        from pathlib import Path
-        from autocrop import Job,  Tuple[Any, Any]
-
-        # Creating a job object.
-        job = Job()
-
-        # Creating a face worker object.
-        face_detection_tools =  Tuple[Any, Any]()
-
-        # Cropping an image.
-        image_path = Path("image.jpg")
-        crop(image_path, job, face_detection_tools, new="cropped_image.jpg")
-        ```
+    Performs cropping and saves the cropped image based on job parameters.
     """
-
-    if job.table is not None and job.folder_path is not None and new is not None:
-        # Data cropping
-        path = job.folder_path.joinpath(input_image)
-        if job.multi_face_job:
-            save_detection(path, job, face_detection_tools, multi_crop, multi_save_image, input_image, new)
-        else:
-            save_detection(path, job, face_detection_tools, crop_image, save_image, input_image, new)
+    crop_fn, save_fn = get_crop_save_functions(job)
+    
+    if all(x is not None for x in [job.table, job.folder_path, new]):
+        source = Path(input_image) if isinstance(input_image, str) else input_image
+        save_detection(source, job, face_detection_tools, crop_fn, save_fn, new)
     elif job.folder_path is not None:
-        # Folder cropping
-        source, image_name = job.folder_path, input_image.name
-        path = source.joinpath(image_name)
-        if job.multi_face_job:
-            save_detection(path, job, face_detection_tools, multi_crop, multi_save_image, Path(image_name))
-        else:
-            save_detection(path, job, face_detection_tools, crop_image, save_image, Path(image_name))
-    elif job.multi_face_job:
-        save_detection(input_image, job, face_detection_tools, multi_crop, multi_save_image)
+        source = job.folder_path / input_image.name
+        save_detection(source, job, face_detection_tools, crop_fn, save_fn)
     else:
-        save_detection(input_image, job, face_detection_tools, crop_image, save_image)
+        save_detection(input_image, job, face_detection_tools, crop_fn, save_fn)
 
 
 def frame_save(cropped_image_data: cvt.MatLike,

@@ -10,10 +10,10 @@ class DataFrameModel(QAbstractTableModel):
         super(DataFrameModel, self).__init__(parent)
         self._df = df
 
-    def rowCount(self, parent: Optional[QModelIndex] = None):
+    def rowCount(self, parent: Optional[QModelIndex] = None) -> int:
         return self._df.shape[0]
 
-    def columnCount(self, parent: Optional[QModelIndex] = None):
+    def columnCount(self, parent: Optional[QModelIndex] = None) -> int:
         return self._df.shape[1]
 
     def data(self, index: QModelIndex,

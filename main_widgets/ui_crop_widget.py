@@ -187,7 +187,7 @@ class UiCropWidget(QtWidgets.QWidget):
         return new_path
 
     def _handle_folder_path(self, destination: Path, folder_path: Path, extensions: c.Set[str]) -> Path:
-        if destination.exists():
+        if destination.exists() and destination.name:
             folder_filenames = self._get_file_names_without_extension(folder_path)
             if self._check_matching_files(destination, folder_filenames, extensions):
                 destination = destination.with_name(f'{destination.name}_CROPS')
@@ -197,6 +197,7 @@ class UiCropWidget(QtWidgets.QWidget):
     def _handle_video_path(self, destination: Path,
                            video_path: Path,
                            extensions: c.Set[str]) -> Path:
+        
         if destination.exists():
             folder_filenames = self._get_file_names_without_extension(video_path.parent)
             if any(video_path.name.lower() in name.lower() for name in folder_filenames):
