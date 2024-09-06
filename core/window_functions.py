@@ -205,6 +205,30 @@ def show_message_box(destination: Path) -> None:
         case _:
             pass
 
+def show_error_box(*messages: str) -> None:
+    """
+    Shows a message box with the option to open the destination folder.
+
+    Args:
+        destination (Path): The path of the destination folder.
+
+    Returns:
+        None
+
+    Example:
+        ```python
+        destination_folder = Path('path/to/destination')
+
+        # Show a message box to open the destination folder
+        show_message_box(destination_folder)
+        ```
+    """
+
+    msg_box = initialise_message_box('Error')
+    msg_box.setText('\n'.join(messages))
+    msg_box.setIcon(QtWidgets.QMessageBox.Icon.Warning)
+    msg_box.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Ok)
+    msg_box.exec()
 
 def generate_message(msg_box: QtWidgets.QMessageBox, message: str) -> None:
     """

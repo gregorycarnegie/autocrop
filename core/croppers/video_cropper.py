@@ -174,13 +174,23 @@ class VideoCropper(Cropper):
 
         if job.video_path is None or job.start_position is None or job.stop_position is None:
             return
+        
+        if job.destination:
+            # Check if the destination directory is writable.
+            if not job.destination_accessible:
+                return self.access_error()
 
-        video = cv2.VideoCapture(job.video_path.as_posix())
-        fps = video.get(cv2.CAP_PROP_FPS)
-        start_frame, end_frame = int(job.start_position * fps), int(job.stop_position * fps)
+            video = cv2.VideoCapture(job.video_path.as_posix())
+            fps = video.get(cv2.CAP_PROP_FPS)
+            start_frame, end_frame = int(job.start_position * fps), int(job.stop_position * fps)
+
+            size = job.byte_size * (end_frame - start_frame)
+
+            # Check if there is enough space on disk to process the files.
+            if job.available_space == 0 or job.available_space < size:
+                return self.capacity_error()
 
         x = 1 + end_frame - start_frame
-
         self.progress.emit((0, x))
         self.started.emit()
 
@@ -188,7 +198,7 @@ class VideoCropper(Cropper):
             if self.end_task:
                 break
             self.frame_extraction(video, frame_number, job,
-                                  lambda: self._update_progress(x))
+                                lambda: self._update_progress(x))
             if self.bar_value == x or self.end_task:
                 self.message_box = False
         video.release()

@@ -164,6 +164,11 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.function_tabWidget.currentChanged.connect(lambda: self.check_tab_selection())
         self.function_tabWidget.currentChanged.connect(lambda: self.video_tab_widget.player.pause())
 
+        self.folder_worker.error.connect(lambda: self.folder_tab_widget.disable_buttons())
+        self.photo_worker.error.connect(lambda: self.photo_tab_widget.disable_buttons())
+        self.mapping_worker.error.connect(lambda: self.mapping_tab_widget.disable_buttons())
+        self.video_worker.error.connect(lambda: self.video_tab_widget.disable_buttons())
+
         self.retranslateUi()
         self.actionCrop_File.triggered.connect(lambda: self.function_tabWidget.setFocus())
         self.actionCrop_Folder.triggered.connect(lambda: self.function_tabWidget.setFocus())

@@ -59,22 +59,32 @@ class MappingCropper(Cropper):
         Returns:
             None
         """
-    
-        if (file_tuple := job.file_list_to_numpy()) is None:
-            return
-        # file_list1, file_list2 = file_tuple
-        # Get the extensions of the file names and
-        # Create a mask that indicates which files have supported extensions.
-        mask, amount = ut.mask_extensions(file_tuple[0])
-        # Split the file lists and the mapping data into chunks.
-        old_file_list, new_file_list = ut.split_by_cpus(mask, self.THREAD_NUMBER, file_tuple[0], file_tuple[1])
-    
-        self.bar_value = 0
-        self.progress.emit((self.bar_value, amount))
-        self.started.emit()
 
-        self.executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)
-        _futures = [
-            self.executor.submit(self.worker, amount, job, tool_pair, old=old_chunk, new=new_chunk)
-            for tool_pair, old_chunk, new_chunk in zip(self.face_detection_tools, old_file_list, new_file_list)
-        ]
+        if file_tuple := job.file_list_to_numpy():
+            # file_list1, file_list2 = file_tuple
+            if job.destination:
+                # Check if the destination directory is writable.
+                if not job.destination_accessible:
+                    return self.access_error()
+                
+                total_size = job.byte_size * len(file_tuple[0])
+
+                # Check if there is enough space on disk to process the files.
+                if job.available_space == 0 or job.available_space < total_size:
+                    return self.capacity_error()
+                
+            # Get the extensions of the file names and
+            # Create a mask that indicates which files have supported extensions.
+            mask, amount = ut.mask_extensions(file_tuple[0])
+            # Split the file lists and the mapping data into chunks.
+            old_file_list, new_file_list = ut.split_by_cpus(mask, self.THREAD_NUMBER, file_tuple[0], file_tuple[1])
+
+            self.bar_value = 0
+            self.progress.emit((self.bar_value, amount))
+            self.started.emit()
+
+            self.executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)
+            self.futures = [
+                self.executor.submit(self.worker, amount, job, tool_pair, old=old_chunk, new=new_chunk)
+                for old_chunk, new_chunk, tool_pair in zip(old_file_list, new_file_list, self.face_detection_tools)
+            ]

@@ -1,3 +1,5 @@
+import os
+import shutil
 from pathlib import Path
 from typing import NamedTuple, Optional
 
@@ -315,3 +317,15 @@ class Job(NamedTuple):
             return
         return self._table_to_numpy(self.table, column_1=self.column1.currentText(),
                                     column_2=self.column2.currentText())
+    
+    @property
+    def destination_accessible(self) -> bool:
+        return os.access(self.destination, os.W_OK) if self.destination else False
+    
+    @property
+    def available_space(self) -> int:
+        return shutil.disk_usage(self.destination).free
+    
+    @property
+    def byte_size(self) -> int:
+        return self.width * self.height * 3

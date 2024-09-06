@@ -26,5 +26,16 @@ class PhotoCropper(Cropper):
         Returns:
             None
         """
-        if image.is_file():
-            ut.crop(image, job, self.face_detection_tools, new)
+        if not image.is_file():
+            return
+
+        if job.destination:
+            # Check if the destination directory is writable.
+            if not job.destination_accessible:
+                return self.access_error()
+            
+            # Check if there is enough space on disk to process the files.
+            if job.available_space == 0 or job.available_space < job.byte_size:
+                return self.capacity_error()
+            
+        ut.crop(image, job, self.face_detection_tools, new)
