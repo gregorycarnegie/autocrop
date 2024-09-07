@@ -81,3 +81,7 @@ class FolderCropper(Cropper):
             self.executor.submit(self.worker, amount, chunk, job, tool_pair)
             for chunk, tool_pair in zip(split_array, self.face_detection_tools)
         ]
+
+        # Attach a done callback to handle worker completion
+        for future in self.futures:
+            future.add_done_callback(self.worker_done_callback)

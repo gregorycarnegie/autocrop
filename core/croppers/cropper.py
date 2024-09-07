@@ -11,8 +11,7 @@ class Cropper(QObject):
     THREAD_NUMBER: ClassVar[int] = min(cpu_count(), 8)
     TASK_VALUES: ClassVar[tuple[int, bool, bool]] = 0, False, True
 
-    started, finished, progress = pyqtSignal(), pyqtSignal(), pyqtSignal(object)
-    error = pyqtSignal()
+    started, finished, error, progress = pyqtSignal(), pyqtSignal(), pyqtSignal(), pyqtSignal(object)
 
     def __init__(self, parent: Optional[QObject] = None):
         super(Cropper, self).__init__(parent)
@@ -73,3 +72,17 @@ class Cropper(QObject):
             str(OSError("Not enough space on disk.")),
             "Please free up some space and try again.",
         )
+    
+    def worker_done_callback(self, future: Future) -> None:
+        """
+        Callback function to handle completion of a worker thread.
+        """
+        try:
+            future.result()  # This raises any exceptions that occurred during execution
+        except Exception as e:
+            self.error.emit(f"Error in worker execution: {str(e)}")
+        finally:
+            # Check if all futures are done, then emit finished signal
+            if all(f.done() for f in self.futures):
+                self.executor.shutdown(wait=True)
+                self.finished.emit()
