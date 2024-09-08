@@ -9,4 +9,4 @@ pillow>=10.4.0
 PyQt6>=6.7.1
 qt-material>=2.14
 rawpy>=0.22.0
-tifffile>=2024.8.28
+tifffile>=2024.8.30

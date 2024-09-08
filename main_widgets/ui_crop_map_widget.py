@@ -322,6 +322,7 @@ class UiMappingTabWidget(UiCropBatchWidget):
         self.comboBox_4.addItems(self.data_frame.columns.to_numpy())
 
     def mapping_process(self) -> None:
+        self.crop_worker.message_box = False
         def callback():
             job = self.create_job(FunctionType.MAPPING,
                                   folder_path=Path(self.inputLineEdit.text()),

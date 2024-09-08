@@ -226,6 +226,7 @@ class UiFolderTabWidget(UiCropBatchWidget):
             self.cropButton)
 
     def folder_process(self) -> None:
+        self.crop_worker.message_box = False
         def callback():
             job = self.create_job(FunctionType.FOLDER,
                                   folder_path=Path(self.inputLineEdit.text()),

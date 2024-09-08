@@ -194,7 +194,6 @@ def show_message_box(destination: Path) -> None:
         show_message_box(destination_folder)
         ```
     """
-
     msg_box = initialise_message_box('Open Destination Folder')
     msg_box.setText('Open destination folder?')
     msg_box.setIcon(QtWidgets.QMessageBox.Icon.Question)

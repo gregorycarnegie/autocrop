@@ -7,7 +7,7 @@ from functools import cache, wraps
 from pathlib import Path
 from typing import Any, Optional, Union
 
-import autocrop_rs
+import autocrop_rs as rs
 import cv2
 import cv2.typing as cvt
 import numba
@@ -201,7 +201,7 @@ def correct_exposure(input_image: ImageArray,
     # Grayscale histogram
     hist, _ = np.histogram(gray.ravel(), bins=256, range=(0, 256))
     # Calculate alpha and beta
-    alpha, beta = autocrop_rs.calc_alpha_beta(hist)
+    alpha, beta = rs.calc_alpha_beta(hist)
     return cv2.convertScaleAbs(src=input_image, alpha=alpha, beta=beta)
 
 
@@ -509,7 +509,7 @@ def prepare_detections(input_image: cvt.MatLike) -> npt.NDArray[np.float64]:
 
 def rs_crop_positions(box_outputs: npt.NDArray[np.int_], job: Job) -> Box:
     x0, y0, x1, y1 = box_outputs
-    return autocrop_rs.crop_positions(x0, y0, x1 - x0, y1 - y0, job.face_percent, job.width,
+    return rs.crop_positions(x0, y0, x1 - x0, y1 - y0, job.face_percent, job.width,
                                       job.height, job.top, job.bottom, job.left, job.right)
 
 

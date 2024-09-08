@@ -198,7 +198,7 @@ class VideoCropper(Cropper):
             if self.end_task:
                 break
             self.frame_extraction(video, frame_number, job,
-                                lambda: self._update_progress(x))
+                                  lambda: self._update_progress(x))
             if self.bar_value == x or self.end_task:
                 self.message_box = False
         video.release()
