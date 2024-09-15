@@ -24,7 +24,7 @@ class UiVideoTabWidget(UiCropBatchWidget):
         self.default_directory = Video.default_directory
         self.player = QtMultimedia.QMediaPlayer()
         self.audio = QtMultimedia.QAudioOutput()
-        self.start_position, self.stop_position, self.step = .0, .0, 2
+        self.start_position, self.stop_position, self.step = .0, .0, 100
         self.speed = 0
         self.reverse = 0
 
@@ -140,7 +140,7 @@ class UiVideoTabWidget(UiCropBatchWidget):
 
         self.verticalLayout_9.addWidget(self.videoWidget)
 
-        self.mediacontrolWidget_1 = UiMediaControlWidget(self.frame_1)
+        self.mediacontrolWidget_1 = UiMediaControlWidget(self.frame_1, self.player, self.crop_worker)
         self.mediacontrolWidget_1.setObjectName(u"mediacontrolWidget_1")
 
         self.verticalLayout_9.addWidget(self.mediacontrolWidget_1)
@@ -251,7 +251,7 @@ class UiVideoTabWidget(UiCropBatchWidget):
 
         self.verticalLayout_10.addWidget(self.imageWidget)
 
-        self.mediacontrolWidget_2 = UiMediaControlWidget(self.frame_2)
+        self.mediacontrolWidget_2 = UiMediaControlWidget(self.frame_2, self.player, self.crop_worker)
         self.mediacontrolWidget_2.setObjectName(u"mediacontrolWidget_2")
 
         self.verticalLayout_10.addWidget(self.mediacontrolWidget_2)
@@ -274,13 +274,22 @@ class UiVideoTabWidget(UiCropBatchWidget):
         self.tiltCheckBox_2.toggled.connect(self.tiltCheckBox.setChecked)
         self.mfaceCheckBox_2.toggled.connect(self.mfaceCheckBox.setChecked)
 
+        self.mediacontrolWidget_1.startmarkerButton.clicked.connect(lambda: self.set_start_position(self.mediacontrolWidget_1.selectStartMarkerButton))
+        self.mediacontrolWidget_1.endmarkerButton.clicked.connect(lambda: self.set_stop_position(self.mediacontrolWidget_1.selectEndMarkerButton))
+        self.mediacontrolWidget_1.startmarkerButton.clicked.connect(lambda: self.set_start_position(self.mediacontrolWidget_2.selectStartMarkerButton))
+        self.mediacontrolWidget_1.endmarkerButton.clicked.connect(lambda: self.set_stop_position(self.mediacontrolWidget_2.selectEndMarkerButton))
+        self.mediacontrolWidget_2.startmarkerButton.clicked.connect(lambda: self.set_start_position(self.mediacontrolWidget_1.selectStartMarkerButton))
+        self.mediacontrolWidget_2.endmarkerButton.clicked.connect(lambda: self.set_stop_position(self.mediacontrolWidget_1.selectEndMarkerButton))
+        self.mediacontrolWidget_2.startmarkerButton.clicked.connect(lambda: self.set_start_position(self.mediacontrolWidget_2.selectStartMarkerButton))
+        self.mediacontrolWidget_2.endmarkerButton.clicked.connect(lambda: self.set_stop_position(self.mediacontrolWidget_2.selectEndMarkerButton))
+
         self.crop_worker.progress.connect(self.update_progress)
-        self.player.positionChanged.connect(self.position_changed)
-        self.player.durationChanged.connect(self.duration_changed)
         self.volumeSlider_1.sliderMoved.connect(self.volume_slider_changed)
         self.volumeSlider_2.sliderMoved.connect(self.volume_slider_changed)
         self.timelineSlider_1.sliderMoved.connect(self.player_slider_changed)
         self.timelineSlider_2.sliderMoved.connect(self.player_slider_changed)
+        self.timelineSlider_1.sliderMoved.connect(self.timelineSlider_2.setSliderPosition)
+        self.timelineSlider_2.sliderMoved.connect(self.timelineSlider_1.setSliderPosition)
         self.inputButton.clicked.connect(lambda: self.open_video())
         self.destinationButton.clicked.connect(lambda: self.open_folder(self.destinationLineEdit))
 
@@ -293,32 +302,13 @@ class UiVideoTabWidget(UiCropBatchWidget):
                                                      control.videocropButton,
                                                      control.cropButton))
 
-            self.player.playbackStateChanged.connect(
-                lambda: self.change_media_widget_state(
-                    control.stopButton, control.stepbackButton,
-                    control.stepfwdButton, control.fastfwdButton,
-                    control.goto_beginingButton, control.goto_endButton,
-                    control.startmarkerButton, control.endmarkerButton,
-                    control.selectStartMarkerButton, control.selectEndMarkerButton))
-
             control.playButton.clicked.connect(lambda: self.change_playback_state())
-            control.playButton.clicked.connect(
-                lambda: wf.change_widget_state(
-                    True, control.stopButton, control.stepbackButton,
-                    control.stepfwdButton, control.fastfwdButton,
-                    control.goto_beginingButton, self.mediacontrolWidget_1.goto_endButton,
-                    control.startmarkerButton, control.endmarkerButton,
-                    control.selectEndMarkerButton, control.selectStartMarkerButton))
             control.stopButton.clicked.connect(lambda: self.stop_playback())
             control.stepbackButton.clicked.connect(lambda: self.step_back())
             control.stepfwdButton.clicked.connect(lambda: self.step_forward())
             control.fastfwdButton.clicked.connect(lambda: self.fast_forward())
             control.goto_beginingButton.clicked.connect(lambda: self.goto_beginning())
             control.goto_endButton.clicked.connect(lambda: self.goto_end())
-            control.startmarkerButton.clicked.connect(
-                lambda: self.set_start_position(control.selectStartMarkerButton))
-            control.endmarkerButton.clicked.connect(
-                lambda: self.set_stop_position(control.selectEndMarkerButton))
             control.selectStartMarkerButton.clicked.connect(
                 lambda: self.goto(control.selectStartMarkerButton))
             control.selectEndMarkerButton.clicked.connect(
@@ -328,13 +318,16 @@ class UiVideoTabWidget(UiCropBatchWidget):
         self.muteButton_2.clicked.connect(lambda: self.volume_mute())
 
         self.connect_input_widgets(self.controlWidget.widthLineEdit, self.controlWidget.heightLineEdit,
-                                   self.destinationLineEdit,
+                                   self.destinationLineEdit, self.inputLineEdit,
                                    self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox)
 
         # Media connections
         self.audio.mutedChanged.connect(lambda: self.change_audio_icon())
 
-        self.player.playbackStateChanged.connect(lambda: self.change_playback_icons())
+        # self.player.playbackStateChanged.connect(lambda: self.change_playback_icons())
+        self.player.positionChanged.connect(self.position_changed)
+        self.player.durationChanged.connect(self.duration_changed)
+        self.player.errorOccurred.connect(lambda: self.player_error_occurred())
 
         # Connect crop worker
         self.connect_crop_worker()
@@ -399,21 +392,17 @@ class UiVideoTabWidget(UiCropBatchWidget):
         self.crop_worker.started.connect(lambda: wf.disable_widget(*widget_list))  # Video start connection
         self.crop_worker.finished.connect(lambda: wf.enable_widget(*widget_list))  # Video end connection
 
-        for control in [self.mediacontrolWidget_1, self.mediacontrolWidget_2]:
-            controls = (control.cropButton, control.videocropButton, control.playButton, control.stopButton,
-                        control.stepbackButton, control.stepfwdButton, control.fastfwdButton,
-                        control.goto_beginingButton, control.goto_endButton, control.startmarkerButton,
-                        control.endmarkerButton, control.selectStartMarkerButton, control.selectEndMarkerButton)
-
-            # Video start connection
-            self.crop_worker.started.connect(lambda: wf.disable_widget(*controls))
-            self.crop_worker.started.connect(lambda: wf.enable_widget(control.cancelButton))
-            # Video end connection
-            self.crop_worker.finished.connect(lambda: wf.enable_widget(*controls))
-            self.crop_worker.finished.connect(lambda: wf.disable_widget(control.cancelButton))
-
         self.crop_worker.finished.connect(lambda: wf.show_message_box(self.destination))
         self.crop_worker.progress.connect(self.update_progress)
+
+    def player_error_occurred(self, error: QtMultimedia.QMediaPlayer.Error) -> None:
+        match error:
+            case QtMultimedia.QMediaPlayer.Error.NoError:
+                pass
+            case _:
+                self.stop_playback()
+                wf.show_error_box(f'{error.name} occurred while loading the video. ',
+                                  'Please check the video file path and try again.')
 
     def setup_label(self,
                     name: GuiIcon = Union[GuiIcon.MULTIMEDIA_LABEL_A, GuiIcon.MULTIMEDIA_LABEL_B]) -> QtWidgets.QLabel:
@@ -436,9 +425,10 @@ class UiVideoTabWidget(UiCropBatchWidget):
         return label
 
     def open_folder(self, line_edit: PathLineEdit) -> None:
-        self.check_playback_state()
+        self.player.pause()
         f_name = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Directory', Photo.default_directory)
         line_edit.setText(f_name)
+        self.player.play()
 
     def open_video(self) -> None:
         self.check_playback_state()
@@ -448,8 +438,11 @@ class UiVideoTabWidget(UiCropBatchWidget):
         if self.inputLineEdit.state is LineEditState.INVALID_INPUT:
             return
         self.player.setSource(QtCore.QUrl.fromLocalFile(file_name))
+        self.create_media_player()
         self.mediacontrolWidget_1.playButton.setEnabled(True)
         self.mediacontrolWidget_2.playButton.setEnabled(True)
+        self.timelineSlider_1.setEnabled(True)
+        self.timelineSlider_2.setEnabled(True)
 
     def change_audio_icon(self) -> None:
         if self.audio.isMuted():
@@ -474,30 +467,12 @@ class UiVideoTabWidget(UiCropBatchWidget):
             self.stop_playback()
 
     def change_playback_state(self):
-        if self.player.playbackState() == QtMultimedia.QMediaPlayer.PlaybackState.PlayingState:
-            self.player.pause()
-            self.speed = 0
-        else:
-            self.player.play()
-
-    def change_playback_icons(self):
-        if self.player.playbackState() == QtMultimedia.QMediaPlayer.PlaybackState.PlayingState:
-            self.mediacontrolWidget_1.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PAUSE.value))
-            self.mediacontrolWidget_2.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PAUSE.value))
-            self.timelineSlider_1.setEnabled(True)
-            self.player.setPlaybackRate(1)
-        else:
-            self.mediacontrolWidget_1.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PLAY.value))
-            self.mediacontrolWidget_2.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PLAY.value))
-
-    def change_media_widget_state(self, *buttons: QtWidgets.QPushButton):
-        x, y = self.playback_bool()
-        for button in buttons:
-            button.setDisabled(x ^ y)
-
-        for button in (self.mediacontrolWidget_1.stopButton, self.mediacontrolWidget_1.fastfwdButton,
-                       self.mediacontrolWidget_2.stopButton, self.mediacontrolWidget_2.fastfwdButton):
-            button.setEnabled(x)
+        match self.player.playbackState():
+            case QtMultimedia.QMediaPlayer.PlaybackState.PlayingState:
+                self.player.pause()
+                self.speed = 0
+            case _:
+                self.player.play()
 
     def create_media_player(self) -> None:
         self.player.setAudioOutput(self.audio)
@@ -505,11 +480,14 @@ class UiVideoTabWidget(UiCropBatchWidget):
 
     def stop_playback(self) -> None:
         self.timelineSlider_1.setDisabled(True)
+        self.timelineSlider_2.setDisabled(True)
+        # Check paused or playing
         x, y = self.playback_bool(a1=QtMultimedia.QMediaPlayer.PlaybackState.PlayingState)
         if x ^ y:
             self.player.stop()
 
     def fast_forward(self) -> None:
+        # Check paused or stopped
         x, y = self.playback_bool()
         if x ^ y:
             return
@@ -535,29 +513,27 @@ class UiVideoTabWidget(UiCropBatchWidget):
 
     def position_changed(self, position: int) -> None:
         def callback():
-            if self.timelineSlider_1.maximum() != self.player.duration():
-                self.timelineSlider_1.setMaximum(self.player.duration())
+            for slider, label in zip((self.timelineSlider_1, self.timelineSlider_2),(self.positionLabel_1, self.positionLabel_2)):
+                if slider.maximum() != self.player.duration():
+                    slider.setMaximum(self.player.duration())
 
-            self.timelineSlider_1.blockSignals(True)
-            self.timelineSlider_1.setValue(position)
-            minutes, seconds = divmod(round(position * .001), 60)
-            hours, minutes = divmod(minutes, 60)
-            self.timelineSlider_1.blockSignals(False)
-            self.positionLabel_1.setText(QtCore.QTime(hours, minutes, seconds).toString())
-            self.positionLabel_2.setText(QtCore.QTime(hours, minutes, seconds).toString())
+                slider.blockSignals(True)
+                slider.setValue(position)
+                slider.blockSignals(False)
+                label.setText(wf.get_qtime(position).toString())
 
         thread = Thread(target=callback)
         thread.start()
 
     def duration_changed(self, duration: int) -> None:
         self.timelineSlider_1.setMaximum(duration)
+        self.timelineSlider_2.setMaximum(duration)
         if duration >= 0:
-            minutes, seconds = divmod(round(self.player.duration() * .001), 60)
-            hours, minutes = divmod(minutes, 60)
-            self.durationLabel_1.setText(QtCore.QTime(hours, minutes, seconds).toString())
-            self.durationLabel_2.setText(QtCore.QTime(hours, minutes, seconds).toString())
-            self.mediacontrolWidget_1.selectEndMarkerButton.setText(QtCore.QTime(hours, minutes, seconds).toString())
-            self.mediacontrolWidget_2.selectEndMarkerButton.setText(QtCore.QTime(hours, minutes, seconds).toString())
+            qtime = wf.get_qtime(self.player.duration()).toString()
+            self.durationLabel_1.setText(qtime)
+            self.durationLabel_2.setText(qtime)
+            self.mediacontrolWidget_1.selectEndMarkerButton.setText(qtime)
+            self.mediacontrolWidget_2.selectEndMarkerButton.setText(qtime)
 
     def player_slider_changed(self, position: int) -> None:
         self.player.setPosition(position)
@@ -573,7 +549,6 @@ class UiVideoTabWidget(UiCropBatchWidget):
             self.volumeSlider_2.setValue(self.vol_cache)
         else:
             self.audio.setMuted(True)
-
             self.volumeSlider_2.setValue(0)
             self.volumeSlider_2.setValue(0)
 
@@ -583,25 +558,20 @@ class UiVideoTabWidget(UiCropBatchWidget):
     def goto_end(self) -> None:
         self.player.setPosition(self.player.duration())
 
-    @staticmethod
-    def set_marker_time(button: QtWidgets.QPushButton, position: Union[int, float]) -> None:
-        minutes, seconds = divmod(round(position), 60)
-        hours, minutes = divmod(minutes, 60)
-        button.setText(QtCore.QTime(hours, minutes, seconds).toString())
-
+    def set_marker_time(self, button: QtWidgets.QPushButton, flag: bool, time_value: float, position: float) -> None:
+        if flag:
+            position = time_value
+            wf.set_marker_time(button, position)     
+    
     def set_start_position(self, button: QtWidgets.QPushButton) -> None:
-        x: bool = (time_value := self.timelineSlider_1.value() * .001) < self.stop_position
-        y: bool = self.start_position == .0 and self.stop_position == .0
-        if x | y:
-            self.start_position = time_value
-            self.set_marker_time(button, self.start_position)
+        x = (time_value := self.timelineSlider_1.value() * .001) < self.stop_position
+        y = self.start_position == .0 and self.stop_position == .0
+        self.set_marker_time(button, x | y, time_value, self.start_position)
 
     def set_stop_position(self, button: QtWidgets.QPushButton) -> None:
-        x: bool = (time_value := self.timelineSlider_1.value() * .001) > self.start_position
-        y: bool = self.start_position == .0 and self.stop_position == .0
-        if x | y:
-            self.stop_position = time_value
-            self.set_marker_time(button, self.stop_position)
+        x = (time_value := self.timelineSlider_1.value() * .001) > self.start_position
+        y = self.start_position == .0 and self.stop_position == .0
+        self.set_marker_time(button, x | y, time_value, self.stop_position)
 
     def goto(self, marker_button: QtWidgets.QPushButton) -> None:
         m = np.array(marker_button.text().split(':')).astype(int)
@@ -631,10 +601,10 @@ class UiVideoTabWidget(UiCropBatchWidget):
 
     def crop_frame(self) -> None:
         def callback():
+            self.player.pause()
             job = self.create_job(FunctionType.FRAME,
                                   video_path=Path(self.inputLineEdit.text()),
                                   destination=Path(self.destinationLineEdit.text()))
-            self.player.pause()
             self.crop_worker.crop_frame(job, self.positionLabel_1, self.timelineSlider_1)
 
         if Path(self.inputLineEdit.text()).parent == Path(self.destinationLineEdit.text()):
@@ -646,13 +616,16 @@ class UiVideoTabWidget(UiCropBatchWidget):
         callback()
 
     def video_process(self) -> None:
+        x = self.mediacontrolWidget_1.selectStartMarkerButton.text()
+        y = self.mediacontrolWidget_1.selectEndMarkerButton.text()
+
         def callback():
+            self.player.pause()
             job = self.create_job(FunctionType.VIDEO,
                                   video_path=Path(self.inputLineEdit.text()),
                                   destination=Path(self.destinationLineEdit.text()),
-                                  start_position=self.start_position,
-                                  stop_position=self.stop_position)
-            self.player.pause()
+                                  start_position=wf.pos_from_marker(x),
+                                  stop_position=wf.pos_from_marker(y))
             self.run_batch_process(job, function=self.crop_worker.extract_frames,
                                    reset_worker_func=lambda: self.crop_worker.reset_task())
 

@@ -418,3 +418,76 @@ def setup_frame(name: str, *, parent: QtWidgets.QWidget) -> QtWidgets.QFrame:
     frame.setFrameShadow(QtWidgets.QFrame.Shadow.Raised)
     frame.setObjectName(name)
     return frame
+
+def create_media_button(parent: QtWidgets.QWidget, size_policy: QtWidgets.QSizePolicy,
+                        *, name: str,
+                        icon_resource: GuiIcon) -> QtWidgets.QPushButton:
+    button = QtWidgets.QPushButton(parent)
+    button.setObjectName(name)
+    size_policy.setHeightForWidth(button.sizePolicy().hasHeightForWidth())
+    button.setSizePolicy(size_policy)
+    size = QtCore.QSize(40, 40)
+    button.setMinimumSize(size)
+    button.setMaximumSize(size)
+    button.setBaseSize(size)
+    icon = QtGui.QIcon()
+    icon.addFile(icon_resource.value, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+    button.setIcon(icon)
+    button.setIconSize(QtCore.QSize(24, 24))
+    return button
+
+def create_function_button(parent: QtWidgets.QWidget, size_policy: QtWidgets.QSizePolicy,
+                            *, name: str,
+                            icon_resource: GuiIcon) -> QtWidgets.QPushButton:
+    button = QtWidgets.QPushButton(parent)
+    button.setObjectName(name)
+    size_policy.setHeightForWidth(button.sizePolicy().hasHeightForWidth())
+    button.setSizePolicy(size_policy)
+    button.setMinimumSize(QtCore.QSize(40, 40))
+    button.setMaximumSize(QtCore.QSize(16_777_215, 40))
+    icon = QtGui.QIcon()
+    icon.addFile(icon_resource.value, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+    button.setIcon(icon)
+    button.setIconSize(QtCore.QSize(18, 18))
+    return button
+
+def create_label(parent: QtWidgets.QWidget, size_policy: QtWidgets.QSizePolicy,
+                    *, name: str,
+                    icon_resource: GuiIcon) -> QtWidgets.QLabel:
+    label = QtWidgets.QLabel(parent)
+    label.setObjectName(name)
+    size_policy.setHeightForWidth(label.sizePolicy().hasHeightForWidth())
+    label.setSizePolicy(size_policy)
+    size = QtCore.QSize(20, 20)
+    label.setMinimumSize(size)
+    label.setMaximumSize(size)
+    label.setBaseSize(size)
+    label.setPixmap(QtGui.QPixmap(icon_resource.value))
+    label.setScaledContents(True)
+    return label
+
+def create_marker_button(parent: QtWidgets.QWidget, size_policy: QtWidgets.QSizePolicy,
+                            name: str) -> QtWidgets.QPushButton:
+    button = QtWidgets.QPushButton(parent)
+    button.setObjectName(name)
+    size_policy.setHeightForWidth(button.sizePolicy().hasHeightForWidth())
+    button.setSizePolicy(size_policy)
+    marker_button_size = QtCore.QSize(150, 20)
+    button.setMinimumSize(marker_button_size)
+    button.setMaximumSize(marker_button_size)
+    return button
+
+def get_qtime(position: int) -> QtCore.QTime:
+    """
+    Converts a given number of seconds into a QTime object.
+    """
+    minutes, seconds = divmod(round(position * .001), 60)
+    hours, minutes = divmod(minutes, 60)
+    return QtCore.QTime(hours, minutes, seconds)
+
+def set_marker_time(button: QtWidgets.QPushButton, position: Union[int, float]) -> None:
+    button.setText(get_qtime(position * 1000).toString())
+
+def pos_from_marker(text: str) -> int:
+    x = [int(_) for _ in text.split(':')]
+    return sum(60 ** (2 - i) * x[i] for i in range(len(x))) * 1_000

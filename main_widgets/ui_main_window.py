@@ -420,10 +420,11 @@ class UiMainWindow(QtWidgets.QMainWindow):
             return
         self.video_tab_widget.inputLineEdit.setText(file_path.as_posix())
         self.video_tab_widget.mediacontrolWidget_1.playButton.setEnabled(True)
-        self.video_tab_widget.mediacontrolWidget_1.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PLAY))
+        self.video_tab_widget.mediacontrolWidget_1.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PLAY.value))
         self.video_tab_widget.mediacontrolWidget_2.playButton.setEnabled(True)
-        self.video_tab_widget.mediacontrolWidget_2.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PLAY))
-        self.video_tab_widget.player.setSource(QtCore.QUrl.fromLocalFile(self.video_tab_widget.inputLineEdit.text()))
+        self.video_tab_widget.mediacontrolWidget_2.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PLAY.value))
+        # self.video_tab_widget.player.setSource(QtCore.QUrl.fromLocalFile(self.video_tab_widget.inputLineEdit.text()))
+        self.video_tab_widget.open_video()
 
     def handle_pandas_file(self, file_path: Path) -> None:
         """
@@ -438,10 +439,6 @@ class UiMainWindow(QtWidgets.QMainWindow):
         """
 
         self.function_tabWidget.setCurrentIndex(FunctionType.MAPPING.value)
-        try:
-            assert isinstance(self.mapping_tab_widget, UiMappingTabWidget)
-        except AssertionError:
-            return
         self.mapping_tab_widget.tableLineEdit.setText(file_path.as_posix())
         data = ut.open_table(file_path)
         self.mapping_tab_widget.validate_pandas_file(data)
@@ -514,7 +511,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
                         control.heightLineEdit.setText(control.widthLineEdit.text())
                     elif control.widthLineEdit.value() < control.heightLineEdit.value():
                         control.widthLineEdit.setText(control.heightLineEdit.text())
-                case Preset.GOLDEN_RATIO | Preset.TWO_THIRDS | Preset.THREE_QUARTERS | Preset.FOUR_FIFTHS:
+                case _:
                     if control.widthLineEdit.value() >= control.heightLineEdit.value():
                         control.heightLineEdit.setText(str(int(control.widthLineEdit.value() * phi.value)))
                     else:

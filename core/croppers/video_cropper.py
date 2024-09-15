@@ -62,7 +62,8 @@ class VideoCropper(Cropper):
                 ut.save_image(image, new_file_path, job.gamma, is_tiff)
             return
 
-        if cropped_image := ut.crop_image(frame, job, self.face_detection_tools):
+        cropped_image = ut.crop_image(frame, job, self.face_detection_tools)
+        if cropped_image is not None:
             ut.save_image(cropped_image, file_path, job.gamma, is_tiff)
 
     def process_multiface_frame_job(self, frame: cvt.MatLike,
