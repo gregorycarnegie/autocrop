@@ -81,7 +81,7 @@ class MappingCropper(Cropper):
         old_file_list, new_file_list = ut.split_by_cpus(mask, self.THREAD_NUMBER, file_tuple[0], file_tuple[1])
 
         self.bar_value = 0
-        self.progress.emit((self.bar_value, amount))
+        self.progress.emit(self.bar_value, amount)
         self.started.emit()
 
         self.executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)

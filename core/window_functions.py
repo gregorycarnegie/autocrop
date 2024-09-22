@@ -205,24 +205,6 @@ def show_message_box(destination: Path) -> None:
             pass
 
 def show_error_box(*messages: str) -> None:
-    """
-    Shows a message box with the option to open the destination folder.
-
-    Args:
-        destination (Path): The path of the destination folder.
-
-    Returns:
-        None
-
-    Example:
-        ```python
-        destination_folder = Path('path/to/destination')
-
-        # Show a message box to open the destination folder
-        show_message_box(destination_folder)
-        ```
-    """
-
     msg_box = initialise_message_box('Error')
     msg_box.setText('\n'.join(messages))
     msg_box.setIcon(QtWidgets.QMessageBox.Icon.Warning)
@@ -489,5 +471,4 @@ def set_marker_time(button: QtWidgets.QPushButton, position: Union[int, float]) 
     button.setText(get_qtime(position * 1000).toString())
 
 def pos_from_marker(text: str) -> int:
-    x = [int(_) for _ in text.split(':')]
-    return sum(60 ** (2 - i) * x[i] for i in range(len(x))) * 1_000
+    return sum(60 ** (2 - i) * int(x) for i, x in enumerate(text.split(':')))

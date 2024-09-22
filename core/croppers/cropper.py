@@ -15,17 +15,17 @@ class Cropper(QObject):
     started = pyqtSignal()
     finished = pyqtSignal()
     error = pyqtSignal()
-    progress = pyqtSignal(object)
+    progress = pyqtSignal(int, int)
 
     def __init__(self, parent: Optional[QObject] = None):
         super(Cropper, self).__init__(parent)
         self.executor: Optional[ThreadPoolExecutor] = None
         self.futures: list[Future] = []
         self.bar_value, self.end_task, self.message_box = self.TASK_VALUES
-        self.finished_signal_emited = False
+        self.finished_signal_emitted = False
         self.lock = Lock()
 
-    def reset_task(self):
+    def reset_task(self) -> None:
         """
         Resets the task values based on the provided function type.
 
@@ -34,21 +34,21 @@ class Cropper(QObject):
         """
 
         self.bar_value, self.end_task, self.message_box = self.TASK_VALUES
-        self.finished_signal_emited = False
+        self.finished_signal_emitted = False
 
     def emit_done(self) -> None:
-        if not self.finished_signal_emited:
+        if not self.finished_signal_emitted:
             self.finished.emit()
-            self.finished_signal_emited = True
+            self.finished_signal_emitted = True
 
     def _update_progress(self, file_amount: int) -> None:
         with self.lock:
             self.bar_value += 1
             if self.bar_value == file_amount:
-                self.progress.emit((file_amount, file_amount))
+                self.progress.emit(file_amount, file_amount)
                 self.emit_done()
             elif self.bar_value < file_amount:
-                self.progress.emit((self.bar_value, file_amount))
+                self.progress.emit(self.bar_value, file_amount)
 
     def terminate(self) -> None:
         """

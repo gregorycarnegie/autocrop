@@ -73,7 +73,7 @@ class FolderCropper(Cropper):
         split_array = np.array_split(file_list, self.THREAD_NUMBER)
 
         self.bar_value = 0
-        self.progress.emit((self.bar_value, amount))
+        self.progress.emit(self.bar_value, amount)
         self.started.emit()
 
         self.executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)

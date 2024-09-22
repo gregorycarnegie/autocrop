@@ -54,9 +54,8 @@ class UiCropBatchWidget(UiCropWidget):
         progress_bar.setTextVisible(False)
         return progress_bar
     
-    def update_progress(self, data: tuple[int, int]) -> None:
+    def update_progress(self, x: int, y:int) -> None:
         """Only sublasses of the CropBatchWidget class should implement this method"""
-        x, y = data
         self.progressBar.setValue(int(self.PROGRESSBAR_STEPS * x / y))
         QtWidgets.QApplication.processEvents()
 

@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import QComboBox
 from file_types import Photo
 
 StringArrayTuple = tuple[npt.NDArray[np.str_], npt.NDArray[np.str_]]
-
+RadioButtonTuple = tuple[bool, bool, bool, bool, bool, bool]
 
 class Job(NamedTuple):
     """
@@ -112,7 +112,7 @@ class Job(NamedTuple):
     bottom: int
     left: int
     right: int
-    radio_buttons: tuple[bool, ...]
+    radio_buttons: RadioButtonTuple
     radio_options: npt.NDArray[np.str_] = np.array(['No', '.bmp', '.jpg', '.png', '.tiff', '.webp'])
     destination: Optional[Path] = None
     photo_path: Optional[Path] = None

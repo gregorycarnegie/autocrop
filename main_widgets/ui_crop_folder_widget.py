@@ -1,9 +1,7 @@
 from pathlib import Path
-from typing import Optional
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-from core import utils as ut
 from core import window_functions as wf
 from core.croppers import FolderCropper
 from core.enums import FunctionType, GuiIcon
@@ -14,7 +12,10 @@ from .ui_crop_batch_widget import UiCropBatchWidget
 
 
 class UiFolderTabWidget(UiCropBatchWidget):
-    def __init__(self, crop_worker: FolderCropper, object_name: str, parent: QtWidgets.QWidget, face_tool_list: list[FaceToolPair]):
+    def __init__(self, crop_worker: FolderCropper,
+                 object_name: str,
+                 parent: QtWidgets.QWidget,
+                 face_tool_list: list[FaceToolPair]):
         super().__init__(object_name, parent, face_tool_list)
         self.crop_worker = crop_worker
 
@@ -110,7 +111,6 @@ class UiFolderTabWidget(UiCropBatchWidget):
         self.inputButton.clicked.connect(lambda: self.open_folder(self.inputLineEdit))
         self.destinationButton.clicked.connect(lambda: self.open_folder(self.destinationLineEdit))
         self.inputLineEdit.textChanged.connect(lambda: self.load_data())
-        self.treeView.selectionModel().selectionChanged.connect(lambda: self.reload_widgets())
         self.cropButton.clicked.connect(lambda: self.folder_process())
         self.cancelButton.clicked.connect(lambda: self.crop_worker.terminate())
         self.cancelButton.clicked.connect(lambda: self.cancel_button_operation(self.cancelButton, self.cropButton))
@@ -123,9 +123,6 @@ class UiFolderTabWidget(UiCropBatchWidget):
                                    self.controlWidget.leftDial, self.controlWidget.rightDial)
 
         self.toggleCheckBox.toggled.connect(self.controlWidget.setVisible)
-
-        self.controlWidget.widthLineEdit.textChanged.connect(lambda: self.reload_widgets())
-        self.controlWidget.heightLineEdit.textChanged.connect(lambda: self.reload_widgets())
 
         # Connect crop worker
         self.connect_crop_worker()
@@ -180,13 +177,6 @@ class UiFolderTabWidget(UiCropBatchWidget):
         self.crop_worker.finished.connect(lambda: wf.show_message_box(self.destination))
         self.crop_worker.progress.connect(self.update_progress)
 
-    def display_crop(self, selection: Optional[Path] = None) -> None:
-        job = self.create_job()
-        if selection is None:
-            ut.display_crop(job, self.inputLineEdit, self.imageWidget, self.face_tool_list[0])
-        else:
-            ut.display_crop(job, selection, self.imageWidget, self.face_tool_list[0])
-
     def open_folder(self, line_edit: PathLineEdit) -> None:
         """Only subclasses of the CustomCropWidget class should implement this method"""
         f_name = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Directory', Photo.default_directory)
@@ -199,25 +189,8 @@ class UiFolderTabWidget(UiCropBatchWidget):
             f_name = self.inputLineEdit.text()
             self.file_model.setRootPath(f_name)
             self.treeView.setRootIndex(self.file_model.index(f_name))
-            self.display_crop()
         except (IndexError, FileNotFoundError, ValueError, AttributeError):
             return
-
-    def reload_widgets(self) -> None:
-        def callback(input_path: Path) -> None:
-            if not input_path.as_posix():
-                return
-            self.display_crop(input_path)
-
-        if not self.controlWidget.widthLineEdit.text() or not self.controlWidget.heightLineEdit.text():
-            return
-        if self.selection_state == self.NOT_SELECTED:
-            return
-        if self.treeView.currentIndex().isValid():
-            f_name = Path(self.file_model.filePath(self.treeView.currentIndex()))
-        else:
-            f_name = Path(self.inputLineEdit.text())
-        callback(f_name)
 
     def disable_buttons(self) -> None:
         wf.change_widget_state(

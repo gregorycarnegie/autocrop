@@ -86,7 +86,6 @@ class UiPhotoTabWidget(UiCropWidget):
         self.inputButton.clicked.connect(lambda: self.open_folder(self.inputLineEdit))
         self.destinationButton.clicked.connect(lambda: self.open_folder(self.destinationLineEdit))
         self.cropButton.clicked.connect(lambda: self.crop_photo())
-        self.inputLineEdit.textChanged.connect(lambda: self.reload_widgets())
         self.connect_input_widgets(self.inputLineEdit, self.controlWidget.widthLineEdit,
                                    self.controlWidget.heightLineEdit, self.destinationLineEdit, self.exposureCheckBox,
                                    self.mfaceCheckBox, self.tiltCheckBox, self.controlWidget.sensitivityDial,
@@ -95,9 +94,6 @@ class UiPhotoTabWidget(UiCropWidget):
                                    self.controlWidget.leftDial, self.controlWidget.rightDial)
 
         self.toggleCheckBox.toggled.connect(self.controlWidget.setVisible)
-
-        self.controlWidget.widthLineEdit.textChanged.connect(lambda: self.reload_widgets())
-        self.controlWidget.heightLineEdit.textChanged.connect(lambda: self.reload_widgets())
 
         self.retranslateUi()
 
@@ -142,18 +138,6 @@ class UiPhotoTabWidget(UiCropWidget):
             self.display_crop()
         except (IndexError, FileNotFoundError, ValueError, AttributeError):
             return
-
-    def reload_widgets(self) -> None:
-        def callback(input_path: Path) -> None:
-            if not input_path.as_posix():
-                return
-            self.display_crop()
-
-        if not self.controlWidget.widthLineEdit.text() or not self.controlWidget.heightLineEdit.text():
-            return
-        if self.selection_state == self.SELECTED:
-            f_name = Path(self.inputLineEdit.text())
-            callback(f_name)
 
     def disable_buttons(self) -> None:
         wf.change_widget_state(

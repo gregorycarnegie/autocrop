@@ -1,7 +1,7 @@
 from typing import Optional
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPainter, QPaintEvent, QPixmap
+from PyQt6.QtGui import QPainter, QPaintEvent, QPixmap, QImage
 from PyQt6.QtWidgets import QWidget
 
 
@@ -10,8 +10,8 @@ class ImageWidget(QWidget):
         super().__init__(parent)
         self.image: Optional[QPixmap] = None
 
-    def setImage(self, image: QPixmap) -> None:
-        self.image = image
+    def setImage(self, image: QImage) -> None:
+        self.image = QPixmap.fromImage(image)
         self.update()
 
     def paintEvent(self, a0: Optional[QPaintEvent]) -> None:

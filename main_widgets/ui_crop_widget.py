@@ -58,7 +58,6 @@ class UiCropWidget(QtWidgets.QWidget):
         self.folder_icon = wf.create_button_icon(GuiIcon.FOLDER)
 
         self.destination: Path = Path.home()
-        # self.crop_worker = crop_worker
 
         self.selection_state = self.NOT_SELECTED
 
@@ -123,17 +122,12 @@ class UiCropWidget(QtWidgets.QWidget):
         line_edit.setObjectName(name)
         return line_edit
 
-    def reload_widgets(self) -> None:
-        """Only subclasses of the CustomCropWidget class should implement this method"""
-        pass
-
     def disable_buttons(self) -> None:
         """Only subclasses of the CustomCropWidget class should implement this method"""
         pass
 
     def connect_checkbox(self, checkbox: QtWidgets.QCheckBox) -> None:
         """Only subclasses of the CustomCropWidget class should implement this method"""
-        checkbox.stateChanged.connect(lambda: self.reload_widgets())
         match checkbox:
             case self.mfaceCheckBox:
                 checkbox.clicked.connect(
@@ -148,10 +142,7 @@ class UiCropWidget(QtWidgets.QWidget):
         for input_widget in input_widgets:
             match input_widget:
                 case NumberLineEdit() | PathLineEdit():
-                    input_widget.textChanged.connect(lambda: self.reload_widgets())
                     input_widget.textChanged.connect(lambda: self.disable_buttons())
-                case QtWidgets.QDial():
-                    input_widget.valueChanged.connect(lambda: self.reload_widgets())
                 case QtWidgets.QCheckBox():
                     self.connect_checkbox(input_widget)
                 case _:

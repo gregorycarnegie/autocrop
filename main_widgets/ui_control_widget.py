@@ -13,7 +13,7 @@ RADIO_JPG: tuple[str, str] = 'resources/icons/file_jpg_checked.svg', 'resources/
 RADIO_PNG: tuple[str, str] = 'resources/icons/file_png_checked.svg', 'resources/icons/file_png_unchecked.svg'
 RADIO_TIFF: tuple[str, str] = 'resources/icons/file_tiff_checked.svg', 'resources/icons/file_tiff_unchecked.svg'
 RADIO_WEBP: tuple[str, str] = 'resources/icons/file_webp_checked.svg', 'resources/icons/file_webp_unchecked.svg'
-type RadioTuple = tuple[bool, bool, bool, bool, bool, bool]
+RadioButtonTuple = tuple[bool, bool, bool, bool, bool, bool]
 
 
 class UiCropControlWidget(QtWidgets.QWidget):
@@ -295,7 +295,7 @@ class UiCropControlWidget(QtWidgets.QWidget):
         return tuple(ResourcePath(arg).meipass_path for arg in args)
 
     @property
-    def radio_tuple(self) -> RadioTuple:
+    def radio_tuple(self) -> RadioButtonTuple:
         return (self.radioButton_none.isChecked(), self.radioButton_bmp.isChecked(),
                 self.radioButton_jpg.isChecked(), self.radioButton_png.isChecked(),
                 self.radioButton_tiff.isChecked(), self.radioButton_webp.isChecked())

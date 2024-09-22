@@ -184,9 +184,6 @@ class UiMappingTabWidget(UiCropBatchWidget):
 
         self.toggleCheckBox.toggled.connect(self.controlWidget.setVisible)
 
-        self.controlWidget.widthLineEdit.textChanged.connect(lambda: self.reload_widgets())
-        self.controlWidget.heightLineEdit.textChanged.connect(lambda: self.reload_widgets())
-
         # Connect crop worker
         self.connect_crop_worker()
 
@@ -246,36 +243,11 @@ class UiMappingTabWidget(UiCropBatchWidget):
         self.crop_worker.finished.connect(lambda: wf.show_message_box(self.destination))
         self.crop_worker.progress.connect(self.update_progress)
 
-    def display_crop(self) -> None:
-        job = self.create_job()
-        ut.display_crop(job, self.inputLineEdit, self.imageWidget, self.face_tool_list[0])
-
-    def load_data(self) -> None:
-        try:
-            self.display_crop()
-        except (IndexError, FileNotFoundError, ValueError, AttributeError):
-            return
-
-    def reload_widgets(self) -> None:
-        def callback(input_path: Path) -> None:
-            if not input_path.as_posix():
-                return
-            self.display_crop()
-
-        if not self.controlWidget.widthLineEdit.text() or not self.controlWidget.heightLineEdit.text():
-            return
-        if self.selection_state == self.SELECTED:
-            f_name = Path(self.inputLineEdit.text())
-            callback(f_name)
-
     def connect_input_widgets(self, *input_widgets: QtWidgets.QWidget) -> None:
         for input_widget in input_widgets:
             match input_widget:
                 case NumberLineEdit() | PathLineEdit():
-                    input_widget.textChanged.connect(lambda: self.reload_widgets())
                     input_widget.textChanged.connect(lambda: self.disable_buttons())
-                case QtWidgets.QDial():
-                    input_widget.valueChanged.connect(lambda: self.reload_widgets())
                 case QtWidgets.QComboBox():
                     input_widget.currentTextChanged.connect(lambda: self.disable_buttons())
                 case QtWidgets.QCheckBox():
@@ -302,8 +274,6 @@ class UiMappingTabWidget(UiCropBatchWidget):
         """Only sublasses of the CustomCropWidget class should implement this method"""
         f_name = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Directory', Photo.default_directory)
         line_edit.setText(f_name)
-        if line_edit is self.inputLineEdit:
-            self.load_data()
 
     def validate_pandas_file(self, data: Any) -> None:
         try:

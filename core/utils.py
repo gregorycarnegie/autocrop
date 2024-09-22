@@ -17,11 +17,8 @@ import pandas as pd
 import rawpy
 import tifffile as tiff
 from PIL import Image
-from PyQt6.QtWidgets import QLineEdit
 
 from file_types import Photo
-from . import window_functions as wf
-from .image_widget import ImageWidget
 from .job import Job
 from .operation_types import Box, FaceToolPair, ImageArray, SaveFunction
 from .resource_path import ResourcePath
@@ -156,19 +153,6 @@ def numpy_array_crop(input_image: cvt.MatLike, bounding_box: Box) -> npt.NDArray
     # Load and crop image using PIL
     picture = Image.fromarray(input_image).crop(bounding_box)
     return np.array(picture)
-
-
-def crop_and_set(input_image: cvt.MatLike,
-                 bounding_box: Box,
-                 gamma_value: int,
-                 image_widget: ImageWidget) -> None:
-    try:
-        cropped_image = numpy_array_crop(input_image, bounding_box)
-        adjusted_image = adjust_gamma(cropped_image, gamma_value)
-        final_image = convert_color_space(adjusted_image)
-    except (cv2.error, Image.DecompressionBombError):
-        return
-    wf.display_image_on_widget(final_image, image_widget)
 
 
 def correct_exposure(input_image: ImageArray,
@@ -510,7 +494,7 @@ def prepare_detections(input_image: cvt.MatLike) -> npt.NDArray[np.float64]:
 def rs_crop_positions(box_outputs: npt.NDArray[np.int_], job: Job) -> Box:
     x0, y0, x1, y1 = box_outputs
     return rs.crop_positions(x0, y0, x1 - x0, y1 - y0, job.face_percent, job.width,
-                                      job.height, job.top, job.bottom, job.left, job.right)
+                             job.height, job.top, job.bottom, job.left, job.right)
 
 
 def get_box_coordinates(output: Union[cvt.MatLike, npt.NDArray[np.generic]],
@@ -1050,7 +1034,7 @@ def crop(input_image: Union[Path, str],
     Performs cropping and saves the cropped image based on job parameters.
     """
     crop_fn, save_fn = get_crop_save_functions(job)
-    
+
     if all(x is not None for x in [job.table, job.folder_path, new]):
         source = Path(input_image) if isinstance(input_image, str) else input_image
         save_detection(source, job, face_detection_tools, crop_fn, save_fn, new)
@@ -1104,50 +1088,3 @@ def grab_frame(position_slider: int,
         return
     cap.release()
     return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-
-def display_crop(job: Job,
-                 line_edit: Union[Path, QLineEdit],
-                 image_widget: ImageWidget,
-                 face_detection_tools: FaceToolPair) -> None:
-    """
-    Displays the cropped image on the image widget based on the provided job parameters.
-
-    Args:
-        job (Job): The job containing the parameters for cropping.
-        line_edit (Union[Path, QLineEdit]): The input field for the image path.
-        image_widget (ImageWidget): The widget to display the cropped image.
-        face_detection_tools:
-
-    Returns:
-        None
-    """
-
-    img_path = line_edit if isinstance(line_edit, Path) else Path(line_edit.text())
-    # if input field is empty, then do nothing
-    if not img_path or img_path.as_posix() in {'', '.', None}:
-        return
-
-    if img_path.is_dir():
-        first_file = get_first_file(img_path)
-        if first_file is None:
-            return
-        img_path = first_file
-
-    if not img_path.is_file():
-        return
-
-    pic_array = open_pic(img_path, face_detection_tools,
-                         exposure=job.fix_exposure_job,
-                         tilt=job.auto_tilt_job)
-    if pic_array is None:
-        return
-
-    if job.multi_face_job:
-        pic = multi_box(pic_array, job)
-        wf.display_image_on_widget(pic, image_widget)
-    else:
-        bounding_box = box_detect(pic_array, job)
-        if bounding_box is None:
-            return
-        crop_and_set(pic_array, bounding_box, job.gamma, image_widget)

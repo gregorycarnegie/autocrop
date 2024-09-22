@@ -192,7 +192,7 @@ class VideoCropper(Cropper):
                 return self.capacity_error()
 
         x = 1 + end_frame - start_frame
-        self.progress.emit((0, x))
+        self.progress.emit(0, x)
         self.started.emit()
 
         for frame_number in range(start_frame, end_frame + 1):

@@ -7,6 +7,7 @@ from core import face_tools as ft
 from core import utils as ut
 from core import window_functions as wf
 from core.croppers import FolderCropper, PhotoCropper, MappingCropper, VideoCropper
+from .display_cropper import DisplayCropper
 from core.enums import FunctionType, Preset, GuiIcon
 from file_types import Photo, Table, Video
 from line_edits import NumberLineEdit, PathLineEdit, LineEditState
@@ -103,6 +104,12 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.video_tab.setObjectName(u"video_tab")
         self.verticalLayout_5 = wf.setup_vbox(u"verticalLayout_5", self.video_tab)
         self.video_tab_widget = UiVideoTabWidget(self.video_worker, u"video_tab_widget", self.video_tab, face_tool_list)
+
+        self.display_worker = DisplayCropper(face_tool_list[0],
+                                             p_widget=self.photo_tab_widget,
+                                             f_widget=self.folder_tab_widget,
+                                             m_widget=self.mapping_tab_widget,
+                                             v_widget=self.video_tab_widget)
 
         self.verticalLayout_5.addWidget(self.video_tab_widget)
 
@@ -325,7 +332,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         if self.photo_tab_widget.selection_state == self.photo_tab_widget.SELECTED:
             self.handle_function_tab_state(self.photo_tab_widget, self.folder_tab_widget, self.mapping_tab_widget,
                                            self.video_tab_widget)
-            self.photo_tab_widget.display_crop()
+            # self.photo_tab_widget.display_crop()
         elif self.folder_tab_widget.selection_state == self.folder_tab_widget.SELECTED:
             self.handle_function_tab_state(self.folder_tab_widget, self.photo_tab_widget, self.mapping_tab_widget,
                                            self.video_tab_widget)
@@ -333,7 +340,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         elif self.mapping_tab_widget.selection_state == self.mapping_tab_widget.SELECTED:
             self.handle_function_tab_state(self.mapping_tab_widget, self.photo_tab_widget, self.folder_tab_widget,
                                            self.video_tab_widget)
-            self.mapping_tab_widget.display_crop()
+            # self.mapping_tab_widget.display_crop()
 
     def handle_path_main(self, file_path: Path) -> None:
         """
