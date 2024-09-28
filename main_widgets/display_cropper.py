@@ -14,7 +14,7 @@ from .ui_crop_map_widget import UiMappingTabWidget
 from .ui_crop_photo_widget import UiPhotoTabWidget
 from .ui_crop_vid_widget import UiVideoTabWidget
 from .ui_crop_widget import UiCropWidget
-from .widget_utils import WidgetState, perform_crop_helper
+from .display_crop_utils import WidgetState, perform_crop_helper
 
 
 class WidgetData(TypedDict):

@@ -190,7 +190,7 @@ class Job(NamedTuple):
             ```
         """
 
-        bool_iter = np.fromiter(iter(self.radio_buttons), np.bool_)
+        bool_iter = np.fromiter(self.radio_buttons, np.bool_)
         return str(self.radio_options[bool_iter][0])
 
     @property

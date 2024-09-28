@@ -259,10 +259,8 @@ def show_warning(function_type: FunctionType) -> int:
     match function_type:
         case FunctionType.PHOTO:
             generate_message(msg_box, 'This will overwrite the original.')
-        case FunctionType.FOLDER | FunctionType.MAPPING:
+        case FunctionType.FOLDER | FunctionType.MAPPING | FunctionType.VIDEO:
             generate_message(msg_box, 'If potential overwrites are detected, the images will save to a new folder.')
-        case FunctionType.VIDEO:
-            generate_message(msg_box, 'If potential overwrites are detected, the frames will save to a new folder.')
         case FunctionType.FRAME:
             generate_message(msg_box, 'This will overwrite any cropped frames with the same name.')
     msg_box.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
