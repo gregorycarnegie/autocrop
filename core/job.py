@@ -5,7 +5,7 @@ from typing import NamedTuple, Optional
 
 import numpy as np
 import numpy.typing as npt
-import pandas as pd
+import polars as pl
 from PyQt6.QtWidgets import QComboBox
 
 from file_types import Photo
@@ -120,7 +120,8 @@ class Job(NamedTuple):
     video_path: Optional[Path] = None
     start_position: Optional[float] = None
     stop_position: Optional[float] = None
-    table: Optional[pd.DataFrame] = None
+    # table: Optional[pd.DataFrame] = None
+    table: Optional[pl.DataFrame] = None
     column1: Optional[QComboBox] = None
     column2: Optional[QComboBox] = None
 
@@ -258,7 +259,7 @@ class Job(NamedTuple):
         self.destination.mkdir(exist_ok=True)
         return self.destination
 
-    def _table_to_numpy(self, table: pd.DataFrame, *,
+    def _table_to_numpy(self, table: pl.DataFrame, *,
                         column_1: str,
                         column_2: str) -> StringArrayTuple:
         """
@@ -291,7 +292,7 @@ class Job(NamedTuple):
 
         # Vectorized Check for file existence
         mask = np.fromiter((self.folder_path / old_file in existing_files for old_file in old_file_list), np.bool_)
-        
+
         # Filter using the mask and return
         return old_file_list[mask], new_file_list[mask]
 

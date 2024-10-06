@@ -13,7 +13,7 @@ import cv2.typing as cvt
 import numba
 import numpy as np
 import numpy.typing as npt
-import pandas as pd
+import polars as pl
 import rawpy
 import tifffile as tiff
 from PIL import Image
@@ -406,7 +406,7 @@ def open_raw(input_image: Path,
         return align_head(img, face_detection_tools, tilt)
 
 
-def open_table(input_file: Path) -> pd.DataFrame:
+def open_table(input_file: Path) -> pl.DataFrame:
     """
     The function opens a table file and returns its contents as a `pd.DataFrame` object. If the file has a `.csv`
     extension, the function uses `pd.read_csv` to read the file. Otherwise, it uses `pd.read_excel`.
@@ -431,8 +431,7 @@ def open_table(input_file: Path) -> pd.DataFrame:
         ```
     """
 
-    return pd.read_csv(input_file) if input_file.suffix.lower() == '.csv' else pd.read_excel(input_file)
-
+    return pl.read_csv(input_file) if input_file.suffix.lower() == '.csv' else pl.read_excel(input_file)
 
 def open_pic(input_file: Union[Path, str],
              face_detection_tools: FaceToolPair, *,

@@ -1,5 +1,5 @@
 from PyQt6.QtCore import QCoreApplication, QMetaObject, QSize
-from PyQt6.QtGui import QIcon, QPixmap
+from PyQt6.QtGui import QIcon, QImage
 from PyQt6.QtWidgets import QDialog, QLabel, QSizePolicy
 
 from core.enums import GuiIcon
@@ -22,7 +22,7 @@ class UiDialog(QDialog):
         self.verticalLayout = wf.setup_vbox('verticalLayout', self)
         self.widget = ImageWidget(parent=self)
         self.widget.setObjectName('widget')
-        self.widget.setImage(QPixmap(GuiIcon.LOGO.value))
+        self.widget.setImage(QImage(GuiIcon.LOGO))
         self.setWindowIcon(QIcon(GuiIcon.ICON.value))
         self.verticalLayout.addWidget(self.widget)
         self.frame = wf.setup_frame('frame', parent=self)

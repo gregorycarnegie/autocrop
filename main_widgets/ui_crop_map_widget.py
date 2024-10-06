@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Any, Optional
 
-import pandas as pd
+import polars as pl
 from PyQt6 import QtCore, QtWidgets
 
 from core import DataFrameModel
@@ -21,7 +21,7 @@ class UiMappingTabWidget(UiCropBatchWidget):
         self.crop_worker = crop_worker
         
         self.model: Optional[DataFrameModel] = None
-        self.data_frame: Optional[pd.DataFrame] = None
+        self.data_frame: Optional[pl.DataFrame] = None
 
         self.FolderTab = QtWidgets.QToolBox(self)
         self.FolderTab.setObjectName(u"FolderTab")
@@ -272,19 +272,19 @@ class UiMappingTabWidget(UiCropBatchWidget):
 
     def validate_pandas_file(self, data: Any) -> None:
         try:
-            assert isinstance(data, pd.DataFrame)
+            assert isinstance(data, pl.DataFrame)
         except AssertionError:
             return
         self.process_data(data)
 
-    def process_data(self, data: pd.DataFrame) -> None:
+    def process_data(self, data: pl.DataFrame) -> None:
         self.data_frame = data
         self.model = DataFrameModel(self.data_frame)
         self.tableView.setModel(self.model)
-        self.comboBox_1.addItems(self.data_frame.columns.to_numpy())
-        self.comboBox_2.addItems(self.data_frame.columns.to_numpy())
-        self.comboBox_3.addItems(self.data_frame.columns.to_numpy())
-        self.comboBox_4.addItems(self.data_frame.columns.to_numpy())
+        self.comboBox_1.addItems(self.data_frame.columns)
+        self.comboBox_2.addItems(self.data_frame.columns)
+        self.comboBox_3.addItems(self.data_frame.columns)
+        self.comboBox_4.addItems(self.data_frame.columns)
 
     def mapping_process(self) -> None:
         self.crop_worker.message_box = False
