@@ -263,8 +263,6 @@ class UiCropControlWidget(QtWidgets.QWidget):
 
         QtCore.QMetaObject.connectSlotsByName(self)
 
-    # setupUi
-
     def retranslateUi(self):
         self.setWindowTitle(QtCore.QCoreApplication.translate("self", u"Form", None))
         self.radioButton_none.setText("")
@@ -289,7 +287,6 @@ class UiCropControlWidget(QtWidgets.QWidget):
         self.sensitivityLabel.setText(QtCore.QCoreApplication.translate("self", u"Sensitivity:", None))
         self.fpctLabel.setText(QtCore.QCoreApplication.translate("self", u"Face%:", None))
 
-    # retranslateUi
     @staticmethod
     def resource_const(*args: str) -> tuple[str, ...]:
         return tuple(ResourcePath(arg).meipass_path for arg in args)

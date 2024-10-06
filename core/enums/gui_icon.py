@@ -1,9 +1,9 @@
-from enum import Enum
+from enum import StrEnum
 
 from core.resource_path import ResourcePath
 
 
-class GuiIcon(Enum):
+class GuiIcon(StrEnum):
     CLAPPERBOARD = ResourcePath('resources\\icons\\clapperboard.svg').meipass_path
     CLEAR = ResourcePath('resources\\icons\\clear.svg').meipass_path
     CANCEL = ResourcePath('resources\\icons\\cancel.svg').meipass_path

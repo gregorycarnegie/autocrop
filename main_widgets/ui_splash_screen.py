@@ -9,7 +9,7 @@ from core.enums import GuiIcon
 
 class UiClickableSplashScreen(QSplashScreen):
     clicked = pyqtSignal()
-    image_path: ClassVar[str] = GuiIcon.LOGO.value
+    image_path: ClassVar[str] = GuiIcon.LOGO
 
     def __init__(self):
         pixmap = self.get_scaled_pixmap(self.image_path)

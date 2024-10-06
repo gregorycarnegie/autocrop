@@ -2,7 +2,6 @@ from pathlib import Path
 
 from PyQt6 import QtCore, QtWidgets
 
-from core import utils as ut
 from core import window_functions as wf
 from core.croppers import PhotoCropper
 from core.enums import FunctionType, GuiIcon
@@ -83,8 +82,8 @@ class UiPhotoTabWidget(UiCropWidget):
         self.verticalLayout_100.addLayout(self.horizontalLayout_3)
 
         # Connections
-        self.inputButton.clicked.connect(lambda: self.open_folder(self.inputLineEdit))
-        self.destinationButton.clicked.connect(lambda: self.open_folder(self.destinationLineEdit))
+        self.inputButton.clicked.connect(lambda: self.open_path(self.inputLineEdit))
+        self.destinationButton.clicked.connect(lambda: self.open_path(self.destinationLineEdit))
         self.cropButton.clicked.connect(lambda: self.crop_photo())
         self.connect_input_widgets(self.inputLineEdit, self.controlWidget.widthLineEdit,
                                    self.controlWidget.heightLineEdit, self.destinationLineEdit, self.exposureCheckBox,
@@ -98,8 +97,6 @@ class UiPhotoTabWidget(UiCropWidget):
         self.retranslateUi()
 
         QtCore.QMetaObject.connectSlotsByName(self)
-
-    # setupUi
 
     def retranslateUi(self):
         self.setWindowTitle(QtCore.QCoreApplication.translate("self", u"Form", None))
@@ -115,29 +112,15 @@ class UiPhotoTabWidget(UiCropWidget):
             QtCore.QCoreApplication.translate("self", u"Choose where you want to save the cropped image", None))
         self.destinationButton.setText(QtCore.QCoreApplication.translate("self", u"Destination Folder", None))
 
-    # retranslateUi
-
-    def display_crop(self) -> None:
-        job = self.create_job()
-        ut.display_crop(job, self.inputLineEdit, self.imageWidget, self.face_tool_list[0])
-
-    def open_folder(self, line_edit: PathLineEdit) -> None:
+    def open_path(self, line_edit: PathLineEdit) -> None:
         if line_edit is self.inputLineEdit:
             f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
                 self, 'Open File', Photo.default_directory, Photo.type_string())
             line_edit.setText(f_name)
             if self.inputLineEdit.state is LineEditState.INVALID_INPUT:
                 return
-            self.load_data()
         elif line_edit is self.destinationLineEdit:
-            f_name = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Directory', Photo.default_directory)
-            line_edit.setText(f_name)
-
-    def load_data(self) -> None:
-        try:
-            self.display_crop()
-        except (IndexError, FileNotFoundError, ValueError, AttributeError):
-            return
+            super(self).open_path(line_edit)
 
     def disable_buttons(self) -> None:
         wf.change_widget_state(

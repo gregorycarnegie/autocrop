@@ -108,8 +108,8 @@ class UiFolderTabWidget(UiCropBatchWidget):
         self.verticalLayout_100.addWidget(self.toolBox)
 
         # Connect Widgets
-        self.inputButton.clicked.connect(lambda: self.open_folder(self.inputLineEdit))
-        self.destinationButton.clicked.connect(lambda: self.open_folder(self.destinationLineEdit))
+        self.inputButton.clicked.connect(lambda: self.open_path(self.inputLineEdit))
+        self.destinationButton.clicked.connect(lambda: self.open_path(self.destinationLineEdit))
         self.inputLineEdit.textChanged.connect(lambda: self.load_data())
         self.cropButton.clicked.connect(lambda: self.folder_process())
         self.cancelButton.clicked.connect(lambda: self.crop_worker.terminate())
@@ -177,10 +177,9 @@ class UiFolderTabWidget(UiCropBatchWidget):
         self.crop_worker.finished.connect(lambda: wf.show_message_box(self.destination))
         self.crop_worker.progress.connect(self.update_progress)
 
-    def open_folder(self, line_edit: PathLineEdit) -> None:
+    def open_path(self, line_edit: PathLineEdit) -> None:
         """Only subclasses of the CustomCropWidget class should implement this method"""
-        f_name = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Directory', Photo.default_directory)
-        line_edit.setText(f_name)
+        super(self).open_path(line_edit)
         if line_edit is self.inputLineEdit:
             self.load_data()
 

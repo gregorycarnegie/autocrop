@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import IntEnum
 
 
-class FunctionType(Enum):
+class FunctionType(IntEnum):
     """
     Enumeration class for function types.
 

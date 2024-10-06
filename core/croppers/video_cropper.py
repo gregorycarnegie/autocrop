@@ -190,6 +190,8 @@ class VideoCropper(Cropper):
             # Check if there is enough space on disk to process the files.
             if job.available_space == 0 or job.available_space < size:
                 return self.capacity_error()
+        else:
+            return
 
         x = 1 + end_frame - start_frame
         self.progress.emit(0, x)

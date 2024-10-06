@@ -73,6 +73,8 @@ class MappingCropper(Cropper):
             # Check if there is enough space on disk to process the files.
             if job.available_space == 0 or job.available_space < total_size:
                 return self.capacity_error()
+        else:
+            return
 
         # Get the extensions of the file names and
         # Create a mask that indicates which files have supported extensions.

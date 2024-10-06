@@ -1,6 +1,6 @@
 from pathlib import Path
 from threading import Thread
-from typing import Union
+from typing import Literal
 
 import numpy as np
 from PyQt6 import QtCore, QtGui, QtMultimedia, QtMultimediaWidgets, QtWidgets
@@ -291,7 +291,7 @@ class UiVideoTabWidget(UiCropBatchWidget):
         self.timelineSlider_1.sliderMoved.connect(self.timelineSlider_2.setSliderPosition)
         self.timelineSlider_2.sliderMoved.connect(self.timelineSlider_1.setSliderPosition)
         self.inputButton.clicked.connect(lambda: self.open_video())
-        self.destinationButton.clicked.connect(lambda: self.open_folder(self.destinationLineEdit))
+        self.destinationButton.clicked.connect(lambda: self.open_path(self.destinationLineEdit))
 
         for control in [self.mediacontrolWidget_1, self.mediacontrolWidget_2]:
             control.cropButton.clicked.connect(lambda: self.crop_frame())
@@ -371,9 +371,8 @@ class UiVideoTabWidget(UiCropBatchWidget):
         self.toolBox.setItemText(self.toolBox.indexOf(self.page_2),
                                  QtCore.QCoreApplication.translate("self", u"Crop View", None))
 
-    def update_progress(self, data: tuple[int, int]) -> None:
+    def update_progress(self, x: int, y:int) -> None:
         """Only sublasses of the CropBatchWidget class should implement this method"""
-        x, y = data
         self.progressBar.setValue(int(self.PROGRESSBAR_STEPS * x / y))
         self.progressBar_2.setValue(int(self.PROGRESSBAR_STEPS * x / y))
         QtWidgets.QApplication.processEvents()
@@ -405,7 +404,7 @@ class UiVideoTabWidget(UiCropBatchWidget):
                                   'Please check the video file path and try again.')
 
     def setup_label(self,
-                    name: GuiIcon = Union[GuiIcon.MULTIMEDIA_LABEL_A, GuiIcon.MULTIMEDIA_LABEL_B]) -> QtWidgets.QLabel:
+                    name: GuiIcon = Literal[GuiIcon.MULTIMEDIA_LABEL_A, GuiIcon.MULTIMEDIA_LABEL_B]) -> QtWidgets.QLabel:
         label = QtWidgets.QLabel(parent=self)
         size_policy = QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Preferred)
@@ -415,7 +414,7 @@ class UiVideoTabWidget(UiCropBatchWidget):
         label.setSizePolicy(size_policy)
         label.setMaximumSize(QtCore.QSize(14, 14))
         label.setText('')
-        label.setPixmap(QtGui.QPixmap(name.value))
+        label.setPixmap(QtGui.QPixmap(name))
         label.setScaledContents(True)
         match name:
             case GuiIcon.MULTIMEDIA_LABEL_A:
@@ -424,10 +423,9 @@ class UiVideoTabWidget(UiCropBatchWidget):
                 label.setObjectName(u'label_B')
         return label
 
-    def open_folder(self, line_edit: PathLineEdit) -> None:
+    def open_path(self, line_edit: PathLineEdit) -> None:
         self.player.pause()
-        f_name = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Directory', Photo.default_directory)
-        line_edit.setText(f_name)
+        super(self).open_path(line_edit)
         self.player.play()
 
     def open_video(self) -> None:
@@ -558,7 +556,8 @@ class UiVideoTabWidget(UiCropBatchWidget):
     def goto_end(self) -> None:
         self.player.setPosition(self.player.duration())
 
-    def set_marker_time(self, button: QtWidgets.QPushButton, flag: bool, time_value: float, position: float) -> None:
+    @staticmethod
+    def set_marker_time(button: QtWidgets.QPushButton, flag: bool, time_value: float, position: float) -> None:
         if flag:
             position = time_value
             wf.set_marker_time(button, position)     

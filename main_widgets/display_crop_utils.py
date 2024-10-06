@@ -55,7 +55,10 @@ def crop_to_qimage(input_image: cvt.MatLike,
         return QImage()
 
 
-def perform_crop_helper(function_type: FunctionType, widget_state: WidgetState, img_path_str: str, face_detection_tools: FaceToolPair) -> Optional[QImage]:
+def perform_crop_helper(function_type: FunctionType,
+                        widget_state: WidgetState,
+                        img_path_str: str,
+                        face_detection_tools: FaceToolPair) -> Optional[QImage]:
     # Unpack and validate widget state
     if not validate_widget_state(widget_state):
         return None

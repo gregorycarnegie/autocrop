@@ -161,9 +161,9 @@ class UiMappingTabWidget(UiCropBatchWidget):
         self.verticalLayout_100.addWidget(self.FolderTab)
 
         # Connect Widgets
-        self.inputButton.clicked.connect(lambda: self.open_folder(self.inputLineEdit))
+        self.inputButton.clicked.connect(lambda: self.open_path(self.inputLineEdit))
         self.tableButton.clicked.connect(lambda: self.open_table())
-        self.destinationButton.clicked.connect(lambda: self.open_folder(self.destinationLineEdit))
+        self.destinationButton.clicked.connect(lambda: self.open_path(self.destinationLineEdit))
         
         self.cropButton.clicked.connect(lambda: self.mapping_process())
         self.cancelButton.clicked.connect(lambda: self.crop_worker.terminate())
@@ -269,11 +269,6 @@ class UiMappingTabWidget(UiCropBatchWidget):
             return
         data = ut.open_table((Path(f_name)))
         self.validate_pandas_file(data)
-
-    def open_folder(self, line_edit: PathLineEdit) -> None:
-        """Only sublasses of the CustomCropWidget class should implement this method"""
-        f_name = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Directory', Photo.default_directory)
-        line_edit.setText(f_name)
 
     def validate_pandas_file(self, data: Any) -> None:
         try:

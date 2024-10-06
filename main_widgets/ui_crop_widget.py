@@ -244,16 +244,7 @@ class UiCropWidget(QtWidgets.QWidget):
                    start_position=start_position,
                    stop_position=stop_position)
 
-    def open_folder(self, line_edit: PathLineEdit) -> None:
+    def open_path(self, line_edit: PathLineEdit) -> None:
         """Only subclasses of the CustomCropWidget class should implement this method"""
         f_name = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Directory', Photo.default_directory)
         line_edit.setText(f_name)
-        match self.inputLineEdit.path_type:
-            case PathType.FOLDER:
-                self.load_data()
-            case _:
-                pass
-
-    def load_data(self) -> None:
-        """Only subclasses of the CustomCropWidget class should implement this method"""
-        pass

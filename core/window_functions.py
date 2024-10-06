@@ -45,7 +45,7 @@ def create_main_button(name: str,
     button.setMinimumSize(QtCore.QSize(0, 40))
     button.setMaximumSize(QtCore.QSize(16_777_215, 40))
     icon = QtGui.QIcon()
-    icon.addFile(icon_file.value, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+    icon.addFile(icon_file, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
     button.setIcon(icon)
     button.setIconSize(QtCore.QSize(18, 18))
     return button
@@ -69,7 +69,7 @@ def create_button_icon(icon_resource: GuiIcon,
                        mode: QtGui.QIcon.Mode = QtGui.QIcon.Mode.Normal,
                        state: QtGui.QIcon.State = QtGui.QIcon.State.Off) -> QtGui.QIcon:
     icon = QtGui.QIcon()
-    icon.addFile(icon_resource.value, size, mode, state)
+    icon.addFile(icon_resource, size, mode, state)
     return icon
 
 
@@ -105,7 +105,7 @@ def display_image_on_widget(image: cvt.MatLike, image_widget: ImageWidget) -> No
     height, width, channel = image.shape
     bytes_per_line = channel * width
     q_image = QtGui.QImage(image.data.tobytes(), width, height, bytes_per_line, QtGui.QImage.Format.Format_BGR888)
-    image_widget.setImage(QtGui.QPixmap.fromImage(q_image))
+    image_widget.setImage(q_image)
 
 
 def uncheck_boxes(*checkboxes: QtWidgets.QCheckBox) -> None:
@@ -411,7 +411,7 @@ def create_media_button(parent: QtWidgets.QWidget, size_policy: QtWidgets.QSizeP
     button.setMaximumSize(size)
     button.setBaseSize(size)
     icon = QtGui.QIcon()
-    icon.addFile(icon_resource.value, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+    icon.addFile(icon_resource, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
     button.setIcon(icon)
     button.setIconSize(QtCore.QSize(24, 24))
     return button
@@ -426,7 +426,7 @@ def create_function_button(parent: QtWidgets.QWidget, size_policy: QtWidgets.QSi
     button.setMinimumSize(QtCore.QSize(40, 40))
     button.setMaximumSize(QtCore.QSize(16_777_215, 40))
     icon = QtGui.QIcon()
-    icon.addFile(icon_resource.value, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+    icon.addFile(icon_resource, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
     button.setIcon(icon)
     button.setIconSize(QtCore.QSize(18, 18))
     return button

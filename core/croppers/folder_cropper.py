@@ -68,7 +68,9 @@ class FolderCropper(Cropper):
             # Check if there is enough space on disk to process the files.
             if job.available_space == 0 or job.available_space < total_size:
                 return self.capacity_error()
-            
+        else:
+            return
+
         # Split the file list into chunks.
         split_array = np.array_split(file_list, self.THREAD_NUMBER)
 
