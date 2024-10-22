@@ -2,7 +2,7 @@ import collections.abc as c
 from pathlib import Path
 from typing import ClassVar, Optional
 
-import pandas as pd
+import polars as pl
 from PyQt6 import QtCore, QtWidgets
 
 from core import Job, ImageWidget
@@ -201,7 +201,7 @@ class UiCropWidget(QtWidgets.QWidget):
                    photo_path: Optional[Path] = None,
                    destination: Optional[Path] = None,
                    folder_path: Optional[Path] = None,
-                   table: Optional[pd.DataFrame] = None,
+                   table: Optional[pl.DataFrame] = None,
                    column1: Optional[QtWidgets.QComboBox] = None,
                    column2: Optional[QtWidgets.QComboBox] = None,
                    video_path: Optional[Path] = None,
