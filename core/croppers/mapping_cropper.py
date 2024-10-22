@@ -62,20 +62,18 @@ class MappingCropper(Cropper):
 
         if not (file_tuple := job.file_list_to_numpy()):
             return
-        # file_list1, file_list2 = file_tuple
-        if job.destination:
-            # Check if the destination directory is writable.
-            if not job.destination_accessible:
-                return self.access_error()
-
-            total_size = job.byte_size * len(file_tuple[0])
-
-            # Check if there is enough space on disk to process the files.
-            if job.available_space == 0 or job.available_space < total_size:
-                return self.capacity_error()
-        else:
+        if not job.destination:
             return
 
+        # Check if the destination directory is writable.
+        if not job.destination_accessible:
+            return self.access_error()
+
+        total_size = job.byte_size * len(file_tuple[0])
+
+        # Check if there is enough space on disk to process the files.
+        if job.available_space == 0 or job.available_space < total_size:
+            return self.capacity_error()
         # Get the extensions of the file names and
         # Create a mask that indicates which files have supported extensions.
         mask, amount = ut.mask_extensions(file_tuple[0])

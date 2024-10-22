@@ -57,20 +57,19 @@ class FolderCropper(Cropper):
         if not (file_tuple := job.file_list()):
             return
 
-        if job.destination:
-            # Check if the destination directory is writable.
-            if not job.destination_accessible:
-                return self.access_error()
-            
-            file_list, amount = file_tuple
-            total_size = job.byte_size * amount
-
-            # Check if there is enough space on disk to process the files.
-            if job.available_space == 0 or job.available_space < total_size:
-                return self.capacity_error()
-        else:
+        if not job.destination:
             return
 
+        # Check if the destination directory is writable.
+        if not job.destination_accessible:
+            return self.access_error()
+
+        file_list, amount = file_tuple
+        total_size = job.byte_size * amount
+
+        # Check if there is enough space on disk to process the files.
+        if job.available_space == 0 or job.available_space < total_size:
+            return self.capacity_error()
         # Split the file list into chunks.
         split_array = np.array_split(file_list, self.THREAD_NUMBER)
 
