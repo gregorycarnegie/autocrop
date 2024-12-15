@@ -9,7 +9,7 @@ from core import window_functions as wf
 from core.croppers import VideoCropper
 from core.enums import FunctionType, GuiIcon
 from core.operation_types import FaceToolPair
-from file_types import Photo, Video
+from file_types import Video
 from line_edits import LineEditState, NumberLineEdit, PathLineEdit, PathType
 from .ui_crop_batch_widget import UiCropBatchWidget
 from .ui_media_control_widget import UiMediaControlWidget
@@ -425,7 +425,7 @@ class UiVideoTabWidget(UiCropBatchWidget):
 
     def open_path(self, line_edit: PathLineEdit) -> None:
         self.player.pause()
-        super(self).open_path(line_edit)
+        super().open_path(line_edit)
         self.player.play()
 
     def open_video(self) -> None:
