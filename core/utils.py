@@ -249,17 +249,10 @@ def format_image(input_image: ImageArray) -> tuple[cvt.MatLike, float]:
 #     center_x, center_y = np.mean(landmarks_array[R_EYE_START:L_EYE_END], axis=0) / scaling_factor
 #     return np.arctan2(eye_diff[1], eye_diff[0]) * 180 / np.pi, center_x, center_y
 
-@numba.njit
+@numba.njit(parallel=True)
 def mean_axis0(arr: npt.NDArray[np.int_]) -> npt.NDArray[np.float64]:
     """Calculate mean along axis 0."""
-    n, m = arr.shape
-    mean = np.zeros(m)
-    for i in range(m):
-        sum_ = 0.0
-        for j in range(n):
-            sum_ += arr[j, i]
-        mean[i] = sum_ / n
-    return mean
+    return np.array([arr[:, i].sum() / arr.shape[0] for i in range(arr.shape[1])])
 
 
 @numba.njit

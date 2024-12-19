@@ -179,7 +179,7 @@ class UiFolderTabWidget(UiCropBatchWidget):
 
     def open_path(self, line_edit: PathLineEdit) -> None:
         """Only subclasses of the CustomCropWidget class should implement this method"""
-        super(self).open_path(line_edit)
+        super().open_path(line_edit)
         if line_edit is self.inputLineEdit:
             self.load_data()
 

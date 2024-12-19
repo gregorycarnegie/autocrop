@@ -120,7 +120,7 @@ class UiPhotoTabWidget(UiCropWidget):
             if self.inputLineEdit.state is LineEditState.INVALID_INPUT:
                 return
         elif line_edit is self.destinationLineEdit:
-            super(self).open_path(line_edit)
+            super().open_path(line_edit)
 
     def disable_buttons(self) -> None:
         wf.change_widget_state(
