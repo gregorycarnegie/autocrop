@@ -79,6 +79,12 @@ class Cropper(QObject):
             str(PermissionError("Destination directory is not writable.")),
             "Please check the destination directory and try again.",
         )
+
+    def amount_error(self) -> None:
+        return self.display_error(
+            str(FileNotFoundError("Source directory has no compatible files.")),
+            "Please check the source directory and try again.",
+        )
     
     def capacity_error(self) -> None:
         return self.display_error(

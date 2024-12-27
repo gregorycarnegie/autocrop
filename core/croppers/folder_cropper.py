@@ -65,6 +65,10 @@ class FolderCropper(Cropper):
             return self.access_error()
 
         file_list, amount = file_tuple
+
+        if not amount:
+            return self.amount_error()
+
         total_size = job.byte_size * amount
 
         # Check if there is enough space on disk to process the files.

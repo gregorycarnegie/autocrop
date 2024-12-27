@@ -7,12 +7,20 @@ from core import ResourcePath
 from core import window_functions as wf
 from line_edits import NumberLineEdit
 
-RADIO_NONE: tuple[str, str] = 'resources/icons/file_no_checked.svg', 'resources/icons/file_no_unchecked.svg'
-RADIO_BMP: tuple[str, str] = 'resources/icons/file_bmp_checked.svg', 'resources/icons/file_bmp_unchecked.svg'
-RADIO_JPG: tuple[str, str] = 'resources/icons/file_jpg_checked.svg', 'resources/icons/file_jpg_unchecked.svg'
-RADIO_PNG: tuple[str, str] = 'resources/icons/file_png_checked.svg', 'resources/icons/file_png_unchecked.svg'
-RADIO_TIFF: tuple[str, str] = 'resources/icons/file_tiff_checked.svg', 'resources/icons/file_tiff_unchecked.svg'
-RADIO_WEBP: tuple[str, str] = 'resources/icons/file_webp_checked.svg', 'resources/icons/file_webp_unchecked.svg'
+def get_icon_path_tuple(icon_name: str) -> tuple[str, str]:
+    def helper(string):
+        return ResourcePath(f'resources/icons/file_{string}checked.svg').meipass_path
+
+    return helper(f'{icon_name}_'), helper(f'{icon_name}_un')
+
+
+RADIO_NONE = get_icon_path_tuple('no')
+RADIO_BMP = get_icon_path_tuple('bmp')
+RADIO_JPG = get_icon_path_tuple('jpg')
+RADIO_PNG = get_icon_path_tuple('png')
+RADIO_TIFF = get_icon_path_tuple('tiff')
+RADIO_WEBP = get_icon_path_tuple('webp')
+
 RadioButtonTuple = tuple[bool, bool, bool, bool, bool, bool]
 
 

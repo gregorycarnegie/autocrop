@@ -13,91 +13,66 @@ from file_types import Photo
 StringArrayTuple = tuple[npt.NDArray[np.str_], npt.NDArray[np.str_]]
 RadioButtonTuple = tuple[bool, bool, bool, bool, bool, bool]
 
+
 class Job(NamedTuple):
     """
     The `Job` class represents a job with various properties and methods for image processing.
 
     Attributes:
-        width (int): The width of the job.
-        height (int): The height of the job.
-        fix_exposure_job (bool): The checkbox for fixing exposure.
-        multi_face_job (bool): The checkbox for multi-face detection.
-        auto_tilt_job (bool): The checkbox for auto tilt correction.
-        sensitivity (int): The sensitivity value.
-        face_percent (int): The face percentage value.
-        gamma (int): The gamma value.
-        top (int): The top value.
-        bottom (int): The bottom value.
-        left (int): The left value.
-        right (int): The right value.
-        radio_buttons (Tuple[bool, ...]): The tuple of radio buttons.
-        radio_options (npt.NDArray[np.str_]): The array of radio button options.
+        width (int): The width of the job (in pixels).
+        height (int): The height of the job (in pixels).
+        fix_exposure_job (bool): Whether to apply exposure fixes.
+        multi_face_job (bool): Whether to detect multiple faces.
+        auto_tilt_job (bool): Whether to correct for tilt automatically.
+        sensitivity (int): The sensitivity value (used to compute threshold).
+        face_percent (int): The face percentage value (for cropping logic).
+        gamma (int): The gamma value for image adjustments.
+        top (int): The top offset for cropping.
+        bottom (int): The bottom offset for cropping.
+        left (int): The left offset for cropping.
+        right (int): The right offset for cropping.
+        radio_buttons (RadioButtonTuple): A tuple of booleans representing radio button states.
+        radio_options (npt.NDArray[np.str_]): The array of format options (e.g., ['No', '.bmp']).
         destination (Optional[Path]): The optional destination path.
         photo_path (Optional[Path]): The optional photo path.
-        folder_path (Optional[Path]): The optional folder path.
+        folder_path (Optional[Path]): The optional folder path (for batch processing).
         video_path (Optional[Path]): The optional video path.
-        start_position (Optional[float]): The optional start position.
-        stop_position (Optional[float]): The optional stop position.
-        table (Optional[pd.DataFrame]): The optional DataFrame.
-        column1 (Optional[QComboBox]): The optional QComboBox for column 1.
-        column2 (Optional[QComboBox]): The optional QComboBox for column 2.
+        start_position (Optional[float]): The optional video start position (in ms).
+        stop_position (Optional[float]): The optional video stop position (in ms).
+        table (Optional[pl.DataFrame]): An optional Polars DataFrame for metadata.
+        column1 (Optional[QComboBox]): An optional QComboBox for selecting the first column name.
+        column2 (Optional[QComboBox]): An optional QComboBox for selecting the second column name.
 
     Methods:
-        file_list() -> Optional[Tuple[npt.NDArray[Any], int]]:
-            Generates a list of valid image files in the specified folder path.
+        file_list() -> Optional[tuple[list[Path], int]]:
+            Returns a list of image files in `folder_path` with supported extensions and its length.
 
-        radio_tuple() -> Tuple[str, ...]:
-            Returns a tuple of radio button options.
+        radio_tuple() -> tuple[np.str_, ...]:
+            Returns a tuple of the available radio button format options.
 
         radio_choice() -> str:
-            Gets the selected image format from the radio buttons.
+            Returns the selected image format based on the radio button states.
 
-        size() -> Tuple[int, int]:
-            Returns the size of the job as a tuple.
+        size() -> tuple[int, int]:
+            Returns (width, height).
 
         threshold() -> int:
-            Returns the threshold value.
+            Returns a threshold value computed from `sensitivity` (e.g., 100 - sensitivity).
 
         get_destination() -> Optional[Path]:
-            Gets the destination path specified by the user.
+            Creates and returns the `destination` path if specified.
 
-        file_list_to_numpy() -> Optional[Tuple[npt.NDArray[np.str_], npt.NDArray[np.str_]]]:
-            Converts the specified DataFrame columns to numpy arrays.
+        file_list_to_numpy() -> Optional[StringArrayTuple]:
+            Converts two columns of the `table` into string NumPy arrays, filtered by existing files.
 
-    Example:
-        ```python
-        # Creating a job instance
-        job = Job(width=800, height=600, fix_exposure_job=QCheckBox(), multi_face_job=QCheckBox(),
-                auto_tilt_job=QCheckBox(), sensitivity=80, face_percent=50, gamma=2, top=0, bottom=0,
-                left=0, right=0, radio_buttons=(QRadioButton(),), radio_options=np.array(['No', '.bmp']),
-                destination=Path('output'), photo_path=Path('photos'), folder_path=Path('images'),
-                video_path=Path('videos'), start_position=0.0, stop_position=1.0, table=pd.DataFrame(),
-                column1=QComboBox(), column2=QComboBox())
+        destination_accessible -> bool:
+            Checks if the destination is accessible for writing.
 
-        # Generating a list of valid image files
-        file_list = job.file_list()
-        print(file_list)
+        available_space -> int:
+            Returns the free disk space (in bytes) at the destination.
 
-        # Getting the selected image format
-        image_format = job.radio_choice()
-        print(image_format)
-
-        # Getting the size of the job
-        size = job.size
-        print(size)
-
-        # Getting the threshold value
-        threshold = job.threshold
-        print(threshold)
-
-        # Getting the destination path
-        destination = job.get_destination()
-        print(destination)
-
-        # Converting DataFrame columns to numpy arrays
-        numpy_arrays = job.file_list_to_numpy()
-        print(numpy_arrays)
-        ```
+        byte_size -> int:
+            Returns an approximate size in bytes (width * height * 3).
     """
 
     width: int
@@ -120,96 +95,77 @@ class Job(NamedTuple):
     video_path: Optional[Path] = None
     start_position: Optional[float] = None
     stop_position: Optional[float] = None
-    # table: Optional[pd.DataFrame] = None
     table: Optional[pl.DataFrame] = None
     column1: Optional[QComboBox] = None
     column2: Optional[QComboBox] = None
 
     def file_list(self) -> Optional[tuple[list[Path], int]]:
         """
-        The method retrieves a list of files from the specified folder path. It filters the files based on their suffix and returns the filtered list along with its length.
-
-        Returns:
-            Optional[Tuple[npt.NDArray[Any], int]]: A tuple containing the filtered file list and its length, or None if no folder path is specified.
+        Retrieves a list of files from `folder_path` whose suffix is in `Photo.file_types`.
+        Returns a tuple of (list_of_files, list_length). If `folder_path` is None, returns None.
 
         Example:
             ```python
-            # Creating a job instance
             job = Job(folder_path=Path('/path/to/folder'))
-
-            # Getting the file list
-            files = job.file_list()
-            print(files)
+            files_and_count = job.file_list()
+            if files_and_count:
+                file_list, length = files_and_count
+                print(file_list, length)
             ```
         """
 
-        if self.folder_path is not None:
-            if result := [
-                i
-                for i in self.folder_path.iterdir()
-                if i.suffix.lower() in Photo.file_types
-            ]:
-                return result, len(result)
-            return
-        return
+        if self.folder_path is None:
+            return None
+        
+        valid_files = [
+            i
+            for i in self.folder_path.iterdir()
+            if i.suffix.lower() in Photo.file_types
+        ]
+        
+        return valid_files, len(valid_files)
 
     def radio_tuple(self) -> tuple[np.str_, ...]:
         """
-        The method returns a tuple of radio button options.
-
-        Returns:
-            Tuple[str, ...]: A tuple of radio button options.
+        Returns the radio button format options as a tuple of strings.
 
         Example:
             ```python
-            # Creating a job instance
             job = Job(radio_options=np.array(['No', '.bmp']))
-
-            # Getting the radio button options.
             options = job.radio_tuple()
-            print(options)
+            print(options)  # ('No', '.bmp')
             ```
-"""
+        """
 
         return tuple(self.radio_options)
 
     def radio_choice(self) -> str:
         """
-        The method gets the selected image format from the radio buttons.
-
-        Returns:
-            str: The selected image format.
+        Returns the selected image format from the radio buttons.
 
         Example:
             ```python
-            # Creating a job instance
-            job = Job(radio_buttons=(QRadioButton(),), radio_options=np.array(['No', '.bmp']))
-
-            # Getting the selected image format
-            image_format = job.radio_choice()
-            print(image_format)
+            # Suppose radio_buttons=(False, True, False, ...) and
+            # radio_options=np.array(['No', '.bmp', '.jpg'])
+            job = Job(radio_buttons=(False, True, False),
+                      radio_options=np.array(['No', '.bmp', '.jpg']))
+            selected_format = job.radio_choice()
+            print(selected_format)  # ".bmp"
             ```
         """
 
-        bool_iter = np.fromiter(self.radio_buttons, np.bool_)
-        return str(self.radio_options[bool_iter][0])
+        bool_array = np.fromiter(self.radio_buttons, np.bool_)
+        return str(self.radio_options[bool_array][0])
 
     @property
     def size(self) -> tuple[int, int]:
         """
-        The property returns the size of the job as a tuple of width and height.
-
-        Returns:
-            Tuple[int, int]: The size of the job as a tuple.
+        Returns (width, height).
 
         Example:
             ```python
-            # Creating a job instance
-            job = Job(width=800, height=600)
-
-            # Getting the size of the job
-            size = job.size
-            print(size)
+            job = Job(width=800, height=600, ...)
+            print(job.size)  # (800, 600)
             ```
         """
 
@@ -218,19 +174,12 @@ class Job(NamedTuple):
     @property
     def threshold(self) -> int:
         """
-        The property calculates the threshold value based on the sensitivity value.
-
-        Returns:
-            int: The calculated threshold value.
+        Computes threshold as 100 - sensitivity.
 
         Example:
             ```python
-            # Creating a job instance
-            job = Job(sensitivity=80)
-
-            # Getting the threshold value
-            threshold = job.threshold
-            print(threshold)
+            job = Job(sensitivity=80, ...)
+            print(job.threshold)  # 20
             ```
         """
 
@@ -238,19 +187,13 @@ class Job(NamedTuple):
 
     def get_destination(self) -> Optional[Path]:
         """
-        The method gets the destination path specified by the user. If the path does not exist, it is created.
-
-        Returns:
-            Optional[Path]: The specified destination path or None if no path was specified.
+        Creates and returns the `destination` directory if specified. Returns None if not set.
 
         Example:
             ```python
-            # Creating a job instance
-            job = Job()
-
-            # Getting the destination path
-            destination = job.get_destination()
-            print(destination)
+            job = Job(destination=Path('output'))
+            dest_path = job.get_destination()
+            print(dest_path)  # Path('output')
             ```
         """
 
@@ -259,58 +202,58 @@ class Job(NamedTuple):
         self.destination.mkdir(exist_ok=True)
         return self.destination
 
-    def _table_to_numpy(self, table: pl.DataFrame, *,
+    def _table_to_numpy(self, table: pl.DataFrame,
+                        *,
                         column_1: str,
                         column_2: str) -> StringArrayTuple:
         """
-        The function converts a specified table to a NumPy array of strings. It requires a `pd.DataFrame` object and the names of two columns in the table. The function returns a tuple containing two NumPy arrays of strings representing the values in the specified columns.
+        Converts two columns from a Polars DataFrame into NumPy arrays of strings, filtering out
+        rows whose corresponding file does not exist in `folder_path`.
 
         Args:
-            table (pd.DataFrame): The table to convert to a NumPy array.
+            table (pl.DataFrame): The source Polars DataFrame.
             column_1 (str): The name of the first column.
             column_2 (str): The name of the second column.
 
         Returns:
-            Tuple[npt.NDArray[np.str_], npt.NDArray[np.str_]]: A tuple containing two NumPy arrays of strings representing the values in the specified columns.
-
-        Example:
-            ```python
-            # Creating a DataFrame
-            df = pd.DataFrame({'Column1': ['A', 'B', 'C'], 'Column2': ['X', 'Y', 'Z']})
-
-            # Converting the DataFrame to NumPy arrays
-            result = table_to_numpy(df, 'Column1', 'Column2')
-            print(result)
-            ```
+            StringArrayTuple: A tuple of two 1D string arrays (old_file_list, new_file_list).
         """
 
         # Convert columns to numpy arrays
-        old_file_list, new_file_list = map(lambda x: table[x].to_numpy().astype(np.str_), [column_1, column_2])
+        old_file_array = table[column_1].to_numpy().astype(np.str_)
+        new_file_array = table[column_2].to_numpy().astype(np.str_)
 
         # Get a set of all files in the folder for membership checks
         existing_files = set(self.folder_path.iterdir())
 
         # Vectorized Check for file existence
-        mask = np.fromiter((self.folder_path / old_file in existing_files for old_file in old_file_list), np.bool_)
+        mask = np.fromiter((self.folder_path / old_file in existing_files for old_file in old_file_array), np.bool_)
 
         # Filter using the mask and return
-        return old_file_list[mask], new_file_list[mask]
+        return old_file_array[mask], new_file_array[mask]
 
     def file_list_to_numpy(self) -> Optional[StringArrayTuple]:
         """
-        The method converts a table to a NumPy array of strings. It requires a `pd.DataFrame` object, a `QComboBox` object for column 1, and a `QComboBox` object for column 2. If any of these requirements are not met, the method returns None.
+        Converts two columns of the `table` (specified by `column1` and `column2`) into
+        NumPy string arrays, filtering by actual file existence in `folder_path`.
 
         Returns:
-            Optional[Tuple[npt.NDArray[np.str_], npt.NDArray[np.str_]]]: A tuple containing two NumPy arrays of strings representing the values in column 1 and column 2 of the table, or None if the requirements are not met.
+            A tuple (old_file_list, new_file_list), or None if requirements are not met.
 
         Example:
             ```python
-            # Creating a job instance
-            job = Job(table=pd.DataFrame({'Column1': ['A', 'B', 'C'], 'Column2': ['X', 'Y', 'Z']}), column1=QComboBox(), column2=QComboBox())
-
-            # Converting the table to a NumPy array
-            result = job.file_list_to_numpy()
-            print(result)
+            job = Job(
+                table=pl.DataFrame({
+                    'Column1': ['file1.jpg', 'file2.bmp'],
+                    'Column2': ['result1.jpg', 'result2.bmp']
+                }),
+                column1=some_QComboBox_with_value_Column1,
+                column2=some_QComboBox_with_value_Column2,
+                folder_path=Path('/path/to/folder')
+            )
+            arrays = job.file_list_to_numpy()
+            if arrays:
+                old_files, new_files = arrays
             ```
         """
 
@@ -321,12 +264,24 @@ class Job(NamedTuple):
     
     @property
     def destination_accessible(self) -> bool:
+        """
+        Checks if the `destination` path is accessible (writable). Returns False if `destination` is None.
+        """
+
         return os.access(self.destination, os.W_OK) if self.destination else False
     
     @property
     def available_space(self) -> int:
+        """
+        Returns the free disk space at `destination`. If `destination` is None, raises an error.
+        """
+
         return shutil.disk_usage(self.destination).free
     
     @property
     def byte_size(self) -> int:
+        """
+        Approximate size in bytes for an image of shape (height, width, 3).
+        """
+
         return self.width * self.height * 3
