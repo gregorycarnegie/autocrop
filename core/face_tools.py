@@ -1,3 +1,4 @@
+import collections.abc as c
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count
 
@@ -35,7 +36,7 @@ def _create_tool_pair() -> FaceToolPair:
     return detector, predictor
 
 
-def generate_face_detection_tools() -> list[FaceToolPair]:
+def generate_face_detection_tools() -> c.Iterator[FaceToolPair]:
     """
     Generate a list of face detection and shape prediction tools.
 
@@ -48,4 +49,5 @@ def generate_face_detection_tools() -> list[FaceToolPair]:
         List[Tuple[dlib.fhog_object_detector, dlib.shape_predictor]]:
             A list of face detection and shape prediction tools.
     """
-    return [_create_tool_pair() for _ in range(THREAD_NUMBER)]
+
+    return (_create_tool_pair() for _ in range(THREAD_NUMBER))

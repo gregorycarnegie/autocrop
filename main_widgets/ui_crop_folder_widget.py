@@ -5,7 +5,6 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 from core import window_functions as wf
 from core.croppers import FolderCropper
 from core.enums import FunctionType, GuiIcon
-from core.operation_types import FaceToolPair
 from file_types import Photo
 from line_edits import PathLineEdit
 from .ui_crop_batch_widget import UiCropBatchWidget
@@ -14,9 +13,8 @@ from .ui_crop_batch_widget import UiCropBatchWidget
 class UiFolderTabWidget(UiCropBatchWidget):
     def __init__(self, crop_worker: FolderCropper,
                  object_name: str,
-                 parent: QtWidgets.QWidget,
-                 face_tool_list: list[FaceToolPair]):
-        super().__init__(object_name, parent, face_tool_list)
+                 parent: QtWidgets.QWidget) -> None:
+        super().__init__(object_name, parent)
         self.crop_worker = crop_worker
 
         self.file_model = QtGui.QFileSystemModel(self)

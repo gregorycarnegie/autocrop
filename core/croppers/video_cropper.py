@@ -14,9 +14,9 @@ from .cropper import Cropper
 
 
 class VideoCropper(Cropper):
-    def __init__(self, face_detection_tools: list[FaceToolPair]):
+    def __init__(self, face_detection_tools: c.Iterator[FaceToolPair]):
         super().__init__()
-        self.face_detection_tools = face_detection_tools[1]
+        self.face_detection_tools = next(face_detection_tools)
 
     def crop_frame(self, job: Job, position_label: QLabel, timeline_slider: QSlider) -> None:
         """

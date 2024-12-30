@@ -9,15 +9,14 @@ from core import utils as ut
 from core import window_functions as wf
 from core.croppers import MappingCropper
 from core.enums import FunctionType, GuiIcon
-from core.operation_types import FaceToolPair
 from file_types import Photo, Table
 from line_edits import LineEditState, NumberLineEdit, PathLineEdit, PathType
 from .ui_crop_batch_widget import UiCropBatchWidget
 
 
 class UiMappingTabWidget(UiCropBatchWidget):
-    def __init__(self, crop_worker: MappingCropper, object_name: str, parent: QtWidgets.QWidget, face_tool_list: list[FaceToolPair]):
-        super().__init__(object_name, parent, face_tool_list)
+    def __init__(self, crop_worker: MappingCropper, object_name: str, parent: QtWidgets.QWidget) -> None:
+        super().__init__(object_name, parent)
         self.crop_worker = crop_worker
         
         self.model: Optional[DataFrameModel] = None

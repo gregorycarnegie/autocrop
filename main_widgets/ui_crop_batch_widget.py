@@ -7,15 +7,14 @@ from PyQt6 import QtCore, QtWidgets
 from core import Job
 from core import window_functions as wf
 from core.enums import GuiIcon
-from core.operation_types import FaceToolPair
 from .ui_crop_widget import UiCropWidget
 
 
 class UiCropBatchWidget(UiCropWidget):
     PROGRESSBAR_STEPS: ClassVar[int] = 1_000
 
-    def __init__(self, object_name: str, parent: QtWidgets.QWidget, face_tool_list: list[FaceToolPair]) -> None:
-        super().__init__(parent, face_tool_list)
+    def __init__(self, object_name: str, parent: QtWidgets.QWidget) -> None:
+        super().__init__(parent)
         self.setObjectName(object_name)
 
         self.page_1 = QtWidgets.QWidget()

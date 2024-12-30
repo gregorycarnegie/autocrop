@@ -5,15 +5,14 @@ from PyQt6 import QtCore, QtWidgets
 from core import window_functions as wf
 from core.croppers import PhotoCropper
 from core.enums import FunctionType, GuiIcon
-from core.operation_types import FaceToolPair
 from file_types import Photo
 from line_edits import LineEditState, PathLineEdit, PathType
 from .ui_crop_widget import UiCropWidget
 
 
 class UiPhotoTabWidget(UiCropWidget):
-    def __init__(self, crop_worker: PhotoCropper, object_name: str, parent: QtWidgets.QWidget, face_tool_list: list[FaceToolPair]):
-        super().__init__(parent, face_tool_list)
+    def __init__(self, crop_worker: PhotoCropper, object_name: str, parent: QtWidgets.QWidget) -> None:
+        super().__init__(parent)
         self.crop_worker = crop_worker
         self.setObjectName(object_name)
         self.selection_state = self.SELECTED

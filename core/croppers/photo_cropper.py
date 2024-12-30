@@ -1,3 +1,4 @@
+import collections.abc as c
 from pathlib import Path
 from typing import Optional
 
@@ -8,9 +9,9 @@ from .cropper import Cropper
 
 
 class PhotoCropper(Cropper):
-    def __init__(self, face_detection_tools: list[FaceToolPair]):
+    def __init__(self, face_detection_tools: c.Iterator[FaceToolPair]):
         super().__init__()
-        self.face_detection_tools = face_detection_tools[0]
+        self.face_detection_tools = next(face_detection_tools)
 
     def crop(self, image: Path,
              job: Job,

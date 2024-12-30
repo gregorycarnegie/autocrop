@@ -8,7 +8,6 @@ from PyQt6 import QtCore, QtWidgets
 from core import Job, ImageWidget
 from core import window_functions as wf
 from core.enums import FunctionType, FunctionTabSelectionState, GuiIcon
-from core.operation_types import FaceToolPair
 from file_types import Photo
 from line_edits import NumberLineEdit, PathLineEdit, PathType
 from .ui_control_widget import UiCropControlWidget
@@ -40,9 +39,9 @@ class UiCropWidget(QtWidgets.QWidget):
         image: url(resources/icons/checkbox_unchecked_hover.svg);
     }"""
 
-    def __init__(self, parent: QtWidgets.QWidget, face_tool_list: list[FaceToolPair]):
+    def __init__(self, parent: QtWidgets.QWidget) -> None:
         super().__init__(parent)
-        self.face_tool_list = face_tool_list
+        # self.face_tool_list = face_tool_list
         self.size_policy1.setHorizontalStretch(0)
         self.size_policy1.setVerticalStretch(0)
 

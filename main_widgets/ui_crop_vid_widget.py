@@ -8,7 +8,6 @@ from PyQt6 import QtCore, QtGui, QtMultimedia, QtMultimediaWidgets, QtWidgets
 from core import window_functions as wf
 from core.croppers import VideoCropper
 from core.enums import FunctionType, GuiIcon
-from core.operation_types import FaceToolPair
 from file_types import Video
 from line_edits import LineEditState, NumberLineEdit, PathLineEdit, PathType
 from .ui_crop_batch_widget import UiCropBatchWidget
@@ -16,8 +15,8 @@ from .ui_media_control_widget import UiMediaControlWidget
 
 
 class UiVideoTabWidget(UiCropBatchWidget):
-    def __init__(self, crop_worker: VideoCropper, object_name: str, parent: QtWidgets.QWidget, face_tool_list: list[FaceToolPair]):
-        super().__init__(object_name, parent, face_tool_list)
+    def __init__(self, crop_worker: VideoCropper, object_name: str, parent: QtWidgets.QWidget) -> None:
+        super().__init__(object_name, parent)
         self.crop_worker = crop_worker
         self.vol_cache = 70
         self.rewind_timer = QtCore.QTimer()

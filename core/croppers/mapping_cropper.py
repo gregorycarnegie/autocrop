@@ -1,3 +1,4 @@
+import collections.abc as c
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -11,9 +12,9 @@ from .cropper import Cropper
 
 
 class MappingCropper(Cropper):
-    def __init__(self, face_detection_tools: list[FaceToolPair]):
+    def __init__(self, face_detection_tools: c.Iterator[FaceToolPair]):
         super().__init__()
-        self.face_detection_tools = face_detection_tools
+        self.face_detection_tools = list(face_detection_tools)
 
     def worker(self, file_amount: int,
                job: Job,
