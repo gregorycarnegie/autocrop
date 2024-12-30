@@ -99,6 +99,32 @@ class Job(NamedTuple):
     column1: Optional[QComboBox] = None
     column2: Optional[QComboBox] = None
 
+    def __repr__(self):
+        return f"""
+Dimensions: {self.width} x {self.height}
+Fix Exposure: {self.fix_exposure_job}
+Multi Face: {self.multi_face_job}
+Auto Tilt: {self.auto_tilt_job}
+Sensitivity: {self.sensitivity}
+Face Percent: {self.face_percent}%
+Gamma: {self.gamma}
+Top padding: {self.top}
+Bottom padding: {self.bottom}
+Left padding: {self.left}
+Right padding: {self.right}
+Radio Buttons: {self.radio_buttons}
+Radio Options: {self.radio_options}
+Destination: {self.destination}
+Photo Path: {self.photo_path}
+Folder Path: {self.folder_path}
+Video Path: {self.video_path}
+Start Position: {self.start_position}
+Stop Position: {self.stop_position}
+Table: {self.table}
+Column 1: {self.column1}
+Column 2: {self.column2}
+"""
+
     def file_list(self) -> Optional[tuple[list[Path], int]]:
         """
         Retrieves a list of files from `folder_path` whose suffix is in `Photo.file_types`.

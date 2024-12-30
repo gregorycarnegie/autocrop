@@ -25,6 +25,22 @@ class Cropper(QObject):
         self.finished_signal_emitted = False
         self.lock = Lock()
 
+    def __repr__(self):
+        return """{}
+        Class: {}
+        Threads: {}
+        Bar Value: {}
+        End Task: {}
+        Message Box: {}
+        """.format(
+            super(Cropper, self).__repr__(),
+            type(self).__name__,
+            self.THREAD_NUMBER,
+            self.bar_value,
+            self.end_task,
+            self.message_box
+        )
+
     def reset_task(self) -> None:
         """
         Resets the task values based on the provided function type.
@@ -68,28 +84,46 @@ class Cropper(QObject):
             self.executor.shutdown(wait=False)
             self.executor = None
 
-    def display_error(self, *args: str) -> None:
-        wf.show_error_box(*args)
+    def _display_error(self, error: BaseException, action: str) -> None:
+        wf.show_error_box(str(error, action))
         self.error.emit()
         self.end_task = True
-        return
+        return 
     
     def access_error(self) -> None:
-        return self.display_error(
-            str(PermissionError("Destination directory is not writable.")),
-            "Please check the destination directory and try again.",
+        return self._display_error(
+            PermissionError("Destination directory is not writable."),
+            "Please check the destination directory and try again."
         )
 
     def amount_error(self) -> None:
-        return self.display_error(
-            str(FileNotFoundError("Source directory has no compatible files.")),
-            "Please check the source directory and try again.",
+        return self._display_error(
+            FileNotFoundError("Source directory has no compatible files."),
+            "Please check the source directory and try again."
         )
     
     def capacity_error(self) -> None:
-        return self.display_error(
-            str(OSError("Not enough space on disk.")),
-            "Please free up some space and try again.",
+        return self._display_error(
+            OSError("Not enough space on disk."),
+            "Please free up some space and try again."
+        )
+    
+    def file_error(self) -> None:
+        return self._display_error(
+            FileNotFoundError("File does not exist."),
+            "Please check the file path and try again."
+        )
+    
+    def file_type_error(self) -> None:
+        return self._display_error(
+            TypeError("File type is not supported."),
+            "Please check the file type and try again."
+        )
+    
+    def directory_error(self) -> None:
+        return self._display_error(
+            FileNotFoundError("Directory does not exist."),
+            "Please check the directory path and try again."
         )
     
     def all_tasks_done(self) -> None:
