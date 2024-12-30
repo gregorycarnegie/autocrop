@@ -192,6 +192,10 @@ class VideoCropper(Cropper):
         # Check if there is enough space on disk to process the files.
         if job.available_space == 0 or job.available_space < size:
             return self.capacity_error()
+        
+        if self.MEM_FACTOR < 1:
+            return self.memory_error()
+        
         x = 1 + end_frame - start_frame
         self.progress.emit(0, x)
         self.started.emit()
@@ -201,6 +205,6 @@ class VideoCropper(Cropper):
                 break
             self.frame_extraction(video, frame_number, job,
                                   lambda: self._update_progress(x))
-            if self.bar_value == x or self.end_task:
-                self.message_box = False
+            if self.progress_count == x or self.end_task:
+                self.show_message_box = False
         video.release()

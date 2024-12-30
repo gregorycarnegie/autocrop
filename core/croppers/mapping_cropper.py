@@ -46,8 +46,8 @@ class MappingCropper(Cropper):
                 ut.crop(old_path, job, face_detection_tools, new_path)
             self._update_progress(file_amount)
 
-        if self.bar_value == file_amount or self.end_task:
-            self.message_box = False
+        if self.progress_count == file_amount or self.end_task:
+            self.show_message_box = False
 
     def crop(self, job: Job) -> None:
         """
@@ -75,14 +75,18 @@ class MappingCropper(Cropper):
         # Check if there is enough space on disk to process the files.
         if job.available_space == 0 or job.available_space < total_size:
             return self.capacity_error()
+        
+        if self.MEM_FACTOR < 1:
+            return self.memory_error()
+        
         # Get the extensions of the file names and
         # Create a mask that indicates which files have supported extensions.
         mask, amount = ut.mask_extensions(file_tuple[0])
         # Split the file lists and the mapping data into chunks.
         old_file_list, new_file_list = ut.split_by_cpus(mask, self.THREAD_NUMBER, file_tuple[0], file_tuple[1])
 
-        self.bar_value = 0
-        self.progress.emit(self.bar_value, amount)
+        self.progress_count = 0
+        self.progress.emit(self.progress_count, amount)
         self.started.emit()
 
         self.executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)

@@ -40,8 +40,8 @@ class FolderCropper(Cropper):
             ut.crop(image, job, face_detection_tools)
             self._update_progress(file_amount)
 
-        if self.bar_value == file_amount or self.end_task:
-            self.message_box = False
+        if self.progress_count == file_amount or self.end_task:
+            self.show_message_box = False
 
     def crop(self, job: Job) -> None:
         """
@@ -75,11 +75,15 @@ class FolderCropper(Cropper):
         # Check if there is enough space on disk to process the files.
         if job.available_space == 0 or job.available_space < total_size:
             return self.capacity_error()
+        
+        if self.MEM_FACTOR < 1:
+            return self.memory_error()
+        
         # Split the file list into chunks.
         split_array = np.array_split(file_list, self.THREAD_NUMBER)
 
-        self.bar_value = 0
-        self.progress.emit(self.bar_value, amount)
+        self.progress_count = 0
+        self.progress.emit(self.progress_count, amount)
         self.started.emit()
 
         self.executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)

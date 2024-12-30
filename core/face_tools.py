@@ -1,13 +1,14 @@
 import collections.abc as c
 from concurrent.futures import ThreadPoolExecutor
-from multiprocessing import cpu_count
+import psutil
 
 import dlib
 
 from .operation_types import FaceToolPair
 from .resource_path import ResourcePath
 
-THREAD_NUMBER = min(cpu_count(), 8)
+THREAD_NUMBER = min(psutil.cpu_count(), psutil.virtual_memory().total // (2 * 1024 ** 3) // 2000, 8)
+
 LANDMARKS = ResourcePath('resources\\models\\shape_predictor_68_face_landmarks.dat').meipass_path
 
 
