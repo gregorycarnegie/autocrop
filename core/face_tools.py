@@ -7,7 +7,7 @@ import dlib
 from .operation_types import FaceToolPair
 from .resource_path import ResourcePath
 
-THREAD_NUMBER = min(psutil.cpu_count(), psutil.virtual_memory().total // (2 * 1024 ** 3) // 2000, 8)
+THREAD_NUMBER = min(psutil.cpu_count(), psutil.virtual_memory().total // (2 * 1024 ** 3), 8)
 
 LANDMARKS = ResourcePath('resources\\models\\shape_predictor_68_face_landmarks.dat').meipass_path
 
@@ -50,5 +50,5 @@ def generate_face_detection_tools() -> c.Iterator[FaceToolPair]:
         List[Tuple[dlib.fhog_object_detector, dlib.shape_predictor]]:
             A list of face detection and shape prediction tools.
     """
-
+    
     return (_create_tool_pair() for _ in range(THREAD_NUMBER))
