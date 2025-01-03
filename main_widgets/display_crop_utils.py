@@ -1,9 +1,9 @@
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 import cv2
 import cv2.typing as cvt
-from PIL import Image
+from PIL import Image, ImageQt
 from PyQt6.QtGui import QImage
 from cachetools import cached, TTLCache
 
@@ -15,6 +15,7 @@ from file_types import Photo
 
 RadioButtonTuple = tuple[bool, bool, bool, bool, bool, bool]
 WidgetState = tuple[str, str, str, bool, bool, bool, int, int, int, int, int, int, int, RadioButtonTuple]
+QImageLike = Union[QImage, ImageQt.ImageQt]
 
 cache = TTLCache(maxsize=128, ttl=60)  # Entries expire after 60 seconds
 
@@ -32,25 +33,21 @@ def path_iterator(path: Path) -> Optional[Path]:
     )
 
 # Define helper functions within the scope
-def matlike_to_qimage(image: cvt.MatLike) -> QImage:
-    height, width, channel = image.shape
-    bytes_per_line = channel * width
-    return QImage(
-        image.data.tobytes(),
-        width,
-        height,
-        bytes_per_line,
-        QImage.Format.Format_BGR888
-    )
+def matlike_to_qimage(image: cvt.MatLike) -> QImageLike:
+    """
+    Convert a BGR NumPy array (shape = [height, width, channels])
+    to a QImage using QImage.Format_BGR888.
+    """
+    
+    return QImage() if image is None else Image.fromarray(image).toqimage()
 
 def crop_to_qimage(input_image: cvt.MatLike,
                    bounding_box: Box,
-                   gamma_value: int) -> QImage:
+                   gamma_value: int) -> QImageLike:
     try:
         cropped_image = ut.numpy_array_crop(input_image, bounding_box)
         adjusted_image = ut.adjust_gamma(cropped_image, gamma_value)
-        final_image = ut.convert_color_space(adjusted_image)
-        return matlike_to_qimage(final_image)
+        return matlike_to_qimage(adjusted_image)
     except (cv2.error, Image.DecompressionBombError):
         return QImage()
 
@@ -58,7 +55,7 @@ def crop_to_qimage(input_image: cvt.MatLike,
 def perform_crop_helper(function_type: FunctionType,
                         widget_state: WidgetState,
                         img_path_str: str,
-                        face_detection_tools: FaceToolPair) -> Optional[QImage]:
+                        face_detection_tools: FaceToolPair) -> Optional[QImageLike]:
     # Unpack and validate widget state
     if not validate_widget_state(widget_state):
         return None
@@ -109,10 +106,11 @@ def create_job(widget_state: WidgetState, img_path_str: str, function_type: Func
     )
 
 
-def handle_face_detection(pic_array: cvt.MatLike, job: Job) -> Optional[QImage]:
+def handle_face_detection(pic_array: cvt.MatLike, job: Job) -> Optional[QImageLike]:
     if job.multi_face_job:
         pic = ut.multi_box(pic_array, job)
-        return matlike_to_qimage(pic)
+        final_image = ut.convert_color_space(pic)
+        return matlike_to_qimage(final_image)
     else:
         bounding_box = ut.box_detect(pic_array, job)
         return crop_to_qimage(pic_array, bounding_box, job.gamma) if bounding_box else None

@@ -7,14 +7,13 @@ from PyQt6.QtGui import QImage
 
 from core.croppers.cropper import Cropper
 from core.enums import FunctionType
-from core.job import Job
 from core.operation_types import FaceToolPair
 from .ui_crop_folder_widget import UiFolderTabWidget
 from .ui_crop_map_widget import UiMappingTabWidget
 from .ui_crop_photo_widget import UiPhotoTabWidget
 from .ui_crop_vid_widget import UiVideoTabWidget
 from .ui_crop_widget import UiCropWidget
-from .display_crop_utils import WidgetState, perform_crop_helper
+from .display_crop_utils import WidgetState, perform_crop_helper, QImageLike
 
 
 class WidgetData(TypedDict):
@@ -22,7 +21,7 @@ class WidgetData(TypedDict):
     crop_method: c.Callable[[], None]
 
 class DisplayCropper(Cropper):
-    image_changed = pyqtSignal(FunctionType, QImage)
+    image_changed = pyqtSignal(FunctionType, object)
 
     def __init__(self, face_detection_tools: FaceToolPair, *,
                  p_widget: UiPhotoTabWidget,
@@ -42,15 +41,13 @@ class DisplayCropper(Cropper):
 
         # Connect signals for each widget
         for data in self.widgets.values():
-            widget = data['widget']
-            crop_method = data['crop_method']
-            self.connect_signals(widget, crop_method)
+            self.connect_signals(data['widget'], data['crop_method'])
 
         # Connect the image_changed signal to the set_image method
         self.image_changed.connect(self.set_image)
 
     @staticmethod
-    def connect_signals(widget: UiCropWidget, crop_method):
+    def connect_signals(widget: UiCropWidget, crop_method: c.Callable[[], None]):
         # List of the signals to connect
         signals = [
             widget.inputLineEdit.textChanged,
@@ -70,30 +67,6 @@ class DisplayCropper(Cropper):
         # Connect all signals to the crop method
         for signal in signals:
             signal.connect(crop_method)
-
-    def create_job(self, function_type: FunctionType) -> Optional[Job]:
-        data: dict = self.widgets.get(function_type)
-        if not data:
-            return None
-        widget: UiCropWidget = data['widget']
-        control = widget.controlWidget
-        return Job(
-            control.widthLineEdit.value(),
-            control.heightLineEdit.value(),
-            widget.exposureCheckBox.isChecked(),
-            widget.mfaceCheckBox.isChecked(),
-            widget.tiltCheckBox.isChecked(),
-            control.sensitivityDial.value(),
-            control.fpctDial.value(),
-            control.gammaDial.value(),
-            control.topDial.value(),
-            control.bottomDial.value(),
-            control.leftDial.value(),
-            control.rightDial.value(),
-            control.radio_tuple,
-            photo_path=widget.inputLineEdit.text() if function_type == FunctionType.PHOTO else None,
-            folder_path=widget.inputLineEdit.text() if function_type != FunctionType.PHOTO else None,
-        )
 
     def _get_widget_state(self, function_type: FunctionType) -> WidgetState:
         data = self.widgets[function_type]
@@ -120,15 +93,13 @@ class DisplayCropper(Cropper):
     def crop(self, function_type: FunctionType) -> None:
         widget_state = self._get_widget_state(function_type)
         img_path_str = self.widgets[function_type]['widget'].inputLineEdit.text()
-
-        image = self._perform_crop_cached(
+        
+        if image := self._perform_crop_cached(
             function_type,
             widget_state,
             img_path_str,
             self.face_detection_tools
-        )
-
-        if image is not None:
+        ):
             self.image_changed.emit(function_type, image)
 
     @staticmethod
@@ -138,7 +109,7 @@ class DisplayCropper(Cropper):
         widget_state: WidgetState,
         img_path_str: str,
         face_detection_tools: FaceToolPair
-    ) -> Optional[QImage]:
+    ) -> Optional[QImageLike]:
         # Call the helper function
         return perform_crop_helper(function_type, widget_state, img_path_str, face_detection_tools)
 

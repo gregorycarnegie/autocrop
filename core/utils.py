@@ -20,13 +20,11 @@ from PIL import Image
 
 from file_types import Photo
 from .job import Job
+from .face_tools import CAFFE_MODEL, PROTO_TXT, L_EYE_START, L_EYE_END, R_EYE_START, R_EYE_END
 from .operation_types import Box, FaceToolPair, ImageArray, SaveFunction
-from .resource_path import ResourcePath
 
 # Define constants
 GAMMA_THRESHOLD = .001
-L_EYE_START, L_EYE_END = 42, 48
-R_EYE_START, R_EYE_END = 36, 42
 
 CropFunction = c.Callable[
     [Union[cvt.MatLike, Path], Job, tuple[Any, Any]],
@@ -265,10 +263,8 @@ def prepare_detections(input_image: cvt.MatLike) -> npt.NDArray[np.float64]:
     blob = cv2.dnn.blobFromImage(
         input_image, 1.0, (300, 300), (104.0, 177.0, 123.0), False, False
     )
-    proto_txt = ResourcePath('resources\\weights\\deploy.prototxt.txt').meipass_path
-    caffe_model = ResourcePath('resources\\models\\res10_300x300_ssd_iter_140000.caffemodel').meipass_path
     
-    net = cv2.dnn.readNetFromCaffe(proto_txt, caffe_model)
+    net = cv2.dnn.readNetFromCaffe(PROTO_TXT, CAFFE_MODEL)
     net.setInput(blob)
     # Forward pass through the network to get detections
     return np.array(net.forward())
