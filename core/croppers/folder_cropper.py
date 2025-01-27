@@ -1,5 +1,4 @@
 import collections.abc as c
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 import numpy as np
@@ -8,13 +7,12 @@ import numpy.typing as npt
 from core import utils as ut
 from core.job import Job
 from core.operation_types import FaceToolPair
-from .cropper import Cropper
+from .batch_cropper import BatchCropper
 
 
-class FolderCropper(Cropper):
+class FolderCropper(BatchCropper):
     def __init__(self, face_detection_tools: c.Iterator[FaceToolPair]):
-        super().__init__()
-        self.face_detection_tools = list(face_detection_tools)
+        super().__init__(face_detection_tools)
 
     def worker(self, file_amount: int,
                file_list: npt.NDArray[Any],
@@ -54,7 +52,6 @@ class FolderCropper(Cropper):
         Returns:
             None
         """
-
         if not (file_tuple := job.file_list()):
             return
 
@@ -82,16 +79,9 @@ class FolderCropper(Cropper):
         # Split the file list into chunks.
         split_array = np.array_split(file_list, self.THREAD_NUMBER)
 
-        self.progress_count = 0
-        self.progress.emit(self.progress_count, amount)
-        self.started.emit()
+        self.emit_progress(amount)
 
-        self.executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)
-        self.futures = [
-            self.executor.submit(self.worker, amount, chunk, job, tool_pair)
-            for chunk, tool_pair in zip(split_array, self.face_detection_tools)
-        ]
+        self.set_futures(self.worker, amount, job, split_array)
 
         # Attach a done callback to handle worker completion
-        for future in self.futures:
-            future.add_done_callback(self.worker_done_callback)
+        self.complete_futures()
