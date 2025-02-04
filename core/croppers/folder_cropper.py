@@ -1,8 +1,6 @@
 import collections.abc as c
-from typing import Any
-
-import numpy as np
-import numpy.typing as npt
+from itertools import batched
+from pathlib import Path
 
 from core import utils as ut
 from core.job import Job
@@ -15,7 +13,7 @@ class FolderCropper(BatchCropper):
         super().__init__(face_detection_tools)
 
     def worker(self, file_amount: int,
-               file_list: npt.NDArray[Any],
+               file_list: tuple[Path],
                job: Job,
                face_detection_tools: FaceToolPair) -> None:
         """
@@ -52,7 +50,7 @@ class FolderCropper(BatchCropper):
         Returns:
             None
         """
-        if not (file_tuple := job.file_list()):
+        if not (file_tuple := job.path_iter()):
             return
 
         if not job.destination:
@@ -77,7 +75,7 @@ class FolderCropper(BatchCropper):
             return self.memory_error()
         
         # Split the file list into chunks.
-        split_array = np.array_split(file_list, self.THREAD_NUMBER)
+        split_array = batched(file_list, amount // self.THREAD_NUMBER + 1)
 
         self.emit_progress(amount)
 

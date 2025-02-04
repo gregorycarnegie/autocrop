@@ -1,6 +1,7 @@
 import collections.abc as c
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional
+from itertools import batched
+from typing import Optional, Union
 
 from core.job import Job
 from core.operation_types import FaceToolPair
@@ -20,7 +21,7 @@ class BatchCropper(Cropper):
     def set_futures(self, worker: c.Callable[..., None],
                     amount: int,
                     job: Job,
-                    list_1: list,
+                    list_1: Union[batched, list],
                     list_2: Optional[list] = None):
         self.executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)
 

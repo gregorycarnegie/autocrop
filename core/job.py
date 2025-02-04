@@ -1,5 +1,6 @@
 import os
 import shutil
+from collections.abc import Generator
 from pathlib import Path
 from typing import NamedTuple, Optional
 
@@ -12,7 +13,6 @@ from file_types import Photo
 
 StringArrayTuple = tuple[npt.NDArray[np.str_], npt.NDArray[np.str_]]
 RadioButtonTuple = tuple[bool, bool, bool, bool, bool, bool]
-
 
 class Job(NamedTuple):
     """
@@ -125,7 +125,7 @@ Column 1: {self.column1}
 Column 2: {self.column2}
 """
 
-    def file_list(self) -> Optional[tuple[list[Path], int]]:
+    def path_iter(self) -> Optional[tuple[Generator[Path, None, None], int]]:
         """
         Retrieves a list of files from `folder_path` whose suffix is in `Photo.file_types`.
         Returns a tuple of (list_of_files, list_length). If `folder_path` is None, returns None.
@@ -143,13 +143,12 @@ Column 2: {self.column2}
         if self.folder_path is None:
             return None
         
-        valid_files = [
-            i
-            for i in self.folder_path.iterdir()
-            if i.suffix.lower() in Photo.file_types
-        ]
+        def valid_files() -> Generator[Path, None, None]:
+            for i in self.folder_path.iterdir():
+                if i.suffix.lower() in Photo.file_types:
+                    yield i
         
-        return valid_files, len(valid_files)
+        return valid_files(), sum(1 for _ in valid_files())
 
     def radio_tuple(self) -> tuple[np.str_, ...]:
         """
