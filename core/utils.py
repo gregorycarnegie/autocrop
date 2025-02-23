@@ -93,9 +93,9 @@ def correct_exposure(input_image: ImageArray,
 
     if not exposure:
         return input_image
-    gray = cv2.cvtColor(input_image, cv2.COLOR_BGR2GRAY) if len(input_image.shape) > 2 else input_image
+    gray = cv2.cvtColor(input_image, cv2.COLOR_BGR2GRAY) if input_image.ndim > 2 else input_image
     # Grayscale histogram
-    hist, _ = np.histogram(gray.ravel(), bins=256, range=(0, 256))
+    hist = cv2.calcHist([gray], [0], None, [256], [0, 256]).flatten()
     # Calculate alpha and beta
     alpha, beta = rs.calc_alpha_beta(hist)
     return cv2.convertScaleAbs(src=input_image, alpha=alpha, beta=beta)
@@ -141,8 +141,7 @@ def mean_axis0(arr: npt.NDArray[np.int_]) -> npt.NDArray[np.float64]:
     """
     Computes the mean of a 2D array along axis 0, returning a 1D array.
     """
-
-    return np.array([arr[:, i].sum() / arr.shape[0] for i in range(arr.shape[1])])
+    return np.sum(arr, axis=0) / arr.shape[0]
 
 
 @numba.njit
@@ -255,19 +254,17 @@ def open_pic(input_file: Union[Path, str],
     return None
 
 
-def prepare_detections(input_image: cvt.MatLike) -> npt.NDArray[np.float64]:
+def prepare_detections(input_image: cvt.MatLike) -> cvt.MatLike:
     """
     Creates a blob from the image and runs it through a pretrained Caffe model for face detection.
     """
-
     blob = cv2.dnn.blobFromImage(
         input_image, 1.0, (300, 300), (104.0, 177.0, 123.0), False, False
     )
     
     net = cv2.dnn.readNetFromCaffe(PROTO_TXT, CAFFE_MODEL)
     net.setInput(blob)
-    # Forward pass through the network to get detections
-    return np.array(net.forward())
+    return net.forward()
 
 
 def rs_crop_positions(box_outputs: npt.NDArray[np.int_],
@@ -282,17 +279,19 @@ def rs_crop_positions(box_outputs: npt.NDArray[np.int_],
 
 
 def get_box_coordinates(output: Union[cvt.MatLike, npt.NDArray[np.generic]],
-                        job: Job,
-                        *,
-                        width: int,
-                        height: int,
-                        x: Optional[npt.NDArray[np.generic]] = None) -> Box:
+                       job: Job,
+                       *,
+                       width: int,
+                       height: int,
+                       x: Optional[npt.NDArray[np.generic]] = None) -> Box:
     """
-    Converts detection coordinates to actual box positions, optionally using a max-confidence index.
+    Vectorized version of box coordinate calculation.
     """
-
-    box_outputs = output * np.array([width, height, width, height])
-    _box = box_outputs.astype(np.int_) if x is None else box_outputs[np.argmax(x)]
+    scale = np.array([width, height, width, height])
+    box_outputs = output * scale
+    
+    _box = box_outputs.astype(np.int_) if x is None else box_outputs[x.argmax()]
+    
     return rs_crop_positions(_box, job)
 
 
@@ -398,7 +397,7 @@ def box_detect(input_image: cvt.MatLike,
         # get width and height of the image
         height, width = input_image.shape[:2]
     except AttributeError:
-        return
+        return None
     return box(input_image, job, width=width, height=height)
 
 

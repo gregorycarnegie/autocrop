@@ -49,7 +49,7 @@ class DisplayCropper(Cropper):
     @staticmethod
     def connect_signals(widget: UiCropWidget, crop_method: c.Callable[[], None]):
         # List of the signals to connect
-        signals = [
+        signals = (
             widget.inputLineEdit.textChanged,
             widget.controlWidget.widthLineEdit.textChanged,
             widget.controlWidget.heightLineEdit.textChanged,
@@ -63,7 +63,7 @@ class DisplayCropper(Cropper):
             widget.controlWidget.bottomDial.valueChanged,
             widget.controlWidget.leftDial.valueChanged,
             widget.controlWidget.rightDial.valueChanged,
-        ]
+        )
         # Connect all signals to the crop method
         for signal in signals:
             signal.connect(crop_method)

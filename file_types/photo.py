@@ -1,13 +1,9 @@
-import collections.abc as c
 from typing import ClassVar
 
-import numpy as np
-import numpy.typing as npt
-
-from .file import File
+from .file import FileType
 
 
-class Photo(File):
+class Photo(FileType):
     """
     Represents a Photo class that inherits from the File class.
 
@@ -15,9 +11,9 @@ class Photo(File):
 
     Attributes:
         SAVE_TYPES (ClassVar[Set[str]]): A set of file extensions for save types.
-        CV2_TYPES (ClassVar[npt.NDArray[np.str_]]): An array of file extensions for CV2 types.
-        RAW_TYPES (ClassVar[npt.NDArray[np.str_]]): An array of file extensions for RAW types.
-        file_types (npt.NDArray[np.str_]): An array of file types supported by the class.
+        CV2_TYPES (ClassVar[Set[str]]): A set of file extensions for CV2 types.
+        RAW_TYPES (ClassVar[Set[str]]): A set of file extensions for RAW types.
+        file_types (ClassVar[Set[str]]): A set of file types supported by the class.
         default_directory (str): The default directory for file operations.
 
     Methods:
@@ -35,12 +31,13 @@ class Photo(File):
         ```
     """
 
-    SAVE_TYPES: ClassVar[c.Set[str]] = {'.bmp', '.jpg', '.png', '.tiff', '.webp'}
-    CV2_TYPES: ClassVar[npt.NDArray[np.str_]] = np.array(['.bmp', '.dib', '.jpeg', '.jpg', '.jpe', '.jp2', '.png',
-                                                          '.webp', '.pbm', '.pgm', '.ppm', '.pxm', '.pnm', '.pfm',
-                                                          '.sr', '.ras', '.tiff', '.tif', '.exr', '.hdr', '.pic'])
-    RAW_TYPES: ClassVar[npt.NDArray[np.str_]] = np.array(['.dng', '.arw', '.cr2', '.crw', '.erf',
-                                                          '.kdc', '.nef', '.nrw', '.orf', '.pef',
-                                                          '.raf', '.raw', '.sr2', '.srw', '.x3f'])
-    TIFF_TYPES: ClassVar[c.Set[str]] = {'.tiff', '.tif'}
-    file_types = np.concatenate((CV2_TYPES, RAW_TYPES))
+    SAVE_TYPES: ClassVar[set[str]] = {'.bmp', '.jpg', '.png', '.tiff', '.webp'}
+    CV2_TYPES: ClassVar[set[str]] = {'.bmp', '.dib', '.jpeg', '.jpg', '.jpe',
+                                     '.jp2', '.png', '.webp', '.pbm', '.pgm',
+                                     '.ppm', '.pxm', '.pnm', '.pfm', '.sr',
+                                     '.ras', '.tiff', '.tif', '.exr', '.hdr', '.pic'}
+    RAW_TYPES: ClassVar[set[str]] = {'.dng', '.arw', '.cr2', '.crw', '.erf',
+                                     '.kdc', '.nef', '.nrw', '.orf', '.pef',
+                                     '.raf', '.raw', '.sr2', '.srw', '.x3f'}
+    TIFF_TYPES: ClassVar[set[str]] = {'.tiff', '.tif'}
+    file_types: ClassVar[set[str]] = CV2_TYPES | RAW_TYPES  # Union of sets

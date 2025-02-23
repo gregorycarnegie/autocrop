@@ -1,11 +1,10 @@
+from typing import ClassVar
 from pathlib import Path
 
-import numpy as np
-
-from .file import File
+from .file import FileType
 
 
-class Video(File):
+class Video(FileType):
     """
     Represents a Video class that inherits from the File class.
 
@@ -34,5 +33,5 @@ class Video(File):
         ```
     """
 
-    default_directory = Path.home().joinpath('Videos').as_posix()
-    file_types = np.array(['.avi', '.m4v', '.mkv', '.mov', '.mp4'])
+    default_directory: str = Path.home().joinpath('Videos').as_posix()
+    file_types: ClassVar[set[str]] = {'.avi', '.m4v', '.mkv', '.mov', '.mp4'}

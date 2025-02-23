@@ -1,11 +1,10 @@
 from pathlib import Path
-from typing import ClassVar, Optional
+from typing import ClassVar, Optional, Set
 
 import numpy as np
 import numpy.typing as npt
 
-
-class File:
+class FileType:
     """
     Represents a File class.
 
@@ -34,7 +33,7 @@ class File:
         ```
     """
 
-    file_types: ClassVar[npt.NDArray[np.str_]] = np.array([''])
+    file_types: ClassVar[Set[str]] = set()
     default_directory: ClassVar[str] = Path.home().joinpath('Pictures').as_posix()
 
     @classmethod
@@ -71,6 +70,6 @@ class File:
             ```
         """
 
-        if not cls.file_types[0]:
-            return
-        return 'All Files (*);;' + ';;'.join(f'{_} Files (*{_})' for _ in np.sort(cls.file_types))
+        if not cls.file_types:
+            return None
+        return 'All Files (*);;' + ';;'.join(f'{_} Files (*{_})' for _ in sorted(cls.file_types))

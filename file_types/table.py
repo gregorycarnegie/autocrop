@@ -1,16 +1,16 @@
-import numpy as np
+from typing import ClassVar
 
-from .file import File
+from .file import FileType
 
 
-class Table(File):
+class Table(FileType):
     """
     Represents a Table class that inherits from the File class.
 
     The Table class provides functionality for working with table files. It defines the `file_types` attribute as an array of supported file types.
 
     Attributes:
-        file_types (npt.NDArray[np.str_]): An array of file types supported by the class.
+        file_types (Set[str]): A set of file types supported by the class.
 
     Methods:
         file_filter(): Returns an array of file filters based on the file types.
@@ -27,4 +27,4 @@ class Table(File):
         ```
     """
 
-    file_types = np.array(['.csv', '.xlsx', '.xlsm', '.xltx', '.xltm'])
+    file_types: ClassVar[set[str]] = {'.csv', '.xlsx', '.xlsm', '.xltx', '.xltm'}

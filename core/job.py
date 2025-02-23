@@ -128,27 +128,14 @@ Column 2: {self.column2}
     def path_iter(self) -> Optional[tuple[Generator[Path, None, None], int]]:
         """
         Retrieves a list of files from `folder_path` whose suffix is in `Photo.file_types`.
-        Returns a tuple of (list_of_files, list_length). If `folder_path` is None, returns None.
-
-        Example:
-            ```python
-            job = Job(folder_path=Path('/path/to/folder'))
-            files_and_count = job.file_list()
-            if files_and_count:
-                file_list, length = files_and_count
-                print(file_list, length)
-            ```
+        Returns a tuple of (iterator_of_files, count). If `folder_path` is None, returns None.
         """
-
         if self.folder_path is None:
             return None
         
-        def valid_files() -> Generator[Path, None, None]:
-            for i in self.folder_path.iterdir():
-                if i.suffix.lower() in Photo.file_types:
-                    yield i
-        
-        return valid_files(), sum(1 for _ in valid_files())
+        # Create a list of valid files once instead of iterating twice
+        valid_files = [i for i in self.folder_path.iterdir() if i.suffix.lower() in Photo.file_types]
+        return iter(valid_files), len(valid_files)
 
     def radio_tuple(self) -> tuple[np.str_, ...]:
         """
