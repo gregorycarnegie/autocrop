@@ -1,10 +1,12 @@
 import collections.abc as c
 import re
 from pathlib import Path
-from typing import Any
+from typing import Optional
 
 import cv2
 import cv2.typing as cvt
+import ffmpeg
+import numpy as np
 from PyQt6.QtWidgets import QLabel, QSlider
 
 from core import utils as ut
@@ -17,6 +19,55 @@ class VideoCropper(Cropper):
     def __init__(self, face_detection_tools: c.Iterator[FaceToolPair]):
         super().__init__()
         self.face_detection_tools = next(face_detection_tools)
+
+    def ffmpeg_error(self, error: BaseException) -> None:
+        """
+        Raises a permission error if the destination directory is not writable.
+        """
+        return self._display_error(
+            error,
+            "Please check the video file and try again."
+        )
+
+    def grab_frame(self, position_slider: int, video_line_edit: str) -> Optional[cvt.MatLike]:
+        """
+        Grabs and returns a frame at the given millisecond position from a video file using FFmpeg.
+
+        Args:
+            position_slider (int): The time position (in milliseconds) to extract the frame.
+            video_line_edit (str): The path to the video file.
+
+        Returns:
+            Optional[np.ndarray]: Extracted frame as a NumPy array in RGB format, or None if extraction fails.
+        """
+
+        try:
+            # Convert milliseconds to seconds
+            timestamp_seconds = position_slider / 1000.0
+
+            # Probe video metadata to get width and height
+            probe = ffmpeg.probe(video_line_edit)
+            video_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'video'), None)
+
+            if not video_stream:
+                self.file_error()
+                return None
+
+            width, height = int(video_stream['width']), int(video_stream['height'])
+
+            # Extract frame at the given timestamp
+            out, _ = (
+                ffmpeg.input(video_line_edit, ss=timestamp_seconds)
+                .output('pipe:', format='rawvideo', pix_fmt='rgb24', vframes=1)
+                .run(capture_stdout=True, quiet=True)
+            )
+
+            # Convert raw byte output to a NumPy array and reshape to image dimensions
+            return np.frombuffer(out, np.uint8).reshape((height, width, 3))
+
+        except ffmpeg.Error as e:
+            self.ffmpeg_error(e)
+            return None
 
     def crop_frame(self, job: Job, position_label: QLabel, timeline_slider: QSlider) -> None:
         """
@@ -36,8 +87,8 @@ class VideoCropper(Cropper):
         if not job.video_path or not job.destination:
             return
 
-        if (frame := ut.grab_frame(timeline_slider.value(), job.video_path.as_posix())) is None:
-            return
+        if (frame := self.grab_frame(timeline_slider.value(), job.video_path.as_posix())) is None:
+            return None
 
         destination = job.destination
         # base_name = job.video_path.stem
@@ -55,12 +106,12 @@ class VideoCropper(Cropper):
         # Handle multi-face job
         if job.multi_face_job:
             if (images := ut.multi_crop(frame, job, self.face_detection_tools)) is None:
-                return
+                return None
 
             for i, image in enumerate(images):
                 new_file_path = file_path.with_stem(f'{file_path.stem}_{i}')
                 ut.save_image(image, new_file_path, job.gamma, is_tiff)
-            return
+            return None
 
         cropped_image = ut.crop_image(frame, job, self.face_detection_tools)
         if cropped_image is not None:
@@ -115,96 +166,102 @@ class VideoCropper(Cropper):
         else:
             ut.frame_save(cv2.cvtColor(cropped_image, cv2.COLOR_BGR2RGB), file_enum, destination, job)
 
-    def frame_extraction(self, video: cv2.VideoCapture,
-                         frame_number: int,
-                         job: Job,
-                         progress_callback: c.Callable[..., Any]) -> None:
-        """
-        Performs frame extraction from a video based on the specified frame number and job parameters.
-
-        Args:
-            self: The Cropper instance.
-            video (cv2.VideoCapture): The video capture object.
-            frame_number (int): The frame number to extract.
-            job (Job): The job containing the video path and other parameters.
-            progress_callback (Callable[..., Any]): A callback function to update the progress.
-
-        Returns:
-            None
-        """
-
-        # Check if video_path is set in the job
-        if job.video_path is None:
-            return
-
-        # Set the video capture object to the specified frame number and read the frame
-        video.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
-        ret, frame = video.read()
-
-        # Return early if frame read is unsuccessful
-        if not ret:
-            return
-
-        # Get the destination, return early if not set
-        if (destination := job.get_destination()) is None:
-            return
-
-        # Determine the file name enumeration based on frame number
-        file_enum = f'{job.video_path.stem}_frame_{frame_number:06d}'
-
-        # Process the frame based on whether it's a multi-face job or single-face job
-        if job.multi_face_job:
-            self.process_multiface_frame_job(frame, job, file_enum, destination)
-        else:
-            self.process_singleface_frame_job(frame, job, file_enum, destination)
-
-        # Update progress
-        progress_callback()
-
     def extract_frames(self, job: Job) -> None:
         """
-        Extracts frames from a video based on the specified job parameters.
+        Extracts frames from a video using ffmpeg and saves them based on the job parameters.
 
         Args:
             self: The Cropper instance.
-            job (Job): The job containing the video path, start position, and stop position.
+            job (Job): The job containing video path, start position, and stop position.
 
         Returns:
             None
         """
 
         if job.video_path is None or job.start_position is None or job.stop_position is None:
-            return
+            return None
 
         if not job.destination:
-            return
+            return None
 
-        # Check if the destination directory is writable.
         if not job.destination_accessible:
             return self.access_error()
 
-        video = cv2.VideoCapture(job.video_path.as_posix())
-        fps = video.get(cv2.CAP_PROP_FPS)
-        start_frame, end_frame = int(job.start_position * fps), int(job.stop_position * fps)
+        # Get video metadata
+        try:
+            probe = ffmpeg.probe(job.video_path.as_posix())
+            video_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'video'), None)
+
+            if not video_stream:
+                self.file_error()
+                return None
+            
+            fps = eval(video_stream['r_frame_rate'])  # Convert "30/1" to int
+            width, height = int(video_stream['width']), int(video_stream['height'])
+
+        except ffmpeg.Error as e:
+            self.ffmpeg_error(e)
+            return None
+
+        start_frame = int(job.start_position * fps)
+        end_frame = int(job.stop_position * fps)
 
         size = job.byte_size * (end_frame - start_frame)
 
-        # Check if there is enough space on disk to process the files.
         if job.available_space == 0 or job.available_space < size:
             return self.capacity_error()
-        
+
         if self.MEM_FACTOR < 1:
             return self.memory_error()
-        
-        x = 1 + end_frame - start_frame
-        self.progress.emit(0, x)
+
+        total_frames = 1 + end_frame - start_frame
+        self.progress.emit(0, total_frames)
         self.started.emit()
 
         for frame_number in range(start_frame, end_frame + 1):
             if self.end_task:
                 break
-            self.frame_extraction(video, frame_number, job,
-                                  lambda: self._update_progress(x))
-            if self.progress_count == x or self.end_task:
+
+            frame = self.extract_frame_ffmpeg(job.video_path.as_posix(), frame_number, width, height)
+
+            if frame is not None:
+                file_enum = f"{job.video_path.stem}_frame_{frame_number:06d}"
+
+                if job.multi_face_job:
+                    self.process_multiface_frame_job(frame, job, file_enum, job.destination)
+                else:
+                    self.process_singleface_frame_job(frame, job, file_enum, job.destination)
+
+            self._update_progress(total_frames)
+
+            if self.progress_count == total_frames or self.end_task:
                 self.show_message_box = False
-        video.release()
+
+    def extract_frame_ffmpeg(self, video_path: str, frame_number: int, width: int, height: int) -> Optional[np.ndarray]:
+        """
+        Extracts a single frame from a video using ffmpeg.
+
+        Args:
+            video_path (str): Path to the video file.
+            frame_number (int): Frame number to extract.
+            width (int): Width of the video.
+            height (int): Height of the video.
+
+        Returns:
+            np.ndarray: Extracted frame as a NumPy array, or None if extraction fails.
+        """
+
+        try:
+            out, _ = (
+                ffmpeg.input(video_path, ss=frame_number / 30)  # Adjust if FPS is variable
+                .output('pipe:', format='rawvideo', pix_fmt='rgb24', vframes=1)
+                .run(capture_stdout=True, quiet=True)
+            )
+
+            result = np.frombuffer(out, np.uint8).reshape((height, width, 3))
+
+            return cv2.cvtColor(result, cv2.COLOR_BGR2RGB)
+
+        except ffmpeg.Error as e:
+            self.ffmpeg_error(e)
+            return None

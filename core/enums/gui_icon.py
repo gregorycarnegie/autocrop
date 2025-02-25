@@ -17,7 +17,7 @@ class GuiIcon(StrEnum):
     ICON = get_icon_path('logo', folder='logos', extention='.ico')
     LOGO = get_icon_path('logo', folder='logos')
     MULTIMEDIA_MUTE = get_icon_path('mute', mm=True)
-    MULTIMEDIA_PAUSE = get_icon_path('pause')
+    MULTIMEDIA_PAUSE = get_icon_path('pause', mm=True)
     MULTIMEDIA_PLAY = get_icon_path('play', mm=True)
     MULTIMEDIA_UNMUTE = get_icon_path('unmute', mm=True)
     MULTIMEDIA_STOP = get_icon_path('stop', mm=True)

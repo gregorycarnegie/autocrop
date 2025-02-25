@@ -32,10 +32,11 @@ class Photo(FileType):
     """
 
     SAVE_TYPES: ClassVar[set[str]] = {'.bmp', '.jpg', '.png', '.tiff', '.webp'}
-    CV2_TYPES: ClassVar[set[str]] = {'.bmp', '.dib', '.jpeg', '.jpg', '.jpe',
-                                     '.jp2', '.png', '.webp', '.pbm', '.pgm',
-                                     '.ppm', '.pxm', '.pnm', '.pfm', '.sr',
-                                     '.ras', '.tiff', '.tif', '.exr', '.hdr', '.pic'}
+    CV2_TYPES: ClassVar[set[str]] = {'.bmp', '.dib', '.jfif', '.jpeg', '.jpg',
+                                     '.jpe', '.jp2', '.png', '.webp', '.pbm',
+                                     '.pgm', '.ppm', '.pxm', '.pnm', '.pfm',
+                                     '.sr', '.ras', '.tiff', '.tif', '.exr',
+                                     '.hdr', '.pic'}
     RAW_TYPES: ClassVar[set[str]] = {'.dng', '.arw', '.cr2', '.crw', '.erf',
                                      '.kdc', '.nef', '.nrw', '.orf', '.pef',
                                      '.raf', '.raw', '.sr2', '.srw', '.x3f'}

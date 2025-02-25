@@ -326,7 +326,7 @@ class UiVideoTabWidget(UiCropBatchWidget):
         # self.player.playbackStateChanged.connect(lambda: self.change_playback_icons())
         self.player.positionChanged.connect(self.position_changed)
         self.player.durationChanged.connect(self.duration_changed)
-        self.player.errorOccurred.connect(lambda: self.player_error_occurred())
+        self.player.errorOccurred.connect(self.player_error_occurred) #??????
 
         # Connect crop worker
         self.connect_crop_worker()

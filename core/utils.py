@@ -218,11 +218,12 @@ def open_raw(input_image: Path,
     """
     Opens a RAW image using rawpy, applies basic post-processing, corrects exposure (optional), aligns head (optional).
     """
-
-    with rawpy.imread(input_image.as_posix()) as raw:
+    img_path = input_image.as_posix()
+    with rawpy.imread(img_path) as raw:
         if raw is None:
             return None
-        
+        bad_pixels = rawpy.enhance.find_bad_pixels(img_path)
+        rawpy.enhance.repair_bad_pixels(raw, bad_pixels, method='median')
         img = raw.postprocess(use_camera_wb=True)
         img = correct_exposure(img, exposure)
         return align_head(img, face_detection_tools, tilt)
@@ -638,19 +639,3 @@ def frame_save(cropped_image_data: cvt.MatLike,
 
     file_path, is_tiff = get_frame_path(destination, file_enum_str, job)
     save_image(cropped_image_data, file_path, job.gamma, is_tiff)
-
-
-def grab_frame(position_slider: int,
-               video_line_edit: str) -> Optional[cvt.MatLike]:
-    """
-    Grabs and returns a frame at the given millisecond position from a video file.
-    """
-
-    # Set video frame position to timelineSlider value
-    cap = cv2.VideoCapture(video_line_edit)
-    cap.set(cv2.CAP_PROP_POS_MSEC, position_slider)
-    # Read frame from video capture object
-    ret, frame = cap.read()
-    cap.release()
-
-    return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) if ret else None
