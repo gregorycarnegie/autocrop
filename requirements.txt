@@ -1,5 +1,6 @@
+cachetools>=5.5.2
 dlib>=19.24.6
-fastexcel>=0.12.1
+fastexcel>=0.13.0
 ffmpeg-python>=0.2.0
 maturin>=1.8.2
 numba>=0.61.0
@@ -12,4 +13,3 @@ PyQt6>=6.8.1
 qt-material>=2.14
 rawpy>=0.24.0
 tifffile>=2025.2.18
-cachetools>=5.5.1

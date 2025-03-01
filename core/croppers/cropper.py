@@ -129,13 +129,13 @@ class Cropper(QObject):
             "Please free up some space and try again."
         )
     
-    def file_error(self) -> None:
+    def file_error(self, message: str = "Please check the file path and try again.") -> None:
         """
         Raises a file-not-found error if a file does not exist.
         """
         return self._display_error(
             FileNotFoundError("File does not exist."),
-            "Please check the file path and try again."
+            message
         )
     
     def file_type_error(self) -> None:

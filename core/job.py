@@ -1,6 +1,6 @@
 import os
 import shutil
-from collections.abc import Generator
+from collections.abc import Iterator
 from pathlib import Path
 from typing import NamedTuple, Optional
 
@@ -125,7 +125,7 @@ Column 1: {self.column1}
 Column 2: {self.column2}
 """
 
-    def path_iter(self) -> Optional[tuple[Generator[Path, None, None], int]]:
+    def path_iter(self) -> Optional[tuple[Iterator[Path], int]]:
         """
         Retrieves a list of files from `folder_path` whose suffix is in `Photo.file_types`.
         Returns a tuple of (iterator_of_files, count). If `folder_path` is None, returns None.
@@ -270,7 +270,7 @@ Column 2: {self.column2}
         """
 
         if any(_ is None for _ in (self.table, self.column1, self.column2)):
-            return
+            return None
         return self._table_to_numpy(self.table, column_1=self.column1.currentText(),
                                     column_2=self.column2.currentText())
     

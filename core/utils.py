@@ -82,7 +82,7 @@ def numpy_array_crop(input_image: cvt.MatLike, bounding_box: Box) -> npt.NDArray
 
     # Load and crop image using PIL
     picture = Image.fromarray(input_image).crop(bounding_box)
-    return np.array(picture)
+    return np.array(picture, dtype=np.uint8)
 
 
 def correct_exposure(input_image: ImageArray,
@@ -132,8 +132,7 @@ def format_image(input_image: ImageArray) -> tuple[cvt.MatLike, float]:
     output_height = 256
     output_width, scaling_factor = get_dimensions(input_image, output_height)
     image_array = cv2.resize(input_image, (output_width, output_height), interpolation=cv2.INTER_AREA)
-    return cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY) if len(image_array.shape) >= 3 else image_array.astype(
-        np.int8), scaling_factor
+    return cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY) if len(image_array.shape) >= 3 else image_array, scaling_factor
 
 
 @numba.njit(parallel=True)
@@ -539,7 +538,7 @@ def save_detection(source_image: Path,
         radio_choice=job.radio_choice(),
         new=new
     )
-    
+
     save_function(cropped_images, file_path, job.gamma, is_tiff)
 
 

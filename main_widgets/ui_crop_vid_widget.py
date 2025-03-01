@@ -435,6 +435,13 @@ class UiVideoTabWidget(UiCropBatchWidget):
         if self.inputLineEdit.state is LineEditState.INVALID_INPUT:
             return
         self.player.setSource(QtCore.QUrl.fromLocalFile(file_name))
+        self.reset_video_widgets()
+
+    def open_dropped_video(self) -> None:
+        self.player.setSource(QtCore.QUrl.fromLocalFile(self.inputLineEdit.text()))
+        self.reset_video_widgets()
+
+    def reset_video_widgets(self):
         self.create_media_player()
         self.mediacontrolWidget_1.playButton.setEnabled(True)
         self.mediacontrolWidget_2.playButton.setEnabled(True)
@@ -492,9 +499,9 @@ class UiVideoTabWidget(UiCropBatchWidget):
         self.reverse = 0
         self.speed += 1
         if self.speed > video_speeds.size - 1:
-            self.player.setPlaybackRate(video_speeds[-1])
+            self.player.setPlaybackRate(float(video_speeds[-1]))
         else:
-            self.player.setPlaybackRate(video_speeds[self.speed])
+            self.player.setPlaybackRate(float(video_speeds[self.speed]))
 
     def step_forward(self):
         if (new_position := self.player.position() + 10_000) >= self.player.duration():

@@ -429,8 +429,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.video_tab_widget.mediacontrolWidget_1.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PLAY.value))
         self.video_tab_widget.mediacontrolWidget_2.playButton.setEnabled(True)
         self.video_tab_widget.mediacontrolWidget_2.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PLAY.value))
-        # self.video_tab_widget.player.setSource(QtCore.QUrl.fromLocalFile(self.video_tab_widget.inputLineEdit.text()))
-        self.video_tab_widget.open_video()
+        self.video_tab_widget.open_dropped_video()
 
     def handle_pandas_file(self, file_path: Path) -> None:
         """
