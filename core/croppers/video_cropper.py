@@ -53,7 +53,7 @@ class VideoCropper(Cropper):
                 self.file_error("Video Stream not found")
                 return None
             width, height = int(video_stream['width']), int(video_stream['height'])
-            ffmpeg_input(video_line_edit, timestamp_seconds, width, height)
+            return ffmpeg_input(video_line_edit, timestamp_seconds, width, height)
         except ffmpeg.Error as e:
             self.ffmpeg_error(e, "Unable to grab frame")
             return None
@@ -74,7 +74,7 @@ class VideoCropper(Cropper):
 
         # Early exits for conditions where no processing is required
         if not job.video_path or not job.destination:
-            return
+            return None
 
         if (frame := self.grab_frame(timeline_slider.value(), job.video_path.as_posix())) is None:
             return None
