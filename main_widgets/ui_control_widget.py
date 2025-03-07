@@ -1,4 +1,5 @@
 import re
+from functools import cache
 from typing import ClassVar, Optional
 
 from PyQt6 import QtCore, QtWidgets
@@ -7,6 +8,7 @@ from core import ResourcePath
 from core import window_functions as wf
 from line_edits import NumberLineEdit
 
+@cache
 def get_icon_path_tuple(icon_name: str) -> tuple[str, str]:
     def helper(string):
         return ResourcePath(f'resources/icons/file_{string}checked.svg').meipass_path

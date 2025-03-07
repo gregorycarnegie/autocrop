@@ -1,3 +1,4 @@
+from functools import cache
 from os import startfile
 from pathlib import Path
 from typing import Optional, Union
@@ -9,7 +10,6 @@ from line_edits import LineEditState, NumberLineEdit, PathLineEdit
 from .dialog import UiDialog
 from .enums import FunctionType, GuiIcon
 from .image_widget import ImageWidget
-from .resource_path import ResourcePath
 
 
 def setup_hbox(name: str, parent: Optional[QtWidgets.QWidget] = None) -> QtWidgets.QHBoxLayout:
@@ -151,6 +151,7 @@ def load_about_form() -> None:
     about_ui.exec()
 
 
+@cache
 def initialise_message_box(window_title: str) -> QtWidgets.QMessageBox:
     """
     Initializes a message box with the specified window title.
@@ -169,7 +170,7 @@ def initialise_message_box(window_title: str) -> QtWidgets.QMessageBox:
         message_box = initialise_message_box(title)
         ```
     """
-    path = ResourcePath('resources\\logos\\logo.ico').meipass_path
+    path = GuiIcon.ICON
     msg_box = QtWidgets.QMessageBox()
     msg_box.setWindowIcon(QtGui.QIcon(path))
     msg_box.setWindowTitle(window_title)
@@ -457,6 +458,7 @@ def create_marker_button(parent: QtWidgets.QWidget, size_policy: QtWidgets.QSize
     button.setMaximumSize(marker_button_size)
     return button
 
+@cache
 def get_qtime(position: int) -> QtCore.QTime:
     """
     Converts a given number of seconds into a QTime object.
@@ -468,5 +470,6 @@ def get_qtime(position: int) -> QtCore.QTime:
 def set_marker_time(button: QtWidgets.QPushButton, position: Union[int, float]) -> None:
     button.setText(get_qtime(position * 1000).toString())
 
+@cache
 def pos_from_marker(text: str) -> int:
     return sum(60 ** (2 - i) * int(x) for i, x in enumerate(text.split(':')))

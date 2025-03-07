@@ -12,7 +12,7 @@ class Video(FileType):
 
     Attributes:
         default_directory (str): The default directory for video operations.
-        file_types (npt.NDArray[np.str_]): An array of video file types supported by the class.
+        file_types (set[str]): An set of video file types supported by the class.
 
     Methods:
         file_filter(): Returns an array of file filters based on the file types.
@@ -33,5 +33,5 @@ class Video(FileType):
         ```
     """
 
-    default_directory: str = Path.home().joinpath('Videos').as_posix()
     file_types: ClassVar[set[str]] = {'.avi', '.m4v', '.mkv', '.mov', '.mp4'}
+    default_directory: ClassVar[str] = Path.home().joinpath('Videos').as_posix()

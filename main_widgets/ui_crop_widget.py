@@ -162,7 +162,6 @@ class UiCropWidget(QtWidgets.QWidget):
 
     @staticmethod
     def _create_unique_folder(base_path: Path, valid_extensions: c.Set[str]) -> Path:
-        print(f"base_path: {base_path}")
         if not base_path.exists():
             return base_path
         if all(file.suffix not in valid_extensions

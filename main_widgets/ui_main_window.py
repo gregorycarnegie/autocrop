@@ -159,13 +159,13 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.action4_5_Ratio.triggered.connect(lambda: self.load_preset(Preset.FOUR_FIFTHS))
         self.actionSquare.triggered.connect(lambda: self.load_preset(Preset.SQUARE))
         self.actionCrop_File.triggered.connect(
-            lambda: self.function_tabWidget.setCurrentIndex(FunctionType.PHOTO.value))
+            lambda: self.function_tabWidget.setCurrentIndex(FunctionType.PHOTO))
         self.actionCrop_Folder.triggered.connect(
-            lambda: self.function_tabWidget.setCurrentIndex(FunctionType.FOLDER.value))
+            lambda: self.function_tabWidget.setCurrentIndex(FunctionType.FOLDER))
         self.actionUse_Mapping.triggered.connect(
-            lambda: self.function_tabWidget.setCurrentIndex(FunctionType.MAPPING.value))
+            lambda: self.function_tabWidget.setCurrentIndex(FunctionType.MAPPING))
         self.actionCrop_Video.triggered.connect(
-            lambda: self.function_tabWidget.setCurrentIndex(FunctionType.VIDEO.value))
+            lambda: self.function_tabWidget.setCurrentIndex(FunctionType.VIDEO))
 
         self.function_tabWidget.currentChanged.connect(lambda: self.check_tab_selection())
         self.function_tabWidget.currentChanged.connect(lambda: self.video_tab_widget.player.pause())
@@ -419,16 +419,16 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
         self.handle_function_tab_state(self.video_tab_widget, self.folder_tab_widget, self.photo_tab_widget,
                                        self.mapping_tab_widget)
-        self.function_tabWidget.setCurrentIndex(FunctionType.VIDEO.value)
+        self.function_tabWidget.setCurrentIndex(FunctionType.VIDEO)
         try:
             assert isinstance(self.video_tab_widget, UiVideoTabWidget)
         except AssertionError:
             return
         self.video_tab_widget.inputLineEdit.setText(file_path.as_posix())
         self.video_tab_widget.mediacontrolWidget_1.playButton.setEnabled(True)
-        self.video_tab_widget.mediacontrolWidget_1.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PLAY.value))
+        self.video_tab_widget.mediacontrolWidget_1.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PLAY))
         self.video_tab_widget.mediacontrolWidget_2.playButton.setEnabled(True)
-        self.video_tab_widget.mediacontrolWidget_2.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PLAY.value))
+        self.video_tab_widget.mediacontrolWidget_2.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PLAY))
         self.video_tab_widget.open_dropped_video()
 
     def handle_pandas_file(self, file_path: Path) -> None:
@@ -443,7 +443,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
             None
         """
 
-        self.function_tabWidget.setCurrentIndex(FunctionType.MAPPING.value)
+        self.function_tabWidget.setCurrentIndex(FunctionType.MAPPING)
         self.mapping_tab_widget.tableLineEdit.setText(file_path.as_posix())
         data = ut.open_table(file_path)
         self.mapping_tab_widget.validate_pandas_file(data)
@@ -460,16 +460,16 @@ class UiMainWindow(QtWidgets.QMainWindow):
         """
 
         match self.function_tabWidget.currentIndex():
-            case FunctionType.PHOTO.value:
+            case FunctionType.PHOTO:
                 self.handle_function_tab_state(self.photo_tab_widget, self.folder_tab_widget, self.mapping_tab_widget,
                                                self.video_tab_widget)
-            case FunctionType.FOLDER.value:
+            case FunctionType.FOLDER:
                 self.handle_function_tab_state(self.folder_tab_widget, self.mapping_tab_widget, self.video_tab_widget,
                                                self.photo_tab_widget)
-            case FunctionType.MAPPING.value:
+            case FunctionType.MAPPING:
                 self.handle_function_tab_state(self.mapping_tab_widget, self.video_tab_widget, self.photo_tab_widget,
                                                self.folder_tab_widget)
-            case FunctionType.VIDEO.value:
+            case FunctionType.VIDEO:
                 self.handle_function_tab_state(self.video_tab_widget, self.photo_tab_widget, self.folder_tab_widget,
                                                self.mapping_tab_widget)
             case _:

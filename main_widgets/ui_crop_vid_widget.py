@@ -450,11 +450,11 @@ class UiVideoTabWidget(UiCropBatchWidget):
 
     def change_audio_icon(self) -> None:
         if self.audio.isMuted():
-            self.muteButton_1.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_UNMUTE.value))
-            self.muteButton_2.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_UNMUTE.value))
+            self.muteButton_1.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_UNMUTE))
+            self.muteButton_2.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_UNMUTE))
         else:
-            self.muteButton_1.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_MUTE.value))
-            self.muteButton_2.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_MUTE.value))
+            self.muteButton_1.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_MUTE))
+            self.muteButton_2.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_MUTE))
 
     def playback_bool(self,
                       a0: QtMultimedia.QMediaPlayer.PlaybackState = QtMultimedia.QMediaPlayer.PlaybackState.PausedState,

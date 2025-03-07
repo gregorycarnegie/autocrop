@@ -33,7 +33,7 @@ class MappingCropper(BatchCropper):
         Returns:
             None
         """
-        for old, new in zip(old.tolist(), new.tolist()):
+        for old, new in zip(old, new):
             if self.end_task:
                 break
 

@@ -16,7 +16,6 @@ import numpy.typing as npt
 import polars as pl
 import rawpy
 import tifffile as tiff
-from PIL import Image
 
 from file_types import Photo
 from .job import Job
@@ -49,14 +48,14 @@ def profile_it(func: c.Callable[..., Any]) -> c.Callable[..., Any]:
 
 
 @numba.njit(cache=True)
-def gamma(gamma_value: Union[int, float] = 1.0) -> npt.NDArray[np.float64]:
+def gamma(gamma_value: Union[int, float] = 1.0) -> npt.NDArray[np.uint8]:
     """
     Generates a gamma correction lookup table for intensity values from 0 to 255.
     """
 
     if gamma_value <= 1.0:
-        return np.arange(256, dtype=np.float64)
-    return np.power(np.arange(256) / 255, 1.0 / gamma_value) * 255.0
+        return np.arange(256, dtype=np.uint8)
+    return (np.power(np.arange(256) / 255, 1.0 / gamma_value) * 255.0).astype(np.uint8)
 
 
 def adjust_gamma(input_image: ImageArray, gam: int) -> cvt.MatLike:
@@ -64,7 +63,7 @@ def adjust_gamma(input_image: ImageArray, gam: int) -> cvt.MatLike:
     Adjusts image gamma using a precomputed lookup table.
     """
 
-    return cv2.LUT(input_image, gamma(gam * GAMMA_THRESHOLD).astype('uint8'))
+    return cv2.LUT(input_image, gamma(gam * GAMMA_THRESHOLD))
 
 
 def convert_color_space(input_image: ImageArray) -> cvt.MatLike:
@@ -77,12 +76,41 @@ def convert_color_space(input_image: ImageArray) -> cvt.MatLike:
 
 def numpy_array_crop(input_image: cvt.MatLike, bounding_box: Box) -> npt.NDArray[np.uint8]:
     """
-    Crops an image using PIL and returns the cropped region as a NumPy array.
+    Crops an image using NumPy with support for cropping outside image boundaries.
+    Creates padding similar to PIL's behavior when crop coordinates exceed image dimensions.
+    
+    Args:
+        input_image: Input image array in BGR or RGB format
+        bounding_box: Tuple of (x0, y0, x1, y1) crop coordinates
+        
+    Returns:
+        Cropped image array with padding if needed
     """
-
-    # Load and crop image using PIL
-    picture = Image.fromarray(input_image).crop(bounding_box)
-    return np.array(picture, dtype=np.uint8)
+    x0, y0, x1, y1 = bounding_box
+    h, w = input_image.shape[:2]
+    
+    # Calculate output dimensions
+    out_h, out_w = y1 - y0, x1 - x0
+    
+    # Create empty output image with appropriate channels
+    channels = input_image.shape[2] if len(input_image.shape) > 2 else 1
+    if channels > 1:
+        out_img = np.zeros((out_h, out_w, channels), dtype=input_image.dtype)
+    else:
+        out_img = np.zeros((out_h, out_w), dtype=input_image.dtype)
+    
+    # Calculate valid source and destination regions
+    src_x0, src_y0 = max(0, x0), max(0, y0)
+    src_x1, src_y1 = min(w, x1), min(h, y1)
+    
+    dst_x0, dst_y0 = src_x0 - x0, src_y0 - y0
+    dst_x1, dst_y1 = dst_x0 + (src_x1 - src_x0), dst_y0 + (src_y1 - src_y0)
+    
+    # Copy the valid region
+    if src_x1 > src_x0 and src_y1 > src_y0:
+        out_img[dst_y0:dst_y1, dst_x0:dst_x1] = input_image[src_y0:src_y1, src_x0:src_x1]
+    
+    return out_img
 
 
 def correct_exposure(input_image: ImageArray,
@@ -114,26 +142,24 @@ def rotate_image(input_image: ImageArray,
     return cv2.warpAffine(input_image, rotation_matrix, (input_image.shape[1], input_image.shape[0]))
 
 
-@numba.njit
-def get_dimensions(input_image: ImageArray, output_height: int) -> tuple[int, float]:
+@numba.njit(cache=True)
+def calculate_dimensions(height: int, width: int, target_height: int) -> tuple[int, float]:
     """
-    Returns the output width and scaling factor for a target output height.
+    Calculates output dimensions and scaling factor for resizing.
     """
-
-    scaling_factor = output_height / input_image.shape[0]
-    return int(input_image.shape[1] * scaling_factor), scaling_factor
-
+    scaling_factor = target_height / height
+    return int(width * scaling_factor), scaling_factor
 
 def format_image(input_image: ImageArray) -> tuple[cvt.MatLike, float]:
     """
     Resizes an image to 256px height, returns grayscale if >2 channels, plus the scaling factor.
     """
-
     output_height = 256
-    output_width, scaling_factor = get_dimensions(input_image, output_height)
+    h, w = input_image.shape[:2]
+    output_width, scaling_factor = calculate_dimensions(h, w, output_height)
+    
     image_array = cv2.resize(input_image, (output_width, output_height), interpolation=cv2.INTER_AREA)
     return cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY) if len(image_array.shape) >= 3 else image_array, scaling_factor
-
 
 @numba.njit(parallel=True)
 def mean_axis0(arr: npt.NDArray[np.int_]) -> npt.NDArray[np.float64]:
@@ -348,7 +374,7 @@ def get_multi_box_parameters(input_image: cvt.MatLike) -> tuple[npt.NDArray[np.f
     Returns bounding-box coordinates and confidences for multiple faces.
     """
 
-    detections = prepare_detections(convert_color_space(input_image))
+    detections = prepare_detections(input_image)
     return detections[0, 0, :, 3:7], detections[0, 0, :, 2] * 100.0
 
 
@@ -416,11 +442,12 @@ def mask_extensions(file_list: npt.NDArray[np.str_]) -> tuple[npt.NDArray[np.boo
     """
     Masks the file list based on supported extensions, returning the mask and its count.
     """
+    if len(file_list) == 0:
+        return np.array([], dtype=np.bool_), 0
 
-    file_suffixes = np.char.lower([Path(file).suffix for file in file_list])
-    mask = np.isin(file_suffixes, Photo.file_types)
+    file_suffixes = np.array([Path(file).suffix.lower() for file in file_list])
+    mask = np.isin(file_suffixes, tuple(Photo.file_types))
     return mask, np.count_nonzero(mask)
-
 
 def split_by_cpus(mask: npt.NDArray[np.bool_],
                   core_count: int,
@@ -481,12 +508,14 @@ def save_image(image: cvt.MatLike,
     """
 
     if is_tiff:
-        image = cv2.convertScaleAbs(image)
+        # Only convert if actually needed
+        if image.dtype != np.uint8:
+            image = cv2.convertScaleAbs(image)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         tiff.imwrite(file_path, image)
     else:
-        lut = gamma(user_gam * GAMMA_THRESHOLD).astype(np.uint8)
-        cv2.imwrite(file_path.as_posix(), cv2.LUT(image, lut))
+        lut = cv2.LUT(image, gamma(user_gam * GAMMA_THRESHOLD))
+        cv2.imwrite(file_path.as_posix(), lut)
 
 
 def multi_save_image(cropped_images: c.Iterator[cvt.MatLike],
@@ -571,7 +600,7 @@ def process_image(image: cvt.MatLike,
     Crops an image according to 'crop_position', converts color, and resizes to `job.size`.
     """
 
-    cropped_image = Image.fromarray(image).crop(crop_position)
+    cropped_image = numpy_array_crop(image, crop_position)
     image_array = np.array(cropped_image)
     color_converted = convert_color_space(image_array)
     return cv2.resize(color_converted, job.size, interpolation=cv2.INTER_AREA)

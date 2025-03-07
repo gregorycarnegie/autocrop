@@ -22,7 +22,7 @@ class FolderCropper(BatchCropper):
         Args:
             self: The Cropper instance.
             file_amount (int): The total number of files to process.
-            file_list (npt.NDArray[Any]): The array of file paths.
+            file_list tuple[Path]: The tuple of file paths.
             job (Job): The job containing the parameters for cropping.
             face_detection_tools(Tuple[Any, Any]): The worker for face-related tasks.
 
