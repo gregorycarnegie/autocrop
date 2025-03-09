@@ -40,5 +40,6 @@ class Photo(FileType):
     RAW_TYPES: ClassVar[set[str]] = {'.dng', '.arw', '.cr2', '.crw', '.erf',
                                      '.kdc', '.nef', '.nrw', '.orf', '.pef',
                                      '.raf', '.raw', '.sr2', '.srw', '.x3f'}
+    ANIMATION_TYPES: ClassVar[set[str]] = {'.gif', '.avif', '.apng'}
     TIFF_TYPES: ClassVar[set[str]] = {'.tiff', '.tif'}
     file_types: ClassVar[set[str]] = CV2_TYPES | RAW_TYPES  # Union of sets

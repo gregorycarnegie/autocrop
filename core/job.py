@@ -1,6 +1,5 @@
 import os
 import shutil
-from collections.abc import Iterator
 from pathlib import Path
 from typing import NamedTuple, Optional
 
@@ -125,17 +124,20 @@ Column 1: {self.column1}
 Column 2: {self.column2}
 """
 
-    def path_iter(self) -> Optional[tuple[Iterator[Path], int]]:
+    def path_iter(self) -> Optional[list[Path]]:
         """
         Retrieves a list of files from `folder_path` whose suffix is in `Photo.file_types`.
-        Returns a tuple of (iterator_of_files, count). If `folder_path` is None, returns None.
+        Returns a list of files, count. If `folder_path` is None, returns None.
         """
         if self.folder_path is None:
             return None
         
-        # Create a list of valid files once instead of iterating twice
-        valid_files = [i for i in self.folder_path.iterdir() if i.suffix.lower() in Photo.file_types]
-        return iter(valid_files), len(valid_files)
+        return list(
+            filter(
+                lambda f: f.is_file() and f.suffix.lower() in Photo.file_types,
+                self.folder_path.iterdir()
+            )
+        )
 
     def radio_tuple(self) -> tuple[np.str_, ...]:
         """
@@ -239,7 +241,7 @@ Column 2: {self.column2}
         existing_files = set(self.folder_path.iterdir())
 
         # Vectorized Check for file existence
-        mask = np.fromiter((self.folder_path / old_file in existing_files for old_file in old_file_array), np.bool_)
+        mask = np.fromiter(filter(lambda x: self.folder_path / x in existing_files, old_file_array), np.bool_)
 
         # Filter using the mask and return
         return old_file_array[mask], new_file_array[mask]

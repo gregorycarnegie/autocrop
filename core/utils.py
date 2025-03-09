@@ -16,10 +16,11 @@ import numpy.typing as npt
 import polars as pl
 import rawpy
 import tifffile as tiff
+from rawpy._rawpy import NotSupportedError, LibRawError, LibRawFatalError, LibRawNonFatalError
 
 from file_types import Photo
-from .job import Job
 from .face_tools import CAFFE_MODEL, PROTO_TXT, L_EYE_START, L_EYE_END, R_EYE_START, R_EYE_END
+from .job import Job
 from .operation_types import Box, FaceToolPair, ImageArray, SaveFunction
 
 # Define constants
@@ -161,7 +162,7 @@ def format_image(input_image: ImageArray) -> tuple[cvt.MatLike, float]:
     image_array = cv2.resize(input_image, (output_width, output_height), interpolation=cv2.INTER_AREA)
     return cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY) if len(image_array.shape) >= 3 else image_array, scaling_factor
 
-@numba.njit(parallel=True)
+@numba.njit
 def mean_axis0(arr: npt.NDArray[np.int_]) -> npt.NDArray[np.float64]:
     """
     Computes the mean of a 2D array along axis 0, returning a 1D array.
@@ -216,6 +217,11 @@ def align_head(input_image: ImageArray,
     angle, center_x, center_y = get_angle_of_tilt(landmarks_array, scaling_factor)
     return rotate_image(input_image, angle, (center_x, center_y))
 
+def colour_expose_allign(img:cvt.MatLike, face_detection_tools: FaceToolPair, exposure:bool, tilt:bool) -> cvt.MatLike:
+    # Convert BGR -> RGB for consistency
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img = correct_exposure(img, exposure)
+    return align_head(img, face_detection_tools, tilt)
 
 def open_image(input_image: Path,
                face_detection_tools: FaceToolPair,
@@ -229,11 +235,20 @@ def open_image(input_image: Path,
     img = cv2.imread(input_image.as_posix())
     if img is None:
         return None
+
+    return colour_expose_allign(img, face_detection_tools, exposure, tilt)
+
+def open_animation(input_image: Path,
+                   face_detection_tools: FaceToolPair,
+                   *,
+                   exposure: bool,
+                   tilt: bool):
     
-    # Convert BGR -> RGB for consistency
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    img = correct_exposure(img, exposure)
-    return align_head(img, face_detection_tools, tilt)
+    retval, animation = cv2.imreadanimation(input_image.as_posix())
+    if retval:
+        return animation.frames
+    else:
+        return (colour_expose_allign(frame, face_detection_tools, exposure, tilt) for frame in animation.frames)
 
 
 def open_raw(input_image: Path,
@@ -244,14 +259,14 @@ def open_raw(input_image: Path,
     Opens a RAW image using rawpy, applies basic post-processing, corrects exposure (optional), aligns head (optional).
     """
     img_path = input_image.as_posix()
-    with rawpy.imread(img_path) as raw:
-        if raw is None:
-            return None
-        bad_pixels = rawpy.enhance.find_bad_pixels(img_path)
-        rawpy.enhance.repair_bad_pixels(raw, bad_pixels, method='median')
-        img = raw.postprocess(use_camera_wb=True)
-        img = correct_exposure(img, exposure)
-        return align_head(img, face_detection_tools, tilt)
+    try:
+        with rawpy.imread(img_path) as raw:
+            img = raw.postprocess(use_camera_wb=True)
+            img = correct_exposure(img, exposure)
+            return align_head(img, face_detection_tools, tilt)
+
+    except (NotSupportedError, LibRawError, LibRawFatalError, LibRawNonFatalError):
+        return None
 
 
 def open_table(input_file: Path) -> pl.DataFrame:
@@ -433,7 +448,7 @@ def get_first_file(img_path: Path) -> Optional[Path]:
     """
 
     return next(
-        (f for f in img_path.iterdir() if f.suffix.lower() in Photo.file_types),
+        filter(lambda f: f.suffix.lower() in Photo.file_types, img_path.iterdir()),
         None
     )
 
@@ -623,7 +638,8 @@ def multi_crop(source_image: Union[cvt.MatLike, Path],
     # Check if any faces were detected
     if np.any(confidences > job.threshold):
         # Cropped images
-        return (process_image(img, job, pos) for pos in crop_positions)
+        return map(lambda pos: process_image(img, job, pos), crop_positions)
+        # return (process_image(img, job, pos) for pos in crop_positions)
     else:
         return None
 

@@ -22,7 +22,7 @@ class FolderCropper(BatchCropper):
         Args:
             self: The Cropper instance.
             file_amount (int): The total number of files to process.
-            file_list tuple[Path]: The tuple of file paths.
+            file_list: tuple[Path]: The tuple of file paths.
             job (Job): The job containing the parameters for cropping.
             face_detection_tools(Tuple[Any, Any]): The worker for face-related tasks.
 
@@ -50,7 +50,7 @@ class FolderCropper(BatchCropper):
         Returns:
             None
         """
-        if not (file_tuple := job.path_iter()):
+        if not (file_list := job.path_iter()):
             return
 
         if not job.destination:
@@ -60,7 +60,7 @@ class FolderCropper(BatchCropper):
         if not job.destination_accessible:
             return self.access_error()
 
-        file_list, amount = file_tuple
+        amount = len(file_list)
 
         if not amount:
             return self.amount_error()

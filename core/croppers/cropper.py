@@ -1,8 +1,7 @@
-from concurrent.futures import Future, ThreadPoolExecutor
-import psutil
 from threading import Lock
 from typing import ClassVar, Optional
 
+import psutil
 from PyQt6.QtCore import pyqtSignal, QObject
 
 from core import window_functions as wf
@@ -26,24 +25,16 @@ class Cropper(QObject):
 
     def __init__(self, parent: Optional[QObject] = None):
         super(Cropper, self).__init__(parent)
-        self.executor: Optional[ThreadPoolExecutor] = None
-        self.futures: list[Future] = []
 
-        # Task state
+        # # Task state
         self.progress_count, self.end_task, self.show_message_box = self.TASK_VALUES
         self.finished_signal_emitted = False
 
-        # Synchronization
+        # # Synchronization
         self.lock = Lock()
 
     def __repr__(self) -> str:
-        return (
-            f"<{type(self).__name__}("
-            f"threads={self.THREAD_NUMBER}, "
-            f"progress_count={self.progress_count}, "
-            f"end_task={self.end_task}, "
-            f"show_message_box={self.show_message_box})>"
-        )
+        return f"<{type(self).__name__}>"
 
     def reset_task(self) -> None:
         """
@@ -75,21 +66,6 @@ class Cropper(QObject):
                 self.emit_done()
             elif self.progress_count < file_amount:
                 self.progress.emit(self.progress_count, file_amount)
-
-    def terminate(self) -> None:
-        """
-        Terminates all pending tasks and shuts down the executor.
-        """
-        if not self.end_task:
-            self.end_task = True
-            self.emit_done()
-
-        if self.executor:
-            for future in self.futures:
-                if not future.done():
-                    future.cancel()
-            self.executor.shutdown(wait=False)
-            self.executor = None
 
     def _display_error(self, exception: BaseException, suggestion: str) -> None:
         """
@@ -173,29 +149,3 @@ class Cropper(QObject):
             RuntimeError("Thread limit reached."),
             "Please try again later."
         )
-    
-    def all_tasks_done(self) -> None:
-        """
-        Checks if all futures have completed. If they have, shuts down the executor and emits done.
-        This method should be called from the main thread.
-        """
-        if not self.end_task and all(future.done() for future in self.futures):
-            if self.executor:
-                self.executor.shutdown(wait=False)  # Non-blocking shutdown
-            self.emit_done()
-            self.end_task = True
-
-    def worker_done_callback(self, future: Future) -> None:
-        """
-        Callback function to handle completion of a worker thread.
-        """
-        try:
-            future.result()  # This raises any exceptions that occurred during execution
-        except Exception as exc:
-            self._display_error(
-                exc, "An unexpected error occurred in a worker thread."
-            )
-        finally:
-            # Check if all futures are done, then emit finished signal
-            if all(f.done() for f in self.futures):
-                self.all_tasks_done()

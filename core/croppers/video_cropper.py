@@ -6,6 +6,7 @@ from typing import Optional
 
 import ffmpeg
 import numpy as np
+import numpy.typing as npt
 from PyQt6.QtWidgets import QLabel, QSlider
 
 from core import utils as ut
@@ -23,13 +24,13 @@ def frame_to_timestamp(frame_number: int, fps: float) -> float:
     return frame_number / fps
 
 @cache
-def ffmpeg_input(video_line_edit: str, timestamp_seconds: float, width: int, height: int) -> np.ndarray:
+def ffmpeg_input(video_line_edit: str, timestamp_seconds: float, width: int, height: int) -> npt.NDArray[np.uint8]:
     out, _ = (
         ffmpeg.input(video_line_edit, ss=timestamp_seconds)
         .output('pipe:', format='rawvideo', pix_fmt='rgb24', vframes=1)
         .run(capture_stdout=True, quiet=True)
     )
-    return np.frombuffer(out, np.uint8).reshape((height, width, 3))
+    return np.frombuffer(out).reshape((height, width, 3)).astype(np.uint8)
 
 class VideoCropper(Cropper):
     def __init__(self, face_detection_tools: c.Iterator[FaceToolPair]):
@@ -45,7 +46,7 @@ class VideoCropper(Cropper):
             message
         )
 
-    def grab_frame(self, position_slider: int, video_line_edit: str) -> Optional[np.ndarray]:
+    def grab_frame(self, position_slider: int, video_line_edit: str) -> Optional[npt.NDArray[np.uint8]]:
         try:
             timestamp_seconds = frame_to_timestamp(position_slider, 1000.0)
             video_stream = get_video_stream(video_line_edit)
@@ -106,7 +107,7 @@ class VideoCropper(Cropper):
         if cropped_image is not None:
             ut.save_image(cropped_image, file_path, job.gamma, is_tiff)
 
-    def process_multiface_frame_job(self, frame: np.ndarray,
+    def process_multiface_frame_job(self, frame: npt.NDArray,
                                     job: Job,
                                     file_enum: str,
                                     destination: Path) -> None:
@@ -132,7 +133,7 @@ class VideoCropper(Cropper):
                 file_path, is_tiff = ut.get_frame_path(destination, f'{file_enum}_{i}', job)
                 ut.save_image(image, file_path, job.gamma, is_tiff)
 
-    def process_singleface_frame_job(self, frame: np.ndarray,
+    def process_singleface_frame_job(self, frame: npt.NDArray,
                                      job: Job,
                                      file_enum: str,
                                      destination: Path) -> None:
@@ -155,7 +156,7 @@ class VideoCropper(Cropper):
         else:
             ut.frame_save(cropped_image, file_enum, destination, job)
 
-    def extract_frame_ffmpeg(self, video_path: str, frame_number: int, width: int, height: int, fps: float) -> Optional[np.ndarray]:
+    def extract_frame_ffmpeg(self, video_path: str, frame_number: int, width: int, height: int, fps: float) -> Optional[npt.NDArray]:
         try:
             timestamp = frame_to_timestamp(frame_number, fps)
             return ffmpeg_input(video_path, timestamp, width, height)
@@ -179,7 +180,7 @@ class VideoCropper(Cropper):
         except ffmpeg.Error as e:
             self.ffmpeg_error(e, "Error extracting frames")
             return None
-        
+
         start_frame = int(job.start_position * fps)
         end_frame = int(job.stop_position * fps)
 
@@ -213,3 +214,12 @@ class VideoCropper(Cropper):
 
             if self.progress_count == total_frames or self.end_task:
                 self.show_message_box = False
+
+    def terminate(self) -> None:
+        """
+        Terminates all pending tasks and shuts down the executor.
+        """
+        if not self.end_task:
+            self.end_task = True
+            self.emit_done()
+    

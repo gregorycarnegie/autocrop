@@ -23,23 +23,22 @@ cache = TTLCache(maxsize=128, ttl=60)  # Entries expire after 60 seconds
 def path_iterator(path: Path) -> Optional[Path]:
     if not path or not path.is_dir():
         return None
+    
     return next(
-        (
-            file
-            for file in path.iterdir()
-            if file.is_file() and file.suffix.lower() in Photo.file_types
+        filter(
+            lambda f: f.is_file() and f.suffix.lower() in Photo.file_types, path.iterdir()
         ),
-        None,
+        None
     )
 
 # Define helper functions within the scope
-def matlike_to_qimage(image: cvt.MatLike) -> QImageLike:
+def matlike_to_qimage(image: cvt.MatLike) -> ImageQt.ImageQt:
     """
     Convert a BGR NumPy array (shape = [height, width, channels])
     to a QImage using QImage.Format_BGR888.
     """
     
-    return QImage() if image is None else Image.fromarray(image).toqimage()
+    return Image.fromarray(image).toqimage()
 
 def crop_to_qimage(input_image: cvt.MatLike,
                    bounding_box: Box,
@@ -75,8 +74,8 @@ def perform_crop_helper(function_type: FunctionType,
 
 @cached(cache)
 def validate_widget_state(widget_state: WidgetState) -> bool:
-    input_line_edit_text, width_line_edit_text, height_line_edit_text, *_ = widget_state
-    return all([input_line_edit_text, width_line_edit_text, height_line_edit_text])
+    # input_line_edit_text, width_line_edit_text, height_line_edit_text
+    return all(widget_state[:3])
 
 
 def get_image_path(function_type: FunctionType, input_line_edit_text: str) -> Optional[Path]:
