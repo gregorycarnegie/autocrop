@@ -14,9 +14,9 @@ class MappingCropper(BatchCropper):
     def __init__(self, face_detection_tools: c.Iterator[FaceToolPair]):
         super().__init__(face_detection_tools)
 
-    def worker(self, file_amount: int,
+    def worker(self, *, file_amount: int,
                job: Job,
-               face_detection_tools: FaceToolPair, *,
+               face_detection_tools: FaceToolPair,
                old: npt.NDArray[np.str_],
                new: npt.NDArray[np.str_]):
         """

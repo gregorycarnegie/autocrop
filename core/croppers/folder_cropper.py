@@ -12,10 +12,10 @@ class FolderCropper(BatchCropper):
     def __init__(self, face_detection_tools: c.Iterator[FaceToolPair]):
         super().__init__(face_detection_tools)
 
-    def worker(self, file_amount: int,
-               file_list: tuple[Path],
+    def worker(self, *, file_amount: int,
                job: Job,
-               face_detection_tools: FaceToolPair) -> None:
+               face_detection_tools: FaceToolPair,
+               file_list: tuple[Path]) -> None:
         """
         Performs cropping for a folder job by iterating over the file list, cropping each image, and updating the progress.
 

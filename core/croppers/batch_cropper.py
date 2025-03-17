@@ -17,7 +17,7 @@ class BatchCropper(Cropper):
         super().__init__()
         self.executor: Optional[ThreadPoolExecutor] = None
         self.futures: list[Future] = []
-
+        self.executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)
         self.face_detection_tools = list(face_detection_tools)
     
     def __repr__(self) -> str:
@@ -54,16 +54,31 @@ class BatchCropper(Cropper):
                     job: Job,
                     list_1: Union[batched, list],
                     list_2: Optional[list] = None):
-        self.executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)
+
+        if self.executor._shutdown:
+            self.executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)
 
         if list_2:
             self.futures = [
-                self.executor.submit(worker, amount, job, tool_pair, old=old_chunk, new=new_chunk)
+                self.executor.submit(
+                    worker,
+                    file_amount=amount,
+                    job=job,
+                    face_detection_tools=tool_pair,
+                    old=old_chunk,
+                    new=new_chunk
+                )
                 for old_chunk, new_chunk, tool_pair in zip(list_1, list_2, self.face_detection_tools)
             ]
         else:
             self.futures = [
-                self.executor.submit(worker, amount, chunk, job, tool_pair)
+                self.executor.submit(
+                    worker,
+                    file_amount=amount,
+                    job=job,
+                    face_detection_tools=tool_pair,
+                    file_list=chunk,
+                )
                 for chunk, tool_pair in zip(list_1, self.face_detection_tools)
             ]
 
