@@ -1,17 +1,18 @@
 import collections.abc as c
 from concurrent.futures import ThreadPoolExecutor
-import psutil
+from pathlib import Path
 
 import dlib
+import psutil
 
 from .operation_types import FaceToolPair
 from .resource_path import ResourcePath
 
 THREAD_NUMBER = min(psutil.cpu_count(), psutil.virtual_memory().total // (2 * 1024 ** 3), 8)
 
-LANDMARKS = ResourcePath('resources\\models\\shape_predictor_68_face_landmarks.dat').meipass_path
-PROTO_TXT = ResourcePath('resources\\weights\\deploy.prototxt.txt').meipass_path
-CAFFE_MODEL = ResourcePath('resources\\models\\res10_300x300_ssd_iter_140000.caffemodel').meipass_path
+LANDMARKS = ResourcePath(Path('resources') / 'models' / 'shape_predictor_68_face_landmarks.dat').meipass_path
+PROTO_TXT = ResourcePath(Path('resources') / 'weights' / 'deploy.prototxt.txt').meipass_path
+CAFFE_MODEL = ResourcePath(Path('resources') / 'models' / 'res10_300x300_ssd_iter_140000.caffemodel').meipass_path
 
 L_EYE_START, L_EYE_END = 42, 48
 R_EYE_START, R_EYE_END = 36, 42
