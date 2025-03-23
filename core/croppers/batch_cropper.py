@@ -116,13 +116,13 @@ class BatchCropper(Cropper):
         """
         try:
             future.result()  # This raises any exceptions that occurred during execution
-        except FileNotFoundError as e:
-            self._display_error(e, "File not found. Please check that all input files exist.")
-        except PermissionError as e:
-            self._display_error(e, "Permission denied. Please check file permissions.")
+        except FileNotFoundError:
+            self.file_error("File not found. Please check that all input files exist.")
+        except PermissionError:
+            self.access_error()
         except OSError as e:
             if "space" in str(e).lower():
-                self._display_error(e, "Not enough disk space to complete operation.")
+                self.capacity_error()
             else:
                 self._display_error(e, "File system error. Check input and output paths.")
         except ValueError as e:
@@ -130,8 +130,7 @@ class BatchCropper(Cropper):
         except (TypeError, AttributeError) as e:
             self._display_error(e, "Data type error. This may indicate a corrupted image file.")
         except MemoryError:
-            self._display_error(MemoryError("Out of memory"),
-                                "Not enough memory to process these files. Try processing fewer files at once.")
+            self.memory_error()
         except Exception as e:
             self._display_error(e, f"An unexpected error occurred: {type(e).__name__}")
         finally:

@@ -83,7 +83,7 @@ class Cropper(QObject):
         Raises a permission error if the destination directory is not writable.
         """
         return self._display_error(
-            PermissionError("Destination directory is not writable."),
+            PermissionError("Permission denied. Please check file permissions."),
             "Please check the destination directory and try again."
         )
 
