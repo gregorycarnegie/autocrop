@@ -28,5 +28,5 @@ class ResourcePath(Path):
         Returns:
             str: The resource path.
         """
-        base_path = Path(getattr(sys, '_MEIPASS2', Path().resolve()))
+        base_path = Path(getattr(sys, '_MEIPASS2', str(Path().resolve())))
         return (base_path / self).as_posix()

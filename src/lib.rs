@@ -12,74 +12,110 @@ struct Rectangle {
 /// Alias for the four integer coordinates of a bounding box.
 type BoxCoordinates = (i32, i32, i32, i32);
 
-/// Computes the cumulative sum (prefix sums) of a slice of f64 values.
+/// Compute an optimized cumulative sum of a slice of f64 values.
 fn cumsum(vec: &[f64]) -> Vec<f64> {
-    vec.iter()
-        .scan(0.0, |state, &x| {
-            *state += x;
-            Some(*state)
-        })
-        .collect()
+    if vec.is_empty() {
+        return Vec::new();
+    }
+
+    let mut result = Vec::with_capacity(vec.len());
+    let mut running_sum = 0.0;
+
+    // Use a chunk size that fits well in cache
+    const CHUNK_SIZE: usize = 64;
+
+    for chunk in vec.chunks(CHUNK_SIZE) {
+        // Process each chunk with a local accumulator
+        let mut local_sum = 0.0;
+        let mut local_results = Vec::with_capacity(chunk.len());
+
+        for &val in chunk {
+            local_sum += val;
+            local_results.push(running_sum + local_sum);
+        }
+
+        // Update running sum and extend results
+        running_sum += local_sum;
+        result.extend(local_results);
+    }
+
+    result
 }
 
 /// Calculate the alpha and beta values for histogram equalization.
-///
-/// # Arguments
-/// * `hist` - The histogram data as a vector of f64.
-///
-/// # Returns
-/// * `(alpha, beta)` - The tuple of alpha and beta values.
-///
-/// # Errors
-/// Returns a `PyValueError` if the histogram is empty, or if no valid clip points can be found.
 #[pyfunction]
 fn calc_alpha_beta(hist: Vec<f64>) -> PyResult<(f64, f64)> {
     if hist.is_empty() {
-        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>("Histogram is empty"));
+        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+            "Histogram is empty - cannot calculate alpha/beta values"
+        ));
     }
 
-    // Compute cumulative distribution.
+    // Check for invalid histogram values
+    if hist.iter().any(|&x| x < 0.0 || !x.is_finite()) {
+        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+            "Histogram contains negative or invalid values"
+        ));
+    }
+
+    // Use the optimized cumsum function
     let accumulator = cumsum(&hist);
-    let total = *accumulator.last().unwrap();
 
-    // 0.5% clipping.
-    let clip_hist_percent = total * 0.005;
+    let total = match accumulator.last() {
+        Some(&v) => v,
+        None => return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+            "Failed to compute cumulative histogram"
+        )),
+    };
 
-    // Minimum gray.
-    let min_gray = accumulator
-    .iter()
-    .position(|&x| x > clip_hist_percent)
-    .ok_or_else(|| {
-        PyErr::new::<pyo3::exceptions::PyValueError, _>(
-            "Cannot find minimum gray value",
-        )
-    })?;
+    // Check for zero total (degenerate histogram)
+    if total <= 0.0 {
+        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+            "Histogram sum is zero or negative - cannot perform clipping"
+        ));
+    }
 
-    // Maximum gray.
+    // 0.5% clipping
+    const CLIP_PERCENTAGE: f64 = 0.005;
+    let clip_hist_percent = total * CLIP_PERCENTAGE;
     let max_limit = total - clip_hist_percent;
-    let mut max_gray  = accumulator
-    .iter()
-    .rposition(|&x| x >= max_limit)
-    .ok_or_else(|| {
-        PyErr::new::<pyo3::exceptions::PyValueError, _>(
-            "Cannot find maximum gray value",
-        )
-    })?;
 
-    // Fallback if we can't find anything above 0.
-    if max_gray  == 0 {
-        max_gray  = 255;
+    // Find min_gray using a more efficient approach
+    let min_gray = match accumulator.iter().position(|&x| x > clip_hist_percent) {
+        Some(pos) => pos,
+        None => return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+            "Cannot find minimum gray value - histogram may be invalid"
+        )),
+    };
+
+    // Find max_gray using a more efficient approach
+    let mut max_gray = match accumulator.iter().rposition(|&x| x <= max_limit) {
+        Some(pos) => pos + 1, // We want the first element greater than max_limit
+        None => 0,
+    };
+
+    // Handle edge case
+    if max_gray == 0 {
+        max_gray = 255;
     }
 
     if max_gray <= min_gray {
         return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-            "Invalid histogram values: max_gray <= min_gray",
+            format!("Invalid histogram range: max_gray ({}) <= min_gray ({}). This suggests the image has insufficient contrast.",
+                    max_gray, min_gray)
         ));
     }
 
-    // Calculate alpha and beta.
-    let alpha = 255.0 / (max_gray  as f64 - min_gray  as f64);
-    let beta = -alpha * min_gray  as f64;
+    // Calculate alpha and beta
+    let alpha = 255.0 / (max_gray as f64 - min_gray as f64);
+    let beta = -alpha * min_gray as f64;
+
+    // Final validation
+    if !alpha.is_finite() || !beta.is_finite() {
+        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+            format!("Calculated non-finite values: alpha={}, beta={}. Check input histogram.", alpha, beta)
+        ));
+    }
 
     Ok((alpha, beta))
 }
