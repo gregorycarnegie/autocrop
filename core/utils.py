@@ -261,11 +261,27 @@ def open_raw(input_image: Path,
     img_path = input_image.as_posix()
     try:
         with rawpy.imread(img_path) as raw:
-            img = raw.postprocess(use_camera_wb=True)
-            img = correct_exposure(img, exposure)
-            return align_head(img, face_detection_tools, tilt)
-
-    except (NotSupportedError, LibRawError, LibRawFatalError, LibRawNonFatalError):
+            try:
+                # Post-processing can also raise exceptions
+                img = raw.postprocess(use_camera_wb=True)
+                
+                # Process the image further
+                if exposure:
+                    img = correct_exposure(img, exposure)
+                    
+                return align_head(img, face_detection_tools, tilt)
+                
+            except (MemoryError, ValueError, TypeError) as e:
+                # Log more specific post-processing errors
+                print(f"Error post-processing RAW image {img_path}: {str(e)}")
+                return None
+                
+    except (NotSupportedError, LibRawFatalError, LibRawError, LibRawNonFatalError) as e:
+        print(f"Error reading RAW file {img_path}: {str(e)}")
+        return None
+    except Exception as e:
+        # Catch any other unexpected exceptions to ensure resources are released
+        print(f"Unexpected error processing RAW file {img_path}: {str(e)}")
         return None
 
 
