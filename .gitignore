@@ -75,3 +75,5 @@ notes.md
 tests/test/
 tests/crop/
 tests/reject
+ps_struct.ps1
+project_structure.txt
