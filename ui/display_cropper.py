@@ -5,15 +5,15 @@ from typing import Optional, TypedDict
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QImage
 
-from core.croppers.cropper import Cropper
+from core.croppers.base import Cropper
 from core.enums import FunctionType
 from core.operation_types import FaceToolPair
-from .ui_crop_folder_widget import UiFolderTabWidget
-from .ui_crop_map_widget import UiMappingTabWidget
-from .ui_crop_photo_widget import UiPhotoTabWidget
-from .ui_crop_vid_widget import UiVideoTabWidget
-from .ui_crop_widget import UiCropWidget
+from .crop_widget import UiCropWidget
 from .display_crop_utils import WidgetState, perform_crop_helper, QImageLike
+from .folder_tab import UiFolderTabWidget
+from .mapping_tab import UiMappingTabWidget
+from .photo_tab import UiPhotoTabWidget
+from .video_tab import UiVideoTabWidget
 
 
 class WidgetData(TypedDict):

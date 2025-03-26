@@ -12,7 +12,8 @@ from PyQt6.QtWidgets import QLabel, QSlider
 from core import utils as ut
 from core.job import Job
 from core.operation_types import FaceToolPair
-from .cropper import Cropper
+from .base import Cropper
+
 
 @cache
 def get_video_stream(video_line_edit: str) -> Optional[dict]:

@@ -5,18 +5,19 @@ from PyQt6 import QtCore, QtWidgets, QtGui
 
 from core import face_tools as ft
 from core import utils as ut
-from core import window_functions as wf
 from core.croppers import FolderCropper, PhotoCropper, MappingCropper, VideoCropper
-from .display_cropper import DisplayCropper
-from core.enums import FunctionType, Preset, GuiIcon
+from core.enums import FunctionType, Preset
 from file_types import Photo, Table, Video
 from line_edits import NumberLineEdit, PathLineEdit, LineEditState
-from .ui_control_widget import UiCropControlWidget
-from .ui_crop_folder_widget import UiFolderTabWidget
-from .ui_crop_map_widget import UiMappingTabWidget
-from .ui_crop_photo_widget import UiPhotoTabWidget
-from .ui_crop_vid_widget import UiVideoTabWidget
-from .ui_crop_widget import UiCropWidget
+from ui import ui_utils as wf
+from .control_widget import UiCropControlWidget
+from .crop_widget import UiCropWidget
+from .display_cropper import DisplayCropper
+from .enums import GuiIcon
+from .folder_tab import UiFolderTabWidget
+from .mapping_tab import UiMappingTabWidget
+from .photo_tab import UiPhotoTabWidget
+from .video_tab import UiVideoTabWidget
 
 type TabWidget = Union[UiPhotoTabWidget, UiFolderTabWidget, UiMappingTabWidget, UiVideoTabWidget]
 

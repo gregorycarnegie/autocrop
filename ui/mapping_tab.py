@@ -6,12 +6,13 @@ from PyQt6 import QtCore, QtWidgets
 
 from core import DataFrameModel
 from core import utils as ut
-from core import window_functions as wf
 from core.croppers import MappingCropper
-from core.enums import FunctionType, GuiIcon
+from core.enums import FunctionType
 from file_types import Photo, Table
 from line_edits import LineEditState, NumberLineEdit, PathLineEdit, PathType
-from .ui_crop_batch_widget import UiCropBatchWidget
+from ui import ui_utils as wf
+from .batch_tab import UiCropBatchWidget
+from .enums import GuiIcon
 
 
 class UiMappingTabWidget(UiCropBatchWidget):

@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import QApplication
 from qt_material import apply_stylesheet
 
-from main_widgets import UiMainWindow, UiClickableSplashScreen
+from ui import UiMainWindow, UiClickableSplashScreen
 
 def main():
     app = QApplication([])

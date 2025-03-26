@@ -5,12 +5,14 @@ from typing import ClassVar, Optional
 import polars as pl
 from PyQt6 import QtCore, QtWidgets
 
-from core import Job, ImageWidget
-from core import window_functions as wf
-from core.enums import FunctionType, FunctionTabSelectionState, GuiIcon
+from core import Job
+from core.enums import FunctionType
 from file_types import Photo
 from line_edits import NumberLineEdit, PathLineEdit, PathType
-from .ui_control_widget import UiCropControlWidget
+from ui import ui_utils as wf
+from .control_widget import UiCropControlWidget
+from .enums import GuiIcon, FunctionTabSelectionState
+from .image_widget import ImageWidget
 
 
 class UiCropWidget(QtWidgets.QWidget):

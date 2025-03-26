@@ -6,7 +6,7 @@ from typing import Optional
 from core import utils as ut
 from core.job import Job
 from core.operation_types import FaceToolPair
-from .batch_cropper import BatchCropper
+from .batch import BatchCropper
 
 
 class FolderCropper(BatchCropper):

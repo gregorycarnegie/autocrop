@@ -4,7 +4,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon, QPixmap, QResizeEvent
 from PyQt6.QtWidgets import QLineEdit, QStyle, QToolButton, QWidget
 
-from core.enums import GuiIcon
+from ui.enums import GuiIcon
 from .enums import LineEditState
 
 

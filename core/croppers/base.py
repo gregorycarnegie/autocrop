@@ -4,7 +4,7 @@ from typing import ClassVar, Optional
 import psutil
 from PyQt6.QtCore import pyqtSignal, QObject
 
-from core import window_functions as wf
+from ui import ui_utils as wf
 
 TOTAL_MEMORY, MEM_THRESHOLD = psutil.virtual_memory().total, 2147483648
 MEM_FACTOR = TOTAL_MEMORY // MEM_THRESHOLD

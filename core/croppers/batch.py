@@ -8,7 +8,7 @@ import numpy.typing as npt
 
 from core.job import Job
 from core.operation_types import FaceToolPair
-from .cropper import Cropper
+from .base import Cropper
 
 # Type definitions for better type hints
 T = TypeVar('T')

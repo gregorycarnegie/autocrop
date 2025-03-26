@@ -2,12 +2,13 @@ from pathlib import Path
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-from core import window_functions as wf
 from core.croppers import FolderCropper
-from core.enums import FunctionType, GuiIcon
+from core.enums import FunctionType
 from file_types import Photo
 from line_edits import PathLineEdit
-from .ui_crop_batch_widget import UiCropBatchWidget
+from ui import ui_utils as wf
+from .batch_tab import UiCropBatchWidget
+from .enums import GuiIcon
 
 
 class UiFolderTabWidget(UiCropBatchWidget):

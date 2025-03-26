@@ -1,8 +1,8 @@
 from PyQt6 import QtCore, QtWidgets, QtGui, QtMultimedia
 
-from core import window_functions as wf
 from core.croppers import VideoCropper
-from core.enums import GuiIcon
+from ui import ui_utils as wf
+from .enums import GuiIcon
 
 
 class UiMediaControlWidget(QtWidgets.QWidget):

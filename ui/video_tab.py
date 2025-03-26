@@ -5,13 +5,14 @@ from typing import Literal
 import numpy as np
 from PyQt6 import QtCore, QtGui, QtMultimedia, QtMultimediaWidgets, QtWidgets
 
-from core import window_functions as wf
 from core.croppers import VideoCropper
-from core.enums import FunctionType, GuiIcon
+from core.enums import FunctionType
 from file_types import Video
 from line_edits import LineEditState, NumberLineEdit, PathLineEdit, PathType
-from .ui_crop_batch_widget import UiCropBatchWidget
-from .ui_media_control_widget import UiMediaControlWidget
+from ui import ui_utils as wf
+from .batch_tab import UiCropBatchWidget
+from .enums import GuiIcon
+from .media_controls import UiMediaControlWidget
 
 
 class UiVideoTabWidget(UiCropBatchWidget):

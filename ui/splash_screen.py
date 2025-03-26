@@ -4,7 +4,7 @@ from PyQt6.QtCore import pyqtSignal, Qt
 from PyQt6.QtGui import QColor, QGuiApplication, QMouseEvent, QPixmap
 from PyQt6.QtWidgets import QSplashScreen
 
-from core.enums import GuiIcon
+from .enums import GuiIcon
 
 
 class UiClickableSplashScreen(QSplashScreen):

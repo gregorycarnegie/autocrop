@@ -6,9 +6,10 @@ from typing import Optional, Union
 import cv2.typing as cvt
 from PyQt6 import QtCore, QtGui, QtWidgets
 
+from core.enums import FunctionType
 from line_edits import LineEditState, NumberLineEdit, PathLineEdit
 from .dialog import UiDialog
-from .enums import FunctionType, GuiIcon
+from .enums import GuiIcon
 from .image_widget import ImageWidget
 
 

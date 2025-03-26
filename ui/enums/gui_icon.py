@@ -2,6 +2,7 @@ from enum import StrEnum
 
 from core.resource_path import ResourcePath
 
+
 def get_icon_path(icon_name: str, folder:str = 'icons', extention: str = '.svg', mm: bool = False) -> str:
     icon_path = f'resources/{folder}/'
     icon_path += f'multimedia_{icon_name}{extention}' if mm else f'{icon_name}{extention}'

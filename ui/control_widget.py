@@ -5,8 +5,9 @@ from typing import ClassVar, Optional
 from PyQt6 import QtCore, QtWidgets
 
 from core import ResourcePath
-from core import window_functions as wf
 from line_edits import NumberLineEdit
+from ui import ui_utils as wf
+
 
 @cache
 def get_icon_path_tuple(icon_name: str) -> tuple[str, str]:

@@ -5,9 +5,9 @@ from typing import Any, ClassVar, Optional
 from PyQt6 import QtCore, QtWidgets
 
 from core import Job
-from core import window_functions as wf
-from core.enums import GuiIcon
-from .ui_crop_widget import UiCropWidget
+from ui import ui_utils as wf
+from .crop_widget import UiCropWidget
+from .enums import GuiIcon
 
 
 class UiCropBatchWidget(UiCropWidget):
