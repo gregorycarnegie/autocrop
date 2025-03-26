@@ -9,7 +9,7 @@ from core.croppers import VideoCropper
 from core.enums import FunctionType
 from file_types import Video
 from line_edits import LineEditState, NumberLineEdit, PathLineEdit, PathType
-from ui import ui_utils as wf
+from ui import utils as ut
 from .batch_tab import UiCropBatchWidget
 from .enums import GuiIcon
 from .media_controls import UiMediaControlWidget
@@ -43,7 +43,7 @@ class UiVideoTabWidget(UiCropBatchWidget):
         self.horizontalLayout_2.addWidget(self.inputLineEdit)
 
         self.inputButton.setParent(self.page_1)
-        icon = wf.create_button_icon(GuiIcon.CLAPPERBOARD)
+        icon = ut.create_button_icon(GuiIcon.CLAPPERBOARD)
         self.inputButton.setIcon(icon)
 
         self.horizontalLayout_2.addWidget(self.inputButton)
@@ -51,14 +51,14 @@ class UiVideoTabWidget(UiCropBatchWidget):
 
         self.verticalLayout_200.addLayout(self.horizontalLayout_2)
 
-        self.frame_1 = wf.create_frame(u"frame_1", self.page_1, self.size_policy2)
-        self.verticalLayout_9 = wf.setup_vbox(u"verticalLayout_9", self.frame_1)
+        self.frame_1 = ut.create_frame(u"frame_1", self.page_1, self.size_policy2)
+        self.verticalLayout_9 = ut.setup_vbox(u"verticalLayout_9", self.frame_1)
         self.muteButton_1 = QtWidgets.QPushButton(self.frame_1)
         self.muteButton_1.setObjectName(u"muteButton_1")
         self.muteButton_1.setMinimumSize(QtCore.QSize(30, 30))
         self.muteButton_1.setMaximumSize(QtCore.QSize(30, 30))
         self.muteButton_1.setBaseSize(QtCore.QSize(30, 30))
-        icon1 = wf.create_button_icon(GuiIcon.MULTIMEDIA_MUTE)
+        icon1 = ut.create_button_icon(GuiIcon.MULTIMEDIA_MUTE)
         self.muteButton_1.setIcon(icon1)
 
         self.horizontalLayout_1.addWidget(self.muteButton_1)
@@ -165,9 +165,9 @@ class UiVideoTabWidget(UiCropBatchWidget):
         self.verticalLayout_200.addLayout(self.horizontalLayout_3)
 
         self.toolBox.addItem(self.page_1, u"Video Player")
-        self.frame_2 = wf.create_frame(u"frame_2", self.page_2, self.size_policy2)
-        self.verticalLayout_10 = wf.setup_vbox(u"verticalLayout_10", self.frame_2)
-        self.horizontalLayout_5 = wf.setup_hbox(u'horizontalLayout_5')
+        self.frame_2 = ut.create_frame(u"frame_2", self.page_2, self.size_policy2)
+        self.verticalLayout_10 = ut.setup_vbox(u"verticalLayout_10", self.frame_2)
+        self.horizontalLayout_5 = ut.setup_hbox(u'horizontalLayout_5')
         self.muteButton_2 = QtWidgets.QPushButton(self.frame_2)
         self.muteButton_2.setObjectName(u"muteButton_2")
         self.muteButton_2.setMinimumSize(QtCore.QSize(30, 30))
@@ -388,10 +388,10 @@ class UiVideoTabWidget(UiCropBatchWidget):
                        self.mfaceCheckBox, self.tiltCheckBox, self.exposureCheckBox_2, self.mfaceCheckBox_2,
                        self.tiltCheckBox_2)
 
-        self.crop_worker.started.connect(lambda: wf.disable_widget(*widget_list))  # Video start connection
-        self.crop_worker.finished.connect(lambda: wf.enable_widget(*widget_list))  # Video end connection
+        self.crop_worker.started.connect(lambda: ut.disable_widget(*widget_list))  # Video start connection
+        self.crop_worker.finished.connect(lambda: ut.enable_widget(*widget_list))  # Video end connection
 
-        self.crop_worker.finished.connect(lambda: wf.show_message_box(self.destination))
+        self.crop_worker.finished.connect(lambda: ut.show_message_box(self.destination))
         self.crop_worker.progress.connect(self.update_progress)
 
     def player_error_occurred(self, error: QtMultimedia.QMediaPlayer.Error) -> None:
@@ -400,7 +400,7 @@ class UiVideoTabWidget(UiCropBatchWidget):
                 pass
             case _:
                 self.stop_playback()
-                wf.show_error_box(f'{error.name} occurred while loading the video. ',
+                ut.show_error_box(f'{error.name} occurred while loading the video. ',
                                   'Please check the video file path and try again.')
 
     def setup_label(self,
@@ -525,7 +525,7 @@ class UiVideoTabWidget(UiCropBatchWidget):
                 slider.blockSignals(True)
                 slider.setValue(position)
                 slider.blockSignals(False)
-                label.setText(wf.get_qtime(position).toString())
+                label.setText(ut.get_qtime(position).toString())
 
         thread = Thread(target=callback)
         thread.start()
@@ -534,7 +534,7 @@ class UiVideoTabWidget(UiCropBatchWidget):
         self.timelineSlider_1.setMaximum(duration)
         self.timelineSlider_2.setMaximum(duration)
         if duration >= 0:
-            qtime = wf.get_qtime(self.player.duration()).toString()
+            qtime = ut.get_qtime(self.player.duration()).toString()
             self.durationLabel_1.setText(qtime)
             self.durationLabel_2.setText(qtime)
             self.mediacontrolWidget_1.selectEndMarkerButton.setText(qtime)
@@ -567,7 +567,7 @@ class UiVideoTabWidget(UiCropBatchWidget):
     def set_marker_time(button: QtWidgets.QPushButton, flag: bool, time_value: float, position: float) -> None:
         if flag:
             position = time_value
-            wf.set_marker_time(button, position)     
+            ut.set_marker_time(button, position)     
     
     def set_start_position(self, button: QtWidgets.QPushButton) -> None:
         x = (time_value := self.timelineSlider_1.value() * .001) < self.stop_position
@@ -599,8 +599,8 @@ class UiVideoTabWidget(UiCropBatchWidget):
                     pass
 
     def disable_buttons(self) -> None:
-        wf.change_widget_state(
-            wf.all_filled(self.inputLineEdit, self.destinationLineEdit, self.controlWidget.widthLineEdit,
+        ut.change_widget_state(
+            ut.all_filled(self.inputLineEdit, self.destinationLineEdit, self.controlWidget.widthLineEdit,
                           self.controlWidget.heightLineEdit),
             self.mediacontrolWidget_1.cropButton, self.mediacontrolWidget_1.videocropButton,
             self.mediacontrolWidget_2.cropButton, self.mediacontrolWidget_2.videocropButton)
@@ -614,7 +614,7 @@ class UiVideoTabWidget(UiCropBatchWidget):
             self.crop_worker.crop_frame(job, self.positionLabel_1, self.timelineSlider_1)
 
         if Path(self.inputLineEdit.text()).parent == Path(self.destinationLineEdit.text()):
-            match wf.show_warning(FunctionType.FRAME):
+            match ut.show_warning(FunctionType.FRAME):
                 case QtWidgets.QMessageBox.StandardButton.Yes:
                     callback()
                 case _:
@@ -630,13 +630,13 @@ class UiVideoTabWidget(UiCropBatchWidget):
             job = self.create_job(FunctionType.VIDEO,
                                   video_path=Path(self.inputLineEdit.text()),
                                   destination=Path(self.destinationLineEdit.text()),
-                                  start_position=wf.pos_from_marker(x),
-                                  stop_position=wf.pos_from_marker(y))
+                                  start_position=ut.pos_from_marker(x),
+                                  stop_position=ut.pos_from_marker(y))
             self.run_batch_process(job, function=self.crop_worker.extract_frames,
                                    reset_worker_func=lambda: self.crop_worker.reset_task())
 
         if Path(self.inputLineEdit.text()).parent == Path(self.destinationLineEdit.text()):
-            match wf.show_warning(FunctionType.VIDEO):
+            match ut.show_warning(FunctionType.VIDEO):
                 case QtWidgets.QMessageBox.StandardButton.Yes:
                     callback()
                 case _:

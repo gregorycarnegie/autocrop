@@ -6,7 +6,7 @@ from core.croppers import PhotoCropper
 from core.enums import FunctionType
 from file_types import Photo
 from line_edits import LineEditState, PathLineEdit, PathType
-from ui import ui_utils as wf
+from ui import utils as ut
 from .crop_widget import UiCropWidget
 from .enums import GuiIcon
 
@@ -25,7 +25,7 @@ class UiPhotoTabWidget(UiCropWidget):
         self.horizontalLayout_2.addWidget(self.inputLineEdit)
 
         self.inputButton.setParent(self)
-        icon = wf.create_button_icon(GuiIcon.PICTURE)
+        icon = ut.create_button_icon(GuiIcon.PICTURE)
         self.inputButton.setIcon(icon)
 
         self.horizontalLayout_2.addWidget(self.inputButton)
@@ -34,8 +34,8 @@ class UiPhotoTabWidget(UiCropWidget):
 
         self.verticalLayout_100.addLayout(self.horizontalLayout_2)
 
-        self.frame = wf.create_frame(u"frame", self, self.size_policy2)
-        self.verticalLayout_4 = wf.setup_vbox(u"verticalLayout_4", self.frame)
+        self.frame = ut.create_frame(u"frame", self, self.size_policy2)
+        self.verticalLayout_4 = ut.setup_vbox(u"verticalLayout_4", self.frame)
         self.toggleCheckBox.setParent(self.frame)
         self.toggleCheckBox.setChecked(True)
 
@@ -62,7 +62,7 @@ class UiPhotoTabWidget(UiCropWidget):
 
         self.verticalLayout_4.addWidget(self.imageWidget)
 
-        self.cropButton = wf.create_main_button(u"cropButton", self.size_policy1, GuiIcon.CROP, self.frame)
+        self.cropButton = ut.create_main_button(u"cropButton", self.size_policy1, GuiIcon.CROP, self.frame)
         self.cropButton.setDisabled(True)
 
         self.verticalLayout_4.addWidget(self.cropButton)
@@ -123,8 +123,8 @@ class UiPhotoTabWidget(UiCropWidget):
             super().open_path(line_edit)
 
     def disable_buttons(self) -> None:
-        wf.change_widget_state(
-            wf.all_filled(self.inputLineEdit, self.destinationLineEdit, self.controlWidget.widthLineEdit,
+        ut.change_widget_state(
+            ut.all_filled(self.inputLineEdit, self.destinationLineEdit, self.controlWidget.widthLineEdit,
                           self.controlWidget.heightLineEdit),
             self.cropButton)
 
@@ -136,7 +136,7 @@ class UiPhotoTabWidget(UiCropWidget):
             self.crop_worker.crop(Path(self.inputLineEdit.text()), job)
 
         if Path(self.inputLineEdit.text()).parent == Path(self.destinationLineEdit.text()):
-            match wf.show_warning(FunctionType.PHOTO):
+            match ut.show_warning(FunctionType.PHOTO):
                 case QtWidgets.QMessageBox.StandardButton.Yes:
                     callback()
                 case _:

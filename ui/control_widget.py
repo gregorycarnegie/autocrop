@@ -6,7 +6,7 @@ from PyQt6 import QtCore, QtWidgets
 
 from core import ResourcePath
 from line_edits import NumberLineEdit
-from ui import ui_utils as wf
+from ui import utils as ut
 
 
 @cache
@@ -47,8 +47,8 @@ class UiCropControlWidget(QtWidgets.QWidget):
         super().__init__(parent)
         self.setObjectName(u"CropControlWidget")
         # self.resize(1254, 539)
-        self.horizontalLayout = wf.setup_hbox(u"horizontalLayout", self)
-        self.verticalLayout_1 = wf.setup_vbox(u"verticalLayout_1")
+        self.horizontalLayout = ut.setup_hbox(u"horizontalLayout", self)
+        self.verticalLayout_1 = ut.setup_vbox(u"verticalLayout_1")
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
                                             QtWidgets.QSizePolicy.Policy.Expanding)
         size_policy.setHorizontalStretch(1)
@@ -84,7 +84,7 @@ class UiCropControlWidget(QtWidgets.QWidget):
 
         self.horizontalLayout.addItem(self.horizontalSpacer_1)
 
-        self.verticalLayout_2 = wf.setup_vbox(u"verticalLayout_2")
+        self.verticalLayout_2 = ut.setup_vbox(u"verticalLayout_2")
         self.gridLayout_1 = QtWidgets.QGridLayout()
         self.gridLayout_1.setObjectName(u"gridLayout_1")
 
@@ -100,7 +100,7 @@ class UiCropControlWidget(QtWidgets.QWidget):
         self.bottomDial = self.create_dial(u"bottomDial")
         self.gridLayout_1.addWidget(self.bottomDial, 0, 1, 1, 1)
 
-        self.horizontalLayout_1 = wf.setup_hbox(u"horizontalLayout_1")
+        self.horizontalLayout_1 = ut.setup_hbox(u"horizontalLayout_1")
         self.topLabel = QtWidgets.QLabel(self)
         self.topLabel.setObjectName(u"topLabel")
 
@@ -111,7 +111,7 @@ class UiCropControlWidget(QtWidgets.QWidget):
 
         self.gridLayout_1.addLayout(self.horizontalLayout_1, 1, 0, 1, 1)
 
-        self.horizontalLayout_2 = wf.setup_hbox(u"horizontalLayout_2")
+        self.horizontalLayout_2 = ut.setup_hbox(u"horizontalLayout_2")
         self.bottomLabel = QtWidgets.QLabel(self)
         self.bottomLabel.setObjectName(u"bottomLabel")
 
@@ -122,7 +122,7 @@ class UiCropControlWidget(QtWidgets.QWidget):
 
         self.gridLayout_1.addLayout(self.horizontalLayout_2, 1, 1, 1, 1)
 
-        self.horizontalLayout_3 = wf.setup_hbox(u"horizontalLayout_3")
+        self.horizontalLayout_3 = ut.setup_hbox(u"horizontalLayout_3")
         self.leftLabel = QtWidgets.QLabel(self)
         self.leftLabel.setObjectName(u"leftLabel")
 
@@ -133,7 +133,7 @@ class UiCropControlWidget(QtWidgets.QWidget):
 
         self.gridLayout_1.addLayout(self.horizontalLayout_3, 1, 2, 1, 1)
 
-        self.horizontalLayout_4 = wf.setup_hbox(u"horizontalLayout_4")
+        self.horizontalLayout_4 = ut.setup_hbox(u"horizontalLayout_4")
         self.rightLabel = QtWidgets.QLabel(self)
         self.rightLabel.setObjectName(u"rightLabel")
 
@@ -150,7 +150,7 @@ class UiCropControlWidget(QtWidgets.QWidget):
                                                       QtWidgets.QSizePolicy.Policy.Expanding)
         self.verticalLayout_2.addItem(self.verticalSpacer_2)
 
-        self.horizontalLayout_5 = wf.setup_hbox(u"horizontalLayout_5")
+        self.horizontalLayout_5 = ut.setup_hbox(u"horizontalLayout_5")
 
         self.horizontalSpacer_3 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding,
                                                         QtWidgets.QSizePolicy.Policy.Minimum)
@@ -199,7 +199,7 @@ class UiCropControlWidget(QtWidgets.QWidget):
 
         self.horizontalLayout.addItem(self.horizontalSpacer_2)
 
-        self.verticalLayout_3 = wf.setup_vbox(u"verticalLayout_3")
+        self.verticalLayout_3 = ut.setup_vbox(u"verticalLayout_3")
         self.verticalLayout_3.setContentsMargins(-1, 6, -1, 6)
         self.verticalLayout_4 = QtWidgets.QVBoxLayout()
         self.verticalLayout_4.setObjectName(u"verticalLayout_4")
@@ -207,7 +207,7 @@ class UiCropControlWidget(QtWidgets.QWidget):
 
         self.verticalLayout_4.addWidget(self.gammaDial)
 
-        self.horizontalLayout_6 = wf.setup_hbox(u"horizontalLayout_6")
+        self.horizontalLayout_6 = ut.setup_hbox(u"horizontalLayout_6")
         self.gammaLabel = QtWidgets.QLabel(self)
         self.gammaLabel.setObjectName(u"gammaLabel")
 
@@ -220,12 +220,12 @@ class UiCropControlWidget(QtWidgets.QWidget):
 
         self.verticalLayout_3.addLayout(self.verticalLayout_4)
 
-        self.verticalLayout_5 = wf.setup_vbox(u"verticalLayout_5")
+        self.verticalLayout_5 = ut.setup_vbox(u"verticalLayout_5")
 
         self.sensitivityDial = self.create_dial(u"sensitivityDial", self.SENSITIVITY_VAL, min_value=1)
         self.verticalLayout_5.addWidget(self.sensitivityDial)
 
-        self.horizontalLayout_7 = wf.setup_hbox(u"horizontalLayout_7")
+        self.horizontalLayout_7 = ut.setup_hbox(u"horizontalLayout_7")
         self.sensitivityLabel = QtWidgets.QLabel(self)
         self.sensitivityLabel.setObjectName(u"sensitivityLabel")
 
@@ -238,12 +238,12 @@ class UiCropControlWidget(QtWidgets.QWidget):
 
         self.verticalLayout_3.addLayout(self.verticalLayout_5)
 
-        self.verticalLayout_6 = wf.setup_vbox(u"verticalLayout_6")
+        self.verticalLayout_6 = ut.setup_vbox(u"verticalLayout_6")
 
         self.fpctDial = self.create_dial(u"fpctDial", self.FPCT_VAL)
         self.verticalLayout_6.addWidget(self.fpctDial)
 
-        self.horizontalLayout_8 = wf.setup_hbox(u"horizontalLayout_8")
+        self.horizontalLayout_8 = ut.setup_hbox(u"horizontalLayout_8")
         self.fpctLabel = QtWidgets.QLabel(self)
         self.fpctLabel.setObjectName(u"fpctLabel")
 

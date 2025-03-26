@@ -5,12 +5,12 @@ import polars as pl
 from PyQt6 import QtCore, QtWidgets
 
 from core import DataFrameModel
-from core import utils as ut
+from core import processing as prc
 from core.croppers import MappingCropper
 from core.enums import FunctionType
 from file_types import Photo, Table
 from line_edits import LineEditState, NumberLineEdit, PathLineEdit, PathType
-from ui import ui_utils as wf
+from ui import utils as ut
 from .batch_tab import UiCropBatchWidget
 from .enums import GuiIcon
 
@@ -43,7 +43,7 @@ class UiMappingTabWidget(UiCropBatchWidget):
 
         self.tableButton = self.create_nav_button(u"tableButton")
         self.tableButton.setParent(self.page_1)
-        icon = wf.create_button_icon(GuiIcon.EXCEL)
+        icon = ut.create_button_icon(GuiIcon.EXCEL)
         self.tableButton.setIcon(icon)
 
         self.gridLayout.addWidget(self.tableButton, 1, 1, 1, 1)
@@ -54,8 +54,8 @@ class UiMappingTabWidget(UiCropBatchWidget):
 
         self.verticalLayout_200.addLayout(self.gridLayout)
 
-        self.frame = wf.create_frame(u"frame", self.page_1, self.size_policy2)
-        self.verticalLayout = wf.setup_vbox(u"verticalLayout", self.frame)
+        self.frame = ut.create_frame(u"frame", self.page_1, self.size_policy2)
+        self.verticalLayout = ut.setup_vbox(u"verticalLayout", self.frame)
         self.toggleCheckBox.setParent(self.frame)
 
         self.horizontalLayout_2.addWidget(self.toggleCheckBox)
@@ -99,12 +99,12 @@ class UiMappingTabWidget(UiCropBatchWidget):
 
         self.horizontalLayout_1.addWidget(self.comboBox_2)
 
-        self.cropButton = wf.create_main_button(u"cropButton", self.size_policy2, GuiIcon.CROP, self.frame)
+        self.cropButton = ut.create_main_button(u"cropButton", self.size_policy2, GuiIcon.CROP, self.frame)
         self.cropButton.setDisabled(True)
 
         self.horizontalLayout_1.addWidget(self.cropButton)
 
-        self.cancelButton = wf.create_main_button(u"cancelButton", self.size_policy2, GuiIcon.CANCEL, self.frame)
+        self.cancelButton = ut.create_main_button(u"cancelButton", self.size_policy2, GuiIcon.CANCEL, self.frame)
         self.cancelButton.setDisabled(True)
 
         self.horizontalLayout_1.addWidget(self.cancelButton)
@@ -235,12 +235,12 @@ class UiMappingTabWidget(UiCropBatchWidget):
                        self.controlWidget.radioButton_tiff, self.controlWidget.radioButton_webp, self.cropButton,
                        self.exposureCheckBox, self.mfaceCheckBox, self.tiltCheckBox)
         # Mapping start connection
-        self.crop_worker.started.connect(lambda: wf.disable_widget(*widget_list))
-        self.crop_worker.started.connect(lambda: wf.enable_widget(self.cancelButton))
+        self.crop_worker.started.connect(lambda: ut.disable_widget(*widget_list))
+        self.crop_worker.started.connect(lambda: ut.enable_widget(self.cancelButton))
         # Mapping end connection
-        self.crop_worker.finished.connect(lambda: wf.enable_widget(*widget_list))
-        self.crop_worker.finished.connect(lambda: wf.disable_widget(self.cancelButton))
-        self.crop_worker.finished.connect(lambda: wf.show_message_box(self.destination))
+        self.crop_worker.finished.connect(lambda: ut.enable_widget(*widget_list))
+        self.crop_worker.finished.connect(lambda: ut.disable_widget(self.cancelButton))
+        self.crop_worker.finished.connect(lambda: ut.show_message_box(self.destination))
         self.crop_worker.progress.connect(self.update_progress)
 
     def connect_input_widgets(self, *input_widgets: QtWidgets.QWidget) -> None:
@@ -256,8 +256,8 @@ class UiMappingTabWidget(UiCropBatchWidget):
                     pass
 
     def disable_buttons(self) -> None:
-        wf.change_widget_state(
-            wf.all_filled(self.inputLineEdit, self.tableLineEdit, self.destinationLineEdit, self.comboBox_1,
+        ut.change_widget_state(
+            ut.all_filled(self.inputLineEdit, self.tableLineEdit, self.destinationLineEdit, self.comboBox_1,
                           self.comboBox_2, self.controlWidget.widthLineEdit, self.controlWidget.heightLineEdit),
             self.cropButton)
 
@@ -267,7 +267,7 @@ class UiMappingTabWidget(UiCropBatchWidget):
         self.tableLineEdit.setText(f_name)
         if self.tableLineEdit.state is LineEditState.INVALID_INPUT:
             return
-        data = ut.open_table((Path(f_name)))
+        data = prc.open_table((Path(f_name)))
         self.validate_pandas_file(data)
 
     def validate_pandas_file(self, data: Any) -> None:
@@ -299,7 +299,7 @@ class UiMappingTabWidget(UiCropBatchWidget):
                                    reset_worker_func=lambda: self.crop_worker.reset_task())
 
         if Path(self.inputLineEdit.text()) == Path(self.destinationLineEdit.text()):
-            match wf.show_warning(FunctionType.MAPPING):
+            match ut.show_warning(FunctionType.MAPPING):
                 case QtWidgets.QMessageBox.StandardButton.Yes:
                     callback()
                 case _:

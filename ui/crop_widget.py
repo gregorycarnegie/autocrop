@@ -9,7 +9,7 @@ from core import Job
 from core.enums import FunctionType
 from file_types import Photo
 from line_edits import NumberLineEdit, PathLineEdit, PathType
-from ui import ui_utils as wf
+from ui import utils as ut
 from .control_widget import UiCropControlWidget
 from .enums import GuiIcon, FunctionTabSelectionState
 from .image_widget import ImageWidget
@@ -50,13 +50,13 @@ class UiCropWidget(QtWidgets.QWidget):
         self.size_policy2.setHorizontalStretch(0)
         self.size_policy2.setVerticalStretch(0)
 
-        self.verticalLayout_100 = wf.setup_vbox(u"verticalLayout_100", self)
+        self.verticalLayout_100 = ut.setup_vbox(u"verticalLayout_100", self)
 
-        self.horizontalLayout_1 = wf.setup_hbox(u"horizontalLayout_1")
-        self.horizontalLayout_2 = wf.setup_hbox(u"horizontalLayout_2")
-        self.horizontalLayout_3 = wf.setup_hbox(u"horizontalLayout_3")
+        self.horizontalLayout_1 = ut.setup_hbox(u"horizontalLayout_1")
+        self.horizontalLayout_2 = ut.setup_hbox(u"horizontalLayout_2")
+        self.horizontalLayout_3 = ut.setup_hbox(u"horizontalLayout_3")
 
-        self.folder_icon = wf.create_button_icon(GuiIcon.FOLDER)
+        self.folder_icon = ut.create_button_icon(GuiIcon.FOLDER)
 
         self.destination: Path = Path.home()
 
@@ -75,10 +75,10 @@ class UiCropWidget(QtWidgets.QWidget):
 
         self.imageWidget = ImageWidget()
         self.imageWidget.setObjectName(u"imageWidget")
-        wf.apply_size_policy(self.imageWidget, size_policy, min_size=QtCore.QSize(0, 0),
+        ut.apply_size_policy(self.imageWidget, size_policy, min_size=QtCore.QSize(0, 0),
                              max_size=QtCore.QSize(16_777_215, 16_777_215))
         self.imageWidget.setStyleSheet(u"")
-        self.horizontalLayout = wf.setup_hbox(u"horizontalLayout", self.imageWidget)
+        self.horizontalLayout = ut.setup_hbox(u"horizontalLayout", self.imageWidget)
         self.controlWidget = UiCropControlWidget(self.imageWidget)
         self.controlWidget.setObjectName(u"controlWidget")
         self.horizontalLayout.addWidget(self.controlWidget)
@@ -97,21 +97,21 @@ class UiCropWidget(QtWidgets.QWidget):
     def create_checkbox(self, name: str) -> QtWidgets.QCheckBox:
         check_box = QtWidgets.QCheckBox()
         check_box.setObjectName(name)
-        wf.apply_size_policy(check_box, self.size_policy1)
+        ut.apply_size_policy(check_box, self.size_policy1)
         check_box.setStyleSheet(self.CHECKBOX_STYLESHEET)
         return check_box
 
     def create_str_line_edit(self, name: str, path_type: PathType) -> PathLineEdit:
         line_edit = PathLineEdit(path_type=path_type)
         line_edit.setObjectName(name)
-        wf.apply_size_policy(line_edit, self.size_policy1)
+        ut.apply_size_policy(line_edit, self.size_policy1)
         line_edit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
         return line_edit
 
     def create_nav_button(self, name: str) -> QtWidgets.QPushButton:
         button = QtWidgets.QPushButton()
         button.setObjectName(name)
-        wf.apply_size_policy(button, self.size_policy1, min_size=QtCore.QSize(186, 30))
+        ut.apply_size_policy(button, self.size_policy1, min_size=QtCore.QSize(186, 30))
         return button
 
     def setup_path_line_edit(self, name: str, path_type: PathType = PathType.FOLDER) -> PathLineEdit:
@@ -132,9 +132,9 @@ class UiCropWidget(QtWidgets.QWidget):
         match checkbox:
             case self.mfaceCheckBox:
                 checkbox.clicked.connect(
-                    lambda: wf.uncheck_boxes(self.exposureCheckBox, self.tiltCheckBox))
+                    lambda: ut.uncheck_boxes(self.exposureCheckBox, self.tiltCheckBox))
             case self.exposureCheckBox | self.tiltCheckBox:
-                checkbox.clicked.connect(lambda: wf.uncheck_boxes(self.mfaceCheckBox))
+                checkbox.clicked.connect(lambda: ut.uncheck_boxes(self.mfaceCheckBox))
             case _:
                 pass
 

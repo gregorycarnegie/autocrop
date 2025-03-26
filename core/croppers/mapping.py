@@ -5,7 +5,7 @@ from typing import Optional, Any
 import numpy as np
 import numpy.typing as npt
 
-from core import utils as ut
+from core import processing as prc
 from core.job import Job
 from core.operation_types import FaceToolPair
 from .batch import BatchCropper
@@ -31,7 +31,7 @@ class MappingCropper(BatchCropper):
             new_path: Path = job.destination / (new + old_path.suffix) if job.radio_choice() == 'No' else job.destination / (new + job.radio_choice())
 
             if old_path.is_file():
-                ut.crop(old_path, job, face_detection_tools, new_path)
+                prc.crop(old_path, job, face_detection_tools, new_path)
             self._update_progress(file_amount)
 
         if self.progress_count == file_amount or self.end_task:
@@ -45,10 +45,10 @@ class MappingCropper(BatchCropper):
             return None, None
 
         # Get the extensions of the file names and create a mask for supported extensions
-        mask, amount = ut.mask_extensions(file_tuple[0])
+        mask, amount = prc.mask_extensions(file_tuple[0])
 
         # Split the file lists and the mapping data into chunks
-        old_file_list, new_file_list = ut.split_by_cpus(mask, self.THREAD_NUMBER, file_tuple[0], file_tuple[1])
+        old_file_list, new_file_list = prc.split_by_cpus(mask, self.THREAD_NUMBER, file_tuple[0], file_tuple[1])
 
         return amount, (old_file_list, new_file_list)
 

@@ -2,7 +2,7 @@ import collections.abc as c
 from pathlib import Path
 from typing import Optional
 
-from core import utils as ut
+from core import processing as prc
 from core.job import Job
 from core.operation_types import FaceToolPair
 from .base import Cropper
@@ -42,4 +42,4 @@ class PhotoCropper(Cropper):
             if self.MEM_FACTOR < 1:
                 return self.memory_error()
             
-        ut.crop(image, job, self.face_detection_tools, new)
+        prc.crop(image, job, self.face_detection_tools, new)

@@ -4,7 +4,7 @@ from typing import ClassVar, Optional
 import psutil
 from PyQt6.QtCore import pyqtSignal, QObject
 
-from ui import ui_utils as wf
+from ui import utils as ut
 
 TOTAL_MEMORY, MEM_THRESHOLD = psutil.virtual_memory().total, 2147483648
 MEM_FACTOR = TOTAL_MEMORY // MEM_THRESHOLD
@@ -73,7 +73,7 @@ class Cropper(QObject):
         and emits the error signal.
         """
         
-        wf.show_error_box(f"{exception}\n{suggestion}")
+        ut.show_error_box(f"{exception}\n{suggestion}")
         self.error.emit()
         self.end_task = True
         return 

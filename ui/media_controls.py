@@ -1,7 +1,7 @@
 from PyQt6 import QtCore, QtWidgets, QtGui, QtMultimedia
 
 from core.croppers import VideoCropper
-from ui import ui_utils as wf
+from ui import utils as ut
 from .enums import GuiIcon
 
 
@@ -11,48 +11,48 @@ class UiMediaControlWidget(QtWidgets.QWidget):
         self.media_player = media_player
         self.crop_worker = crop_worker
         self.setObjectName(u"MediaControlWidget")
-        self.horizontalLayout = wf.setup_hbox(u"horizontalLayout", self)
+        self.horizontalLayout = ut.setup_hbox(u"horizontalLayout", self)
         size_policy1 = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
         size_policy1.setHorizontalStretch(1)
         size_policy1.setVerticalStretch(1)
 
-        self.playButton = wf.create_media_button(self, size_policy1, name=u"playButton",
+        self.playButton = ut.create_media_button(self, size_policy1, name=u"playButton",
                                                  icon_resource=GuiIcon.MULTIMEDIA_PLAY)
         self.horizontalLayout.addWidget(self.playButton)
 
-        self.stopButton = wf.create_media_button(self, size_policy1, name=u"stopButton",
+        self.stopButton = ut.create_media_button(self, size_policy1, name=u"stopButton",
                                                  icon_resource=GuiIcon.MULTIMEDIA_STOP)
         self.horizontalLayout.addWidget(self.stopButton)
 
-        self.stepbackButton = wf.create_media_button(self, size_policy1, name=u"stepbackButton",
+        self.stepbackButton = ut.create_media_button(self, size_policy1, name=u"stepbackButton",
                                                      icon_resource=GuiIcon.MULTIMEDIA_LEFT)
         self.horizontalLayout.addWidget(self.stepbackButton)
 
-        self.stepfwdButton = wf.create_media_button(self, size_policy1, name=u"stepfwdButton",
+        self.stepfwdButton = ut.create_media_button(self, size_policy1, name=u"stepfwdButton",
                                                     icon_resource=GuiIcon.MULTIMEDIA_RIGHT)
         self.horizontalLayout.addWidget(self.stepfwdButton)
 
-        self.rewindButton = wf.create_media_button(self, size_policy1, name=u"rewindButton",
+        self.rewindButton = ut.create_media_button(self, size_policy1, name=u"rewindButton",
                                                    icon_resource=GuiIcon.MULTIMEDIA_REWIND)
         self.horizontalLayout.addWidget(self.rewindButton)
 
-        self.fastfwdButton = wf.create_media_button(self, size_policy1, name=u"fastfwdButton",
+        self.fastfwdButton = ut.create_media_button(self, size_policy1, name=u"fastfwdButton",
                                                     icon_resource=GuiIcon.MULTIMEDIA_FASTFWD)
         self.horizontalLayout.addWidget(self.fastfwdButton)
 
-        self.goto_beginingButton = wf.create_media_button(self, size_policy1, name=u"goto_beginingButton",
+        self.goto_beginingButton = ut.create_media_button(self, size_policy1, name=u"goto_beginingButton",
                                                           icon_resource=GuiIcon.MULTIMEDIA_BEGINING)
         self.horizontalLayout.addWidget(self.goto_beginingButton)
 
-        self.goto_endButton = wf.create_media_button(self, size_policy1, name=u"goto_endButton",
+        self.goto_endButton = ut.create_media_button(self, size_policy1, name=u"goto_endButton",
                                                      icon_resource=GuiIcon.MULTIMEDIA_END)
         self.horizontalLayout.addWidget(self.goto_endButton)
 
-        self.startmarkerButton = wf.create_media_button(self, size_policy1, name=u"startmarkerButton",
+        self.startmarkerButton = ut.create_media_button(self, size_policy1, name=u"startmarkerButton",
                                                         icon_resource=GuiIcon.MULTIMEDIA_LEFTMARKER)
         self.horizontalLayout.addWidget(self.startmarkerButton)
 
-        self.endmarkerButton = wf.create_media_button(self, size_policy1, name=u"endmarkerButton",
+        self.endmarkerButton = ut.create_media_button(self, size_policy1, name=u"endmarkerButton",
                                                       icon_resource=GuiIcon.MULTIMEDIA_RIGHTMARKER)
         self.horizontalLayout.addWidget(self.endmarkerButton)
 
@@ -65,16 +65,16 @@ class UiMediaControlWidget(QtWidgets.QWidget):
         size_policy2.setHorizontalStretch(0)
         size_policy2.setVerticalStretch(0)
 
-        self.cropButton = wf.create_media_button(self, size_policy2, name=u"cropButton",
+        self.cropButton = ut.create_media_button(self, size_policy2, name=u"cropButton",
                                                  icon_resource=GuiIcon.CROP)
         self.cropButton.setDisabled(True)
         self.horizontalLayout.addWidget(self.cropButton)
 
-        self.videocropButton = wf.create_media_button(self, size_policy2, name=u"videocropButton",
+        self.videocropButton = ut.create_media_button(self, size_policy2, name=u"videocropButton",
                                                       icon_resource=GuiIcon.CLAPPERBOARD)
         self.horizontalLayout.addWidget(self.videocropButton)
 
-        self.cancelButton = wf.create_media_button(self, size_policy2, name=u"cancelButton",
+        self.cancelButton = ut.create_media_button(self, size_policy2, name=u"cancelButton",
                                                    icon_resource=GuiIcon.CANCEL)
         self.cancelButton.setDisabled(True)
         self.horizontalLayout.addWidget(self.cancelButton)
@@ -87,16 +87,16 @@ class UiMediaControlWidget(QtWidgets.QWidget):
         self.gridLayout = QtWidgets.QGridLayout()
         self.gridLayout.setObjectName(u"gridLayout")
 
-        self.label_A = wf.create_label(self, size_policy2, name=u"label_A", icon_resource=GuiIcon.MULTIMEDIA_LABEL_A)
+        self.label_A = ut.create_label(self, size_policy2, name=u"label_A", icon_resource=GuiIcon.MULTIMEDIA_LABEL_A)
         self.gridLayout.addWidget(self.label_A, 0, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
 
-        self.selectStartMarkerButton = wf.create_marker_button(self, size_policy2, u"selectStartMarkerButton")
+        self.selectStartMarkerButton = ut.create_marker_button(self, size_policy2, u"selectStartMarkerButton")
         self.gridLayout.addWidget(self.selectStartMarkerButton, 0, 1, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
 
-        self.label_B = wf.create_label(self, size_policy2, name=u"label_B", icon_resource=GuiIcon.MULTIMEDIA_LABEL_B)
+        self.label_B = ut.create_label(self, size_policy2, name=u"label_B", icon_resource=GuiIcon.MULTIMEDIA_LABEL_B)
         self.gridLayout.addWidget(self.label_B, 1, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
 
-        self.selectEndMarkerButton = wf.create_marker_button(self, size_policy2, u"selectEndMarkerButton")
+        self.selectEndMarkerButton = ut.create_marker_button(self, size_policy2, u"selectEndMarkerButton")
         self.gridLayout.addWidget(self.selectEndMarkerButton, 1, 1, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
 
         self.gridLayout.setColumnStretch(0, 1)
@@ -126,7 +126,7 @@ class UiMediaControlWidget(QtWidgets.QWidget):
         self.media_player.errorOccurred.connect(lambda: self.stopped_case())
 
         self.playButton.clicked.connect(
-            lambda: wf.change_widget_state(
+            lambda: ut.change_widget_state(
                 True, self.stopButton, self.stepbackButton,
                 self.stepfwdButton, self.fastfwdButton,
                 self.goto_beginingButton, self.goto_endButton,
@@ -139,12 +139,12 @@ class UiMediaControlWidget(QtWidgets.QWidget):
                     self.endmarkerButton, self.selectStartMarkerButton, self.selectEndMarkerButton)
         
         # Video start connection
-        self.crop_worker.started.connect(lambda: wf.disable_widget(*controls))
-        self.crop_worker.started.connect(lambda: wf.enable_widget(self.cancelButton))
+        self.crop_worker.started.connect(lambda: ut.disable_widget(*controls))
+        self.crop_worker.started.connect(lambda: ut.enable_widget(self.cancelButton))
 
         # Video end connection
-        self.crop_worker.finished.connect(lambda: wf.enable_widget(*controls))
-        self.crop_worker.finished.connect(lambda: wf.disable_widget(self.cancelButton))
+        self.crop_worker.finished.connect(lambda: ut.enable_widget(*controls))
+        self.crop_worker.finished.connect(lambda: ut.disable_widget(self.cancelButton))
 
 
     # setupUi

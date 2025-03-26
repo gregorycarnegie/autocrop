@@ -3,7 +3,7 @@ from itertools import batched
 from pathlib import Path
 from typing import Optional
 
-from core import utils as ut
+from core import processing as prc
 from core.job import Job
 from core.operation_types import FaceToolPair
 from .batch import BatchCropper
@@ -23,7 +23,7 @@ class FolderCropper(BatchCropper):
         for image in file_list:
             if self.end_task:
                 break
-            ut.crop(image, job, face_detection_tools)
+            prc.crop(image, job, face_detection_tools)
             self._update_progress(file_amount)
 
         if self.progress_count == file_amount or self.end_task:

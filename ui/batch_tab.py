@@ -5,7 +5,7 @@ from typing import Any, ClassVar, Optional
 from PyQt6 import QtCore, QtWidgets
 
 from core import Job
-from ui import ui_utils as wf
+from ui import utils as ut
 from .crop_widget import UiCropWidget
 from .enums import GuiIcon
 
@@ -23,16 +23,16 @@ class UiCropBatchWidget(UiCropWidget):
         self.page_2 = QtWidgets.QWidget()
         self.page_2.setObjectName(u"page_2")
 
-        self.verticalLayout_200 = wf.setup_vbox(u"verticalLayout_200", self.page_1)
-        self.verticalLayout_300 = wf.setup_vbox(u"verticalLayout_300", self.page_2)
+        self.verticalLayout_200 = ut.setup_vbox(u"verticalLayout_200", self.page_1)
+        self.verticalLayout_300 = ut.setup_vbox(u"verticalLayout_300", self.page_2)
 
-        self.horizontalLayout_4 = wf.setup_hbox(u'horizontalLayout_4')
+        self.horizontalLayout_4 = ut.setup_hbox(u'horizontalLayout_4')
         
         self.cancelButton = QtWidgets.QPushButton()
         self.cancelButton.setObjectName(u"cancelButton")
         self.cancelButton.setMinimumSize(QtCore.QSize(0, 40))
         self.cancelButton.setMaximumSize(QtCore.QSize(16_777_215, 40))
-        icon = wf.create_button_icon(GuiIcon.CANCEL)
+        icon = ut.create_button_icon(GuiIcon.CANCEL)
         self.cancelButton.setIcon(icon)
         self.cancelButton.setIconSize(QtCore.QSize(18, 18))
 

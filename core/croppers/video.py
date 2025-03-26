@@ -9,7 +9,7 @@ import numpy as np
 import numpy.typing as npt
 from PyQt6.QtWidgets import QLabel, QSlider
 
-from core import utils as ut
+from core import processing as prc
 from core.job import Job
 from core.operation_types import FaceToolPair
 from .base import Cropper
@@ -96,17 +96,17 @@ class VideoCropper(Cropper):
 
         # Handle multi-face job
         if job.multi_face_job:
-            if (images := ut.multi_crop(frame, job, self.face_detection_tools)) is None:
+            if (images := prc.multi_crop(frame, job, self.face_detection_tools)) is None:
                 return None
 
             for i, image in enumerate(images):
                 new_file_path = file_path.with_stem(f'{file_path.stem}_{i}')
-                ut.save_image(image, new_file_path, job.gamma, is_tiff)
+                prc.save_image(image, new_file_path, job.gamma, is_tiff)
             return None
 
-        cropped_image = ut.crop_image(frame, job, self.face_detection_tools)
+        cropped_image = prc.crop_image(frame, job, self.face_detection_tools)
         if cropped_image is not None:
-            ut.save_image(cropped_image, file_path, job.gamma, is_tiff)
+            prc.save_image(cropped_image, file_path, job.gamma, is_tiff)
 
     def process_multiface_frame_job(self, frame: npt.NDArray,
                                     job: Job,
@@ -126,13 +126,13 @@ class VideoCropper(Cropper):
             None
         """
 
-        if (images := ut.multi_crop(frame, job, self.face_detection_tools)) is None:
-            file_path, is_tiff = ut.get_frame_path(destination, f'failed_{file_enum}', job)
-            ut.save_image(frame, file_path, job.gamma, is_tiff)
+        if (images := prc.multi_crop(frame, job, self.face_detection_tools)) is None:
+            file_path, is_tiff = prc.get_frame_path(destination, f'failed_{file_enum}', job)
+            prc.save_image(frame, file_path, job.gamma, is_tiff)
         else:
             for i, image in enumerate(images):
-                file_path, is_tiff = ut.get_frame_path(destination, f'{file_enum}_{i}', job)
-                ut.save_image(image, file_path, job.gamma, is_tiff)
+                file_path, is_tiff = prc.get_frame_path(destination, f'{file_enum}_{i}', job)
+                prc.save_image(image, file_path, job.gamma, is_tiff)
 
     def process_singleface_frame_job(self, frame: npt.NDArray,
                                      job: Job,
@@ -152,10 +152,10 @@ class VideoCropper(Cropper):
             None
         """
 
-        if (cropped_image := ut.crop_image(frame, job, self.face_detection_tools)) is None:
-            ut.frame_save(frame, file_enum, destination, job)
+        if (cropped_image := prc.crop_image(frame, job, self.face_detection_tools)) is None:
+            prc.frame_save(frame, file_enum, destination, job)
         else:
-            ut.frame_save(cropped_image, file_enum, destination, job)
+            prc.frame_save(cropped_image, file_enum, destination, job)
 
     def extract_frame_ffmpeg(self, video_path: str, frame_number: int, width: int, height: int, fps: float) -> Optional[npt.NDArray]:
         try:

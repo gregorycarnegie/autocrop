@@ -7,7 +7,7 @@ from PIL import Image, ImageQt
 from PyQt6.QtGui import QImage
 from cachetools import cached, TTLCache
 
-from core import utils as ut
+from core import processing as prc
 from core.enums import FunctionType
 from core.job import Job
 from core.operation_types import Box, FaceToolPair
@@ -44,8 +44,8 @@ def crop_to_qimage(input_image: cvt.MatLike,
                    bounding_box: Box,
                    gamma_value: int) -> QImageLike:
     try:
-        cropped_image = ut.numpy_array_crop(input_image, bounding_box)
-        adjusted_image = ut.adjust_gamma(cropped_image, gamma_value)
+        cropped_image = prc.numpy_array_crop(input_image, bounding_box)
+        adjusted_image = prc.adjust_gamma(cropped_image, gamma_value)
         return matlike_to_qimage(adjusted_image)
     except (cv2.error, Image.DecompressionBombError):
         return QImage()
@@ -68,7 +68,7 @@ def perform_crop_helper(function_type: FunctionType,
     job = create_job(widget_state, img_path_str, function_type)
 
     # Process the image
-    pic_array = ut.open_pic(next_img_path, face_detection_tools, exposure=job.fix_exposure_job, tilt=job.auto_tilt_job)
+    pic_array = prc.open_pic(next_img_path, face_detection_tools, exposure=job.fix_exposure_job, tilt=job.auto_tilt_job)
     return None if pic_array is None else handle_face_detection(pic_array, job)
 
 
@@ -107,9 +107,9 @@ def create_job(widget_state: WidgetState, img_path_str: str, function_type: Func
 
 def handle_face_detection(pic_array: cvt.MatLike, job: Job) -> Optional[QImageLike]:
     if job.multi_face_job:
-        pic = ut.multi_box(pic_array, job)
-        final_image = ut.convert_color_space(pic)
+        pic = prc.multi_box(pic_array, job)
+        final_image = prc.convert_color_space(pic)
         return matlike_to_qimage(final_image)
     else:
-        bounding_box = ut.box_detect(pic_array, job)
+        bounding_box = prc.box_detect(pic_array, job)
         return crop_to_qimage(pic_array, bounding_box, job.gamma) if bounding_box else None

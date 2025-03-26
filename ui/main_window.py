@@ -4,12 +4,12 @@ from typing import Union, Optional
 from PyQt6 import QtCore, QtWidgets, QtGui
 
 from core import face_tools as ft
-from core import utils as ut
+from core import processing as prc
 from core.croppers import FolderCropper, PhotoCropper, MappingCropper, VideoCropper
 from core.enums import FunctionType, Preset
 from file_types import Photo, Table, Video
 from line_edits import NumberLineEdit, PathLineEdit, LineEditState
-from ui import ui_utils as wf
+from ui import utils as ut
 from .control_widget import UiCropControlWidget
 from .crop_widget import UiCropWidget
 from .display_cropper import DisplayCropper
@@ -70,7 +70,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.actionCrop_Video.setIcon(icon4)
         self.centralwidget = QtWidgets.QWidget(self)
         self.centralwidget.setObjectName(u"centralwidget")
-        self.horizontalLayout_2 = wf.setup_hbox(u"horizontalLayout_2", self.centralwidget)
+        self.horizontalLayout_2 = ut.setup_hbox(u"horizontalLayout_2", self.centralwidget)
         self.verticalLayout_1 = QtWidgets.QVBoxLayout()
         self.verticalLayout_1.setObjectName(u"verticalLayout_1")
         self.function_tabWidget = QtWidgets.QTabWidget(self.centralwidget)
@@ -78,7 +78,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.function_tabWidget.setMovable(True)
         self.photo_tab = QtWidgets.QWidget()
         self.photo_tab.setObjectName(u"photo_tab")
-        self.verticalLayout_2 = wf.setup_vbox(u"verticalLayout_2", self.photo_tab)
+        self.verticalLayout_2 = ut.setup_vbox(u"verticalLayout_2", self.photo_tab)
         self.photo_tab_widget = UiPhotoTabWidget(self.photo_worker, u"photo_tab_widget", self.photo_tab)
 
         self.verticalLayout_2.addWidget(self.photo_tab_widget)
@@ -86,7 +86,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.function_tabWidget.addTab(self.photo_tab, icon2, "")
         self.folder_tab = QtWidgets.QWidget()
         self.folder_tab.setObjectName(u"folder_tab")
-        self.verticalLayout_3 = wf.setup_vbox(u"verticalLayout_3", self.folder_tab)
+        self.verticalLayout_3 = ut.setup_vbox(u"verticalLayout_3", self.folder_tab)
         self.folder_tab_widget = UiFolderTabWidget(self.folder_worker, u"folder_tab_widget", self.folder_tab)
 
         self.verticalLayout_3.addWidget(self.folder_tab_widget)
@@ -94,7 +94,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.function_tabWidget.addTab(self.folder_tab, icon3, "")
         self.mapping_tab = QtWidgets.QWidget()
         self.mapping_tab.setObjectName(u"mapping_tab")
-        self.verticalLayout_4 = wf.setup_vbox(u"verticalLayout_4", self.mapping_tab)
+        self.verticalLayout_4 = ut.setup_vbox(u"verticalLayout_4", self.mapping_tab)
         self.mapping_tab_widget = UiMappingTabWidget(self.mapping_worker, u"mapping_tab_widget", self.mapping_tab)
 
         self.verticalLayout_4.addWidget(self.mapping_tab_widget)
@@ -102,7 +102,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.function_tabWidget.addTab(self.mapping_tab, icon1, "")
         self.video_tab = QtWidgets.QWidget()
         self.video_tab.setObjectName(u"video_tab")
-        self.verticalLayout_5 = wf.setup_vbox(u"verticalLayout_5", self.video_tab)
+        self.verticalLayout_5 = ut.setup_vbox(u"verticalLayout_5", self.video_tab)
         self.video_tab_widget = UiVideoTabWidget(self.video_worker, u"video_tab_widget", self.video_tab)
 
         self.display_worker = DisplayCropper(next(ft.generate_face_detection_tools()),
@@ -153,7 +153,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         # CONNECTIONS
         self.connect_combo_boxes(self.mapping_tab_widget)
 
-        self.actionAbout_Face_Cropper.triggered.connect(lambda: wf.load_about_form())
+        self.actionAbout_Face_Cropper.triggered.connect(lambda: ut.load_about_form())
         self.actionGolden_Ratio.triggered.connect(lambda: self.load_preset(Preset.GOLDEN_RATIO))
         self.action2_3_Ratio.triggered.connect(lambda: self.load_preset(Preset.TWO_THIRDS))
         self.action3_4_Ratio.triggered.connect(lambda: self.load_preset(Preset.THREE_QUARTERS))
@@ -251,7 +251,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
             assert isinstance(a0, QtGui.QDragEnterEvent)
         except AssertionError:
             return
-        wf.check_mime_data(a0)
+        ut.check_mime_data(a0)
 
     def dragMoveEvent(self, a0: Optional[QtGui.QDragMoveEvent]) -> None:
         """
@@ -269,7 +269,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
             assert isinstance(a0, QtGui.QDragMoveEvent)
         except AssertionError:
             return
-        wf.check_mime_data(a0)
+        ut.check_mime_data(a0)
 
     def dropEvent(self, a0: Optional[QtGui.QDropEvent]) -> None:
         """
@@ -446,7 +446,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
         self.function_tabWidget.setCurrentIndex(FunctionType.MAPPING)
         self.mapping_tab_widget.tableLineEdit.setText(file_path.as_posix())
-        data = ut.open_table(file_path)
+        data = prc.open_table(file_path)
         self.mapping_tab_widget.validate_pandas_file(data)
 
     def check_tab_selection(self) -> None:
@@ -558,7 +558,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
         match tab_widget:
             case tab_widget if isinstance(tab_widget, (UiPhotoTabWidget, UiFolderTabWidget)):
-                wf.change_widget_state(
+                ut.change_widget_state(
                     self.all_filled(
                         tab_widget.inputLineEdit,
                         tab_widget.destinationLineEdit,
@@ -567,7 +567,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
                     tab_widget.cropButton,
                 )
             case tab_widget if isinstance(tab_widget, UiMappingTabWidget):
-                wf.change_widget_state(
+                ut.change_widget_state(
                     self.all_filled(
                         tab_widget.inputLineEdit,
                         tab_widget.tableLineEdit,
@@ -579,7 +579,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
                     self.mapping_tab_widget.cropButton
                 )
             case tab_widget if isinstance(tab_widget, UiVideoTabWidget):
-                wf.change_widget_state(
+                ut.change_widget_state(
                     self.all_filled(
                         tab_widget.inputLineEdit,
                         tab_widget.destinationLineEdit,

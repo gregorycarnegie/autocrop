@@ -6,7 +6,7 @@ from core.croppers import FolderCropper
 from core.enums import FunctionType
 from file_types import Photo
 from line_edits import PathLineEdit
-from ui import ui_utils as wf
+from ui import utils as ut
 from .batch_tab import UiCropBatchWidget
 from .enums import GuiIcon
 
@@ -36,8 +36,8 @@ class UiFolderTabWidget(UiCropBatchWidget):
 
         self.verticalLayout_200.addLayout(self.horizontalLayout_4)
 
-        self.frame = wf.create_frame(u"frame", self.page_1, self.size_policy2)
-        self.verticalLayout = wf.setup_vbox(u"verticalLayout", self.frame)
+        self.frame = ut.create_frame(u"frame", self.page_1, self.size_policy2)
+        self.verticalLayout = ut.setup_vbox(u"verticalLayout", self.frame)
 
         self.toggleCheckBox.setParent(self.frame)
 
@@ -65,12 +65,12 @@ class UiFolderTabWidget(UiCropBatchWidget):
 
         self.verticalLayout.addWidget(self.imageWidget)
 
-        self.cropButton = wf.create_main_button(u"cropButton", self.size_policy2, GuiIcon.CROP, self.frame)
+        self.cropButton = ut.create_main_button(u"cropButton", self.size_policy2, GuiIcon.CROP, self.frame)
         self.cropButton.setDisabled(True)
 
         self.horizontalLayout_2.addWidget(self.cropButton)
 
-        self.cancelButton = wf.create_main_button(u"cancelButton", self.size_policy2, GuiIcon.CANCEL, self.frame)
+        self.cancelButton = ut.create_main_button(u"cancelButton", self.size_policy2, GuiIcon.CANCEL, self.frame)
         self.cancelButton.setDisabled(True)
 
         self.horizontalLayout_2.addWidget(self.cancelButton)
@@ -167,13 +167,13 @@ class UiFolderTabWidget(UiCropBatchWidget):
                        self.tiltCheckBox)
 
         # Folder start connection
-        self.crop_worker.started.connect(lambda: wf.disable_widget(*widget_list))
-        self.crop_worker.started.connect(lambda: wf.enable_widget(self.cancelButton))
+        self.crop_worker.started.connect(lambda: ut.disable_widget(*widget_list))
+        self.crop_worker.started.connect(lambda: ut.enable_widget(self.cancelButton))
 
         # Folder end connection
-        self.crop_worker.finished.connect(lambda: wf.enable_widget(*widget_list))
-        self.crop_worker.finished.connect(lambda: wf.disable_widget(self.cancelButton))
-        self.crop_worker.finished.connect(lambda: wf.show_message_box(self.destination))
+        self.crop_worker.finished.connect(lambda: ut.enable_widget(*widget_list))
+        self.crop_worker.finished.connect(lambda: ut.disable_widget(self.cancelButton))
+        self.crop_worker.finished.connect(lambda: ut.show_message_box(self.destination))
         self.crop_worker.progress.connect(self.update_progress)
 
     def open_path(self, line_edit: PathLineEdit) -> None:
@@ -191,8 +191,8 @@ class UiFolderTabWidget(UiCropBatchWidget):
             return
 
     def disable_buttons(self) -> None:
-        wf.change_widget_state(
-            wf.all_filled(self.inputLineEdit, self.destinationLineEdit, self.controlWidget.widthLineEdit,
+        ut.change_widget_state(
+            ut.all_filled(self.inputLineEdit, self.destinationLineEdit, self.controlWidget.widthLineEdit,
                           self.controlWidget.heightLineEdit),
             self.cropButton)
 
@@ -206,7 +206,7 @@ class UiFolderTabWidget(UiCropBatchWidget):
                                    reset_worker_func=lambda: self.crop_worker.reset_task())
 
         if Path(self.inputLineEdit.text()) == Path(self.destinationLineEdit.text()):
-            match wf.show_warning(FunctionType.FOLDER):
+            match ut.show_warning(FunctionType.FOLDER):
                 case QtWidgets.QMessageBox.StandardButton.Yes:
                     callback()
                 case _:
