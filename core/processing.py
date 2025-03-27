@@ -20,7 +20,7 @@ import polars as pl
 import tifffile as tiff
 from rawpy._rawpy import NotSupportedError, LibRawError, LibRawFatalError, LibRawNonFatalError
 
-from file_types import Photo
+from file_types import registry
 from .face_tools import CAFFE_MODEL, PROTO_TXT, L_EYE_START, L_EYE_END, R_EYE_START, R_EYE_END
 from .image_loader import ImageLoader
 from .job import Job
@@ -242,14 +242,14 @@ def open_pic(input_image: Path,
     """
 
     img_path = input_image.as_posix()
-    if input_image.suffix.lower() in Photo.CV2_TYPES:
+    if registry.is_valid_type(input_image, "photo"):
         img = ImageLoader.loader('standard')(img_path)
         if img is None:
             return None
 
         return colour_expose_allign(img, face_detection_tools, exposure, tilt)
 
-    elif input_image.suffix.lower() in Photo.RAW_TYPES:
+    elif registry.is_valid_type(input_image, "raw"):
         try:
             with ImageLoader.loader('raw')(img_path) as raw:
                 try:
@@ -561,7 +561,7 @@ def get_first_file(img_path: Path) -> Optional[Path]:
     """
 
     return next(
-        filter(lambda f: f.suffix.lower() in Photo.file_types, img_path.iterdir()),
+        filter(lambda f: registry.is_valid_type(f, "photo"), img_path.iterdir()),
         None
     )
 
@@ -574,7 +574,8 @@ def mask_extensions(file_list: npt.NDArray[np.str_]) -> tuple[npt.NDArray[np.boo
         return np.array([], dtype=np.bool_), 0
 
     file_suffixes = np.array([Path(file).suffix.lower() for file in file_list])
-    mask = np.isin(file_suffixes, tuple(Photo.file_types))
+    x = registry.get_extensions("photo") | registry.get_extensions("raw")
+    mask = np.isin(file_suffixes, tuple(x))
     return mask, np.count_nonzero(mask)
 
 
@@ -593,7 +594,7 @@ def join_path_suffix(file_str: str, destination: Path) -> tuple[Path, bool]:
     """
 
     path = destination.joinpath(file_str)
-    return path, path.suffix in Photo.TIFF_TYPES
+    return path, registry.is_valid_type(path, "tiff")
 
 
 @cache
@@ -606,8 +607,8 @@ def set_filename(radio_options: tuple[str, ...],
     """
     Sets the output filename based on radio choice, RAW or non-RAW input, and optional custom filename.
     """
-
-    if (suffix := image_path.suffix.lower()) in Photo.RAW_TYPES:
+    suffix = image_path.suffix.lower()
+    if registry.is_valid_type(image_path, "raw"):
         selected_ext = radio_options[2] if radio_choice == radio_options[0] else radio_choice
     else:
         selected_ext = suffix if radio_choice == radio_options[0] else radio_choice

@@ -7,7 +7,7 @@ from PyQt6 import QtCore, QtWidgets
 
 from core import Job
 from core.enums import FunctionType
-from file_types import Photo
+from file_types import registry, FileTypeInfo
 from line_edits import NumberLineEdit, PathLineEdit, PathType
 from ui import utils as ut
 from .control_widget import UiCropControlWidget
@@ -209,14 +209,15 @@ class UiCropWidget(QtWidgets.QWidget):
                    start_position: Optional[float] = None,
                    stop_position: Optional[float] = None) -> Job:
         """Only subclasses of the CustomCropWidget class should implement this method"""
+        save_types = registry.get_extensions("photo") | registry.get_extensions("tiff")
         if function_type is not None:
             match function_type:
                 case FunctionType.FOLDER | FunctionType.MAPPING:
                     if destination and folder_path:
-                        destination = self._handle_folder_path(destination, folder_path, Photo.SAVE_TYPES)
+                        destination = self._handle_folder_path(destination, folder_path, FileTypeInfo.save_types)
                 case FunctionType.VIDEO:
                     if destination and video_path:
-                        destination = self._handle_video_path(destination, video_path, Photo.SAVE_TYPES)
+                        destination = self._handle_video_path(destination, video_path, FileTypeInfo.save_types)
                 case FunctionType.PHOTO | FunctionType.FRAME:
                     pass
 
@@ -247,5 +248,5 @@ class UiCropWidget(QtWidgets.QWidget):
 
     def open_path(self, line_edit: PathLineEdit) -> None:
         """Only subclasses of the CustomCropWidget class should implement this method"""
-        f_name = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Directory', Photo.default_directory)
+        f_name = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Directory', registry.get_default_dir("photo").as_posix())
         line_edit.setText(f_name)

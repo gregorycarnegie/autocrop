@@ -8,7 +8,7 @@ from core import DataFrameModel
 from core import processing as prc
 from core.croppers import MappingCropper
 from core.enums import FunctionType
-from file_types import Photo, Table
+from file_types import registry
 from line_edits import LineEditState, NumberLineEdit, PathLineEdit, PathType
 from ui import utils as ut
 from .batch_tab import UiCropBatchWidget
@@ -263,7 +263,7 @@ class UiMappingTabWidget(UiCropBatchWidget):
 
     def open_table(self) -> None:
         f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self, 'Open File', Photo.default_directory, Table.type_string())
+            self, 'Open File', registry.get_default_dir("photo").as_posix(), registry.get_filter_string("table"))
         self.tableLineEdit.setText(f_name)
         if self.tableLineEdit.state is LineEditState.INVALID_INPUT:
             return

@@ -9,7 +9,7 @@ from core import face_tools as ft
 from core import processing as prc
 from core.croppers import FolderCropper, PhotoCropper, MappingCropper, VideoCropper, DisplayCropper
 from core.enums import FunctionType, Preset
-from file_types import Photo, Table, Video
+from file_types import registry
 from line_edits import NumberLineEdit, PathLineEdit, LineEditState
 from ui import utils as ut
 from .control_widget import UiCropControlWidget
@@ -414,7 +414,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         """
 
         extensions = {y.suffix.lower() for y in file_path.iterdir()}
-        mask = {ext in extensions for ext in Table.file_types}
+        mask = {ext in extensions for ext in registry.get_extensions('table')}
         try:
             assert isinstance(self.mapping_tab_widget, UiMappingTabWidget)
             assert isinstance(self.folder_tab_widget, UiFolderTabWidget)
@@ -437,15 +437,14 @@ class UiMainWindow(QtWidgets.QMainWindow):
             None
         """
 
-        match file_path.suffix.lower():
-            case suffix if suffix in Photo.file_types:
-                self.handle_image_file(file_path)
-            case suffix if suffix in Video.file_types:
-                self.handle_video_file(file_path)
-            case suffix if suffix in Table.file_types:
-                self.handle_pandas_file(file_path)
-            case _:
-                pass
+        if registry.is_valid_type(file_path, "photo") or registry.is_valid_type(file_path, "tiff") or registry.is_valid_type(file_path, "raw"):
+            self.handle_image_file(file_path)
+        elif registry.is_valid_type(file_path, "video"):
+            self.handle_video_file(file_path)
+        elif registry.is_valid_type(file_path, "table"):
+            self.handle_table_file(file_path)
+        else:
+            pass
 
     def handle_image_file(self, file_path: Path) -> None:
         """
@@ -491,7 +490,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.video_tab_widget.mediacontrolWidget_2.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PLAY))
         self.video_tab_widget.open_dropped_video()
 
-    def handle_pandas_file(self, file_path: Path) -> None:
+    def handle_table_file(self, file_path: Path) -> None:
         """
         Handles a pandas file by setting the function tab widget to the mapping tab, validating the file path, and opening the table.
 

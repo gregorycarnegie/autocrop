@@ -7,7 +7,7 @@ from PyQt6 import QtCore, QtGui, QtMultimedia, QtMultimediaWidgets, QtWidgets
 
 from core.croppers import VideoCropper
 from core.enums import FunctionType
-from file_types import Video
+from file_types import registry
 from line_edits import LineEditState, NumberLineEdit, PathLineEdit, PathType
 from ui import utils as ut
 from .batch_tab import UiCropBatchWidget
@@ -21,7 +21,7 @@ class UiVideoTabWidget(UiCropBatchWidget):
         self.crop_worker = crop_worker
         self.vol_cache = 70
         self.rewind_timer = QtCore.QTimer()
-        self.default_directory = Video.default_directory
+        self.default_directory = registry.get_default_dir("video").as_posix()
         self.player = QtMultimedia.QMediaPlayer()
         self.audio = QtMultimedia.QAudioOutput()
         self.start_position, self.stop_position, self.step = .0, .0, 100
@@ -431,7 +431,7 @@ class UiVideoTabWidget(UiCropBatchWidget):
     def open_video(self) -> None:
         self.check_playback_state()
         file_name, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open Video', self.default_directory,
-                                                             Video.type_string())
+                                                             FileRegistry.get_filter_string("video"))
         self.inputLineEdit.setText(file_name)
         if self.inputLineEdit.state is LineEditState.INVALID_INPUT:
             return

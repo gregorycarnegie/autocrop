@@ -4,11 +4,13 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 
 from core.croppers import FolderCropper
 from core.enums import FunctionType
-from file_types import Photo
+from file_types import registry
 from line_edits import PathLineEdit
 from ui import utils as ut
 from .batch_tab import UiCropBatchWidget
 from .enums import GuiIcon
+
+import numpy as np
 
 
 class UiFolderTabWidget(UiCropBatchWidget):
@@ -20,7 +22,9 @@ class UiFolderTabWidget(UiCropBatchWidget):
 
         self.file_model = QtGui.QFileSystemModel(self)
         self.file_model.setFilter(QtCore.QDir.Filter.NoDotAndDotDot | QtCore.QDir.Filter.Files)
-        self.file_model.setNameFilters(Photo.file_filter())
+        p_types = registry.get_extensions('photo') | registry.get_extensions('tiff') | registry.get_extensions('raw')
+        file_filter = np.array([f'*{file}' for file in p_types])
+        self.file_model.setNameFilters(file_filter)
 
         self.toolBox = QtWidgets.QToolBox(self)
         self.toolBox.setObjectName(u"toolBox")

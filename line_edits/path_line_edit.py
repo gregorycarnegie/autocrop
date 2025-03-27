@@ -3,7 +3,7 @@ from typing import Optional
 
 from PyQt6 import QtCore, QtWidgets
 
-from file_types import Photo, Table, Video
+from file_types import registry
 from .custom_line_edit import CustomLineEdit
 from .enums import PathType
 from .file_path_validator import FilePathValidator
@@ -77,17 +77,20 @@ class PathLineEdit(CustomLineEdit):
         Returns:
             bool: True if the path is valid, False otherwise.
         """
-        is_file, suffix = path.is_file(), path.suffix.lower()
-
+        is_file = path.is_file()
+        
         match self.path_type:
             case PathType.IMAGE:
-                valid_suffix = suffix in Photo.file_types
-                return is_file & valid_suffix
+                # return is_file and (registry.is_valid_type(path, "photo") or 
+                #                     registry.is_valid_type(path, "raw") or
+                #                     registry.is_valid_type(path, "animation"))
+                return is_file and (registry.is_valid_type(path, "photo") or 
+                                    registry.is_valid_type(path, "raw"))
             case PathType.TABLE:
-                valid_suffix = suffix in Table.file_types
-                return is_file & valid_suffix
+                return is_file and registry.is_valid_type(path, "table")
             case PathType.VIDEO:
-                valid_suffix = suffix in Video.file_types
-                return is_file & valid_suffix
+                return is_file and registry.is_valid_type(path, "video")
             case PathType.FOLDER:
                 return path.is_dir()
+            case _:
+                return False

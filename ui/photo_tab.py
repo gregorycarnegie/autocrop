@@ -4,7 +4,7 @@ from PyQt6 import QtCore, QtWidgets
 
 from core.croppers import PhotoCropper
 from core.enums import FunctionType
-from file_types import Photo
+from file_types import registry
 from line_edits import LineEditState, PathLineEdit, PathType
 from ui import utils as ut
 from .crop_widget import UiCropWidget
@@ -115,7 +115,7 @@ class UiPhotoTabWidget(UiCropWidget):
     def open_path(self, line_edit: PathLineEdit) -> None:
         if line_edit is self.inputLineEdit:
             f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
-                self, 'Open File', Photo.default_directory, Photo.type_string())
+                self, 'Open File', registry.get_default_dir("photo").as_posix(), registry.get_filter_string("photo"))
             line_edit.setText(f_name)
             if self.inputLineEdit.state is LineEditState.INVALID_INPUT:
                 return
