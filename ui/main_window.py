@@ -1,3 +1,5 @@
+from collections.abc import Callable
+from functools import partial
 from pathlib import Path
 from typing import Union, Optional
 
@@ -5,14 +7,13 @@ from PyQt6 import QtCore, QtWidgets, QtGui
 
 from core import face_tools as ft
 from core import processing as prc
-from core.croppers import FolderCropper, PhotoCropper, MappingCropper, VideoCropper
+from core.croppers import FolderCropper, PhotoCropper, MappingCropper, VideoCropper, DisplayCropper
 from core.enums import FunctionType, Preset
 from file_types import Photo, Table, Video
 from line_edits import NumberLineEdit, PathLineEdit, LineEditState
 from ui import utils as ut
 from .control_widget import UiCropControlWidget
 from .crop_widget import UiCropWidget
-from .display_cropper import DisplayCropper
 from .enums import GuiIcon
 from .folder_tab import UiFolderTabWidget
 from .mapping_tab import UiMappingTabWidget
@@ -105,11 +106,27 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_5 = ut.setup_vbox(u"verticalLayout_5", self.video_tab)
         self.video_tab_widget = UiVideoTabWidget(self.video_worker, u"video_tab_widget", self.video_tab)
 
-        self.display_worker = DisplayCropper(next(ft.generate_face_detection_tools()),
-                                             p_widget=self.photo_tab_widget,
-                                             f_widget=self.folder_tab_widget,
-                                             m_widget=self.mapping_tab_widget,
-                                             v_widget=self.video_tab_widget)
+        self.display_worker = DisplayCropper(next(ft.generate_face_detection_tools()))
+
+        # Register state retrieval functions for each widget type
+        for func_type, widget in [
+            (FunctionType.PHOTO, self.photo_tab_widget),
+            (FunctionType.FOLDER, self.folder_tab_widget),
+            (FunctionType.MAPPING, self.mapping_tab_widget),
+            (FunctionType.VIDEO, self.video_tab_widget)
+        ]:
+            self.display_worker.register_widget_state(
+                func_type, lambda w=widget: self.get_widget_state(w), lambda w=widget: self.get_path(w)
+            )
+            
+            # Connect signals
+            self.connect_widget_signals(widget, partial(self.display_worker.crop, func_type))
+            
+            # Connect the image updated event to the widget's setImage method
+            self.display_worker.events.image_updated.connect(
+                lambda _ft, img, w=widget, ft_expected=func_type:
+                    w.imageWidget.setImage(img) if _ft == ft_expected else None
+            )
 
         self.verticalLayout_5.addWidget(self.video_tab_widget)
 
@@ -186,8 +203,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
         QtCore.QMetaObject.connectSlotsByName(self)
 
-    # setupUi
-
+    # retranslateUi
     def retranslateUi(self):
         self.setWindowTitle(QtCore.QCoreApplication.translate("self", u"Face Cropper", None))
         self.actionAbout_Face_Cropper.setText(QtCore.QCoreApplication.translate("self", u"About Face Cropper", None))
@@ -212,7 +228,50 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.menuTools.setTitle(QtCore.QCoreApplication.translate("self", u"Tools", None))
         self.menuInfo.setTitle(QtCore.QCoreApplication.translate("self", u"Info", None))
 
-    # retranslateUi
+    @staticmethod
+    def get_widget_state(w: TabWidget):
+        control = w.controlWidget
+        return (
+            w.inputLineEdit.text(),
+            control.widthLineEdit.text(),
+            control.heightLineEdit.text(),
+            w.exposureCheckBox.isChecked(),
+            w.mfaceCheckBox.isChecked(),
+            w.tiltCheckBox.isChecked(),
+            control.sensitivityDial.value(),
+            control.fpctDial.value(),
+            control.gammaDial.value(),
+            control.topDial.value(),
+            control.bottomDial.value(),
+            control.leftDial.value(),
+            control.rightDial.value(),
+            control.radio_tuple,
+        )
+    
+    @staticmethod
+    def get_path(w: TabWidget) -> str:
+        return w.inputLineEdit.text()
+
+    @staticmethod
+    def connect_widget_signals(widget: TabWidget, crop_method: Callable) -> None:
+        """Connect signals with minimal overhead"""
+        signals = (
+            widget.inputLineEdit.textChanged,
+            widget.controlWidget.widthLineEdit.textChanged,
+            widget.controlWidget.heightLineEdit.textChanged,
+            widget.exposureCheckBox.stateChanged,
+            widget.mfaceCheckBox.stateChanged,
+            widget.tiltCheckBox.stateChanged,
+            widget.controlWidget.sensitivityDial.valueChanged,
+            widget.controlWidget.fpctDial.valueChanged,
+            widget.controlWidget.gammaDial.valueChanged,
+            widget.controlWidget.topDial.valueChanged,
+            widget.controlWidget.bottomDial.valueChanged,
+            widget.controlWidget.leftDial.valueChanged,
+            widget.controlWidget.rightDial.valueChanged
+        )
+        for signal in signals:
+            signal.connect(crop_method)
 
     def adjust_ui(self, app: QtWidgets.QApplication):
         if (screen := app.primaryScreen()) is None:
