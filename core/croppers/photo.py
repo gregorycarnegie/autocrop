@@ -33,13 +33,16 @@ class PhotoCropper(Cropper):
         if job.destination:
             # Check if the destination directory is writable.
             if not job.destination_accessible:
-                return self.access_error()
+                exception, message = self.create_error('access')
+                return self._display_error(exception, message)
             
             # Check if there is enough space on disk to process the files.
             if job.available_space == 0 or job.available_space < job.byte_size:
-                return self.capacity_error()
+                exception, message = self.create_error('capacity')
+                return self._display_error(exception, message)
         
             if self.MEM_FACTOR < 1:
-                return self.memory_error()
+                exception, message = self.create_error('memory')
+                return self._display_error(exception, message)
             
         prc.crop(image, job, self.face_detection_tools, new)

@@ -117,12 +117,12 @@ class BatchCropper(Cropper):
         try:
             future.result()  # This raises any exceptions that occurred during execution
         except FileNotFoundError:
-            self.file_error("File not found. Please check that all input files exist.")
+            self.create_error('file',"File not found. Please check that all input files exist.")
         except PermissionError:
-            self.access_error()
+            self.create_error('access')
         except OSError as e:
             if "space" in str(e).lower():
-                self.capacity_error()
+                self.create_error('capacity')
             else:
                 self._display_error(e, "File system error. Check input and output paths.")
         except ValueError as e:
@@ -130,7 +130,7 @@ class BatchCropper(Cropper):
         except (TypeError, AttributeError) as e:
             self._display_error(e, "Data type error. This may indicate a corrupted image file.")
         except MemoryError:
-            self.memory_error()
+            self.create_error('memory')
         except Exception as e:
             self._display_error(e, f"An unexpected error occurred: {type(e).__name__}")
         finally:
@@ -150,7 +150,7 @@ class BatchCropper(Cropper):
 
         # Check if the destination directory is writable
         if not job.destination_accessible:
-            self.access_error()
+            self.create_error('access')
             return False
 
         # If file count provided, check disk capacity
@@ -159,11 +159,11 @@ class BatchCropper(Cropper):
 
             # Check if there is enough space on disk to process the files
             if job.available_space == 0 or job.available_space < total_size:
-                self.capacity_error()
+                self.create_error('capacity')
                 return False
 
         if self.MEM_FACTOR < 1:
-            self.memory_error()
+            self.create_error('memory')
             return False
 
         return True

@@ -13,6 +13,7 @@ from ui import utils as ut
 from .control_widget import UiCropControlWidget
 from .enums import GuiIcon, FunctionTabSelectionState
 from .image_widget import ImageWidget
+from .tab_state import TabStateManager
 
 
 class UiCropWidget(QtWidgets.QWidget):
@@ -43,7 +44,7 @@ class UiCropWidget(QtWidgets.QWidget):
 
     def __init__(self, parent: QtWidgets.QWidget) -> None:
         super().__init__(parent)
-        # self.face_tool_list = face_tool_list
+        self.tab_state_manager = TabStateManager()
         self.size_policy1.setHorizontalStretch(0)
         self.size_policy1.setVerticalStretch(0)
 

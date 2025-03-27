@@ -38,8 +38,8 @@ class FolderCropper(BatchCropper):
 
         amount = len(file_list)
         if not amount:
-            self.amount_error()
-            return None, None
+            exception, message = self.create_error('amount')
+            return self._display_error(exception, message), None
 
         # Split the file list into chunks
         split_array = batched(file_list, amount // self.THREAD_NUMBER + 1)

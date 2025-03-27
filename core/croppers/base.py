@@ -1,5 +1,5 @@
 from threading import Lock
-from typing import ClassVar, Optional
+from typing import ClassVar, Literal, Optional
 
 import psutil
 from PyQt6.QtCore import pyqtSignal, QObject
@@ -35,6 +35,51 @@ class Cropper(QObject):
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__}>"
+
+    @staticmethod
+    def create_error(error_type: Literal['access', 'amount', 'capacity', 'file', 'file_type', 'directory', 'memory', 'thread'], custom_message: Optional[str] = None) -> tuple[Exception, str]:
+        errors = {
+            'access': (
+                PermissionError("Permission denied."),
+                custom_message or "Please check file permissions."
+            ),
+            'amount': (
+                FileNotFoundError("Source directory has no compatible files."),
+                custom_message or "Please check the source directory and try again."
+            ),
+            # Add other error types
+            'capacity': (
+                OSError("Not enough space on disk."),
+                custom_message or "Please free up some space and try again."
+            ),
+            'file': (
+                FileNotFoundError("File does not exist."),
+                custom_message or "Please check the file path and try again."
+            ),
+            'file_type': (
+                TypeError("File type is not supported."),
+                custom_message or "Please check the file type and try again."
+            ),
+            'directory': (
+                FileNotFoundError("Directory does not exist."),
+                custom_message or "Please check the directory path and try again."
+            ),
+            'memory': (
+                MemoryError("Not enough memory to complete task."),
+                custom_message or "Please free up some memory and try again."
+            ),
+            'thread': (
+                RuntimeError("Thread limit reached."),
+                custom_message or "Please try again later."
+            )
+        }
+        return errors.get(error_type, (Exception("Unknown error"), "An error occurred"))
+
+
+    # def handle_error(self, error_type: str, custom_message: Optional[str] = None) -> None:
+    #     exception, message = self.create_error(error_type, custom_message)
+    #     return self._display_error(exception, message)
+
 
     def reset_task(self) -> None:
         """
@@ -76,76 +121,4 @@ class Cropper(QObject):
         ut.show_error_box(f"{exception}\n{suggestion}")
         self.error.emit()
         self.end_task = True
-        return 
-    
-    def access_error(self) -> None:
-        """
-        Raises a permission error if the destination directory is not writable.
-        """
-        return self._display_error(
-            PermissionError("Permission denied. Please check file permissions."),
-            "Please check the destination directory and try again."
-        )
-
-    def amount_error(self) -> None:
-        """
-        Raises a file-not-found error if the source directory has no compatible files.
-        """
-        return self._display_error(
-            FileNotFoundError("Source directory has no compatible files."),
-            "Please check the source directory and try again."
-        )
-    
-    def capacity_error(self) -> None:
-        """
-        Raises an OSError if the disk does not have enough space.
-        """
-        return self._display_error(
-            OSError("Not enough space on disk."),
-            "Please free up some space and try again."
-        )
-    
-    def file_error(self, message: str = "Please check the file path and try again.") -> None:
-        """
-        Raises a file-not-found error if a file does not exist.
-        """
-        return self._display_error(
-            FileNotFoundError("File does not exist."),
-            message
-        )
-    
-    def file_type_error(self) -> None:
-        """
-        Raises a TypeError if the file type is unsupported.
-        """
-        return self._display_error(
-            TypeError("File type is not supported."),
-            "Please check the file type and try again."
-        )
-    
-    def directory_error(self) -> None:
-        """
-        Raises a file-not-found error if the directory does not exist.
-        """
-        return self._display_error(
-            FileNotFoundError("Directory does not exist."),
-            "Please check the directory path and try again."
-        )
-    
-    def memory_error(self) -> None:
-        """
-        Raises a MemoryError if the system does not have enough RAM to complete the task.
-        """
-        return self._display_error(
-            MemoryError("Not enough memory to complete task."),
-            "Please free up some memory and try again."
-        )
-    
-    def thread_error(self) -> None:
-        """
-        Raises a RuntimeError if the thread limit has been reached.
-        """
-        return self._display_error(
-            RuntimeError("Thread limit reached."),
-            "Please try again later."
-        )
+        return

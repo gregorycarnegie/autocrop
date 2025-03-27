@@ -1,11 +1,14 @@
 import cProfile
 import collections.abc as c
+import functools
+import hashlib
 import pstats
 import random
 import shutil
 from functools import cache, wraps
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Union
+from typing import Optional, Tuple, Dict
 
 import autocrop_rs as rs
 import cv2
@@ -14,14 +17,21 @@ import numba
 import numpy as np
 import numpy.typing as npt
 import polars as pl
-import rawpy
 import tifffile as tiff
 from rawpy._rawpy import NotSupportedError, LibRawError, LibRawFatalError, LibRawNonFatalError
 
 from file_types import Photo
 from .face_tools import CAFFE_MODEL, PROTO_TXT, L_EYE_START, L_EYE_END, R_EYE_START, R_EYE_END
+from .image_loader import ImageLoader
 from .job import Job
-from .operation_types import Box, FaceToolPair, ImageArray, SaveFunction
+from .operation_types import FaceToolPair, ImageArray, SaveFunction
+
+# Type definition for Box
+Box = Tuple[int, int, int, int]  # (x0, y0, x1, y1)
+
+# Global cache for actual storage of detection results
+# This allows us to store and retrieve actual results
+_detection_cache: Dict[str, Optional[Box]] = {}
 
 # Define constants
 GAMMA_THRESHOLD = .001
@@ -217,26 +227,60 @@ def align_head(input_image: ImageArray,
     angle, center_x, center_y = get_angle_of_tilt(landmarks_array, scaling_factor)
     return rotate_image(input_image, angle, (center_x, center_y))
 
+
 def colour_expose_allign(img:cvt.MatLike, face_detection_tools: FaceToolPair, exposure:bool, tilt:bool) -> cvt.MatLike:
     # Convert BGR -> RGB for consistency
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = correct_exposure(img, exposure)
     return align_head(img, face_detection_tools, tilt)
 
-def open_image(input_image: Path,
-               face_detection_tools: FaceToolPair,
-               *,
-               exposure: bool,
-               tilt: bool) -> Optional[cvt.MatLike]:
+
+def open_pic(input_image: Path,
+             face_detection_tools: FaceToolPair,
+             *,
+             exposure: bool,
+             tilt: bool) -> Optional[cvt.MatLike]:
     """
     Opens a non-RAW image using OpenCV, corrects exposure (optional), aligns head (optional).
     """
 
-    img = cv2.imread(input_image.as_posix())
-    if img is None:
+    img_path = input_image.as_posix()
+    if input_image.suffix.lower() in Photo.CV2_TYPES:
+        img = ImageLoader.loader('standard')(img_path)
+        if img is None:
+            return None
+
+        return colour_expose_allign(img, face_detection_tools, exposure, tilt)
+
+    elif input_image.suffix.lower() in Photo.RAW_TYPES:
+        try:
+            with ImageLoader.loader('raw')(img_path) as raw:
+                try:
+                    # Post-processing can also raise exceptions
+                    img = raw.postprocess(use_camera_wb=True)
+
+                    # Process the image further
+                    if exposure:
+                        img = correct_exposure(img, exposure)
+
+                    return align_head(img, face_detection_tools, tilt)
+
+                except (MemoryError, ValueError, TypeError) as e:
+                    # Log more specific post-processing errors
+                    print(f"Error post-processing RAW image {img_path}: {str(e)}")
+                    return None
+
+        except (NotSupportedError, LibRawFatalError, LibRawError, LibRawNonFatalError) as e:
+            print(f"Error reading RAW file {img_path}: {str(e)}")
+            return None
+
+        except Exception as e:
+            # Catch any other unexpected exceptions to ensure resources are released
+            print(f"Unexpected error processing RAW file {img_path}: {str(e)}")
+            return None
+    else:
         return None
 
-    return colour_expose_allign(img, face_detection_tools, exposure, tilt)
 
 def open_animation(input_image: Path,
                    face_detection_tools: FaceToolPair,
@@ -251,64 +295,12 @@ def open_animation(input_image: Path,
         return (colour_expose_allign(frame, face_detection_tools, exposure, tilt) for frame in animation.frames)
 
 
-def open_raw(input_image: Path,
-             face_detection_tools: FaceToolPair, *,
-             exposure: bool,
-             tilt: bool) -> Optional[cvt.MatLike]:
-    """
-    Opens a RAW image using rawpy, applies basic post-processing, corrects exposure (optional), aligns head (optional).
-    """
-    img_path = input_image.as_posix()
-    try:
-        with rawpy.imread(img_path) as raw:
-            try:
-                # Post-processing can also raise exceptions
-                img = raw.postprocess(use_camera_wb=True)
-                
-                # Process the image further
-                if exposure:
-                    img = correct_exposure(img, exposure)
-                    
-                return align_head(img, face_detection_tools, tilt)
-                
-            except (MemoryError, ValueError, TypeError) as e:
-                # Log more specific post-processing errors
-                print(f"Error post-processing RAW image {img_path}: {str(e)}")
-                return None
-                
-    except (NotSupportedError, LibRawFatalError, LibRawError, LibRawNonFatalError) as e:
-        print(f"Error reading RAW file {img_path}: {str(e)}")
-        return None
-    except Exception as e:
-        # Catch any other unexpected exceptions to ensure resources are released
-        print(f"Unexpected error processing RAW file {img_path}: {str(e)}")
-        return None
-
-
 def open_table(input_file: Path) -> pl.DataFrame:
     """
     Opens a CSV or Excel file using Polars.
     """
 
     return pl.read_csv(input_file) if input_file.suffix.lower() == '.csv' else pl.read_excel(input_file)
-
-def open_pic(input_file: Union[Path, str],
-             face_detection_tools: FaceToolPair,
-             *,
-             exposure: bool,
-             tilt: bool) -> Optional[cvt.MatLike]:
-    """
-    Dispatches to open_image or open_raw based on file extension.
-    """
-
-    file_path = Path(input_file) if isinstance(input_file, str) else input_file
-    ext = file_path.suffix.lower()
-
-    if ext in Photo.CV2_TYPES:
-        return open_image(file_path, face_detection_tools, exposure=exposure, tilt=tilt)
-    if ext in Photo.RAW_TYPES:
-        return open_raw(file_path, face_detection_tools, exposure=exposure, tilt=tilt)
-    return None
 
 
 def prepare_detections(input_image: cvt.MatLike) -> cvt.MatLike:
@@ -444,19 +436,127 @@ def multi_box_positions(input_image: cvt.MatLike,
     return confidences, get_multibox_coordinates(box_outputs.astype(np.int_), job)
 
 
-def box_detect(input_image: cvt.MatLike,
-               job: Job) -> Optional[Box]:
+@functools.lru_cache(maxsize=64)
+def detect_face_cached(img_hash: str, threshold: int, face_percent: int, 
+                       sensitivity: int, _gamma: int, width: int, height: int,
+                       multi_face: bool) -> Optional[Box]:
     """
-    High-level face detection for a single face, returning a bounding box if found.
+    Cached face detection to avoid reprocessing identical images with identical parameters.
+    
+    Args:
+        img_hash: A hash string uniquely identifying the image
+        threshold: Detection confidence threshold
+        face_percent: Percentage of face to include in crop
+        sensitivity: Detection sensitivity
+        _gamma: Gamma correction value
+        width: Width of the image
+        height: Height of the image
+        multi_face: Whether to detect multiple faces
+        
+    Returns:
+        Box coordinates (x0, y0, x1, y1) if a face is detected, None otherwise
     """
+    # Create a cache key that uniquely identifies this detection request
+    cache_key = (f"{img_hash}_{threshold}_{face_percent}_{sensitivity}_"
+                f"{_gamma}_{width}_{height}_{multi_face}")
 
+    # Check if this result is already in our cache
+    return _detection_cache[cache_key] if cache_key in _detection_cache else None
+
+def store_detection_result(img_hash: str, threshold: int, face_percent: int,
+                           sensitivity: int, _gamma: int, width: int, height: int,
+                           multi_face: bool, box_result: Optional[Box]) -> None:
+    """
+    Store a detection result in the cache for future use.
+    
+    Args:
+        img_hash: A hash string uniquely identifying the image
+        threshold: Detection confidence threshold
+        face_percent: Percentage of face to include in crop
+        sensitivity: Detection sensitivity
+        _gamma: Gamma correction value
+        width: Width of the image
+        height: Height of the image
+        multi_face: Whether to detect multiple faces
+        box_result: The detection result to cache
+    """
+    cache_key = (f"{img_hash}_{threshold}_{face_percent}_{sensitivity}_"
+                 f"{_gamma}_{width}_{height}_{multi_face}")
+    
+    # Store the result in our cache
+    _detection_cache[cache_key] = box_result
+    
+    # Also invoke the cached function to update the LRU cache
+    detect_face_cached(img_hash, threshold, face_percent, sensitivity, 
+                      _gamma, width, height, multi_face)
+
+def box_detect(input_image: cvt.MatLike, job: Job) -> Optional[Box]:
+    """
+    Detect face in an image with optimized performance through caching and downscaling.
+    
+    Args:
+        input_image: Input image in OpenCV format
+        job: Job configuration containing detection parameters
+        
+    Returns:
+        Box coordinates if a face is detected, None otherwise
+    """
     try:
-        # get width and height of the image
         height, width = input_image.shape[:2]
-    except AttributeError:
+        
+        # Optionally downscale for faster detection if image is large
+        scale_factor = max(1, min(width, height) // 500)  # Don't upscale small images
+        
+        # Create a properly enhanced implementation of face detection with caching
+        def perform_detection_with_cache(img, w, h):
+            # Create a hash of the image
+            img_hash = hashlib.blake2b(img.tobytes()).hexdigest()
+            
+            # Extract job parameters that affect detection
+            threshold = job.threshold
+            face_percent = job.face_percent
+            sensitivity = job.sensitivity
+            _gamma = job.gamma
+            multi_face = job.multi_face_job
+            
+            # Try to get cached result
+            result = detect_face_cached(img_hash, threshold, face_percent,
+                                        sensitivity, _gamma, w, h, multi_face)
+            
+            # If not in cache, perform actual detection
+            if result is None:
+                result = box(img, job, width=w, height=h)
+                
+                # Store the result in the cache
+                store_detection_result(img_hash, threshold, face_percent,
+                                       sensitivity, _gamma, w, h, multi_face, result)
+            
+            return result
+            
+        if scale_factor > 1:
+            # Resize the image for faster processing
+            small_img = cv2.resize(input_image, (width // scale_factor, height // scale_factor))
+            small_height, small_width = small_img.shape[:2]
+            
+            # Perform detection on the smaller image with caching
+            box_result = perform_detection_with_cache(small_img, small_width, small_height)
+            
+            # If a face was detected, scale box back to original size
+            if box_result:
+                return (
+                    box_result[0] * scale_factor,
+                    box_result[1] * scale_factor,
+                    box_result[2] * scale_factor,
+                    box_result[3] * scale_factor
+                )
+            return None
+        else:
+            # For small images, use the original size but still cache
+            return perform_detection_with_cache(input_image, width, height)
+            
+    except (AttributeError, IndexError):
         return None
-    return box(input_image, job, width=width, height=height)
-
+    
 
 def get_first_file(img_path: Path) -> Optional[Path]:
     """
@@ -479,6 +579,7 @@ def mask_extensions(file_list: npt.NDArray[np.str_]) -> tuple[npt.NDArray[np.boo
     file_suffixes = np.array([Path(file).suffix.lower() for file in file_list])
     mask = np.isin(file_suffixes, tuple(Photo.file_types))
     return mask, np.count_nonzero(mask)
+
 
 def split_by_cpus(mask: npt.NDArray[np.bool_],
                   core_count: int,
@@ -655,7 +756,6 @@ def multi_crop(source_image: Union[cvt.MatLike, Path],
     if np.any(confidences > job.threshold):
         # Cropped images
         return map(lambda pos: process_image(img, job, pos), crop_positions)
-        # return (process_image(img, job, pos) for pos in crop_positions)
     else:
         return None
 

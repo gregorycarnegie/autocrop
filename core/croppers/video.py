@@ -52,8 +52,8 @@ class VideoCropper(Cropper):
             timestamp_seconds = frame_to_timestamp(position_slider, 1000.0)
             video_stream = get_video_stream(video_line_edit)
             if not video_stream:
-                self.file_error("Video Stream not found")
-                return None
+                exception, message = self.create_error('file', "Video Stream not found")
+                return self._display_error(exception, message)
             width, height = int(video_stream['width']), int(video_stream['height'])
             return ffmpeg_input(video_line_edit, timestamp_seconds, width, height)
         except ffmpeg.Error as e:
@@ -169,13 +169,14 @@ class VideoCropper(Cropper):
         if not job.video_path or not job.start_position or not job.stop_position or not job.destination:
             return None
         if not job.destination_accessible:
-            return self.access_error()
+            exception, message = self.create_error('access')
+            return self._display_error(exception, message)
 
         try:
             video_stream = get_video_stream(job.video_path.as_posix())
             if not video_stream:
-                self.file_error("Video Stream not found")
-                return None
+                exception, message = self.create_error('file', "Video Stream not found")
+                return self._display_error(exception, message)
             fps = float(Fraction(video_stream['r_frame_rate']))
             width, height = int(video_stream['width']), int(video_stream['height'])
         except ffmpeg.Error as e:
@@ -188,10 +189,12 @@ class VideoCropper(Cropper):
         size = job.byte_size * (end_frame - start_frame)
 
         if job.available_space == 0 or job.available_space < size:
-            return self.capacity_error()
+            exception, message = self.create_error('capacity')
+            return self._display_error(exception, message)
 
         if self.MEM_FACTOR < 1:
-            return self.memory_error()
+            exception, message = self.create_error('memory')
+            return self._display_error(exception, message)
 
         total_frames = 1 + end_frame - start_frame
         self.progress.emit(0, total_frames)
