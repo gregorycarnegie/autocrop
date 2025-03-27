@@ -75,12 +75,6 @@ class Cropper(QObject):
         }
         return errors.get(error_type, (Exception("Unknown error"), "An error occurred"))
 
-
-    # def handle_error(self, error_type: str, custom_message: Optional[str] = None) -> None:
-    #     exception, message = self.create_error(error_type, custom_message)
-    #     return self._display_error(exception, message)
-
-
     def reset_task(self) -> None:
         """
         Resets the task-specific variables to their default values.

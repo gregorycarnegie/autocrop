@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from functools import lru_cache
-from typing import Optional, TypeVar
+from typing import Optional
 
 from PyQt6.QtCore import pyqtSignal, QObject
 from PyQt6.QtGui import QImage
@@ -9,8 +9,6 @@ from core.croppers.base import Cropper
 from core.enums import FunctionType
 from core.operation_types import FaceToolPair
 from .display_crop_utils import perform_crop_helper, WidgetState
-
-T = TypeVar('T')
 
 
 class EventEmitter(QObject):

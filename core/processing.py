@@ -8,7 +8,7 @@ import shutil
 from functools import cache, wraps
 from pathlib import Path
 from typing import Any, Union
-from typing import Optional, Tuple, Dict
+from typing import Optional
 
 import autocrop_rs as rs
 import cv2
@@ -24,14 +24,11 @@ from file_types import Photo
 from .face_tools import CAFFE_MODEL, PROTO_TXT, L_EYE_START, L_EYE_END, R_EYE_START, R_EYE_END
 from .image_loader import ImageLoader
 from .job import Job
-from .operation_types import FaceToolPair, ImageArray, SaveFunction
-
-# Type definition for Box
-Box = Tuple[int, int, int, int]  # (x0, y0, x1, y1)
+from .operation_types import FaceToolPair, ImageArray, SaveFunction, Box
 
 # Global cache for actual storage of detection results
 # This allows us to store and retrieve actual results
-_detection_cache: Dict[str, Optional[Box]] = {}
+_detection_cache: dict[str, Optional[Box]] = {}
 
 # Define constants
 GAMMA_THRESHOLD = .001
