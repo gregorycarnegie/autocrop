@@ -431,7 +431,7 @@ class UiVideoTabWidget(UiCropBatchWidget):
     def open_video(self) -> None:
         self.check_playback_state()
         file_name, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open Video', self.default_directory,
-                                                             FileRegistry.get_filter_string("video"))
+                                                             registry.get_filter_string("video"))
         self.inputLineEdit.setText(file_name)
         if self.inputLineEdit.state is LineEditState.INVALID_INPUT:
             return
