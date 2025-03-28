@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import polars as pl
 from PyQt6 import QtCore, QtWidgets
@@ -23,8 +23,8 @@ class UiMappingTabWidget(UiBatchCropWidget):
         super().__init__(crop_worker, object_name, parent)
 
         # Data model
-        self.model: DataFrameModel = None
-        self.data_frame: pl.DataFrame = None
+        self.model: Optional[DataFrameModel] = None
+        self.data_frame: Optional[pl.DataFrame] = None
 
         # Create mapping-specific widgets
         self.tableLineEdit = self.create_str_line_edit("tableLineEdit", PathType.TABLE)

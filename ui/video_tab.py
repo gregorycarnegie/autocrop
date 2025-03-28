@@ -1,17 +1,17 @@
+from multiprocessing import Process
 from pathlib import Path
 from threading import Thread
-from typing import Optional, Callable, Any, Literal, Union
-from multiprocessing import Process
+from typing import Optional, Callable, Any
 
 import numpy as np
 from PyQt6 import QtCore, QtGui, QtMultimedia, QtMultimediaWidgets, QtWidgets
 
+from core import Job
 from core import processing as prc
 from core.croppers import VideoCropper
 from core.enums import FunctionType
-from core import Job
 from file_types import registry
-from line_edits import LineEditState, NumberLineEdit, PathLineEdit, PathType
+from line_edits import LineEditState, PathType
 from ui import utils as ut
 from .crop_widget import UiCropWidget
 from .enums import GuiIcon
@@ -121,23 +121,6 @@ class UiVideoTabWidget(UiCropWidget):
         self.controlWidget.leftDial.valueChanged.connect(self.display_crop_preview)
         self.controlWidget.rightDial.valueChanged.connect(self.display_crop_preview)
 
-
-    # def add_preview_button(self):
-    #     """Adds a preview button to the UI"""
-    #     self.previewButton = QtWidgets.QPushButton("Update Preview")
-    #     self.previewButton.setObjectName("previewButton")
-    #     self.previewButton.setMinimumSize(QtCore.QSize(0, 40))
-    #     self.previewButton.setMaximumSize(QtCore.QSize(16_777_215, 40))
-    #     icon = ut.create_button_icon(GuiIcon.PICTURE)
-    #     self.previewButton.setIcon(icon)
-    #     self.previewButton.setIconSize(QtCore.QSize(18, 18))
-        
-    #     # Add to layout
-    #     self.verticalLayout_10.insertWidget(2, self.previewButton)
-        
-    #     # Connect signal
-    #     self.previewButton.clicked.connect(self.display_crop_preview)
-
     def create_progress_bar(self, name: str, parent: Optional[QtWidgets.QWidget] = None) -> QtWidgets.QProgressBar:
         """Create a progress bar with consistent styling"""
         progress_bar = QtWidgets.QProgressBar() if parent is None else QtWidgets.QProgressBar(parent)
@@ -148,254 +131,6 @@ class UiVideoTabWidget(UiCropWidget):
         progress_bar.setValue(0)
         progress_bar.setTextVisible(False)
         return progress_bar
-
-    # def setup_layouts(self) -> None:
-    #     """Set up the main layout structure"""
-    #     # ---- Page 1: Video Player ----
-    #     # Input file selection
-    #     self.inputLineEdit.setParent(self.page_1)
-    #     self.inputButton.setParent(self.page_1)
-        
-    #     input_layout = ut.setup_hbox("horizontalLayout_2")
-    #     input_layout.addWidget(self.inputLineEdit)
-    #     input_layout.addWidget(self.inputButton)
-    #     input_layout.setStretch(0, 1)
-        
-    #     self.verticalLayout_200.addLayout(input_layout)
-        
-    #     # Main frame with video player
-    #     frame_1 = self.create_main_frame("frame_1")
-    #     frame_1.setParent(self.page_1)
-    #     verticalLayout_9 = ut.setup_vbox("verticalLayout_9", frame_1)
-        
-    #     # Media controls layout
-    #     mediaControlLayout = ut.setup_hbox("horizontalLayout_1")
-        
-    #     # Mute button
-    #     self.muteButton_1.setObjectName("muteButton_1")
-    #     self.muteButton_1.setMinimumSize(QtCore.QSize(30, 30))
-    #     self.muteButton_1.setMaximumSize(QtCore.QSize(30, 30))
-    #     self.muteButton_1.setBaseSize(QtCore.QSize(30, 30))
-    #     self.muteButton_1.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_MUTE))
-    #     mediaControlLayout.addWidget(self.muteButton_1)
-        
-    #     # Volume slider
-    #     self.volumeSlider_1.setObjectName("volumeSlider_1")
-    #     size_policy3 = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed)
-    #     size_policy3.setHorizontalStretch(0)
-    #     size_policy3.setVerticalStretch(0)
-    #     size_policy3.setHeightForWidth(self.volumeSlider_1.sizePolicy().hasHeightForWidth())
-    #     self.volumeSlider_1.setSizePolicy(size_policy3)
-    #     self.volumeSlider_1.setMinimumSize(QtCore.QSize(0, 30))
-    #     self.volumeSlider_1.setMaximumSize(QtCore.QSize(16_777_215, 30))
-    #     self.volumeSlider_1.setMinimum(-1)
-    #     self.volumeSlider_1.setMaximum(100)
-    #     self.volumeSlider_1.setValue(70)
-    #     self.volumeSlider_1.setOrientation(QtCore.Qt.Orientation.Horizontal)
-    #     mediaControlLayout.addWidget(self.volumeSlider_1)
-        
-    #     # Position label
-    #     self.positionLabel_1.setObjectName("positionLabel_1")
-    #     size_policy4 = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Fixed)
-    #     size_policy4.setHorizontalStretch(0)
-    #     size_policy4.setVerticalStretch(0)
-    #     size_policy4.setHeightForWidth(self.positionLabel_1.sizePolicy().hasHeightForWidth())
-    #     self.positionLabel_1.setSizePolicy(size_policy4)
-    #     self.positionLabel_1.setMinimumSize(QtCore.QSize(0, 30))
-    #     self.positionLabel_1.setMaximumSize(QtCore.QSize(16_777_215, 30))
-    #     mediaControlLayout.addWidget(self.positionLabel_1)
-        
-    #     # Timeline slider
-    #     self.timelineSlider_1.setObjectName("timelineSlider_1")
-    #     size_policy5 = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
-    #     size_policy5.setHorizontalStretch(1)
-    #     size_policy5.setVerticalStretch(0)
-    #     size_policy5.setHeightForWidth(self.timelineSlider_1.sizePolicy().hasHeightForWidth())
-    #     self.timelineSlider_1.setSizePolicy(size_policy5)
-    #     self.timelineSlider_1.setMinimumSize(QtCore.QSize(0, 30))
-    #     self.timelineSlider_1.setMaximumSize(QtCore.QSize(16_777_215, 30))
-    #     self.timelineSlider_1.setOrientation(QtCore.Qt.Orientation.Horizontal)
-    #     mediaControlLayout.addWidget(self.timelineSlider_1)
-        
-    #     # Duration label
-    #     self.durationLabel_1.setObjectName("durationLabel_1")
-    #     size_policy4.setHeightForWidth(self.durationLabel_1.sizePolicy().hasHeightForWidth())
-    #     self.durationLabel_1.setSizePolicy(size_policy4)
-    #     self.durationLabel_1.setMinimumSize(QtCore.QSize(0, 30))
-    #     self.durationLabel_1.setMaximumSize(QtCore.QSize(16_777_215, 30))
-    #     mediaControlLayout.addWidget(self.durationLabel_1)
-        
-    #     # Horizontal spacer
-    #     horizontalSpacer_1 = QtWidgets.QSpacerItem(
-    #         20, 20, 
-    #         QtWidgets.QSizePolicy.Policy.Fixed,
-    #         QtWidgets.QSizePolicy.Policy.Minimum
-    #     )
-    #     mediaControlLayout.addItem(horizontalSpacer_1)
-        
-    #     # Checkboxes
-    #     self.mfaceCheckBox.setParent(frame_1)
-    #     self.tiltCheckBox.setParent(frame_1)
-    #     self.exposureCheckBox.setParent(frame_1)
-    #     mediaControlLayout.addWidget(self.mfaceCheckBox)
-    #     mediaControlLayout.addWidget(self.tiltCheckBox)
-    #     mediaControlLayout.addWidget(self.exposureCheckBox)
-        
-    #     mediaControlLayout.setStretch(0, 1)
-    #     mediaControlLayout.setStretch(1, 3)
-        
-    #     verticalLayout_9.addLayout(mediaControlLayout)
-        
-    #     # Video widget
-    #     self.videoWidget.setParent(frame_1)
-    #     self.size_policy_expand_expand.setHeightForWidth(self.videoWidget.sizePolicy().hasHeightForWidth())
-    #     self.videoWidget.setSizePolicy(self.size_policy_expand_expand)
-    #     self.videoWidget.setMinimumSize(QtCore.QSize(200, 200))
-        
-    #     verticalLayout_9.addWidget(self.videoWidget)
-        
-    #     # Media control widget 1
-    #     self.mediacontrolWidget_1 = UiMediaControlWidget(frame_1, self.player, self.crop_worker)
-    #     self.mediacontrolWidget_1.setObjectName("mediacontrolWidget_1")
-    #     verticalLayout_9.addWidget(self.mediacontrolWidget_1)
-        
-    #     # Progress bar
-    #     self.progressBar.setParent(frame_1)
-    #     verticalLayout_9.addWidget(self.progressBar)
-        
-    #     verticalLayout_9.setStretch(1, 1)
-        
-    #     self.verticalLayout_200.addWidget(frame_1)
-        
-    #     # Destination selection
-    #     self.destinationLineEdit.setParent(self.page_1)
-    #     self.destinationButton.setParent(self.page_1)
-        
-    #     destLayout = ut.setup_hbox("horizontalLayout_3")
-    #     destLayout.addWidget(self.destinationLineEdit)
-    #     destLayout.addWidget(self.destinationButton)
-    #     destLayout.setStretch(0, 1)
-        
-    #     self.verticalLayout_200.addLayout(destLayout)
-        
-    #     # Add page to toolbox
-    #     self.toolBox.addItem(self.page_1, "Video Player")
-        
-    #     # ---- Page 2: Crop View ----
-    #     # Main frame with crop preview
-    #     frame_2 = self.create_main_frame("frame_2")
-    #     frame_2.setParent(self.page_2)
-    #     verticalLayout_10 = ut.setup_vbox("verticalLayout_10", frame_2)
-
-
-        
-    #     # Connect signal
-    #     self.previewButton.clicked.connect(self.display_crop_preview)
-        
-    #     # Media controls layout for page 2
-    #     mediaControlLayout2 = ut.setup_hbox("horizontalLayout_5")
-        
-    #     # Mute button
-    #     self.muteButton_2.setObjectName("muteButton_2")
-    #     self.muteButton_2.setMinimumSize(QtCore.QSize(30, 30))
-    #     self.muteButton_2.setMaximumSize(QtCore.QSize(30, 30))
-    #     self.muteButton_2.setBaseSize(QtCore.QSize(30, 30))
-    #     self.muteButton_2.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_MUTE))
-    #     mediaControlLayout2.addWidget(self.muteButton_2)
-        
-    #     # Volume slider
-    #     self.volumeSlider_2.setObjectName("volumeSlider_2")
-    #     size_policy3.setHeightForWidth(self.volumeSlider_2.sizePolicy().hasHeightForWidth())
-    #     self.volumeSlider_2.setSizePolicy(size_policy3)
-    #     self.volumeSlider_2.setMinimumSize(QtCore.QSize(0, 30))
-    #     self.volumeSlider_2.setMaximumSize(QtCore.QSize(16_777_215, 30))
-    #     self.volumeSlider_2.setMinimum(-1)
-    #     self.volumeSlider_2.setMaximum(100)
-    #     self.volumeSlider_2.setValue(70)
-    #     self.volumeSlider_2.setOrientation(QtCore.Qt.Orientation.Horizontal)
-    #     mediaControlLayout2.addWidget(self.volumeSlider_2)
-        
-    #     # Position label
-    #     self.positionLabel_2.setObjectName("positionLabel_2")
-    #     size_policy4.setHeightForWidth(self.positionLabel_2.sizePolicy().hasHeightForWidth())
-    #     self.positionLabel_2.setSizePolicy(size_policy4)
-    #     self.positionLabel_2.setMinimumSize(QtCore.QSize(0, 30))
-    #     self.positionLabel_2.setMaximumSize(QtCore.QSize(16_777_215, 30))
-    #     mediaControlLayout2.addWidget(self.positionLabel_2)
-        
-    #     # Timeline slider
-    #     self.timelineSlider_2.setObjectName("timelineSlider_2")
-    #     size_policy5.setHeightForWidth(self.timelineSlider_2.sizePolicy().hasHeightForWidth())
-    #     self.timelineSlider_2.setSizePolicy(size_policy5)
-    #     self.timelineSlider_2.setMinimumSize(QtCore.QSize(0, 30))
-    #     self.timelineSlider_2.setMaximumSize(QtCore.QSize(16_777_215, 30))
-    #     self.timelineSlider_2.setOrientation(QtCore.Qt.Orientation.Horizontal)
-    #     mediaControlLayout2.addWidget(self.timelineSlider_2)
-        
-    #     # Duration label
-    #     self.durationLabel_2.setObjectName("durationLabel_2")
-    #     size_policy4.setHeightForWidth(self.durationLabel_2.sizePolicy().hasHeightForWidth())
-    #     self.durationLabel_2.setSizePolicy(size_policy4)
-    #     self.durationLabel_2.setMinimumSize(QtCore.QSize(0, 30))
-    #     self.durationLabel_2.setMaximumSize(QtCore.QSize(16_777_215, 30))
-    #     mediaControlLayout2.addWidget(self.durationLabel_2)
-        
-    #     mediaControlLayout2.setStretch(0, 1)
-    #     mediaControlLayout2.setStretch(1, 3)
-        
-    #     verticalLayout_10.addLayout(mediaControlLayout2)
-        
-    #     # Checkbox section for page 2
-    #     self.toggleCheckBox.setParent(frame_2)
-    #     self.mfaceCheckBox_2.setParent(frame_2)
-    #     self.tiltCheckBox_2.setParent(frame_2)
-    #     self.exposureCheckBox_2.setParent(frame_2)
-        
-    #     checkboxLayout = ut.setup_hbox("horizontalLayout_4")
-    #     checkboxLayout.addWidget(self.toggleCheckBox)
-        
-    #     # Add spacer
-    #     horizontalSpacer_2 = QtWidgets.QSpacerItem(
-    #         40, 20, 
-    #         QtWidgets.QSizePolicy.Policy.Expanding,
-    #         QtWidgets.QSizePolicy.Policy.Minimum
-    #     )
-    #     checkboxLayout.addItem(horizontalSpacer_2)
-        
-    #     # Add checkboxes
-    #     checkboxLayout.addWidget(self.mfaceCheckBox_2)
-    #     checkboxLayout.addWidget(self.tiltCheckBox_2)
-    #     checkboxLayout.addWidget(self.exposureCheckBox_2)
-        
-    #     # Set stretch factor for spacer
-    #     checkboxLayout.setStretch(1, 20)
-        
-    #     verticalLayout_10.addLayout(checkboxLayout)
-        
-    #     # Image widget (preview)
-    #     self.imageWidget.setParent(frame_2)
-    #     verticalLayout_10.addWidget(self.imageWidget)
-        
-    #     # Media control widget 2
-    #     self.mediacontrolWidget_2 = UiMediaControlWidget(frame_2, self.player, self.crop_worker)
-    #     self.mediacontrolWidget_2.setObjectName("mediacontrolWidget_2")
-    #     verticalLayout_10.addWidget(self.mediacontrolWidget_2)
-        
-    #     # Progress bar 2
-    #     self.progressBar_2.setParent(frame_2)
-    #     verticalLayout_10.addWidget(self.progressBar_2)
-        
-    #     # Add frame to page layout
-    #     self.verticalLayout_300.addWidget(frame_2)
-        
-    #     # Add page to toolbox
-    #     self.toolBox.addItem(self.page_2, "Crop View")
-        
-    #     # Add toolbox to main layout
-    #     self.verticalLayout_100.addWidget(self.toolBox)
-        
-    #     # Set up the media player
-    #     self.create_media_player()
 
     def setup_layouts(self) -> None:
         """Set up the main layout structure"""
@@ -983,7 +718,8 @@ class UiVideoTabWidget(UiCropWidget):
         """Go to the end of the video"""
         self.player.setPosition(self.player.duration())
 
-    def set_marker_time(self, button: QtWidgets.QPushButton, flag: bool, time_value: float, position: float) -> None:
+    @staticmethod
+    def set_marker_time(button: QtWidgets.QPushButton, flag: bool, time_value: float, position: float) -> None:
         """Set time marker button text"""
         if flag:
             position = time_value
@@ -1082,7 +818,8 @@ class UiVideoTabWidget(UiCropWidget):
         self.progressBar_2.setValue(value)
         QtWidgets.QApplication.processEvents()
 
-    def cancel_button_operation(self, cancel_button: QtWidgets.QPushButton, *crop_buttons: QtWidgets.QPushButton) -> None:
+    @staticmethod
+    def cancel_button_operation(cancel_button: QtWidgets.QPushButton, *crop_buttons: QtWidgets.QPushButton) -> None:
         """Handle cancel button operations"""
         cancel_button.setDisabled(True)
         for crop_button in crop_buttons:
@@ -1138,10 +875,11 @@ class UiVideoTabWidget(UiCropWidget):
                     return
         else:
             execute_crop()
-            
-    def run_batch_process(self, job: Job, *,
-                            function: Callable[..., Any],
-                            reset_worker_func: Callable[..., Any]) -> None:
+
+    @staticmethod
+    def run_batch_process(job: Job, *,
+                          function: Callable[..., Any],
+                          reset_worker_func: Callable[..., Any]) -> None:
         """Run a batch processing operation"""
         reset_worker_func()
         process = Process(target=function, daemon=True, args=(job,))

@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 from PyQt6 import QtCore, QtGui, QtWidgets
@@ -26,6 +27,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
 
         # Set up the main layout structure
         self.setup_layouts()
+        self.treeView: Optional[QtWidgets.QTreeView] = None
 
         # Connect signals
         self.connect_signals()
