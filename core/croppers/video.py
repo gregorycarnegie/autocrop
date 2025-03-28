@@ -26,39 +26,64 @@ def frame_to_timestamp(frame_number: int, fps: float) -> float:
 
 @cache
 def ffmpeg_input(video_line_edit: str, timestamp_seconds: float, width: int, height: int) -> npt.NDArray[np.uint8]:
+    """Get a frame from a video at the specified timestamp."""
     out, _ = (
         ffmpeg.input(video_line_edit, ss=timestamp_seconds)
-        .output('pipe:', format='rawvideo', pix_fmt='rgb24', vframes=1)
+        .output('pipe:', format='rawvideo', pix_fmt='rgb24', vframes=1, s=f'{width}x{height}')
         .run(capture_stdout=True, quiet=True)
     )
-    return np.frombuffer(out).reshape((height, width, 3)).astype(np.uint8)
+    # Now the output will match our specified dimensions
+    return np.frombuffer(out, np.uint8).reshape((height, width, 3))
 
 class VideoCropper(Cropper):
     def __init__(self, face_detection_tools: c.Iterator[FaceToolPair]):
         super().__init__()
         self.face_detection_tools = next(face_detection_tools)
 
-    def ffmpeg_error(self, error: BaseException, message: str = "Please check the video file and try again.") -> None:
+    def grab_frame(self, position_slider: int, video_line_edit: str, for_preview: bool = False) -> Optional[npt.NDArray[np.uint8]]:
         """
-        Raises a permission error if the destination directory is not writable.
+        Grabs a frame from the video at the specified position.
+        
+        Args:
+            position_slider (int): Position value from the slider
+            video_line_edit (str): Path to the video file
+            for_preview (bool): If True, uses a lower resolution for performance
+            
+        Returns:
+            Optional[npt.NDArray[np.uint8]]: The frame as a NumPy array, or None if error
         """
-        return self._display_error(
-            error,
-            message
-        )
-
-    def grab_frame(self, position_slider: int, video_line_edit: str) -> Optional[npt.NDArray[np.uint8]]:
         try:
             timestamp_seconds = frame_to_timestamp(position_slider, 1000.0)
             video_stream = get_video_stream(video_line_edit)
             if not video_stream:
                 exception, message = self.create_error('file', "Video Stream not found")
                 return self._display_error(exception, message)
-            width, height = int(video_stream['width']), int(video_stream['height'])
+                
+            # Get original dimensions
+            orig_width, orig_height = int(video_stream['width']), int(video_stream['height'])
+            
+            # For preview, use a smaller resolution for better performance
+            if for_preview:
+                # Calculate scale to keep aspect ratio but limit size
+                scale = min(800 / orig_width, 600 / orig_height) if (orig_width > 800 or orig_height > 600) else 1.0
+                # Ensure dimensions are even numbers (required by some video codecs)
+                width = int(orig_width * scale) // 2 * 2
+                height = int(orig_height * scale) // 2 * 2
+            else:
+                width, height = orig_width, orig_height
+                
+            # Get the frame with specified dimensions
             return ffmpeg_input(video_line_edit, timestamp_seconds, width, height)
-        except ffmpeg.Error as e:
-            self.ffmpeg_error(e, "Unable to grab frame")
-            return None
+        except ffmpeg.Error:
+            exception, message = self.create_error('ffmpeg')
+            return self._display_error(exception, message)
+        except ValueError:
+            # As a fallback, try with original dimensions
+            try:
+                return ffmpeg_input(video_line_edit, timestamp_seconds, orig_width, orig_height)
+            except ffmpeg.Error:
+                exception, message = self.create_error('ffmpeg')
+                return self._display_error(exception, message)
 
     def crop_frame(self, job: Job, position_label: QLabel, timeline_slider: QSlider) -> None:
         """

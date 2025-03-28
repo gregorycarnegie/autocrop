@@ -1,6 +1,7 @@
 from threading import Lock
 from typing import ClassVar, Literal, Optional
 
+import ffmpeg
 import psutil
 from PyQt6.QtCore import pyqtSignal, QObject
 
@@ -37,7 +38,7 @@ class Cropper(QObject):
         return f"<{type(self).__name__}>"
 
     @staticmethod
-    def create_error(error_type: Literal['access', 'amount', 'capacity', 'file', 'file_type', 'directory', 'memory', 'thread'], custom_message: Optional[str] = None) -> tuple[Exception, str]:
+    def create_error(error_type: Literal['access', 'amount', 'capacity', 'ffmpeg', 'file', 'file_type', 'directory', 'memory', 'thread'], custom_message: Optional[str] = None) -> tuple[Exception, str]:
         errors = {
             'access': (
                 PermissionError("Permission denied."),
@@ -55,6 +56,10 @@ class Cropper(QObject):
             'file': (
                 FileNotFoundError("File does not exist."),
                 custom_message or "Please check the file path and try again."
+            ),
+            'ffmpeg': (
+                ffmpeg.Error,
+                custom_message or "Unable to grab frame"
             ),
             'file_type': (
                 TypeError("File type is not supported."),

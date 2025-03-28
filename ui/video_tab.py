@@ -5,6 +5,7 @@ from typing import Literal
 import numpy as np
 from PyQt6 import QtCore, QtGui, QtMultimedia, QtMultimediaWidgets, QtWidgets
 
+from core import processing as prc
 from core.croppers import VideoCropper
 from core.enums import FunctionType
 from file_types import registry
@@ -260,6 +261,9 @@ class UiVideoTabWidget(UiCropBatchWidget):
 
         self.verticalLayout_10.addWidget(self.progressBar_2)
 
+        self.add_preview_button()
+        self.connect_preview_updates() 
+
         self.verticalLayout_300.addWidget(self.frame_2)
 
         self.toolBox.addItem(self.page_2, u"Crop View")
@@ -292,6 +296,8 @@ class UiVideoTabWidget(UiCropBatchWidget):
         self.timelineSlider_2.sliderMoved.connect(self.timelineSlider_1.setSliderPosition)
         self.inputButton.clicked.connect(lambda: self.open_video())
         self.destinationButton.clicked.connect(lambda: self.open_path(self.destinationLineEdit))
+        self.inputLineEdit.textChanged.connect(lambda: QtCore.QTimer.singleShot(1000, self.display_crop_preview))
+    
 
         for control in [self.mediacontrolWidget_1, self.mediacontrolWidget_2]:
             control.cropButton.clicked.connect(lambda: self.crop_frame())
@@ -370,6 +376,77 @@ class UiVideoTabWidget(UiCropBatchWidget):
         self.exposureCheckBox_2.setText(QtCore.QCoreApplication.translate("self", u"Autocorrect", None))
         self.toolBox.setItemText(self.toolBox.indexOf(self.page_2),
                                  QtCore.QCoreApplication.translate("self", u"Crop View", None))
+
+    def display_crop_preview(self) -> None:
+        """Captures the current frame and displays crop preview in the imageWidget"""
+        try:
+            # Only proceed if we have a valid video loaded
+            if not self.inputLineEdit.text() or self.inputLineEdit.state == LineEditState.INVALID_INPUT:
+                return
+            
+            # Get current position
+            position = self.timelineSlider_1.value()
+            
+            # Use the optimized grab_frame method for preview
+            frame = self.crop_worker.grab_frame(position, self.inputLineEdit.text(), for_preview=True)
+            if frame is None:
+                return
+            
+            # Create a job with current settings
+            job = self.create_job(FunctionType.FRAME,
+                                  video_path=Path(self.inputLineEdit.text()),
+                                  destination=Path(self.destinationLineEdit.text() or "."))
+            
+            # Process the frame
+            if job.multi_face_job:
+                # If multi-face is enabled, show bounding boxes on all faces
+                processed_image = prc.multi_box(frame, job)
+                ut.display_image_on_widget(processed_image, self.imageWidget)
+            else:
+                # For single face, show a crop preview
+                cropped_image = prc.crop_image(frame, job, self.crop_worker.face_detection_tools)
+                if cropped_image is not None:
+                    # Display the cropped image
+                    ut.display_image_on_widget(cropped_image, self.imageWidget)
+        except Exception as e:
+            print(f"Error in display_crop_preview: {e}")
+            # You might want to show an error message in the UI as well
+
+    def connect_preview_updates(self):
+        """Connect signals that should trigger a preview update"""
+        # Connect to player position changes
+        self.timelineSlider_1.sliderReleased.connect(self.display_crop_preview)
+        self.timelineSlider_2.sliderReleased.connect(self.display_crop_preview)
+        
+        # Connect to settings changes
+        self.mfaceCheckBox.stateChanged.connect(self.display_crop_preview)
+        self.tiltCheckBox.stateChanged.connect(self.display_crop_preview)
+        self.exposureCheckBox.stateChanged.connect(self.display_crop_preview)
+        self.controlWidget.widthLineEdit.textChanged.connect(self.display_crop_preview)
+        self.controlWidget.heightLineEdit.textChanged.connect(self.display_crop_preview)
+        self.controlWidget.sensitivityDial.valueChanged.connect(self.display_crop_preview)
+        self.controlWidget.fpctDial.valueChanged.connect(self.display_crop_preview)
+        self.controlWidget.gammaDial.valueChanged.connect(self.display_crop_preview)
+        self.controlWidget.topDial.valueChanged.connect(self.display_crop_preview)
+        self.controlWidget.bottomDial.valueChanged.connect(self.display_crop_preview)
+        self.controlWidget.leftDial.valueChanged.connect(self.display_crop_preview)
+        self.controlWidget.rightDial.valueChanged.connect(self.display_crop_preview)
+
+    def add_preview_button(self):
+        """Adds a preview button to the UI"""
+        self.previewButton = QtWidgets.QPushButton("Update Preview")
+        self.previewButton.setObjectName("previewButton")
+        self.previewButton.setMinimumSize(QtCore.QSize(0, 40))
+        self.previewButton.setMaximumSize(QtCore.QSize(16_777_215, 40))
+        icon = ut.create_button_icon(GuiIcon.PICTURE)
+        self.previewButton.setIcon(icon)
+        self.previewButton.setIconSize(QtCore.QSize(18, 18))
+        
+        # Add to layout
+        self.verticalLayout_10.insertWidget(2, self.previewButton)
+        
+        # Connect signal
+        self.previewButton.clicked.connect(self.display_crop_preview)
 
     def update_progress(self, x: int, y:int) -> None:
         """Only sublasses of the CropBatchWidget class should implement this method"""
