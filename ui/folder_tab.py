@@ -1,165 +1,182 @@
 from pathlib import Path
 
+import numpy as np
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from core.croppers import FolderCropper
 from core.enums import FunctionType
 from file_types import registry
-from line_edits import PathLineEdit
 from ui import utils as ut
-from .batch_tab import UiCropBatchWidget
-from .enums import GuiIcon
-
-import numpy as np
+from .batch_tab import UiBatchCropWidget
 
 
-class UiFolderTabWidget(UiCropBatchWidget):
-    def __init__(self, crop_worker: FolderCropper,
-                 object_name: str,
-                 parent: QtWidgets.QWidget) -> None:
-        super().__init__(object_name, parent)
-        self.crop_worker = crop_worker
+class UiFolderTabWidget(UiBatchCropWidget):
+    """Folder tab widget with enhanced inheritance from the batch crop widget"""
 
+    def __init__(self, crop_worker: FolderCropper, object_name: str, parent: QtWidgets.QWidget) -> None:
+        """Initialize the folder tab widget"""
+        super().__init__(crop_worker, object_name, parent)
+
+        # Create file model for the tree view
         self.file_model = QtGui.QFileSystemModel(self)
         self.file_model.setFilter(QtCore.QDir.Filter.NoDotAndDotDot | QtCore.QDir.Filter.Files)
         p_types = registry.get_extensions('photo') | registry.get_extensions('tiff') | registry.get_extensions('raw')
         file_filter = np.array([f'*{file}' for file in p_types])
         self.file_model.setNameFilters(file_filter)
 
-        self.toolBox = QtWidgets.QToolBox(self)
-        self.toolBox.setObjectName(u"toolBox")
-        self.inputLineEdit.setParent(self.page_1)
+        # Set up the main layout structure
+        self.setup_layouts()
 
-        self.horizontalLayout_4.addWidget(self.inputLineEdit)
+        # Connect signals
+        self.connect_signals()
 
-        self.inputButton.setParent(self.page_1)
-        self.inputButton.setIcon(self.folder_icon)
-
-        self.horizontalLayout_4.addWidget(self.inputButton)
-        self.horizontalLayout_4.setStretch(0, 1)
-
-        self.verticalLayout_200.addLayout(self.horizontalLayout_4)
-
-        self.frame = ut.create_frame(u"frame", self.page_1, self.size_policy2)
-        self.verticalLayout = ut.setup_vbox(u"verticalLayout", self.frame)
-
-        self.toggleCheckBox.setParent(self.frame)
-
-        self.horizontalLayout_1.addWidget(self.toggleCheckBox)
-
-        self.horizontalSpacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding,
-                                                      QtWidgets.QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_1.addItem(self.horizontalSpacer)
-
-        self.mfaceCheckBox.setParent(self.frame)
-        self.horizontalLayout_1.addWidget(self.mfaceCheckBox)
-
-        self.tiltCheckBox.setParent(self.frame)
-        self.horizontalLayout_1.addWidget(self.tiltCheckBox)
-
-        self.exposureCheckBox.setParent(self.frame)
-
-        self.horizontalLayout_1.addWidget(self.exposureCheckBox)
-        self.horizontalLayout_1.setStretch(1, 20)
-
-        self.verticalLayout.addLayout(self.horizontalLayout_1)
-
-        self.imageWidget.setParent(self.frame)
-
-        self.verticalLayout.addWidget(self.imageWidget)
-
-        self.cropButton = ut.create_main_button(u"cropButton", self.size_policy2, GuiIcon.CROP, self.frame)
-        self.cropButton.setDisabled(True)
-
-        self.horizontalLayout_2.addWidget(self.cropButton)
-
-        self.cancelButton = ut.create_main_button(u"cancelButton", self.size_policy2, GuiIcon.CANCEL, self.frame)
-        self.cancelButton.setDisabled(True)
-
-        self.horizontalLayout_2.addWidget(self.cancelButton)
-
-        self.verticalLayout.addLayout(self.horizontalLayout_2)
-
-        self.progressBar.setParent(self.frame)
-
-        self.verticalLayout.addWidget(self.progressBar)
-
-        self.verticalLayout_200.addWidget(self.frame)
-
-        self.destinationLineEdit.setParent(self.page_1)
-
-        self.horizontalLayout_3.addWidget(self.destinationLineEdit)
-
-        self.destinationButton.setParent(self.page_1)
-        self.destinationButton.setIcon(self.folder_icon)
-
-        self.horizontalLayout_3.addWidget(self.destinationButton)
-        self.horizontalLayout_3.setStretch(0, 1)
-
-        self.verticalLayout_200.addLayout(self.horizontalLayout_3)
-
-        self.toolBox.addItem(self.page_1, u"Crop View")
-        self.treeView = QtWidgets.QTreeView(self.page_2)
-        self.treeView.setObjectName(u"treeView")
-        self.treeView.setModel(self.file_model)
-
-        self.verticalLayout_300.addWidget(self.treeView)
-
-        self.toolBox.addItem(self.page_2, u"Folder View")
-
-        self.verticalLayout_100.addWidget(self.toolBox)
-
-        # Connect Widgets
-        self.inputButton.clicked.connect(lambda: self.open_path(self.inputLineEdit))
-        self.destinationButton.clicked.connect(lambda: self.open_path(self.destinationLineEdit))
-        self.inputLineEdit.textChanged.connect(lambda: self.load_data())
-        self.cropButton.clicked.connect(lambda: self.folder_process())
-        self.cancelButton.clicked.connect(lambda: self.crop_worker.terminate())
-        self.cancelButton.clicked.connect(lambda: self.cancel_button_operation(self.cancelButton, self.cropButton))
-
-        self.connect_input_widgets(self.inputLineEdit, self.controlWidget.widthLineEdit,
-                                   self.controlWidget.heightLineEdit, self.destinationLineEdit, self.exposureCheckBox,
-                                   self.mfaceCheckBox, self.tiltCheckBox, self.controlWidget.sensitivityDial,
-                                   self.controlWidget.fpctDial, self.controlWidget.gammaDial,
-                                   self.controlWidget.topDial, self.controlWidget.bottomDial,
-                                   self.controlWidget.leftDial, self.controlWidget.rightDial)
-
-        self.toggleCheckBox.toggled.connect(self.controlWidget.setVisible)
-
-        # Connect crop worker
-        self.connect_crop_worker()
-
+        # Set initial UI text
         self.retranslateUi()
 
+        # Set initial toolbox page
         self.toolBox.setCurrentIndex(0)
 
         QtCore.QMetaObject.connectSlotsByName(self)
 
-    # setupUi
+    def setup_layouts(self) -> None:
+        """Set up the main layout structure"""
+        # ---- Page 1: Crop View ----
+        # Input file selection
+        self.inputLineEdit.setParent(self.page_1)
+        self.inputButton.setParent(self.page_1)
 
-    def retranslateUi(self):
-        self.setWindowTitle(QtCore.QCoreApplication.translate("self", u"Form", None))
+        input_layout = ut.setup_hbox("horizontalLayout_4")
+        input_layout.addWidget(self.inputLineEdit)
+        input_layout.addWidget(self.inputButton)
+        input_layout.setStretch(0, 1)
+
+        self.verticalLayout_200.addLayout(input_layout)
+
+        # Main frame with image and controls
+        frame, verticalLayout = self.setup_main_crop_frame(self.page_1)
+
+        # Crop and cancel buttons
+        buttonLayout = ut.setup_hbox("horizontalLayout_2")
+
+        self.cropButton, self.cancelButton = self.create_main_action_buttons(frame)
+        buttonLayout.addWidget(self.cropButton)
+        buttonLayout.addWidget(self.cancelButton)
+
+        verticalLayout.addLayout(buttonLayout)
+
+        # Progress bar
+        self.progressBar.setParent(frame)
+        verticalLayout.addWidget(self.progressBar)
+
+        self.verticalLayout_200.addWidget(frame)
+
+        # Destination selection
+        self.destinationLineEdit.setParent(self.page_1)
+        self.destinationButton.setParent(self.page_1)
+
+        destLayout = ut.setup_hbox("horizontalLayout_3")
+        destLayout.addWidget(self.destinationLineEdit)
+        destLayout.addWidget(self.destinationButton)
+        destLayout.setStretch(0, 1)
+
+        self.verticalLayout_200.addLayout(destLayout)
+
+        # Add page to toolbox
+        self.toolBox.addItem(self.page_1, "Crop View")
+
+        # ---- Page 2: Folder View ----
+        self.treeView = QtWidgets.QTreeView(self.page_2)
+        self.treeView.setObjectName("treeView")
+        self.treeView.setModel(self.file_model)
+
+        self.verticalLayout_300.addWidget(self.treeView)
+
+        # Add page to toolbox
+        self.toolBox.addItem(self.page_2, "Folder View")
+
+        # Add toolbox to main layout
+        self.verticalLayout_100.addWidget(self.toolBox)
+
+    def connect_signals(self) -> None:
+        """Connect widget signals to handlers"""
+        # Button connections
+        self.inputButton.clicked.connect(lambda: self.open_path(self.inputLineEdit))
+        self.destinationButton.clicked.connect(lambda: self.open_path(self.destinationLineEdit))
+        self.cropButton.clicked.connect(lambda: self.folder_process())
+        self.cancelButton.clicked.connect(lambda: self.crop_worker.terminate())
+        self.cancelButton.clicked.connect(lambda: self.cancel_button_operation(self.cancelButton, self.cropButton))
+
+        # Input widgets for validation
+        self.connect_input_widgets(
+            self.inputLineEdit,
+            self.controlWidget.widthLineEdit,
+            self.controlWidget.heightLineEdit,
+            self.destinationLineEdit,
+            self.exposureCheckBox,
+            self.mfaceCheckBox,
+            self.tiltCheckBox,
+            self.controlWidget.sensitivityDial,
+            self.controlWidget.fpctDial,
+            self.controlWidget.gammaDial,
+            self.controlWidget.topDial,
+            self.controlWidget.bottomDial,
+            self.controlWidget.leftDial,
+            self.controlWidget.rightDial
+        )
+
+        # Input line edit also updates the tree view
+        self.inputLineEdit.textChanged.connect(lambda: self.load_data())
+
+        # Connect crop worker signals
+        self.connect_crop_worker()
+
+    def retranslateUi(self) -> None:
+        """Update UI text elements"""
+        super().retranslateUi()
         self.inputLineEdit.setPlaceholderText(
-            QtCore.QCoreApplication.translate("self", u"Choose the folder you want to crop", None))
-        self.inputButton.setText(QtCore.QCoreApplication.translate("self", u"Select Folder", None))
-        self.toggleCheckBox.setText(QtCore.QCoreApplication.translate("self", u"Toggle Settings", None))
-        self.mfaceCheckBox.setText(QtCore.QCoreApplication.translate("self", u"Multi-Face", None))
-        self.tiltCheckBox.setText(QtCore.QCoreApplication.translate("self", u"Autotilt", None))
-        self.exposureCheckBox.setText(QtCore.QCoreApplication.translate("self", u"Autocorrect", None))
+            QtCore.QCoreApplication.translate("self", "Choose the folder you want to crop", None)
+        )
+        self.inputButton.setText(QtCore.QCoreApplication.translate("self", "Select Folder", None))
+        self.destinationLineEdit.setPlaceholderText(
+            QtCore.QCoreApplication.translate("self", "Choose where you want to save the cropped images", None)
+        )
+        self.destinationButton.setText(QtCore.QCoreApplication.translate("self", "Destination Folder", None))
         self.cropButton.setText("")
         self.cancelButton.setText("")
-        self.destinationLineEdit.setPlaceholderText(
-            QtCore.QCoreApplication.translate("self", u"Choose where you want to save the cropped images", None))
-        self.destinationButton.setText(QtCore.QCoreApplication.translate("self", u"Destination Folder", None))
         self.toolBox.setItemText(self.toolBox.indexOf(self.page_1),
-                                 QtCore.QCoreApplication.translate("self", u"Crop View", None))
+                                 QtCore.QCoreApplication.translate("self", "Crop View", None))
         self.toolBox.setItemText(self.toolBox.indexOf(self.page_2),
-                                 QtCore.QCoreApplication.translate("self", u"Folder View", None))
+                                 QtCore.QCoreApplication.translate("self", "Folder View", None))
 
-    # retranslateUi
+    def open_path(self, line_edit) -> None:
+        """Open file/folder selection dialog for a path"""
+        super().open_path(line_edit)
+        if line_edit is self.inputLineEdit:
+            self.load_data()
+
+    def load_data(self) -> None:
+        """Load data into the tree view from the selected folder"""
+        try:
+            f_name = self.inputLineEdit.text()
+            self.file_model.setRootPath(f_name)
+            self.treeView.setRootIndex(self.file_model.index(f_name))
+        except (IndexError, FileNotFoundError, ValueError, AttributeError):
+            return
+
+    def disable_buttons(self) -> None:
+        """Enable/disable buttons based on input validation"""
+        ut.change_widget_state(
+            ut.all_filled(
+                self.inputLineEdit,
+                self.destinationLineEdit,
+                self.controlWidget.widthLineEdit,
+                self.controlWidget.heightLineEdit
+            ),
+            self.cropButton
+        )
 
     def connect_crop_worker(self) -> None:
+        """Connect the signals from the crop worker to UI handlers"""
         widget_list = (self.controlWidget.widthLineEdit, self.controlWidget.heightLineEdit,
                        self.controlWidget.sensitivityDial, self.controlWidget.fpctDial, self.controlWidget.gammaDial,
                        self.controlWidget.topDial, self.controlWidget.bottomDial, self.controlWidget.leftDial,
@@ -170,49 +187,26 @@ class UiFolderTabWidget(UiCropBatchWidget):
                        self.controlWidget.radioButton_webp, self.cropButton, self.exposureCheckBox, self.mfaceCheckBox,
                        self.tiltCheckBox)
 
-        # Folder start connection
-        self.crop_worker.started.connect(lambda: ut.disable_widget(*widget_list))
-        self.crop_worker.started.connect(lambda: ut.enable_widget(self.cancelButton))
-
-        # Folder end connection
-        self.crop_worker.finished.connect(lambda: ut.enable_widget(*widget_list))
-        self.crop_worker.finished.connect(lambda: ut.disable_widget(self.cancelButton))
-        self.crop_worker.finished.connect(lambda: ut.show_message_box(self.destination))
-        self.crop_worker.progress.connect(self.update_progress)
-
-    def open_path(self, line_edit: PathLineEdit) -> None:
-        """Only subclasses of the CustomCropWidget class should implement this method"""
-        super().open_path(line_edit)
-        if line_edit is self.inputLineEdit:
-            self.load_data()
-
-    def load_data(self) -> None:
-        try:
-            f_name = self.inputLineEdit.text()
-            self.file_model.setRootPath(f_name)
-            self.treeView.setRootIndex(self.file_model.index(f_name))
-        except (IndexError, FileNotFoundError, ValueError, AttributeError):
-            return
-
-    def disable_buttons(self) -> None:
-        ut.change_widget_state(
-            ut.all_filled(self.inputLineEdit, self.destinationLineEdit, self.controlWidget.widthLineEdit,
-                          self.controlWidget.heightLineEdit),
-            self.cropButton)
+        self.connect_crop_worker_signals(widget_list)
 
     def folder_process(self) -> None:
+        """Begin the folder cropping process"""
         self.crop_worker.show_message_box = False
-        def callback():
-            job = self.create_job(FunctionType.FOLDER,
-                                  folder_path=Path(self.inputLineEdit.text()),
-                                  destination=Path(self.destinationLineEdit.text()))
-            self.run_batch_process(job, function=self.crop_worker.crop,
+
+        def execute_crop():
+            job = self.create_job(
+                FunctionType.FOLDER,
+                folder_path=Path(self.inputLineEdit.text()),
+                destination=Path(self.destinationLineEdit.text())
+            )
+            self.run_batch_process(job,
+                                   function=self.crop_worker.crop,
                                    reset_worker_func=lambda: self.crop_worker.reset_task())
 
-        if Path(self.inputLineEdit.text()) == Path(self.destinationLineEdit.text()):
-            match ut.show_warning(FunctionType.FOLDER):
-                case QtWidgets.QMessageBox.StandardButton.Yes:
-                    callback()
-                case _:
-                    return
-        callback()
+        # Check if source and destination are the same and warn if needed
+        self.check_source_destination_same(
+            self.inputLineEdit.text(),
+            self.destinationLineEdit.text(),
+            FunctionType.FOLDER,
+            execute_crop
+        )

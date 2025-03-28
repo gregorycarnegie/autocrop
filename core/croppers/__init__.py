@@ -1,3 +1,4 @@
+from .batch import BatchCropper
 from .folder import FolderCropper
 from .photo import PhotoCropper
 from .mapping import MappingCropper

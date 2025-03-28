@@ -443,8 +443,6 @@ class UiMainWindow(QtWidgets.QMainWindow):
             self.handle_video_file(file_path)
         elif registry.is_valid_type(file_path, "table"):
             self.handle_table_file(file_path)
-        else:
-            pass
 
     def handle_image_file(self, file_path: Path) -> None:
         """
@@ -505,7 +503,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.function_tabWidget.setCurrentIndex(FunctionType.MAPPING)
         self.mapping_tab_widget.tableLineEdit.setText(file_path.as_posix())
         data = prc.open_table(file_path)
-        self.mapping_tab_widget.validate_pandas_file(data)
+        self.mapping_tab_widget.process_data(data)
 
     def check_tab_selection(self) -> None:
         """
