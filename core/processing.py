@@ -1,7 +1,5 @@
 import cProfile
 import collections.abc as c
-import functools
-import hashlib
 import pstats
 import random
 import shutil
@@ -24,11 +22,7 @@ from file_types import registry
 from .face_tools import CAFFE_MODEL, PROTO_TXT, L_EYE_START, L_EYE_END, R_EYE_START, R_EYE_END
 from .image_loader import ImageLoader
 from .job import Job
-from .operation_types import FaceToolPair, ImageArray, SaveFunction, Box
-
-# Global cache for actual storage of detection results
-# This allows us to store and retrieve actual results
-_detection_cache: dict[str, Optional[Box]] = {}
+from .operation_types import FaceToolPair, SaveFunction, Box
 
 # Define constants
 GAMMA_THRESHOLD = .001
@@ -66,7 +60,7 @@ def gamma(gamma_value: Union[int, float] = 1.0) -> npt.NDArray[np.uint8]:
     return (np.power(np.arange(256) / 255, 1.0 / gamma_value) * 255.0).astype(np.uint8)
 
 
-def adjust_gamma(input_image: ImageArray, gam: int) -> cvt.MatLike:
+def adjust_gamma(input_image: cvt.MatLike, gam: int) -> cvt.MatLike:
     """
     Adjusts image gamma using a precomputed lookup table.
     """
@@ -74,54 +68,46 @@ def adjust_gamma(input_image: ImageArray, gam: int) -> cvt.MatLike:
     return cv2.LUT(input_image, gamma(gam * GAMMA_THRESHOLD))
 
 
-def convert_color_space(input_image: ImageArray) -> cvt.MatLike:
+def convert_color_space(input_image: cvt.MatLike) -> cvt.MatLike:
     """
     Converts the color space from BGR to RGB.
     """
 
     return cv2.cvtColor(input_image, cv2.COLOR_BGR2RGB)
 
-
-def numpy_array_crop(input_image: cvt.MatLike, bounding_box: Box) -> npt.NDArray[np.uint8]:
-    """
-    Crops an image using NumPy with support for cropping outside image boundaries.
-    Creates padding similar to PIL's behavior when crop coordinates exceed image dimensions.
-    
-    Args:
-        input_image: Input image array in BGR or RGB format
-        bounding_box: Tuple of (x0, y0, x1, y1) crop coordinates
-        
-    Returns:
-        Cropped image array with padding if needed
-    """
+def numpy_array_crop(input_image: cvt.MatLike, bounding_box: Box) -> cvt.MatLike:
     x0, y0, x1, y1 = bounding_box
     h, w = input_image.shape[:2]
-    
-    # Calculate output dimensions
-    out_h, out_w = y1 - y0, x1 - x0
-    
-    # Create empty output image with appropriate channels
-    channels = input_image.shape[2] if len(input_image.shape) > 2 else 1
-    if channels > 1:
-        out_img = np.zeros((out_h, out_w, channels), dtype=input_image.dtype)
-    else:
-        out_img = np.zeros((out_h, out_w), dtype=input_image.dtype)
-    
-    # Calculate valid source and destination regions
+
+    # Calculate padding needed
+    pad_left = max(0, -x0)
+    pad_top = max(0, -y0)
+    pad_right = max(0, x1 - w)
+    pad_bottom = max(0, y1 - h)
+
+    # Source region in original image
     src_x0, src_y0 = max(0, x0), max(0, y0)
     src_x1, src_y1 = min(w, x1), min(h, y1)
-    
-    dst_x0, dst_y0 = src_x0 - x0, src_y0 - y0
-    dst_x1, dst_y1 = dst_x0 + (src_x1 - src_x0), dst_y0 + (src_y1 - src_y0)
-    
-    # Copy the valid region
-    if src_x1 > src_x0 and src_y1 > src_y0:
-        out_img[dst_y0:dst_y1, dst_x0:dst_x1] = input_image[src_y0:src_y1, src_x0:src_x1]
-    
-    return out_img
 
+    # Crop the valid region first
+    cropped_valid = input_image[src_y0:src_y1, src_x0:src_x1]
 
-def correct_exposure(input_image: ImageArray,
+    # Apply padding if needed
+    if any(p > 0 for p in [pad_top, pad_bottom, pad_left, pad_right]):
+        return cv2.copyMakeBorder(
+            cropped_valid,
+            pad_top,
+            pad_bottom,
+            pad_left,
+            pad_right,
+            cv2.BORDER_CONSTANT,
+            value=(0, 0, 0),
+        )
+    else:
+        # No padding was required
+        return cropped_valid
+
+def correct_exposure(input_image: cvt.MatLike,
                      exposure: bool) -> cvt.MatLike:
     """
     Optionally corrects exposure by performing histogram-based scaling.
@@ -137,7 +123,7 @@ def correct_exposure(input_image: ImageArray,
     return cv2.convertScaleAbs(src=input_image, alpha=alpha, beta=beta)
 
 
-def rotate_image(input_image: ImageArray,
+def rotate_image(input_image: cvt.MatLike,
                  angle: float,
                  center: tuple[float, float]) -> cvt.MatLike:
     """
@@ -158,7 +144,7 @@ def calculate_dimensions(height: int, width: int, target_height: int) -> tuple[i
     scaling_factor = target_height / height
     return int(width * scaling_factor), scaling_factor
 
-def format_image(input_image: ImageArray) -> tuple[cvt.MatLike, float]:
+def format_image(input_image: cvt.MatLike) -> tuple[cvt.MatLike, float]:
     """
     Resizes an image to 256px height, returns grayscale if >2 channels, plus the scaling factor.
     """
@@ -195,7 +181,7 @@ def get_angle_of_tilt(landmarks_array: npt.NDArray[np.int_],
     return angle, center_x, center_y
 
 
-def align_head(input_image: ImageArray,
+def align_head(input_image: cvt.MatLike,
                face_detection_tools: FaceToolPair,
                tilt: bool) -> cvt.MatLike:
     """
@@ -433,60 +419,6 @@ def multi_box_positions(input_image: cvt.MatLike,
     return confidences, get_multibox_coordinates(box_outputs.astype(np.int_), job)
 
 
-@functools.lru_cache(maxsize=64)
-def detect_face_cached(img_hash: str, threshold: int, face_percent: int, 
-                       sensitivity: int, _gamma: int, width: int, height: int,
-                       multi_face: bool) -> Optional[Box]:
-    """
-    Cached face detection to avoid reprocessing identical images with identical parameters.
-    
-    Args:
-        img_hash: A hash string uniquely identifying the image
-        threshold: Detection confidence threshold
-        face_percent: Percentage of face to include in crop
-        sensitivity: Detection sensitivity
-        _gamma: Gamma correction value
-        width: Width of the image
-        height: Height of the image
-        multi_face: Whether to detect multiple faces
-        
-    Returns:
-        Box coordinates (x0, y0, x1, y1) if a face is detected, None otherwise
-    """
-    # Create a cache key that uniquely identifies this detection request
-    cache_key = (f"{img_hash}_{threshold}_{face_percent}_{sensitivity}_"
-                f"{_gamma}_{width}_{height}_{multi_face}")
-
-    # Check if this result is already in our cache
-    return _detection_cache[cache_key] if cache_key in _detection_cache else None
-
-def store_detection_result(img_hash: str, threshold: int, face_percent: int,
-                           sensitivity: int, _gamma: int, width: int, height: int,
-                           multi_face: bool, box_result: Optional[Box]) -> None:
-    """
-    Store a detection result in the cache for future use.
-    
-    Args:
-        img_hash: A hash string uniquely identifying the image
-        threshold: Detection confidence threshold
-        face_percent: Percentage of face to include in crop
-        sensitivity: Detection sensitivity
-        _gamma: Gamma correction value
-        width: Width of the image
-        height: Height of the image
-        multi_face: Whether to detect multiple faces
-        box_result: The detection result to cache
-    """
-    cache_key = (f"{img_hash}_{threshold}_{face_percent}_{sensitivity}_"
-                 f"{_gamma}_{width}_{height}_{multi_face}")
-    
-    # Store the result in our cache
-    _detection_cache[cache_key] = box_result
-    
-    # Also invoke the cached function to update the LRU cache
-    detect_face_cached(img_hash, threshold, face_percent, sensitivity, 
-                      _gamma, width, height, multi_face)
-
 def box_detect(input_image: cvt.MatLike, job: Job) -> Optional[Box]:
     """
     Detect face in an image with optimized performance through caching and downscaling.
@@ -500,57 +432,26 @@ def box_detect(input_image: cvt.MatLike, job: Job) -> Optional[Box]:
     """
     try:
         height, width = input_image.shape[:2]
-        
+
         # Optionally downscale for faster detection if image is large
         scale_factor = max(1, min(width, height) // 500)  # Don't upscale small images
-        
-        # Create a properly enhanced implementation of face detection with caching
-        def perform_detection_with_cache(img, w, h):
-            # Create a hash of the image
-            img_hash = hashlib.blake2b(img.tobytes()).hexdigest()
-            
-            # Extract job parameters that affect detection
-            threshold = job.threshold
-            face_percent = job.face_percent
-            sensitivity = job.sensitivity
-            _gamma = job.gamma
-            multi_face = job.multi_face_job
-            
-            # Try to get cached result
-            result = detect_face_cached(img_hash, threshold, face_percent,
-                                        sensitivity, _gamma, w, h, multi_face)
-            
-            # If not in cache, perform actual detection
-            if result is None:
-                result = box(img, job, width=w, height=h)
-                
-                # Store the result in the cache
-                store_detection_result(img_hash, threshold, face_percent,
-                                       sensitivity, _gamma, w, h, multi_face, result)
-            
-            return result
-            
-        if scale_factor > 1:
-            # Resize the image for faster processing
-            small_img = cv2.resize(input_image, (width // scale_factor, height // scale_factor))
-            small_height, small_width = small_img.shape[:2]
-            
-            # Perform detection on the smaller image with caching
-            box_result = perform_detection_with_cache(small_img, small_width, small_height)
-            
-            # If a face was detected, scale box back to original size
-            if box_result:
-                return (
-                    box_result[0] * scale_factor,
-                    box_result[1] * scale_factor,
-                    box_result[2] * scale_factor,
-                    box_result[3] * scale_factor
-                )
-            return None
-        else:
+
+        if scale_factor <= 1:
             # For small images, use the original size but still cache
-            return perform_detection_with_cache(input_image, width, height)
-            
+            return box(input_image, job, width=width, height=height)
+
+        # Resize the image for faster processing
+        small_img = cv2.resize(input_image, (width // scale_factor, height // scale_factor))
+        small_height, small_width = small_img.shape[:2]
+
+        if box_result := box(small_img, job, width=small_width, height=small_height):
+            return (
+                box_result[0] * scale_factor,
+                box_result[1] * scale_factor,
+                box_result[2] * scale_factor,
+                box_result[3] * scale_factor
+            )
+        return None
     except (AttributeError, IndexError):
         return None
     
@@ -700,7 +601,6 @@ def save_detection(source_image: Path,
 
     save_function(cropped_images, file_path, job.gamma, is_tiff)
 
-
 def crop_image(input_image: Union[Path, cvt.MatLike],
                job: Job,
                face_detection_tools: FaceToolPair) -> Optional[cvt.MatLike]:
@@ -717,7 +617,7 @@ def crop_image(input_image: Union[Path, cvt.MatLike],
 
     if (bounding_box := box_detect(pic_array, job)) is None:
         return None
-
+    
     cropped_pic = numpy_array_crop(pic_array, bounding_box)
     result = convert_color_space(cropped_pic) if len(cropped_pic.shape) >= 3 else cropped_pic
     return cv2.resize(result, job.size, interpolation=cv2.INTER_AREA)
