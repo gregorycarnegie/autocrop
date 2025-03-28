@@ -268,9 +268,9 @@ class UiMappingTabWidget(UiCropBatchWidget):
         if self.tableLineEdit.state is LineEditState.INVALID_INPUT:
             return
         data = prc.open_table((Path(f_name)))
-        self.validate_pandas_file(data)
+        self.validate_data_file(data)
 
-    def validate_pandas_file(self, data: Any) -> None:
+    def validate_data_file(self, data: Any) -> None:
         try:
             assert isinstance(data, pl.DataFrame)
         except AssertionError:
