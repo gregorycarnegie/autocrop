@@ -12,6 +12,19 @@ from .enums import GuiIcon
 from .image_widget import ImageWidget
 
 
+def setup_combobox(combobox: QtWidgets.QComboBox,
+                   layout: Union[QtWidgets.QHBoxLayout, QtWidgets.QHBoxLayout],
+                   policy: QtWidgets.QSizePolicy,
+                   name: str) -> None:
+    """Set up the combo boxes"""
+    combobox.setObjectName(name)
+    policy.setHeightForWidth(combobox.sizePolicy().hasHeightForWidth())
+    combobox.setSizePolicy(policy)
+    combobox.setMinimumSize(QtCore.QSize(0, 40))
+    combobox.setMaximumSize(QtCore.QSize(16_777_215, 40))
+    layout.addWidget(combobox)
+
+
 def setup_hbox(name: str, parent: Optional[QtWidgets.QWidget] = None) -> QtWidgets.QHBoxLayout:
     horizontal_layout = QtWidgets.QHBoxLayout(parent)
     horizontal_layout.setObjectName(name)

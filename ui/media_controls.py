@@ -16,45 +16,21 @@ class UiMediaControlWidget(QtWidgets.QWidget):
         size_policy1.setHorizontalStretch(1)
         size_policy1.setVerticalStretch(1)
 
-        self.playButton = ut.create_media_button(self, size_policy1, name=u"playButton",
-                                                 icon_resource=GuiIcon.MULTIMEDIA_PLAY)
-        self.horizontalLayout.addWidget(self.playButton)
-
-        self.stopButton = ut.create_media_button(self, size_policy1, name=u"stopButton",
-                                                 icon_resource=GuiIcon.MULTIMEDIA_STOP)
-        self.horizontalLayout.addWidget(self.stopButton)
-
-        self.stepbackButton = ut.create_media_button(self, size_policy1, name=u"stepbackButton",
-                                                     icon_resource=GuiIcon.MULTIMEDIA_LEFT)
-        self.horizontalLayout.addWidget(self.stepbackButton)
-
-        self.stepfwdButton = ut.create_media_button(self, size_policy1, name=u"stepfwdButton",
-                                                    icon_resource=GuiIcon.MULTIMEDIA_RIGHT)
-        self.horizontalLayout.addWidget(self.stepfwdButton)
-
-        self.rewindButton = ut.create_media_button(self, size_policy1, name=u"rewindButton",
-                                                   icon_resource=GuiIcon.MULTIMEDIA_REWIND)
-        self.horizontalLayout.addWidget(self.rewindButton)
-
-        self.fastfwdButton = ut.create_media_button(self, size_policy1, name=u"fastfwdButton",
-                                                    icon_resource=GuiIcon.MULTIMEDIA_FASTFWD)
-        self.horizontalLayout.addWidget(self.fastfwdButton)
-
-        self.goto_beginingButton = ut.create_media_button(self, size_policy1, name=u"goto_beginingButton",
-                                                          icon_resource=GuiIcon.MULTIMEDIA_BEGINING)
-        self.horizontalLayout.addWidget(self.goto_beginingButton)
-
-        self.goto_endButton = ut.create_media_button(self, size_policy1, name=u"goto_endButton",
-                                                     icon_resource=GuiIcon.MULTIMEDIA_END)
-        self.horizontalLayout.addWidget(self.goto_endButton)
-
-        self.startmarkerButton = ut.create_media_button(self, size_policy1, name=u"startmarkerButton",
-                                                        icon_resource=GuiIcon.MULTIMEDIA_LEFTMARKER)
-        self.horizontalLayout.addWidget(self.startmarkerButton)
-
-        self.endmarkerButton = ut.create_media_button(self, size_policy1, name=u"endmarkerButton",
-                                                      icon_resource=GuiIcon.MULTIMEDIA_RIGHTMARKER)
-        self.horizontalLayout.addWidget(self.endmarkerButton)
+        def media_button_helper(button_name: str, icon_resource: GuiIcon) -> QtWidgets.QPushButton:
+            button = ut.create_media_button(self, size_policy1, name=button_name, icon_resource=icon_resource)
+            self.horizontalLayout.addWidget(button)
+            return button
+        
+        self.playButton = media_button_helper(u"playButton", GuiIcon.MULTIMEDIA_PLAY)
+        self.stopButton = media_button_helper(u"stopButton", GuiIcon.MULTIMEDIA_STOP)
+        self.stepbackButton = media_button_helper(u"stepbackButton", GuiIcon.MULTIMEDIA_LEFT)
+        self.stepfwdButton = media_button_helper(u"stepfwdButton", GuiIcon.MULTIMEDIA_RIGHT)
+        self.rewindButton = media_button_helper(u"rewindButton", GuiIcon.MULTIMEDIA_REWIND)
+        self.fastfwdButton = media_button_helper(u"fastfwdButton", GuiIcon.MULTIMEDIA_FASTFWD)
+        self.goto_beginingButton = media_button_helper(u"goto_beginingButton", GuiIcon.MULTIMEDIA_BEGINING)
+        self.goto_endButton = media_button_helper(u"goto_endButton", GuiIcon.MULTIMEDIA_END)
+        self.startmarkerButton = media_button_helper(u"startmarkerButton", GuiIcon.MULTIMEDIA_LEFTMARKER)
+        self.endmarkerButton = media_button_helper(u"endmarkerButton", GuiIcon.MULTIMEDIA_RIGHTMARKER)
 
         self.horizontalSpacer_1 = QtWidgets.QSpacerItem(60, 20, QtWidgets.QSizePolicy.Policy.Fixed,
                                                         QtWidgets.QSizePolicy.Policy.Minimum)

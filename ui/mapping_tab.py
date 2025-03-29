@@ -88,19 +88,8 @@ class UiMappingTabWidget(UiBatchCropWidget):
         buttonLayout = ut.setup_hbox("horizontalLayout_1")
 
         # Setup comboboxes
-        self.comboBox_1.setObjectName("comboBox_1")
-        self.size_policy_expand_fixed.setHeightForWidth(self.comboBox_1.sizePolicy().hasHeightForWidth())
-        self.comboBox_1.setSizePolicy(self.size_policy_expand_fixed)
-        self.comboBox_1.setMinimumSize(QtCore.QSize(0, 40))
-        self.comboBox_1.setMaximumSize(QtCore.QSize(16_777_215, 40))
-        buttonLayout.addWidget(self.comboBox_1)
-
-        self.comboBox_2.setObjectName("comboBox_2")
-        self.size_policy_expand_fixed.setHeightForWidth(self.comboBox_2.sizePolicy().hasHeightForWidth())
-        self.comboBox_2.setSizePolicy(self.size_policy_expand_fixed)
-        self.comboBox_2.setMinimumSize(QtCore.QSize(0, 40))
-        self.comboBox_2.setMaximumSize(QtCore.QSize(16_777_215, 40))
-        buttonLayout.addWidget(self.comboBox_2)
+        ut.setip_combobox(self.comboBox_1, buttonLayout, self.size_policy_expand_fixed, "comboBox_1")
+        ut.setip_combobox(self.comboBox_2, buttonLayout, self.size_policy_expand_fixed, "comboBox_2")
 
         # Crop and cancel buttons
         self.cropButton, self.cancelButton = self.create_main_action_buttons(frame)
@@ -133,19 +122,8 @@ class UiMappingTabWidget(UiBatchCropWidget):
         # Comboboxes for column selection on table view
         comboLayout = ut.setup_hbox("horizontalLayout_4")
 
-        self.comboBox_3.setObjectName("comboBox_3")
-        self.size_policy_expand_fixed.setHeightForWidth(self.comboBox_3.sizePolicy().hasHeightForWidth())
-        self.comboBox_3.setSizePolicy(self.size_policy_expand_fixed)
-        self.comboBox_3.setMinimumSize(QtCore.QSize(0, 30))
-        self.comboBox_3.setMaximumSize(QtCore.QSize(16_777_215, 30))
-        comboLayout.addWidget(self.comboBox_3)
-
-        self.comboBox_4.setObjectName("comboBox_4")
-        self.size_policy_expand_fixed.setHeightForWidth(self.comboBox_4.sizePolicy().hasHeightForWidth())
-        self.comboBox_4.setSizePolicy(self.size_policy_expand_fixed)
-        self.comboBox_4.setMinimumSize(QtCore.QSize(0, 30))
-        self.comboBox_4.setMaximumSize(QtCore.QSize(16_777_215, 30))
-        comboLayout.addWidget(self.comboBox_4)
+        ut.setup_combobox(self.comboBox_3, comboLayout, self.size_policy_expand_fixed, "comboBox_3")
+        ut.setup_combobox(self.comboBox_4, comboLayout, self.size_policy_expand_fixed, "comboBox_4")
 
         self.verticalLayout_300.addLayout(comboLayout)
 
