@@ -49,7 +49,7 @@ def profile_it(func: c.Callable[..., Any]) -> c.Callable[..., Any]:
     return wrapper
 
 
-@numba.njit(cache=True)
+@numba.njit(cache=True, fastmath=True)
 def gamma(gamma_value: Union[int, float] = 1.0) -> npt.NDArray[np.uint8]:
     """
     Generates a gamma correction lookup table for intensity values from 0 to 255.
@@ -74,6 +74,7 @@ def convert_color_space(image: cvt.MatLike) -> cvt.MatLike:
     """
 
     return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
 
 def numpy_array_crop(image: cvt.MatLike, bounding_box: Box) -> cvt.MatLike:
     x0, y0, x1, y1 = bounding_box
@@ -136,7 +137,7 @@ def rotate_image(image: cvt.MatLike,
     return cv2.warpAffine(image, rotation_matrix, (image.shape[1], image.shape[0]))
 
 
-@numba.njit(cache=True)
+@numba.njit(cache=True, fastmath=True)
 def calculate_dimensions(height: int, width: int, target_height: int) -> tuple[int, float]:
     """
     Calculates output dimensions and scaling factor for resizing.
@@ -155,7 +156,7 @@ def format_image(image: cvt.MatLike) -> tuple[cvt.MatLike, float]:
     image_array = cv2.resize(image, (output_width, output_height), interpolation=cv2.INTER_AREA)
     return cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY) if len(image_array.shape) >= 3 else image_array, scaling_factor
 
-@numba.njit
+@numba.njit(parallel=True, fastmath=True)
 def mean_axis0(arr: npt.NDArray[np.int_]) -> npt.NDArray[np.float64]:
     """
     Computes the mean of a 2D array along axis 0, returning a 1D array.
@@ -163,14 +164,14 @@ def mean_axis0(arr: npt.NDArray[np.int_]) -> npt.NDArray[np.float64]:
     return np.sum(arr, axis=0) / arr.shape[0]
 
 
-@numba.njit
+@numba.njit(parallel=True, fastmath=True)
 def get_angle_of_tilt(landmarks_array: npt.NDArray[np.int_],
                       scaling_factor: float) -> tuple[float, float, float]:
     """
     Computes the tilt angle (in degrees) of the face using average eye positions.
     """
 
-    eye_diff = mean_axis0(landmarks_array[L_EYE_START:L_EYE_END]) - mean_axis0(landmarks_array[R_EYE_START:R_EYE_END])
+    eye_diff = mean_axis0(landmarks_array[L_EYE_START:L_EYE_END] - landmarks_array[R_EYE_START:R_EYE_END])
 
     # Find the center of the face.
     face_center_mean = mean_axis0(landmarks_array[R_EYE_START:L_EYE_END])

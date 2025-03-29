@@ -88,8 +88,8 @@ class UiMappingTabWidget(UiBatchCropWidget):
         buttonLayout = ut.setup_hbox("horizontalLayout_1")
 
         # Setup comboboxes
-        ut.setip_combobox(self.comboBox_1, buttonLayout, self.size_policy_expand_fixed, "comboBox_1")
-        ut.setip_combobox(self.comboBox_2, buttonLayout, self.size_policy_expand_fixed, "comboBox_2")
+        ut.setup_combobox(self.comboBox_1, buttonLayout, self.size_policy_expand_fixed, "comboBox_1")
+        ut.setup_combobox(self.comboBox_2, buttonLayout, self.size_policy_expand_fixed, "comboBox_2")
 
         # Crop and cancel buttons
         self.cropButton, self.cancelButton = self.create_main_action_buttons(frame)
