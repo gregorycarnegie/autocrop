@@ -85,8 +85,6 @@ class UiVideoTabWidget(UiCropWidget):
         # Set up the main layout structure
         self.setup_layouts()
         
-        # Todo
-        # self.add_preview_button()
         self.connect_preview_updates() 
 
         # Connect signals
@@ -138,6 +136,8 @@ class UiVideoTabWidget(UiCropWidget):
         # Input file selection
         self.inputLineEdit.setParent(self.page_1)
         self.inputButton.setParent(self.page_1)
+        icon = ut.create_button_icon(GuiIcon.CLAPPERBOARD)
+        self.inputButton.setIcon(icon)
         
         input_layout = ut.setup_hbox("horizontalLayout_2")
         input_layout.addWidget(self.inputLineEdit)
@@ -251,15 +251,10 @@ class UiVideoTabWidget(UiCropWidget):
         self.verticalLayout_200.addWidget(frame_1)
         
         # Destination selection
-        self.destinationLineEdit.setParent(self.page_1)
-        self.destinationButton.setParent(self.page_1)
-        
-        destLayout = ut.setup_hbox("horizontalLayout_3")
-        destLayout.addWidget(self.destinationLineEdit)
-        destLayout.addWidget(self.destinationButton)
-        destLayout.setStretch(0, 1)
-        
-        self.verticalLayout_200.addLayout(destLayout)
+        self.destinationLineEdit.setParent(self)
+        self.destinationButton.setParent(self)
+        self.setup_destination_layout(self.horizontalLayout_3)
+        self.verticalLayout_200.addLayout(self.horizontalLayout_3)
         
         # Add page to toolbox
         self.toolBox.addItem(self.page_1, "Video Player")
@@ -387,13 +382,10 @@ class UiVideoTabWidget(UiCropWidget):
 
     def connect_signals(self) -> None:
         """Connect widget signals to handlers"""
-        # Checkbox synchronization
-        self.exposureCheckBox.toggled.connect(self.exposureCheckBox_2.setChecked)
-        self.tiltCheckBox.toggled.connect(self.tiltCheckBox_2.setChecked)
-        self.mfaceCheckBox.toggled.connect(self.mfaceCheckBox_2.setChecked)
-        self.exposureCheckBox_2.toggled.connect(self.exposureCheckBox.setChecked)
-        self.tiltCheckBox_2.toggled.connect(self.tiltCheckBox.setChecked)
-        self.mfaceCheckBox_2.toggled.connect(self.mfaceCheckBox.setChecked)
+        # Set up checkbox synchronization between tabs
+        self.tab_state_manager.synchronize_checkboxes(self.exposureCheckBox, self.exposureCheckBox_2)
+        self.tab_state_manager.synchronize_checkboxes(self.tiltCheckBox, self.tiltCheckBox_2)
+        self.tab_state_manager.synchronize_checkboxes(self.mfaceCheckBox, self.mfaceCheckBox_2)
 
         # Connect preview button
         self.previewButton.clicked.connect(self.display_crop_preview)
@@ -437,7 +429,7 @@ class UiVideoTabWidget(UiCropWidget):
         
         # Button connections
         self.inputButton.clicked.connect(lambda: self.open_video())
-        self.destinationButton.clicked.connect(lambda: self.open_path(self.destinationLineEdit))
+        # self.destinationButton.clicked.connect(lambda: self.open_path(self.destinationLineEdit))
         
         # Add preview update trigger
         self.inputLineEdit.textChanged.connect(lambda: QtCore.QTimer.singleShot(1000, self.display_crop_preview))
@@ -449,8 +441,8 @@ class UiVideoTabWidget(UiCropWidget):
             control.cancelButton.clicked.connect(lambda: self.crop_worker.terminate())
             control.cancelButton.clicked.connect(
                 lambda: self.cancel_button_operation(control.cancelButton,
-                                                    control.videocropButton,
-                                                    control.cropButton)
+                                                     control.videocropButton,
+                                                     control.cropButton)
             )
             
             control.playButton.clicked.connect(lambda: self.change_playback_state())
@@ -471,22 +463,51 @@ class UiVideoTabWidget(UiCropWidget):
         self.muteButton_1.clicked.connect(lambda: self.volume_mute())
         self.muteButton_2.clicked.connect(lambda: self.volume_mute())
         
-        # Connect input widgets for validation
-        self.connect_input_widgets(
-            self.controlWidget.widthLineEdit, 
-            self.controlWidget.heightLineEdit,
-            self.destinationLineEdit, 
-            self.inputLineEdit,
-            self.exposureCheckBox, 
-            self.mfaceCheckBox, 
-            self.tiltCheckBox
-        )
-        
         # Media player connections
         self.audio.mutedChanged.connect(lambda: self.change_audio_icon())
         self.player.positionChanged.connect(self.position_changed)
         self.player.durationChanged.connect(self.duration_changed)
         self.player.errorOccurred.connect(self.player_error_occurred)
+        
+        # Register button dependencies with TabStateManager
+        for control in [self.mediacontrolWidget_1, self.mediacontrolWidget_2]:
+            self.tab_state_manager.register_button_dependencies(
+                control.cropButton,
+                {
+                    self.inputLineEdit, 
+                    self.destinationLineEdit, 
+                    self.controlWidget.widthLineEdit,
+                    self.controlWidget.heightLineEdit
+                }
+            )
+            
+            self.tab_state_manager.register_button_dependencies(
+                control.videocropButton,
+                {
+                    self.inputLineEdit, 
+                    self.destinationLineEdit, 
+                    self.controlWidget.widthLineEdit,
+                    self.controlWidget.heightLineEdit
+                }
+            )
+        
+        # Connect input widgets for validation tracking
+        self.tab_state_manager.connect_widgets(
+            self.inputLineEdit,
+            self.controlWidget.widthLineEdit,
+            self.controlWidget.heightLineEdit, 
+            self.destinationLineEdit,
+            self.exposureCheckBox,
+            self.mfaceCheckBox,
+            self.tiltCheckBox,
+            self.controlWidget.sensitivityDial,
+            self.controlWidget.fpctDial,
+            self.controlWidget.gammaDial,
+            self.controlWidget.topDial,
+            self.controlWidget.bottomDial,
+            self.controlWidget.leftDial,
+            self.controlWidget.rightDial
+        )
         
         # Connect crop worker signals
         self.connect_crop_worker()
@@ -749,18 +770,6 @@ class UiVideoTabWidget(UiCropWidget):
             self.player.setPosition(0)
         else:
             self.player.setPosition(int(position))
-
-    def disable_buttons(self) -> None:
-        """Enable/disable buttons based on input validation"""
-        is_valid = ut.all_filled(
-            self.inputLineEdit, 
-            self.destinationLineEdit, 
-            self.controlWidget.widthLineEdit,
-            self.controlWidget.heightLineEdit
-        )
-        
-        for control in [self.mediacontrolWidget_1, self.mediacontrolWidget_2]:
-            ut.change_widget_state(is_valid, control.cropButton, control.videocropButton)
 
     def connect_crop_worker(self) -> None:
         """Connect the signals from the crop worker to UI handlers"""

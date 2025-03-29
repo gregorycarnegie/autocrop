@@ -1,19 +1,178 @@
-from ui import utils as ut
-from line_edits import NumberLineEdit, PathLineEdit
+from typing import Dict, Optional, Set, Callable
+
 from PyQt6 import QtWidgets
 
-class TabStateManager:
-    @staticmethod
-    def disable_buttons(line_edits, buttons):
-        """Generic button disabling based on lineedit states"""
-        is_valid = ut.all_filled(*line_edits)
-        ut.change_widget_state(is_valid, *buttons)
+from line_edits import NumberLineEdit, PathLineEdit, LineEditState
+from ui import utils as ut
 
-    def connect_input_widgets(self, *input_widgets):
-        """Connect input widgets to state changes"""
-        for input_widget in input_widgets:
-            if isinstance(input_widget, (NumberLineEdit, PathLineEdit)):
-                input_widget.textChanged.connect(self.disable_buttons)
-            elif isinstance(input_widget, QtWidgets.QCheckBox):
-                self.connect_checkbox(input_widget)
+
+class TabStateManager:
+    """
+    Manages state for UI tab widgets, including input validation,
+    button states, and checkbox interactions.
     
+    This class centralizes tab state management to reduce code
+    duplication and ensure consistent behavior across tabs.
+    """
+    
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
+        """
+        Initialize the tab state manager.
+        
+        Args:
+            parent: Optional parent widget that owns this state manager
+        """
+        self.parent = parent
+        self._checkbox_handlers: Dict[QtWidgets.QCheckBox, Set[QtWidgets.QCheckBox]] = {}
+        self._button_dependencies: Dict[QtWidgets.QPushButton, Set[QtWidgets.QWidget]] = {}
+        self._validation_handlers: Dict[QtWidgets.QWidget, Callable[[], bool]] = {}
+        self._state_change_callback: Optional[Callable[[], None]] = None
+        
+    def register_checkbox_exclusivity(self, checkbox: QtWidgets.QCheckBox, 
+                                     exclude_checkboxes: Set[QtWidgets.QCheckBox]) -> None:
+        """
+        Register checkbox exclusivity relationships.
+        When a checkbox is checked, it will uncheck the specified excluded checkboxes.
+        
+        Args:
+            checkbox: The checkbox that will trigger the exclusion
+            exclude_checkboxes: Set of checkboxes to uncheck when the main checkbox is checked
+        """
+        self._checkbox_handlers[checkbox] = exclude_checkboxes
+        checkbox.toggled.connect(lambda checked: self._handle_checkbox_state(checkbox, checked))
+        
+    def _handle_checkbox_state(self, checkbox: QtWidgets.QCheckBox, checked: bool) -> None:
+        """
+        Handle checkbox state changes based on registered exclusivity relationships.
+        
+        Args:
+            checkbox: The checkbox whose state changed
+            checked: Whether the checkbox is now checked
+        """
+        if checked and checkbox in self._checkbox_handlers:
+            for excluded in self._checkbox_handlers[checkbox]:
+                excluded.blockSignals(True)
+                excluded.setChecked(False)
+                excluded.blockSignals(False)
+                
+    def register_button_dependencies(self, button: QtWidgets.QPushButton, 
+                                    dependent_widgets: Set[QtWidgets.QWidget]) -> None:
+        """
+        Register button dependencies on other widgets' states.
+        The button will be enabled only when all dependent widgets are in a valid state.
+        
+        Args:
+            button: The button whose enabled state depends on other widgets
+            dependent_widgets: Set of widgets that must be valid for the button to be enabled
+        """
+        self._button_dependencies[button] = dependent_widgets
+        self.update_button_states()
+        
+    def register_validation_handler(self, widget: QtWidgets.QWidget, 
+                                   handler: Callable[[], bool]) -> None:
+        """
+        Register a custom validation handler for a widget.
+        
+        Args:
+            widget: The widget to validate
+            handler: Callable that returns True if the widget is in a valid state
+        """
+        self._validation_handlers[widget] = handler
+        
+    def connect_widgets(self, *widgets: QtWidgets.QWidget) -> None:
+        """
+        Connect widget signals to state update handlers.
+        
+        Args:
+            *widgets: Widgets to connect to state update handlers
+        """
+        for widget in widgets:
+            if isinstance(widget, (NumberLineEdit, PathLineEdit)):
+                widget.textChanged.connect(self.update_button_states)
+            elif isinstance(widget, QtWidgets.QComboBox):
+                widget.currentTextChanged.connect(self.update_button_states)
+            elif isinstance(widget, (QtWidgets.QSlider, QtWidgets.QDial)):
+                widget.valueChanged.connect(self.update_button_states)
+    
+    def set_state_change_callback(self, callback: Callable[[], None]) -> None:
+        """
+        Set a callback to be called whenever state changes.
+        
+        Args:
+            callback: Function to call on state changes
+        """
+        self._state_change_callback = callback
+        
+    def update_button_states(self) -> None:
+        """
+        Update button enabled states based on registered dependencies.
+        """
+        for button, dependencies in self._button_dependencies.items():
+            is_valid = all(self._is_widget_valid(widget) for widget in dependencies)
+            ut.change_widget_state(is_valid, button)
+            
+        if self._state_change_callback:
+            self._state_change_callback()
+    
+    def _is_widget_valid(self, widget: QtWidgets.QWidget) -> bool:
+        """
+        Check if a widget is in a valid state.
+        
+        Args:
+            widget: Widget to check
+            
+        Returns:
+            bool: True if widget is valid, False otherwise
+        """
+        # Check for custom validation handler first
+        if widget in self._validation_handlers:
+            return self._validation_handlers[widget]()
+        
+        # Default validation strategies
+        if isinstance(widget, (NumberLineEdit, PathLineEdit)):
+            return widget.state == LineEditState.VALID_INPUT and bool(widget.text())
+        elif isinstance(widget, QtWidgets.QComboBox):
+            return bool(widget.currentText())
+        elif isinstance(widget, QtWidgets.QCheckBox):
+            # Checkboxes are typically considered valid regardless of state
+            return True
+        elif isinstance(widget, (QtWidgets.QSlider, QtWidgets.QDial)):
+            # Sliders and dials are typically considered valid regardless of value
+            return True
+        
+        # Default to True for unknown widget types
+        return True
+    
+    def reset(self) -> None:
+        """
+        Reset the state manager, clearing all registrations.
+        """
+        self._checkbox_handlers.clear()
+        self._button_dependencies.clear()
+        self._validation_handlers.clear()
+        self._state_change_callback = None
+        
+    def synchronize_checkboxes(self, source: QtWidgets.QCheckBox, target: QtWidgets.QCheckBox) -> None:
+        """
+        Synchronize the state of two checkboxes.
+        
+        Args:
+            source: The checkbox whose state will be copied
+            target: The checkbox that will match source's state
+        """
+        # Connect in both directions with signal blocking to prevent infinite loops
+        source.toggled.connect(lambda checked: self._sync_checkbox(source, target))
+        target.toggled.connect(lambda checked: self._sync_checkbox(target, source))
+
+    @staticmethod
+    def _sync_checkbox(source: QtWidgets.QCheckBox, target: QtWidgets.QCheckBox) -> None:
+        """
+        Sync target checkbox with source checkbox state.
+        
+        Args:
+            source: Source checkbox
+            target: Target checkbox to sync with source
+        """
+        target.blockSignals(True)
+        target.setChecked(source.isChecked())
+        target.blockSignals(False)

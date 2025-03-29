@@ -9,7 +9,7 @@ from core import processing as prc
 from core.croppers import MappingCropper
 from core.enums import FunctionType
 from file_types import registry
-from line_edits import LineEditState, PathLineEdit, PathType
+from line_edits import LineEditState, PathType
 from ui import utils as ut
 from .batch_tab import UiBatchCropWidget
 from .enums import GuiIcon
@@ -118,14 +118,8 @@ class UiMappingTabWidget(UiBatchCropWidget):
         # Destination selection
         self.destinationLineEdit.setParent(self.page_1)
         self.destinationButton.setParent(self.page_1)
-
-        destLayout = ut.setup_hbox("horizontalLayout_3")
-        destLayout.addWidget(self.destinationLineEdit)
-        destLayout.addWidget(self.destinationButton)
-        destLayout.setStretch(0, 20)
-        destLayout.setStretch(1, 1)
-
-        self.verticalLayout_200.addLayout(destLayout)
+        self.setup_destination_layout(self.horizontalLayout_3)
+        self.verticalLayout_200.addLayout(self.horizontalLayout_3)
 
         # Add page to toolbox
         self.toolBox.addItem(self.page_1, "Crop View")
@@ -166,7 +160,7 @@ class UiMappingTabWidget(UiBatchCropWidget):
         # Button connections
         self.inputButton.clicked.connect(lambda: self.open_path(self.inputLineEdit))
         self.tableButton.clicked.connect(lambda: self.open_table())
-        self.destinationButton.clicked.connect(lambda: self.open_path(self.destinationLineEdit))
+        # self.destinationButton.clicked.connect(lambda: self.open_path(self.destinationLineEdit))
         self.cropButton.clicked.connect(lambda: self.mapping_process())
         self.cancelButton.clicked.connect(lambda: self.crop_worker.terminate())
         self.cancelButton.clicked.connect(lambda: self.cancel_button_operation(self.cancelButton, self.cropButton))
@@ -177,13 +171,29 @@ class UiMappingTabWidget(UiBatchCropWidget):
         self.comboBox_3.currentTextChanged.connect(lambda text: self.comboBox_1.setCurrentText(text))
         self.comboBox_4.currentTextChanged.connect(lambda text: self.comboBox_2.setCurrentText(text))
 
-        # Input widgets for validation
-        self.connect_input_widgets(
+        # Register button dependencies with the TabStateManager
+        self.tab_state_manager.register_button_dependencies(
+            self.cropButton,
+            {
+                self.inputLineEdit,
+                self.tableLineEdit,
+                self.destinationLineEdit,
+                self.comboBox_1,
+                self.comboBox_2,
+                self.controlWidget.widthLineEdit,
+                self.controlWidget.heightLineEdit
+            }
+        )
+        
+        # Connect all input widgets for validation tracking
+        self.tab_state_manager.connect_widgets(
             self.inputLineEdit,
             self.controlWidget.widthLineEdit,
-            self.controlWidget.heightLineEdit,
+            self.controlWidget.heightLineEdit, 
             self.destinationLineEdit,
             self.tableLineEdit,
+            self.comboBox_1,
+            self.comboBox_2,
             self.exposureCheckBox,
             self.mfaceCheckBox,
             self.tiltCheckBox,
@@ -225,16 +235,6 @@ class UiMappingTabWidget(UiBatchCropWidget):
         self.toolBox.setItemText(self.toolBox.indexOf(self.page_2),
                                  QtCore.QCoreApplication.translate("self", "Table View", None))
 
-    def connect_input_widgets(self, *input_widgets: QtWidgets.QWidget) -> None:
-        """Connect input widgets to state change handlers"""
-        for input_widget in input_widgets:
-            if isinstance(input_widget, (PathLineEdit)):
-                input_widget.textChanged.connect(self.disable_buttons)
-            elif isinstance(input_widget, QtWidgets.QComboBox):
-                input_widget.currentTextChanged.connect(self.disable_buttons)
-            elif isinstance(input_widget, QtWidgets.QCheckBox):
-                self.connect_checkbox(input_widget)
-
     def open_table(self) -> None:
         """Open a table file dialog"""
         f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
@@ -270,21 +270,6 @@ class UiMappingTabWidget(UiBatchCropWidget):
 
         except Exception as e:
             print(f"Error processing data: {e}")
-
-    def disable_buttons(self) -> None:
-        """Enable/disable buttons based on input validation"""
-        ut.change_widget_state(
-            ut.all_filled(
-                self.inputLineEdit,
-                self.tableLineEdit,
-                self.destinationLineEdit,
-                self.comboBox_1,
-                self.comboBox_2,
-                self.controlWidget.widthLineEdit,
-                self.controlWidget.heightLineEdit
-            ),
-            self.cropButton
-        )
 
     def connect_crop_worker(self) -> None:
         """Connect the signals from the crop worker to UI handlers"""

@@ -8,7 +8,7 @@ from PyQt6 import QtCore, QtWidgets
 from core import Job
 from core.enums import FunctionType
 from file_types import registry, FileTypeInfo
-from line_edits import NumberLineEdit, PathLineEdit, PathType
+from line_edits import PathLineEdit, PathType
 from ui import utils as ut
 from .control_widget import UiCropControlWidget
 from .enums import GuiIcon, FunctionTabSelectionState
@@ -62,7 +62,7 @@ class UiCropWidget(QtWidgets.QWidget):
         """
         super().__init__(parent)
         self.setObjectName(name)
-        self.tab_state_manager = TabStateManager()
+        self.tab_state_manager = TabStateManager(self)
         
         # Common state and attributes
         self.destination: Path = Path.home()
@@ -100,15 +100,27 @@ class UiCropWidget(QtWidgets.QWidget):
         self._checkbox_connections: Dict[QtWidgets.QCheckBox, Callable[[], None]] = {}
         
         # Initialize the checkbox connections
-        self._setup_checkbox_connections()
+        self._setup_checkbox_relationships()
 
-    def _setup_checkbox_connections(self) -> None:
-        """Set up the standard checkbox connections for multi-face and exposure/tilt"""
-        self._checkbox_connections.update({
-            self.mfaceCheckBox: lambda: ut.uncheck_boxes(self.exposureCheckBox, self.tiltCheckBox),
-            self.exposureCheckBox: lambda: ut.uncheck_boxes(self.mfaceCheckBox),
-            self.tiltCheckBox: lambda: ut.uncheck_boxes(self.mfaceCheckBox)
-        })
+    def _setup_checkbox_relationships(self) -> None:
+        """Set up the standard checkbox exclusivity relationships"""
+        # Multi-face is exclusive with exposure and tilt
+        self.tab_state_manager.register_checkbox_exclusivity(
+            self.mfaceCheckBox, 
+            {self.exposureCheckBox, self.tiltCheckBox}
+        )
+        
+        # Exposure is exclusive with multi-face
+        self.tab_state_manager.register_checkbox_exclusivity(
+            self.exposureCheckBox, 
+            {self.mfaceCheckBox}
+        )
+        
+        # Tilt is exclusive with multi-face
+        self.tab_state_manager.register_checkbox_exclusivity(
+            self.tiltCheckBox, 
+            {self.mfaceCheckBox}
+        )
 
     def create_image_widget(self) -> ImageWidget:
         """Create the main image display widget with consistent styling"""
@@ -171,25 +183,13 @@ class UiCropWidget(QtWidgets.QWidget):
         )
         line_edit.setText(f_name)
 
-    def connect_checkbox(self, checkbox: QtWidgets.QCheckBox) -> None:
-        """Connect checkbox to appropriate handler based on type"""
-        if checkbox in self._checkbox_connections:
-            checkbox.clicked.connect(self._checkbox_connections[checkbox])
-
-    def connect_input_widgets(self, *input_widgets: QtWidgets.QWidget) -> None:
-        """Connect input widgets to state change handlers"""
-        for input_widget in input_widgets:
-            if isinstance(input_widget, (NumberLineEdit, PathLineEdit)):
-                input_widget.textChanged.connect(self.disable_buttons)
-            elif isinstance(input_widget, QtWidgets.QCheckBox):
-                self.connect_checkbox(input_widget)
-
     def disable_buttons(self) -> None:
         """
-        Disable buttons based on validation state.
-        This is a stub that subclasses must override.
+        Update button states based on input validation.
+        This method should be overridden by subclasses to register 
+        their specific button dependencies.
         """
-        pass
+        self.tab_state_manager.update_button_states()
 
     def create_job(self, function_type: Optional[FunctionType] = None,
                   photo_path: Optional[Path] = None,
@@ -340,23 +340,6 @@ class UiCropWidget(QtWidgets.QWidget):
         # Connect click handler
         self.destinationButton.clicked.connect(
             lambda: self.open_path(self.destinationLineEdit)
-        )
-
-    def setup_input_layout(self, layout: QtWidgets.QHBoxLayout, icon: GuiIcon = None) -> None:
-        """Set up the input file/folder selection layout"""
-        layout.addWidget(self.inputLineEdit)
-        layout.addWidget(self.inputButton)
-        layout.setStretch(0, 1)
-        
-        # Set button icon
-        if icon:
-            self.inputButton.setIcon(ut.create_button_icon(icon))
-        else:
-            self.inputButton.setIcon(self.folder_icon)
-            
-        # Connect click handler
-        self.inputButton.clicked.connect(
-            lambda: self.open_path(self.inputLineEdit)
         )
 
     def retranslateUi(self) -> None:

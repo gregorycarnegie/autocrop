@@ -39,6 +39,8 @@ class UiPhotoTabWidget(UiCropWidget):
         # Input file selection
         self.inputLineEdit.setParent(self)
         self.inputButton.setParent(self)
+        icon = ut.create_button_icon(GuiIcon.PICTURE)
+        self.inputButton.setIcon(icon)
         self.horizontalLayout_2.addWidget(self.inputLineEdit)
         self.horizontalLayout_2.addWidget(self.inputButton)
         self.horizontalLayout_2.setStretch(0, 1)
@@ -77,13 +79,23 @@ class UiPhotoTabWidget(UiCropWidget):
 
     def connect_signals(self) -> None:
         """Connect widget signals to handlers"""
-        # Button connections
+        # Button connections 
         self.inputButton.clicked.connect(lambda: self.open_path(self.inputLineEdit))
-        self.destinationButton.clicked.connect(lambda: self.open_path(self.destinationLineEdit))
         self.cropButton.clicked.connect(lambda: self.crop_photo())
         
-        # Connect input widgets for validation
-        self.connect_input_widgets(
+        # Register button dependencies with the TabStateManager
+        self.tab_state_manager.register_button_dependencies(
+            self.cropButton,
+            {
+                self.inputLineEdit, 
+                self.destinationLineEdit, 
+                self.controlWidget.widthLineEdit,
+                self.controlWidget.heightLineEdit
+            }
+        )
+        
+        # Connect all input widgets for validation tracking
+        self.tab_state_manager.connect_widgets(
             self.inputLineEdit, 
             self.controlWidget.widthLineEdit,
             self.controlWidget.heightLineEdit, 
@@ -113,7 +125,7 @@ class UiPhotoTabWidget(UiCropWidget):
         self.cropButton.setText("")
 
     def open_path(self, line_edit: PathLineEdit) -> None:
-        """Open file/folder selection dialog based on line edit type"""
+        """Open file/folder selection dialog based on lineedit type"""
         if line_edit is self.inputLineEdit:
             f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
                 self, 'Open File', 
@@ -123,18 +135,6 @@ class UiPhotoTabWidget(UiCropWidget):
             line_edit.setText(f_name)
         elif line_edit is self.destinationLineEdit:
             super().open_path(line_edit)
-
-    def disable_buttons(self) -> None:
-        """Enable/disable buttons based on input validation"""
-        ut.change_widget_state(
-            ut.all_filled(
-                self.inputLineEdit, 
-                self.destinationLineEdit, 
-                self.controlWidget.widthLineEdit,
-                self.controlWidget.heightLineEdit
-            ),
-            self.cropButton
-        )
 
     def crop_photo(self) -> None:
         """Execute the photo cropping operation"""

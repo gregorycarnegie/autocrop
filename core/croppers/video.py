@@ -35,6 +35,7 @@ def ffmpeg_input(video_line_edit: str, timestamp_seconds: float, width: int, hei
     # Now the output will match our specified dimensions
     return np.frombuffer(out, np.uint8).reshape((height, width, 3))
 
+
 class VideoCropper(Cropper):
     def __init__(self, face_detection_tools: c.Iterator[FaceToolPair]):
         super().__init__()
@@ -107,7 +108,6 @@ class VideoCropper(Cropper):
             return None
 
         destination = job.destination
-        # base_name = job.video_path.stem
         destination.mkdir(exist_ok=True)
 
         # Swap ':' to '_' in position text
@@ -186,9 +186,9 @@ class VideoCropper(Cropper):
         try:
             timestamp = frame_to_timestamp(frame_number, fps)
             return ffmpeg_input(video_path, timestamp, width, height)
-        except ffmpeg.Error as e:
-            self.ffmpeg_error(e, "Error extracting frame")
-            return None
+        except ffmpeg.Error:
+            exception, message = self.create_error('ffmpeg', "Error extracting frame")
+            return self._display_error(exception, message)
 
     def extract_frames(self, job: Job) -> None:
         if not job.video_path or not job.start_position or not job.stop_position or not job.destination:
@@ -204,9 +204,9 @@ class VideoCropper(Cropper):
                 return self._display_error(exception, message)
             fps = float(Fraction(video_stream['r_frame_rate']))
             width, height = int(video_stream['width']), int(video_stream['height'])
-        except ffmpeg.Error as e:
-            self.ffmpeg_error(e, "Error extracting frames")
-            return None
+        except ffmpeg.Error:
+            exception, message = self.create_error('ffmpeg', "Error extracting frames")
+            return self._display_error(exception, message)
 
         start_frame = int(job.start_position * fps)
         end_frame = int(job.stop_position * fps)

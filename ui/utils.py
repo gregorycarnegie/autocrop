@@ -7,7 +7,6 @@ import cv2.typing as cvt
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from core.enums import FunctionType
-from line_edits import LineEditState, NumberLineEdit, PathLineEdit
 from .dialog import UiDialog
 from .enums import GuiIcon
 from .image_widget import ImageWidget
@@ -74,14 +73,6 @@ def create_button_icon(icon_resource: GuiIcon,
     return icon
 
 
-def all_filled(*input_widgets: Union[PathLineEdit, NumberLineEdit, QtWidgets.QComboBox]) -> bool:
-    x = all(widget.state == LineEditState.VALID_INPUT
-            for widget in input_widgets if isinstance(widget, (PathLineEdit, NumberLineEdit)))
-    y = all(widget.text() for widget in input_widgets if isinstance(widget, (PathLineEdit, NumberLineEdit)))
-    z = all(widget.currentText() for widget in input_widgets if isinstance(widget, QtWidgets.QComboBox))
-    return all((x, y, z))
-
-
 def display_image_on_widget(image: cvt.MatLike, image_widget: ImageWidget) -> None:
     """
     Displays the specified image on the image widget.
@@ -107,31 +98,6 @@ def display_image_on_widget(image: cvt.MatLike, image_widget: ImageWidget) -> No
     bytes_per_line = channel * width
     q_image = QtGui.QImage(image.data.tobytes(), width, height, bytes_per_line, QtGui.QImage.Format.Format_BGR888)
     image_widget.setImage(q_image)
-
-
-def uncheck_boxes(*checkboxes: QtWidgets.QCheckBox) -> None:
-    """
-    Unchecks the specified checkboxes.
-
-    Args:
-        *checkboxes (QtWidgets.QCheckBox): Variable number of checkboxes to uncheck.
-
-    Returns:
-        None
-
-    Example:
-        ```python
-        checkbox1 = QtWidgets.QCheckBox()
-        checkbox2 = QtWidgets.QCheckBox()
-        checkbox3 = QtWidgets.QCheckBox()
-
-        # Uncheck the checkboxes
-        uncheck_boxes(checkbox1, checkbox2, checkbox3)
-        ```
-    """
-
-    for checkbox in checkboxes:
-        checkbox.setCheckState(QtCore.Qt.CheckState.Unchecked)
 
 
 def load_about_form() -> None:
@@ -416,21 +382,6 @@ def create_media_button(parent: QtWidgets.QWidget, size_policy: QtWidgets.QSizeP
     icon.addFile(icon_resource, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
     button.setIcon(icon)
     button.setIconSize(QtCore.QSize(24, 24))
-    return button
-
-def create_function_button(parent: QtWidgets.QWidget, size_policy: QtWidgets.QSizePolicy,
-                            *, name: str,
-                            icon_resource: GuiIcon) -> QtWidgets.QPushButton:
-    button = QtWidgets.QPushButton(parent)
-    button.setObjectName(name)
-    size_policy.setHeightForWidth(button.sizePolicy().hasHeightForWidth())
-    button.setSizePolicy(size_policy)
-    button.setMinimumSize(QtCore.QSize(40, 40))
-    button.setMaximumSize(QtCore.QSize(16_777_215, 40))
-    icon = QtGui.QIcon()
-    icon.addFile(icon_resource, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-    button.setIcon(icon)
-    button.setIconSize(QtCore.QSize(18, 18))
     return button
 
 def create_label(parent: QtWidgets.QWidget, size_policy: QtWidgets.QSizePolicy,

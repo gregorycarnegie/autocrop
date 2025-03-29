@@ -42,13 +42,13 @@ class FileRegistry:
         """Get information about a specific file type by name."""
         return cls._types.get(name)
     
-    @classmethod
-    def get_all_extensions(cls) -> Set[str]:
-        """Get a set of all registered file extensions."""
-        all_exts = set()
-        for info in cls._types.values():
-            all_exts.update(info.extensions)
-        return all_exts
+    # @classmethod
+    # def get_all_extensions(cls) -> Set[str]:
+    #     """Get a set of all registered file extensions."""
+    #     all_exts = set()
+    #     for info in cls._types.values():
+    #         all_exts.update(info.extensions)
+    #     return all_exts
     
     @classmethod
     def get_extensions(cls, type_name: str) -> Set[str]:
@@ -67,21 +67,21 @@ class FileRegistry:
             return False
         return path.suffix.lower() in cls._types[type_name].extensions
     
-    @classmethod
-    def get_type_for_path(cls, path: Path) -> Optional[str]:
-        """Determine the file type for a given path."""
-        if not path.is_file():
-            return None
-
-        ext = path.suffix.lower()
-        return next(
-            (
-                type_name
-                for type_name, info in cls._types.items()
-                if ext in info.extensions
-            ),
-            None,
-        )
+    # @classmethod
+    # def get_type_for_path(cls, path: Path) -> Optional[str]:
+    #     """Determine the file type for a given path."""
+    #     if not path.is_file():
+    #         return None
+    #
+    #     ext = path.suffix.lower()
+    #     return next(
+    #         (
+    #             type_name
+    #             for type_name, info in cls._types.items()
+    #             if ext in info.extensions
+    #         ),
+    #         None,
+    #     )
     
     @classmethod
     def get_filter_string(cls, type_name: Optional[str] = None) -> str:
@@ -105,7 +105,7 @@ class FileRegistry:
         
         return ";;".join(all_filters)
     
-    @classmethod
-    def should_use_tiff_save(cls, path: Path) -> bool:
-        """Determine if TIFF saving should be used based on the file extension."""
-        return path.suffix.lower() in cls.get_extensions("tiff")
+    # @classmethod
+    # def should_use_tiff_save(cls, path: Path) -> bool:
+    #     """Determine if TIFF saving should be used based on the file extension."""
+    #     return path.suffix.lower() in cls.get_extensions("tiff")

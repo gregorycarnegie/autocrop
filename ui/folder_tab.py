@@ -46,6 +46,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
         # Input file selection
         self.inputLineEdit.setParent(self.page_1)
         self.inputButton.setParent(self.page_1)
+        self.inputButton.setIcon(self.folder_icon)
 
         input_layout = ut.setup_hbox("horizontalLayout_4")
         input_layout.addWidget(self.inputLineEdit)
@@ -75,13 +76,8 @@ class UiFolderTabWidget(UiBatchCropWidget):
         # Destination selection
         self.destinationLineEdit.setParent(self.page_1)
         self.destinationButton.setParent(self.page_1)
-
-        destLayout = ut.setup_hbox("horizontalLayout_3")
-        destLayout.addWidget(self.destinationLineEdit)
-        destLayout.addWidget(self.destinationButton)
-        destLayout.setStretch(0, 1)
-
-        self.verticalLayout_200.addLayout(destLayout)
+        self.setup_destination_layout(self.horizontalLayout_3)
+        self.verticalLayout_200.addLayout(self.horizontalLayout_3)
 
         # Add page to toolbox
         self.toolBox.addItem(self.page_1, "Crop View")
@@ -103,16 +99,33 @@ class UiFolderTabWidget(UiBatchCropWidget):
         """Connect widget signals to handlers"""
         # Button connections
         self.inputButton.clicked.connect(lambda: self.open_path(self.inputLineEdit))
-        self.destinationButton.clicked.connect(lambda: self.open_path(self.destinationLineEdit))
+        # self.destinationButton.clicked.connect(lambda: self.open_path(self.destinationLineEdit))
         self.cropButton.clicked.connect(lambda: self.folder_process())
         self.cancelButton.clicked.connect(lambda: self.crop_worker.terminate())
         self.cancelButton.clicked.connect(lambda: self.cancel_button_operation(self.cancelButton, self.cropButton))
 
-        # Input widgets for validation
-        self.connect_input_widgets(
+        # Input line edit also updates the tree view
+        self.inputLineEdit.textChanged.connect(lambda: self.load_data())
+
+        # Connect crop worker signals
+        self.connect_crop_worker()
+        
+        # Register button dependencies with the TabStateManager
+        self.tab_state_manager.register_button_dependencies(
+            self.cropButton,
+            {
+                self.inputLineEdit, 
+                self.destinationLineEdit, 
+                self.controlWidget.widthLineEdit,
+                self.controlWidget.heightLineEdit
+            }
+        )
+        
+        # Connect all input widgets for validation tracking
+        self.tab_state_manager.connect_widgets(
             self.inputLineEdit,
             self.controlWidget.widthLineEdit,
-            self.controlWidget.heightLineEdit,
+            self.controlWidget.heightLineEdit, 
             self.destinationLineEdit,
             self.exposureCheckBox,
             self.mfaceCheckBox,
@@ -126,11 +139,6 @@ class UiFolderTabWidget(UiBatchCropWidget):
             self.controlWidget.rightDial
         )
 
-        # Input line edit also updates the tree view
-        self.inputLineEdit.textChanged.connect(lambda: self.load_data())
-
-        # Connect crop worker signals
-        self.connect_crop_worker()
 
     def retranslateUi(self) -> None:
         """Update UI text elements"""
@@ -164,18 +172,6 @@ class UiFolderTabWidget(UiBatchCropWidget):
             self.treeView.setRootIndex(self.file_model.index(f_name))
         except (IndexError, FileNotFoundError, ValueError, AttributeError):
             return
-
-    def disable_buttons(self) -> None:
-        """Enable/disable buttons based on input validation"""
-        ut.change_widget_state(
-            ut.all_filled(
-                self.inputLineEdit,
-                self.destinationLineEdit,
-                self.controlWidget.widthLineEdit,
-                self.controlWidget.heightLineEdit
-            ),
-            self.cropButton
-        )
 
     def connect_crop_worker(self) -> None:
         """Connect the signals from the crop worker to UI handlers"""

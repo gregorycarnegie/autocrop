@@ -282,8 +282,10 @@ def open_table(file: Path) -> pl.DataFrame:
     """
     Opens a CSV or Excel file using Polars.
     """
-
-    return pl.read_csv(file) if file.suffix.lower() == '.csv' else pl.read_excel(file)
+    try:
+        return pl.read_csv(file) if file.suffix.lower() == '.csv' else pl.read_excel(file)
+    except IsADirectoryError:
+        return pl.DataFrame()
 
 
 def prepare_detections(image: cvt.MatLike) -> cvt.MatLike:
@@ -424,7 +426,7 @@ def box_detect(image: cvt.MatLike, job: Job) -> Optional[Box]:
     Detect face in an image with optimized performance through caching and downscaling.
     
     Args:
-        input_image: Input image in OpenCV format
+        image: Input image in OpenCV format
         job: Job configuration containing detection parameters
         
     Returns:
@@ -454,17 +456,6 @@ def box_detect(image: cvt.MatLike, job: Job) -> Optional[Box]:
         return None
     except (AttributeError, IndexError):
         return None
-    
-
-def get_first_file(img_path: Path) -> Optional[Path]:
-    """
-    Retrieves the first file with a supported extension from the directory.
-    """
-
-    return next(
-        filter(lambda f: registry.is_valid_type(f, "photo"), img_path.iterdir()),
-        None
-    )
 
 
 def mask_extensions(file_list: npt.NDArray[np.str_]) -> tuple[npt.NDArray[np.bool_], int]:
