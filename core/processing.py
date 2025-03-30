@@ -468,7 +468,7 @@ def mask_extensions(file_list: npt.NDArray[np.str_]) -> tuple[npt.NDArray[np.boo
 
     file_suffixes = np.array([Path(file).suffix.lower() for file in file_list])
     x = registry.get_extensions("photo") | registry.get_extensions("raw")
-    mask = np.isin(file_suffixes, tuple(x))
+    mask = np.isin(file_suffixes, list(x))
     return mask, np.count_nonzero(mask)
 
 
@@ -487,7 +487,7 @@ def join_path_suffix(file_str: str, destination: Path) -> tuple[Path, bool]:
     """
 
     path = destination.joinpath(file_str)
-    return path, registry.is_valid_type(path, "tiff")
+    return path, registry.should_use_tiff_save(path)
 
 
 @cache

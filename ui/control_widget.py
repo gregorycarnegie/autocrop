@@ -162,12 +162,10 @@ class UiCropControlWidget(QtWidgets.QWidget):
         self.gridLayout_2.addWidget(self.widthLabel, 0, 0, 1, 1)
 
         self.widthLineEdit = NumberLineEdit(name=u"widthLineEdit", parent=self)
-        self.widthLineEdit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhDigitsOnly)
 
         self.gridLayout_2.addWidget(self.widthLineEdit, 1, 0, 1, 1)
 
         self.heightLineEdit = NumberLineEdit(name=u"heightLineEdit", parent=self)
-        self.heightLineEdit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhDigitsOnly)
 
         self.gridLayout_2.addWidget(self.heightLineEdit, 1, 1, 1, 1)
 
@@ -277,10 +275,8 @@ class UiCropControlWidget(QtWidgets.QWidget):
         self.rightLabel.setText(QtCore.QCoreApplication.translate("self", u"Right:", None))
         self.heightLabel.setText(QtCore.QCoreApplication.translate("self", u"Height (px)", None))
         self.widthLabel.setText(QtCore.QCoreApplication.translate("self", u"Width (px)", None))
-        self.widthLineEdit.setText("")
         self.widthLineEdit.setPlaceholderText(
             QtCore.QCoreApplication.translate("self", u"Try typing a number e.g. 400", None))
-        self.heightLineEdit.setText("")
         self.heightLineEdit.setPlaceholderText(
             QtCore.QCoreApplication.translate("self", u"Try typing a number e.g. 400", None))
         self.gammaLabel.setText(QtCore.QCoreApplication.translate("self", u"Gamma:", None))

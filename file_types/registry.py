@@ -105,7 +105,7 @@ class FileRegistry:
         
         return ";;".join(all_filters)
     
-    # @classmethod
-    # def should_use_tiff_save(cls, path: Path) -> bool:
-    #     """Determine if TIFF saving should be used based on the file extension."""
-    #     return path.suffix.lower() in cls.get_extensions("tiff")
+    @classmethod
+    def should_use_tiff_save(cls, path: Path) -> bool:
+        """Determine if TIFF saving should be used based on the file extension."""
+        return path.suffix.lower() in cls.get_extensions("tiff")
