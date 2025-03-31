@@ -1,3 +1,5 @@
+use ndarray::{Array1, Array2};
+use numpy::IntoPyArray;
 use pyo3::prelude::*;
 
 /// A lightweight struct representing a rectangle
@@ -120,6 +122,150 @@ fn calc_alpha_beta(hist: Vec<f64>) -> PyResult<(f64, f64)> {
     Ok((alpha, beta))
 }
 
+/// Generates a gamma correction lookup table for intensity values from 0 to 255.
+/// Replaces the numba.njit gamma function from Python.
+#[pyfunction]
+fn gamma(gamma_value: f64, py: Python) -> PyObject {
+    let mut lookup = Array1::<u8>::zeros(256);
+    
+    if gamma_value <= 1.0 {
+        // If gamma <= 1.0, simply return a linear array from 0 to 255
+        for i in 0..256 {
+            lookup[i] = i as u8;
+        }
+    } else {
+        // Calculate gamma correction
+        let inv_gamma = 1.0 / gamma_value;
+        for i in 0..256 {
+            let val = (((i as f64) / 255.0).powf(inv_gamma) * 255.0) as u8;
+            lookup[i] = val;
+        }
+    }
+    
+    lookup.into_pyarray(py).into()
+}
+/// Calculates output dimensions and scaling factor for resizing.
+/// Replaces the numba.njit calculate_dimensions function from Python.
+#[pyfunction]
+fn calculate_dimensions(height: i32, width: i32, target_height: i32) -> (i32, f64) {
+    let scaling_factor = target_height as f64 / height as f64;
+    let new_width = (width as f64 * scaling_factor) as i32;
+    (new_width, scaling_factor)
+}
+
+/// Computes the mean of a 2D array along axis 0, returning a 1D array.
+/// Replaces the numba.njit mean_axis0 function from Python.
+fn mean_axis0(array: &Array2<f64>) -> Array1<f64> {
+    if array.shape()[0] == 0 {
+        return Array1::<f64>::zeros(0);
+    }
+    
+    let rows = array.shape()[0];
+    let cols = array.shape()[1];
+    let mut result = Array1::<f64>::zeros(cols);
+    
+    for i in 0..cols {
+        let mut sum = 0.0;
+        for j in 0..rows {
+            sum += array[[j, i]];
+        }
+        result[i] = sum / rows as f64;
+    }
+    
+    result
+}
+
+/// Concatenates two 2D arrays vertically.
+/// Replaces the numba.njit concat_rows function from Python.
+fn concat_rows(array1: &Array2<f64>, array2: &Array2<f64>) -> Array2<f64> {
+    // Check that the arrays have compatible shapes
+    let rows1 = array1.shape()[0];
+    let rows2 = array2.shape()[0];
+    let cols = array1.shape()[1];
+    
+    // Create a new array with enough space for both inputs
+    let mut result = Array2::<f64>::zeros((rows1 + rows2, cols));
+    
+    // Copy data from the first array
+    for i in 0..rows1 {
+        for j in 0..cols {
+            result[[i, j]] = array1[[i, j]];
+        }
+    }
+    
+    // Copy data from the second array
+    for i in 0..rows2 {
+        for j in 0..cols {
+            result[[i + rows1, j]] = array2[[i, j]];
+        }
+    }
+    
+    result
+}
+
+/// Computes the rotation matrix parameters for face alignment.
+/// Replaces the numba.njit get_rotation_matrix function from Python.
+#[pyfunction]
+fn get_rotation_matrix(
+    py: Python,
+    left_eye_landmarks_x: Vec<f64>,
+    left_eye_landmarks_y: Vec<f64>,
+    right_eye_landmarks_x: Vec<f64>,
+    right_eye_landmarks_y: Vec<f64>,
+    scale_factor: f64
+) -> (PyObject, f64) {
+    // Convert vectors to ndarray
+    let mut left_arr = Array2::<f64>::zeros((left_eye_landmarks_x.len(), 2));
+    for i in 0..left_eye_landmarks_x.len() {
+        left_arr[[i, 0]] = left_eye_landmarks_x[i];
+        left_arr[[i, 1]] = left_eye_landmarks_y[i];
+    }
+    
+    let mut right_arr = Array2::<f64>::zeros((right_eye_landmarks_x.len(), 2));
+    for i in 0..right_eye_landmarks_x.len() {
+        right_arr[[i, 0]] = right_eye_landmarks_x[i];
+        right_arr[[i, 1]] = right_eye_landmarks_y[i];
+    }
+    
+    // Calculate eye centers by computing the mean
+    let left_eye_center = mean_axis0(&left_arr);
+    let right_eye_center = mean_axis0(&right_arr);
+    
+    // Extract x and y coordinates
+    let left_eye_x = left_eye_center[0];
+    let left_eye_y = left_eye_center[1];
+    let right_eye_x = right_eye_center[0];
+    let right_eye_y = right_eye_center[1];
+    
+    // Calculate angle
+    let dy = left_eye_y - right_eye_y;
+    let dx = left_eye_x - right_eye_x;
+    let angle = dy.atan2(dx) * 180.0 / std::f64::consts::PI;
+    
+    // Concatenate arrays for both eyes
+    let both_eyes = concat_rows(&left_arr, &right_arr);
+    
+    // Calculate face center
+    let face_center = mean_axis0(&both_eyes);
+    
+    // Adjust for scaling
+    let mut face_center_x = face_center[0];
+    let mut face_center_y = face_center[1];
+    
+    if scale_factor > 1.0 {
+        face_center_x *= scale_factor;
+        face_center_y *= scale_factor;
+    }
+    
+    // Create center as integers for rotation matrix
+    let center = Array1::<i32>::from_vec(vec![
+        face_center_x.round() as i32,
+        face_center_y.round() as i32,
+    ]);
+    
+    (center.into_pyarray(py).into(), angle)
+}
+
 /// Computes the desired crop width/height based on detected face size and desired output.
 ///
 /// # Arguments
@@ -140,11 +286,11 @@ fn compute_cropped_lengths(
     let face_crop  = (rect.width * inv_percentage, rect.height * inv_percentage);
 
     if output_height >= output_width {
-        let scaled_width = output_width as f64 * face_crop .1 / output_height as f64;
-        (scaled_width, face_crop .1)
+        let scaled_width = output_width as f64 * face_crop.1 / output_height as f64;
+        (scaled_width, face_crop.1)
     } else {
-        let scaled_height = output_height as f64 * face_crop .0 / output_width as f64;
-        (face_crop .0, scaled_height)
+        let scaled_height = output_height as f64 * face_crop.0 / output_width as f64;
+        (face_crop.0, scaled_height)
     }
 }
 
@@ -228,10 +374,19 @@ fn crop_positions(
     Some(compute_edges(&rect, cropped_width, cropped_height, top, bottom, left, right))
 }
 
-/// A Python module implemented in Rust.
+// Module definition using a different approach for older PyO3 versions
 #[pymodule]
-fn autocrop_rs<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
+fn autocrop_rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    // Add functions one at a time
     m.add_function(wrap_pyfunction!(crop_positions, m)?)?;
+    
     m.add_function(wrap_pyfunction!(calc_alpha_beta, m)?)?;
+    
+    m.add_function(wrap_pyfunction!(gamma, m)?)?;
+    
+    m.add_function(wrap_pyfunction!(calculate_dimensions, m)?)?;
+    
+    m.add_function(wrap_pyfunction!(get_rotation_matrix, m)?)?;
+    
     Ok(())
 }

@@ -11,7 +11,6 @@ from typing import Optional
 import autocrop_rs as rs
 import cv2
 import cv2.typing as cvt
-import numba
 import numpy as np
 import numpy.typing as npt
 import polars as pl
@@ -49,25 +48,12 @@ def profile_it(func: c.Callable[..., Any]) -> c.Callable[..., Any]:
     return wrapper
 
 
-@numba.njit(cache=True, fastmath=True)
-def gamma(gamma_value: Union[int, float] = 1.0) -> npt.NDArray[np.uint8]:
-    """
-    Generates a gamma correction lookup table for intensity values from 0 to 255.
-    """
-    if gamma_value <= 1.0:
-        return np.arange(256, dtype=np.uint8)
-    
-    inv_gamma = 1.0 / gamma_value
-    lookup = np.power(np.linspace(0, 1, 256), inv_gamma) * 255
-    return lookup.astype(np.uint8)
-
-
 def adjust_gamma(image: cvt.MatLike, gam: int) -> cvt.MatLike:
     """
     Adjusts image gamma using a precomputed lookup table.
     """
 
-    return cv2.LUT(image, gamma(gam * GAMMA_THRESHOLD))
+    return cv2.LUT(image, rs.gamma(gam * GAMMA_THRESHOLD))
 
 
 def convert_color_space(image: cvt.MatLike) -> cvt.MatLike:
@@ -126,70 +112,17 @@ def correct_exposure(image: cvt.MatLike,
     return cv2.convertScaleAbs(src=image, alpha=alpha, beta=beta)
 
 
-@numba.njit(cache=True, fastmath=True)
-def calculate_dimensions(height: int, width: int, target_height: int) -> tuple[int, float]:
-    """
-    Calculates output dimensions and scaling factor for resizing.
-    """
-    scaling_factor = target_height / height
-    return int(width * scaling_factor), scaling_factor
-
 def format_image(image: cvt.MatLike) -> tuple[cvt.MatLike, float]:
     """
     Resizes an image to 256px height, returns grayscale if >2 channels, plus the scaling factor.
     """
     output_height = 256
     h, w = image.shape[:2]
-    output_width, scaling_factor = calculate_dimensions(h, w, output_height)
+    output_width, scaling_factor = rs.calculate_dimensions(h, w, output_height)
     
     image_array = cv2.resize(image, (output_width, output_height), interpolation=cv2.INTER_AREA)
     return cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY) if len(image_array.shape) >= 3 else image_array, scaling_factor
 
-@numba.njit(parallel=True, fastmath=True)
-def mean_axis0(arr: np.ndarray) -> np.ndarray:
-    """
-    Computes the mean of a 2D array along axis 0, returning a 1D array.
-    """
-    result = np.zeros(arr.shape[1], dtype=np.float64)
-    for i in numba.prange(arr.shape[1]):
-        result[i] = np.sum(arr[:, i]) / arr.shape[0]
-    return result
-
-@numba.njit(fastmath=True)
-def concat_rows(arr1: np.ndarray, arr2: np.ndarray) -> np.ndarray:
-    """
-    Concatenates two 2D arrays vertically.
-    """
-    rows1, cols = arr1.shape
-    rows2 = arr2.shape[0]
-    out = np.empty((rows1 + rows2, cols), dtype=arr1.dtype)
-    out[:rows1, :] = arr1
-    out[rows1:, :] = arr2
-    return out
-
-@numba.njit(fastmath=True)
-def get_rotation_matrix(left_eye_landmarks: np.ndarray, right_eye_landmarks: np.ndarray, scale_factor: float) -> tuple:
-    # Calculate eye centers
-    left_eye_center = mean_axis0(left_eye_landmarks)
-    right_eye_center = mean_axis0(right_eye_landmarks)
-
-    # Calculate angle
-    dy = left_eye_center[1] - right_eye_center[1]
-    dx = left_eye_center[0] - right_eye_center[0]
-    angle = np.degrees(np.arctan2(dy, dx))
-
-    # Calculate face center
-    both_eyes = concat_rows(left_eye_landmarks, right_eye_landmarks)
-    face_center = mean_axis0(both_eyes)
-
-    # Adjust for scaling
-    if scale_factor > 1.0:
-        face_center[0] *= scale_factor
-        face_center[1] *= scale_factor
-
-    # Get rotation matrix
-    center = (int(face_center[0]), int(face_center[1]))
-    return center, angle
 
 def align_head(image: cvt.MatLike,
                face_detection_tools: FaceToolPair,
@@ -236,8 +169,14 @@ def align_head(image: cvt.MatLike,
                                  for i in range(L_EYE_START, L_EYE_END)])
     right_eye_landmarks = np.array([(landmarks.part(i).x, landmarks.part(i).y) 
                                   for i in range(R_EYE_START, R_EYE_END)])
-    center, angle = get_rotation_matrix(left_eye_landmarks, right_eye_landmarks, scale_factor)
-    
+# New Python code
+    left_x = left_eye_landmarks[:, 0]  # First column (x coordinates)
+    left_y = left_eye_landmarks[:, 1]  # Second column (y coordinates)
+    right_x = right_eye_landmarks[:, 0]
+    right_y = right_eye_landmarks[:, 1]
+
+    center, angle = rs.get_rotation_matrix(left_x, left_y, right_x, right_y, scale_factor)
+    center = int(center[0]), int(center[1])
     rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
 
     return cv2.warpAffine(
@@ -586,7 +525,7 @@ def save_image(image: cvt.MatLike,
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         tiff.imwrite(file_path, image)
     else:
-        lut = cv2.LUT(image, gamma(user_gam * GAMMA_THRESHOLD))
+        lut = cv2.LUT(image, rs.gamma(user_gam * GAMMA_THRESHOLD))
         cv2.imwrite(file_path.as_posix(), lut)
 
 
