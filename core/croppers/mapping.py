@@ -6,8 +6,9 @@ import numpy as np
 import numpy.typing as npt
 
 from core import processing as prc
+from core.face_tools import FaceToolPair
 from core.job import Job
-from core.operation_types import FaceToolPair
+from file_types import registry
 from .batch import BatchCropper
 
 
@@ -44,8 +45,9 @@ class MappingCropper(BatchCropper):
         if not (file_tuple := job.file_list_to_numpy()):
             return None, None
 
+        exts = registry.get_extensions('photo') | registry.get_extensions('raw')
         # Get the extensions of the file names and create a mask for supported extensions
-        mask, amount = prc.mask_extensions(file_tuple[0])
+        mask, amount = prc.mask_extensions(file_tuple[0], exts)
 
         # Split the file lists and the mapping data into chunks
         old_file_list, new_file_list = prc.split_by_cpus(mask, self.THREAD_NUMBER, file_tuple[0], file_tuple[1])

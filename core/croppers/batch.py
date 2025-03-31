@@ -6,8 +6,8 @@ from typing import Callable, Optional, Union, TypeVar
 import numpy as np
 import numpy.typing as npt
 
+from core.face_tools import FaceToolPair
 from core.job import Job
-from core.operation_types import FaceToolPair
 from .base import Cropper
 
 # Type definitions for better type hints

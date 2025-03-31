@@ -19,10 +19,10 @@ import tifffile as tiff
 from rawpy._rawpy import NotSupportedError, LibRawError, LibRawFatalError, LibRawNonFatalError
 
 from file_types import registry
-from .face_tools import CAFFE_MODEL, PROTO_TXT, L_EYE_START, L_EYE_END, R_EYE_START, R_EYE_END
+from .face_tools import L_EYE_START, L_EYE_END, R_EYE_START, R_EYE_END, FaceToolPair
 from .image_loader import ImageLoader
 from .job import Job
-from .operation_types import FaceToolPair, SaveFunction, Box
+from .operation_types import SaveFunction, Box
 
 # Define constants
 GAMMA_THRESHOLD = .001
@@ -54,10 +54,12 @@ def gamma(gamma_value: Union[int, float] = 1.0) -> npt.NDArray[np.uint8]:
     """
     Generates a gamma correction lookup table for intensity values from 0 to 255.
     """
-
     if gamma_value <= 1.0:
         return np.arange(256, dtype=np.uint8)
-    return (np.power(np.arange(256) / 255, 1.0 / gamma_value) * 255.0).astype(np.uint8)
+    
+    inv_gamma = 1.0 / gamma_value
+    lookup = np.power(np.linspace(0, 1, 256), inv_gamma) * 255
+    return lookup.astype(np.uint8)
 
 
 def adjust_gamma(image: cvt.MatLike, gam: int) -> cvt.MatLike:
@@ -124,19 +126,6 @@ def correct_exposure(image: cvt.MatLike,
     return cv2.convertScaleAbs(src=image, alpha=alpha, beta=beta)
 
 
-def rotate_image(image: cvt.MatLike,
-                 angle: float,
-                 center: tuple[float, float]) -> cvt.MatLike:
-    """
-    Rotates an image by a specified angle around a given center point.
-    """
-
-    # Get the rotation matrix.
-    rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1)
-    # Apply the rotation to the image.
-    return cv2.warpAffine(image, rotation_matrix, (image.shape[1], image.shape[0]))
-
-
 @numba.njit(cache=True, fastmath=True)
 def calculate_dimensions(height: int, width: int, target_height: int) -> tuple[int, float]:
     """
@@ -157,60 +146,107 @@ def format_image(image: cvt.MatLike) -> tuple[cvt.MatLike, float]:
     return cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY) if len(image_array.shape) >= 3 else image_array, scaling_factor
 
 @numba.njit(parallel=True, fastmath=True)
-def mean_axis0(arr: npt.NDArray[np.int_]) -> npt.NDArray[np.float64]:
+def mean_axis0(arr: np.ndarray) -> np.ndarray:
     """
     Computes the mean of a 2D array along axis 0, returning a 1D array.
     """
-    return np.sum(arr, axis=0) / arr.shape[0]
+    result = np.zeros(arr.shape[1], dtype=np.float64)
+    for i in numba.prange(arr.shape[1]):
+        result[i] = np.sum(arr[:, i]) / arr.shape[0]
+    return result
 
-
-@numba.njit(parallel=True, fastmath=True)
-def get_angle_of_tilt(landmarks_array: npt.NDArray[np.int_],
-                      scaling_factor: float) -> tuple[float, float, float]:
+@numba.njit(fastmath=True)
+def concat_rows(arr1: np.ndarray, arr2: np.ndarray) -> np.ndarray:
     """
-    Computes the tilt angle (in degrees) of the face using average eye positions.
+    Concatenates two 2D arrays vertically.
     """
+    rows1, cols = arr1.shape
+    rows2 = arr2.shape[0]
+    out = np.empty((rows1 + rows2, cols), dtype=arr1.dtype)
+    out[:rows1, :] = arr1
+    out[rows1:, :] = arr2
+    return out
 
-    eye_diff = mean_axis0(landmarks_array[L_EYE_START:L_EYE_END] - landmarks_array[R_EYE_START:R_EYE_END])
+@numba.njit(fastmath=True)
+def get_rotation_matrix(left_eye_landmarks: np.ndarray, right_eye_landmarks: np.ndarray, scale_factor: float) -> tuple:
+    # Calculate eye centers
+    left_eye_center = mean_axis0(left_eye_landmarks)
+    right_eye_center = mean_axis0(right_eye_landmarks)
 
-    # Find the center of the face.
-    face_center_mean = mean_axis0(landmarks_array[R_EYE_START:L_EYE_END])
-    center_x, center_y = face_center_mean / scaling_factor
+    # Calculate angle
+    dy = left_eye_center[1] - right_eye_center[1]
+    dx = left_eye_center[0] - right_eye_center[0]
+    angle = np.degrees(np.arctan2(dy, dx))
 
-    angle = np.arctan2(eye_diff[1], eye_diff[0]) * 180 / np.pi
+    # Calculate face center
+    both_eyes = concat_rows(left_eye_landmarks, right_eye_landmarks)
+    face_center = mean_axis0(both_eyes)
 
-    return angle, center_x, center_y
+    # Adjust for scaling
+    if scale_factor > 1.0:
+        face_center[0] *= scale_factor
+        face_center[1] *= scale_factor
 
+    # Get rotation matrix
+    center = (int(face_center[0]), int(face_center[1]))
+    return center, angle
 
 def align_head(image: cvt.MatLike,
                face_detection_tools: FaceToolPair,
                tilt: bool) -> cvt.MatLike:
     """
     Performs face alignment by detecting face, computing tilt, and rotating the image.
+    
+    Args:
+        image: Input image
+        face_detection_tools: Tuple of (detector, landmark predictor)
+        tilt: Whether to perform tilt correction
+        
+    Returns:
+        Aligned image or original if no face detected
     """
-
     if not tilt:
         return image
 
-    image_array, scaling_factor = format_image(image)
-    face_detector, predictor = face_detection_tools
+    detector, predictor = face_detection_tools
 
-    faces = face_detector(image_array, 1)
-    # If no faces are detected, return the original image.
+    # Optimize for smaller images for faster processing
+    height, width = image.shape[:2]
+    scale_factor = max(1, min(width, height) // 500)
+
+    if scale_factor > 1:
+        # Resize image for faster processing
+        small_img = cv2.resize(image, (width // scale_factor, height // scale_factor))
+        faces = detector(small_img)
+    else:
+        small_img = image
+        faces = detector(image)
+
     if not faces:
         return image
 
-    # Find the face with the highest confidence score.
-    face = max(faces, key=lambda x: x.area())
+    # Find face with highest confidence
+    face = max(faces, key=lambda f: f.confidence)
 
-    # Get the 68 facial landmarks for the face.
-    landmarks = predictor(image_array, face)
-    landmarks_array = np.array([(p.x, p.y) for p in landmarks.parts()])
+    # Get facial landmarks
+    landmarks = predictor(small_img, face)
 
-    # Find the angle of the tilt and the center of the face
-    angle, center_x, center_y = get_angle_of_tilt(landmarks_array, scaling_factor)
-    return rotate_image(image, angle, (center_x, center_y))
+    # Extract eye landmarks
+    left_eye_landmarks = np.array([(landmarks.part(i).x, landmarks.part(i).y) 
+                                 for i in range(L_EYE_START, L_EYE_END)])
+    right_eye_landmarks = np.array([(landmarks.part(i).x, landmarks.part(i).y) 
+                                  for i in range(R_EYE_START, R_EYE_END)])
+    center, angle = get_rotation_matrix(left_eye_landmarks, right_eye_landmarks, scale_factor)
+    
+    rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
 
+    return cv2.warpAffine(
+        image,
+        rotation_matrix,
+        (width, height),
+        flags=cv2.INTER_CUBIC,
+        borderMode=cv2.BORDER_REPLICATE,
+    )
 
 def colour_expose_allign(image: cvt.MatLike, face_detection_tools: FaceToolPair, exposure:bool, tilt:bool) -> cvt.MatLike:
     # Convert BGR -> RGB for consistency
@@ -289,19 +325,6 @@ def open_table(file: Path) -> pl.DataFrame:
         return pl.DataFrame()
 
 
-def prepare_detections(image: cvt.MatLike) -> cvt.MatLike:
-    """
-    Creates a blob from the image and runs it through a pretrained Caffe model for face detection.
-    """
-    blob = cv2.dnn.blobFromImage(
-        image, 1.0, (300, 300), (104.0, 177.0, 123.0), False, False
-    )
-    
-    net = cv2.dnn.readNetFromCaffe(PROTO_TXT, CAFFE_MODEL)
-    net.setInput(blob)
-    return net.forward()
-
-
 def rs_crop_positions(box_outputs: npt.NDArray[np.int_],
                       job: Job) -> Box:
     """
@@ -329,33 +352,6 @@ def get_box_coordinates(output: Union[cvt.MatLike, npt.NDArray[np.generic]],
     
     return rs_crop_positions(_box, job)
 
-
-def get_multibox_coordinates(box_outputs: npt.NDArray[np.int_], job: Job) -> c.Iterator[Box]:
-    """
-    Yields bounding boxes for multiple face detections.
-    """
-
-    return map(lambda x: rs_crop_positions(x, job), box_outputs)
-
-
-def box(image: cvt.MatLike,
-        job: Job,
-        *,
-        width: int,
-        height: int, ) -> Optional[Box]:
-    """
-    Single-face detection, returning the bounding box of the best face if above threshold.
-    """
-
-    detections = prepare_detections(image)
-    output = np.squeeze(detections)
-    confidence_list = output[:, 2]
-
-    if np.max(confidence_list) * 100 < job.threshold:
-        return None
-    return get_box_coordinates(output[:, 3:7], job, width=width, height=height, x=confidence_list)
-
-
 def _draw_box_with_text(image: cvt.MatLike,
                         confidence: np.float64,
                         *,
@@ -377,89 +373,142 @@ def _draw_box_with_text(image: cvt.MatLike,
     cv2.putText(image, text, (x0, y_text), cv2.FONT_HERSHEY_SIMPLEX, font_scale, colour, line_width)
     return image
 
-
-def get_multi_box_parameters(image: cvt.MatLike) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
-    """
-    Returns bounding-box coordinates and confidences for multiple faces.
-    """
-
-    detections = prepare_detections(image)
-    return detections[0, 0, :, 3:7], detections[0, 0, :, 2] * 100.0
-
-
-def multi_box(image: cvt.MatLike,
-              job: Job) -> cvt.MatLike:
+def multi_box(image: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair) -> cvt.MatLike:
     """
     Draws bounding boxes for all detected faces above a given threshold.
+    
+    Args:
+        image: Input image
+        job: Job parameters
+        face_detection_tools: Tuple of (detector, landmark predictor)
+        
+    Returns:
+        Image with bounding boxes drawn
     """
+    # Get confidences and boxes
+    confidences, boxes = multi_box_positions(image, job, face_detection_tools)
 
-    height, width = image.shape[:2]
-    outputs, confidences = get_multi_box_parameters(image)
+    # Adjust gamma and convert color space for visualization
+    adjusted_image = adjust_gamma(image.copy(), job.gamma)
+    rgb_image = convert_color_space(adjusted_image)
 
-    # Adjust gamma before converting color space for visualization
-    image = adjust_gamma(image, job.gamma)
-    image = convert_color_space(image)
+    # Draw rectangle and confidence text
+    for confidence, box in zip(confidences, boxes):
+        x0, y0, x1, y1 = box
+        _draw_box_with_text(rgb_image, np.float64(confidence), x0=x0, y0=y0, x1=x1, y1=y1)
 
-    valid_indices = np.where(confidences > job.threshold)[0]
-    for idx in valid_indices:
-        x0, y0, x1, y1 = get_box_coordinates(outputs[idx], job, width=width, height=height)
-        image = _draw_box_with_text(image, np.float64(confidences[idx]), x0=x0, y0=y0, x1=x1, y1=y1)
-
-    return image
+    return rgb_image
 
 
-def multi_box_positions(image: cvt.MatLike,
-                        job: Job) -> tuple[npt.NDArray[np.float64], c.Iterator[Box]]:
+def multi_box_positions(image: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair) -> tuple[list[float], list[Box]]:
     """
-    Returns confidences and an iterator of bounding boxes for all detected faces above threshold.
+    Returns confidences and bounding boxes for all detected faces above threshold.
+    
+    Args:
+        image: Input image
+        job: Job parameters
+        face_detection_tools: Tuple of (detector, landmark predictor)
+        
+    Returns:
+        Tuple of (confidences, boxes)
     """
+    detector, _ = face_detection_tools
 
-    height, width = image.shape[:2]
-    outputs, confidences = get_multi_box_parameters(image)
+    # Use our optimized detector
+    faces = detector(image)
 
-    mask = confidences > job.threshold
-    box_outputs = outputs[mask] * np.array([width, height, width, height])
-    return confidences, get_multibox_coordinates(box_outputs.astype(np.int_), job)
+    # Filter by threshold (should already be done in detector, but double-check)
+    faces = [face for face in faces if face.confidence * 100 >= job.threshold]
+
+    if not faces:
+        return [], []
+
+    # Extract confidences
+    confidences = [face.confidence * 100 for face in faces]
+
+    # Generate bounding boxes
+    boxes = []
+    for face in faces:
+        x0, y0 = face.left, face.top
+        width, height = face.right - face.left, face.bottom - face.top
+
+        if box := rs.crop_positions(
+            x0,
+            y0,
+            width,
+            height,
+            job.face_percent,
+            job.width,
+            job.height,
+            job.top,
+            job.bottom,
+            job.left,
+            job.right,
+        ):
+            boxes.append(box)
+
+    return confidences, boxes
 
 
-def box_detect(image: cvt.MatLike, job: Job) -> Optional[Box]:
+def box_detect(image: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair) -> Optional[Box]:
     """
-    Detect face in an image with optimized performance through caching and downscaling.
+    Detect face in an image with optimized performance.
     
     Args:
         image: Input image in OpenCV format
         job: Job configuration containing detection parameters
+        face_detection_tools: Tuple of (detector, landmark predictor)
         
     Returns:
         Box coordinates if a face is detected, None otherwise
     """
     try:
         height, width = image.shape[:2]
-
-        # Optionally downscale for faster detection if image is large
-        scale_factor = max(1, min(width, height) // 500)  # Don't upscale small images
-
+        detector, _ = face_detection_tools
+        
+        # Determine if we need to resize for performance
+        scale_factor = max(1, min(width, height) // 500)
+        
         if scale_factor <= 1:
-            # For small images, use the original size but still cache
-            return box(image, job, width=width, height=height)
-
-        # Resize the image for faster processing
-        small_img = cv2.resize(image, (width // scale_factor, height // scale_factor))
-        small_height, small_width = small_img.shape[:2]
-
-        if box_result := box(small_img, job, width=small_width, height=small_height):
-            return (
-                box_result[0] * scale_factor,
-                box_result[1] * scale_factor,
-                box_result[2] * scale_factor,
-                box_result[3] * scale_factor
-            )
+            # Small image, detect directly
+            faces = detector(image)
+        else:
+            # Large image, resize for faster detection
+            small_img = cv2.resize(image, (width // scale_factor, height // scale_factor))
+            faces = detector(small_img)
+        
+        # If no faces or faces below threshold confidence, return None
+        # The threshold check is now in the detector itself
+        if not faces:
+            return None
+            
+        # Find the face with highest confidence
+        face = max(faces, key=lambda f: f.confidence)
+        
+        # For resized images, scale the coordinates back
+        if scale_factor > 1:
+            x0 = face.left * scale_factor
+            y0 = face.top * scale_factor
+            width = (face.right - face.left) * scale_factor
+            height = (face.bottom - face.top) * scale_factor
+        else:
+            x0 = face.left
+            y0 = face.top
+            width = face.right - face.left
+            height = face.bottom - face.top
+        
+        # Use the crop_positions function from Rust
+        return rs.crop_positions(
+            x0, y0, width, height, 
+            job.face_percent, job.width, job.height,
+            job.top, job.bottom, job.left, job.right
+        )
+    except (AttributeError, IndexError) as e:
+        print(f"Error in box_detect: {e}")
         return None
-    except (AttributeError, IndexError):
-        return None
 
 
-def mask_extensions(file_list: npt.NDArray[np.str_]) -> tuple[npt.NDArray[np.bool_], int]:
+def mask_extensions(file_list: npt.NDArray[np.str_], extentions: set[str]) -> tuple[npt.NDArray[np.bool_], int]:
     """
     Masks the file list based on supported extensions, returning the mask and its count.
     """
@@ -467,8 +516,8 @@ def mask_extensions(file_list: npt.NDArray[np.str_]) -> tuple[npt.NDArray[np.boo
         return np.array([], dtype=np.bool_), 0
 
     file_suffixes = np.array([Path(file).suffix.lower() for file in file_list])
-    x = registry.get_extensions("photo") | registry.get_extensions("raw")
-    mask = np.isin(file_suffixes, list(x))
+    # x = registry.get_extensions("photo") | registry.get_extensions("raw")
+    mask = np.isin(file_suffixes, list(extentions))
     return mask, np.count_nonzero(mask)
 
 
@@ -607,7 +656,7 @@ def crop_image(image: Union[Path, cvt.MatLike],
     if pic_array is None:
         return None
 
-    if (bounding_box := box_detect(pic_array, job)) is None:
+    if (bounding_box := box_detect(pic_array, job, face_detection_tools)) is None:
         return None
     
     cropped_pic = numpy_array_crop(pic_array, bounding_box)
@@ -640,9 +689,10 @@ def multi_crop(image: Union[cvt.MatLike, Path],
     if img is None:
         return None
 
-    confidences, crop_positions = multi_box_positions(img, job)
+    confidences, crop_positions = multi_box_positions(img, job, face_detection_tools)
+    confidences = np.array(confidences) > job.threshold
     # Check if any faces were detected
-    if np.any(confidences > job.threshold):
+    if np.any(confidences):
         # Cropped images
         return map(lambda pos: process_image(img, job, pos), crop_positions)
     else:

@@ -1,17 +1,16 @@
-import collections.abc as c
 from pathlib import Path
 from typing import Optional
 
 from core import processing as prc
+from core.face_tools import FaceToolPair
 from core.job import Job
-from core.operation_types import FaceToolPair
 from .base import Cropper
 
 
 class PhotoCropper(Cropper):
-    def __init__(self, face_detection_tools: c.Iterator[FaceToolPair]):
+    def __init__(self, face_detection_tools: FaceToolPair):
         super().__init__()
-        self.face_detection_tools = next(face_detection_tools)
+        self.face_detection_tools = face_detection_tools
 
     def crop(self, image: Path,
              job: Job,

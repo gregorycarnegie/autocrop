@@ -4,8 +4,8 @@ from pathlib import Path
 from typing import Optional
 
 from core import processing as prc
+from core.face_tools import FaceToolPair
 from core.job import Job
-from core.operation_types import FaceToolPair
 from .batch import BatchCropper
 
 

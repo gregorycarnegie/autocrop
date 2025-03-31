@@ -27,10 +27,10 @@ class UiMainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
         self.setAcceptDrops(True)
-        self.folder_worker = FolderCropper(ft.generate_face_detection_tools())
+        self.folder_worker = FolderCropper(ft.create_tool_pair())
         self.photo_worker = PhotoCropper(ft.generate_face_detection_tools())
         self.mapping_worker = MappingCropper(ft.generate_face_detection_tools())
-        self.video_worker = VideoCropper(ft.generate_face_detection_tools())
+        self.video_worker = VideoCropper(ft.create_tool_pair())
         self.setObjectName(u"MainWindow")
         self.resize(1256, 652)
         icon = QtGui.QIcon()
