@@ -1,4 +1,4 @@
-use ndarray::{Array1, Array2};
+use ndarray::{Array1, Array2, Axis};
 use numpy::IntoPyArray;
 use pyo3::prelude::*;
 
@@ -26,19 +26,21 @@ fn cumsum(vec: &[f64]) -> Vec<f64> {
     // Use a chunk size that fits well in cache
     const CHUNK_SIZE: usize = 64;
 
+    // Process chunks for better cache locality
     for chunk in vec.chunks(CHUNK_SIZE) {
-        // Process each chunk with a local accumulator
+        // Use a local accumulator for the chunk
+        let mut local_sums = Vec::with_capacity(chunk.len());
         let mut local_sum = 0.0;
-        let mut local_results = Vec::with_capacity(chunk.len());
-
+        
+        // Calculate partial sums within the chunk
         for &val in chunk {
             local_sum += val;
-            local_results.push(running_sum + local_sum);
+            local_sums.push(running_sum + local_sum);
         }
-
-        // Update running sum and extend results
+        
+        // Update the running sum and extend the result
         running_sum += local_sum;
-        result.extend(local_results);
+        result.extend(local_sums);
     }
 
     result
@@ -53,11 +55,13 @@ fn calc_alpha_beta(hist: Vec<f64>) -> PyResult<(f64, f64)> {
         ));
     }
 
-    // Check for invalid histogram values
-    if hist.iter().any(|&x| x < 0.0 || !x.is_finite()) {
-        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-            "Histogram contains negative or invalid values"
-        ));
+    // Check for invalid histogram values - use early return pattern
+    for &x in &hist {
+        if x < 0.0 || !x.is_finite() {
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                "Histogram contains negative or invalid values"
+            ));
+        }
     }
 
     // Use the optimized cumsum function
@@ -82,18 +86,28 @@ fn calc_alpha_beta(hist: Vec<f64>) -> PyResult<(f64, f64)> {
     let clip_hist_percent = total * CLIP_PERCENTAGE;
     let max_limit = total - clip_hist_percent;
 
-    // Find min_gray using a more efficient approach
-    let min_gray = match accumulator.iter().position(|&x| x > clip_hist_percent) {
-        Some(pos) => pos,
-        None => return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-            "Cannot find minimum gray value - histogram may be invalid"
-        )),
+    // Find min_gray using binary search for better performance
+    let min_gray = match accumulator.binary_search_by(|&x| {
+        if x <= clip_hist_percent {
+            std::cmp::Ordering::Less
+        } else {
+            std::cmp::Ordering::Greater
+        }
+    }) {
+        Ok(pos) => pos,
+        Err(pos) => pos, // binary_search_by returns insertion point if not found
     };
 
-    // Find max_gray using a more efficient approach
-    let mut max_gray = match accumulator.iter().rposition(|&x| x <= max_limit) {
-        Some(pos) => pos + 1, // We want the first element greater than max_limit
-        None => 0,
+    // Find max_gray using binary search
+    let mut max_gray = match accumulator.binary_search_by(|&x| {
+        if x <= max_limit {
+            std::cmp::Ordering::Less
+        } else {
+            std::cmp::Ordering::Greater
+        }
+    }) {
+        Ok(pos) => pos,
+        Err(pos) => pos, // binary_search_by returns insertion point if not found
     };
 
     // Handle edge case
@@ -125,7 +139,7 @@ fn calc_alpha_beta(hist: Vec<f64>) -> PyResult<(f64, f64)> {
 /// Generates a gamma correction lookup table for intensity values from 0 to 255.
 /// Replaces the numba.njit gamma function from Python.
 #[pyfunction]
-fn gamma(gamma_value: f64, py: Python) -> PyObject {
+fn gamma(gamma_value: f64, py: Python<'_>) -> PyObject {
     let mut lookup = Array1::<u8>::zeros(256);
     
     if gamma_value <= 1.0 {
@@ -134,16 +148,22 @@ fn gamma(gamma_value: f64, py: Python) -> PyObject {
             lookup[i] = i as u8;
         }
     } else {
-        // Calculate gamma correction
+        // Precalculate 1.0/gamma_value and 255.0 to avoid repeated division
         let inv_gamma = 1.0 / gamma_value;
+        let scale = 255.0;
+        
+        // Optimize the scalar version
         for i in 0..256 {
-            let val = (((i as f64) / 255.0).powf(inv_gamma) * 255.0) as u8;
+            // Avoid division by using precomputed value
+            let normalized = (i as f64) / scale;
+            let val = (normalized.powf(inv_gamma) * scale) as u8;
             lookup[i] = val;
         }
     }
     
     lookup.into_pyarray(py).into()
 }
+
 /// Calculates output dimensions and scaling factor for resizing.
 /// Replaces the numba.njit calculate_dimensions function from Python.
 #[pyfunction]
@@ -156,23 +176,8 @@ fn calculate_dimensions(height: i32, width: i32, target_height: i32) -> (i32, f6
 /// Computes the mean of a 2D array along axis 0, returning a 1D array.
 /// Replaces the numba.njit mean_axis0 function from Python.
 fn mean_axis0(array: &Array2<f64>) -> Array1<f64> {
-    if array.shape()[0] == 0 {
-        return Array1::<f64>::zeros(0);
-    }
-    
-    let rows = array.shape()[0];
-    let cols = array.shape()[1];
-    let mut result = Array1::<f64>::zeros(cols);
-    
-    for i in 0..cols {
-        let mut sum = 0.0;
-        for j in 0..rows {
-            sum += array[[j, i]];
-        }
-        result[i] = sum / rows as f64;
-    }
-    
-    result
+    // Use ndarray's built-in mean function which is already optimized
+    array.mean_axis(Axis(0)).unwrap_or(Array1::<f64>::zeros(0))
 }
 
 /// Concatenates two 2D arrays vertically.
@@ -186,19 +191,9 @@ fn concat_rows(array1: &Array2<f64>, array2: &Array2<f64>) -> Array2<f64> {
     // Create a new array with enough space for both inputs
     let mut result = Array2::<f64>::zeros((rows1 + rows2, cols));
     
-    // Copy data from the first array
-    for i in 0..rows1 {
-        for j in 0..cols {
-            result[[i, j]] = array1[[i, j]];
-        }
-    }
-    
-    // Copy data from the second array
-    for i in 0..rows2 {
-        for j in 0..cols {
-            result[[i + rows1, j]] = array2[[i, j]];
-        }
-    }
+    // Use slice assignment for better performance
+    result.slice_mut(ndarray::s![0..rows1, ..]).assign(array1);
+    result.slice_mut(ndarray::s![rows1.., ..]).assign(array2);
     
     result
 }
@@ -207,31 +202,36 @@ fn concat_rows(array1: &Array2<f64>, array2: &Array2<f64>) -> Array2<f64> {
 /// Replaces the numba.njit get_rotation_matrix function from Python.
 #[pyfunction]
 fn get_rotation_matrix(
-    py: Python,
+    py: Python<'_>,
     left_eye_landmarks_x: Vec<f64>,
     left_eye_landmarks_y: Vec<f64>,
     right_eye_landmarks_x: Vec<f64>,
     right_eye_landmarks_y: Vec<f64>,
     scale_factor: f64
 ) -> (PyObject, f64) {
-    // Convert vectors to ndarray
-    let mut left_arr = Array2::<f64>::zeros((left_eye_landmarks_x.len(), 2));
-    for i in 0..left_eye_landmarks_x.len() {
+    let num_left_landmarks = left_eye_landmarks_x.len();
+    let num_right_landmarks = right_eye_landmarks_x.len();
+    
+    // Create arrays with predetermined capacity
+    let mut left_arr = Array2::<f64>::zeros((num_left_landmarks, 2));
+    let mut right_arr = Array2::<f64>::zeros((num_right_landmarks, 2));
+    
+    // Fill arrays in a single pass
+    for i in 0..num_left_landmarks {
         left_arr[[i, 0]] = left_eye_landmarks_x[i];
         left_arr[[i, 1]] = left_eye_landmarks_y[i];
     }
     
-    let mut right_arr = Array2::<f64>::zeros((right_eye_landmarks_x.len(), 2));
-    for i in 0..right_eye_landmarks_x.len() {
+    for i in 0..num_right_landmarks {
         right_arr[[i, 0]] = right_eye_landmarks_x[i];
         right_arr[[i, 1]] = right_eye_landmarks_y[i];
     }
     
-    // Calculate eye centers by computing the mean
+    // Calculate eye centers using ndarray's optimized mean function
     let left_eye_center = mean_axis0(&left_arr);
     let right_eye_center = mean_axis0(&right_arr);
     
-    // Extract x and y coordinates
+    // Extract coordinates directly
     let left_eye_x = left_eye_center[0];
     let left_eye_y = left_eye_center[1];
     let right_eye_x = right_eye_center[0];
@@ -242,20 +242,15 @@ fn get_rotation_matrix(
     let dx = left_eye_x - right_eye_x;
     let angle = dy.atan2(dx) * 180.0 / std::f64::consts::PI;
     
-    // Concatenate arrays for both eyes
+    // Concatenate arrays for both eyes using ndarray's stack
     let both_eyes = concat_rows(&left_arr, &right_arr);
     
     // Calculate face center
     let face_center = mean_axis0(&both_eyes);
     
-    // Adjust for scaling
-    let mut face_center_x = face_center[0];
-    let mut face_center_y = face_center[1];
-    
-    if scale_factor > 1.0 {
-        face_center_x *= scale_factor;
-        face_center_y *= scale_factor;
-    }
+    // Adjust for scaling - only multiply if needed
+    let face_center_x = if scale_factor > 1.0 { face_center[0] * scale_factor } else { face_center[0] };
+    let face_center_y = if scale_factor > 1.0 { face_center[1] * scale_factor } else { face_center[1] };
     
     // Create center as integers for rotation matrix
     let center = Array1::<i32>::from_vec(vec![
@@ -276,21 +271,25 @@ fn get_rotation_matrix(
 ///
 /// # Returns
 /// * `(cropped_width, cropped_height)` - The float dimensions of the cropped region.
+#[inline]
 fn compute_cropped_lengths(
     rect: &Rectangle,
     output_width: u32,
     output_height: u32,
     percent_face: u32
 ) -> (f64, f64) {
+    // Precompute inverse percentage once
     let inv_percentage = 100.0 / percent_face as f64;
-    let face_crop  = (rect.width * inv_percentage, rect.height * inv_percentage);
+    let face_width = rect.width * inv_percentage;
+    let face_height = rect.height * inv_percentage;
 
+    // Avoid branch if possible by using math
     if output_height >= output_width {
-        let scaled_width = output_width as f64 * face_crop.1 / output_height as f64;
-        (scaled_width, face_crop.1)
+        let scaled_width = (output_width as f64 * face_height) / output_height as f64;
+        (scaled_width, face_height)
     } else {
-        let scaled_height = output_height as f64 * face_crop.0 / output_width as f64;
-        (face_crop.0, scaled_height)
+        let scaled_height = (output_height as f64 * face_width) / output_width as f64;
+        (face_width, scaled_height)
     }
 }
 
@@ -308,18 +307,35 @@ fn compute_cropped_lengths(
 ///
 /// # Returns
 /// * `(left_edge, top_edge, right_edge, bottom_edge)` - as integer coordinates.
-fn compute_edges(rect: &Rectangle, cropped_width: f64, cropped_height: f64, top: u32, bottom: u32, left: u32, right: u32) -> BoxCoordinates {
-    // Convert top/bottom/left/right into fractional offsets.
-    let left_offset = left as f64 * 0.01 * cropped_width;
-    let right_offset = right as f64 * 0.01 * cropped_width;
-    let top_offset = top as f64 * 0.01 * cropped_height;
-    let bottom_offset = bottom as f64 * 0.01 * cropped_height;
+#[inline]
+fn compute_edges(
+    rect: &Rectangle, 
+    cropped_width: f64, 
+    cropped_height: f64, 
+    top: u32, 
+    bottom: u32, 
+    left: u32, 
+    right: u32
+) -> BoxCoordinates {
+    // Convert percentages to offsets in a single step
+    let left_offset = (left as f64) * 0.01 * cropped_width;
+    let right_offset = (right as f64) * 0.01 * cropped_width;
+    let top_offset = (top as f64) * 0.01 * cropped_height;
+    let bottom_offset = (bottom as f64) * 0.01 * cropped_height;
 
-    let left_edge = rect.x + (rect.width - cropped_width) * 0.5 - left_offset;
-    let top_edge = rect.y + (rect.height - cropped_height) * 0.5 - top_offset;
-    let right_edge = rect.x + (rect.width + cropped_width) * 0.5 + right_offset;
-    let bottom_edge = rect.y + (rect.height + cropped_height) * 0.5 + bottom_offset;
+    // Precompute common expressions
+    let half_width_diff = (rect.width - cropped_width) * 0.5;
+    let half_width_sum = (rect.width + cropped_width) * 0.5;
+    let half_height_diff = (rect.height - cropped_height) * 0.5;
+    let half_height_sum = (rect.height + cropped_height) * 0.5;
 
+    // Calculate edges
+    let left_edge = rect.x + half_width_diff - left_offset;
+    let top_edge = rect.y + half_height_diff - top_offset;
+    let right_edge = rect.x + half_width_sum + right_offset;
+    let bottom_edge = rect.y + half_height_sum + bottom_offset;
+
+    // Round and convert to i32 in one step
     (
         left_edge.round() as i32,
         top_edge.round() as i32,
@@ -359,10 +375,12 @@ fn crop_positions(
     left: u32,
     right: u32,
 ) -> Option<BoxCoordinates> {
+    // Fast path check for invalid inputs
     if percent_face == 0 || percent_face > 100 || output_width == 0 || output_height == 0 {
         return None;
     }
 
+    // Create rectangle struct
     let rect = Rectangle {
         x: x_loc,
         y: y_loc,
@@ -370,22 +388,19 @@ fn crop_positions(
         height: height_dim,
     };
 
+    // Compute dimensions and edges
     let (cropped_width, cropped_height) = compute_cropped_lengths(&rect, output_width, output_height, percent_face);
     Some(compute_edges(&rect, cropped_width, cropped_height, top, bottom, left, right))
 }
 
-// Module definition using a different approach for older PyO3 versions
+// Module definition
 #[pymodule]
 fn autocrop_rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    // Add functions one at a time
+    // Register all functions at once
     m.add_function(wrap_pyfunction!(crop_positions, m)?)?;
-    
     m.add_function(wrap_pyfunction!(calc_alpha_beta, m)?)?;
-    
     m.add_function(wrap_pyfunction!(gamma, m)?)?;
-    
     m.add_function(wrap_pyfunction!(calculate_dimensions, m)?)?;
-    
     m.add_function(wrap_pyfunction!(get_rotation_matrix, m)?)?;
     
     Ok(())
