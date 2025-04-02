@@ -38,7 +38,8 @@ class Cropper(QObject):
         return f"<{type(self).__name__}>"
 
     @staticmethod
-    def create_error(error_type: Literal['access', 'amount', 'capacity', 'ffmpeg', 'file', 'file_type', 'directory', 'memory', 'thread'], custom_message: Optional[str] = None) -> tuple[Exception, str]:
+    def create_error(error_type: Literal['access', 'amount', 'capacity', 'ffmpeg', 'file', 'file_type', 'directory', 'memory', 'thread'],
+                     custom_message: Optional[str] = None) -> tuple[Exception, str]:
         errors = {
             'access': (
                 PermissionError("Permission denied."),

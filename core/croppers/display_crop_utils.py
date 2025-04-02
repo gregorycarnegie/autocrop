@@ -67,7 +67,7 @@ def perform_crop_helper(function_type: FunctionType,
     job = create_job(widget_state, img_path_str, function_type)
 
     # Process the image
-    pic_array = prc.open_pic(next_img_path, face_detection_tools, exposure=job.fix_exposure_job, tilt=job.auto_tilt_job)
+    pic_array = prc.open_pic(next_img_path, face_detection_tools, job)
     return None if pic_array is None else handle_face_detection(pic_array, job, face_detection_tools)
 
 

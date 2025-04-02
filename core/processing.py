@@ -127,11 +127,12 @@ def format_image(image: cvt.MatLike) -> tuple[cvt.MatLike, float]:
 
 def align_head(image: cvt.MatLike,
                face_detection_tools: FaceToolPair,
-               tilt: bool) -> cvt.MatLike:
+               job: Job) -> cvt.MatLike:
     """
     Performs face alignment by detecting face, computing tilt, and rotating the image.
     
     Args:
+        job: Job
         image: Input image
         face_detection_tools: Tuple of (detector, landmark predictor)
         tilt: Whether to perform tilt correction
@@ -139,7 +140,7 @@ def align_head(image: cvt.MatLike,
     Returns:
         Aligned image or original if no face detected
     """
-    if not tilt:
+    if not job.auto_tilt_job:
         return image
 
     detector, predictor = face_detection_tools
@@ -151,10 +152,10 @@ def align_head(image: cvt.MatLike,
     if scale_factor > 1:
         # Resize image for faster processing
         small_img = cv2.resize(image, (width // scale_factor, height // scale_factor))
-        faces = detector(small_img)
+        faces = detector(small_img, job.threshold)
     else:
         small_img = image
-        faces = detector(image)
+        faces = detector(image, job.threshold)
 
     if not faces:
         return image
@@ -189,18 +190,16 @@ def align_head(image: cvt.MatLike,
     )
 
 
-def colour_expose_align(image: cvt.MatLike, face_detection_tools: FaceToolPair, exposure:bool, tilt:bool) -> cvt.MatLike:
+def colour_expose_align(image: cvt.MatLike, face_detection_tools: FaceToolPair, job: Job) -> cvt.MatLike:
     # Convert BGR -> RGB for consistency
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) if len(image.shape) >= 3 else image
-    image = correct_exposure(image, exposure)
-    return align_head(image, face_detection_tools, tilt)
+    image = correct_exposure(image, job.fix_exposure_job)
+    return align_head(image, face_detection_tools, job)
 
 
 def open_pic(file: Path,
              face_detection_tools: FaceToolPair,
-             *,
-             exposure: bool,
-             tilt: bool) -> Optional[cvt.MatLike]:
+             job: Job) -> Optional[cvt.MatLike]:
     """
     Opens a non-RAW image using OpenCV, corrects exposure (optional), aligns head (optional).
     """
@@ -211,7 +210,7 @@ def open_pic(file: Path,
         if img is None:
             return None
 
-        return colour_expose_align(img, face_detection_tools, exposure, tilt)
+        return colour_expose_align(img, face_detection_tools, job)
 
     elif registry.is_valid_type(file, "raw"):
         try:
@@ -221,10 +220,10 @@ def open_pic(file: Path,
                     img = raw.postprocess(use_camera_wb=True)
 
                     # Process the image further
-                    if exposure:
+                    if exposure := job.fix_exposure_job:
                         img = correct_exposure(img, exposure)
 
-                    return align_head(img, face_detection_tools, tilt)
+                    return align_head(img, face_detection_tools, job)
 
                 except (MemoryError, ValueError, TypeError) as e:
                     # Log more specific post-processing errors
@@ -253,22 +252,22 @@ def open_table(file: Path) -> pl.DataFrame:
         return pl.DataFrame()
 
 
-def get_box_coordinates(output: Union[cvt.MatLike, npt.NDArray[np.generic]],
-                        job: Job,
-                        *,
-                        width: int,
-                        height: int,
-                        x: Optional[npt.NDArray[np.generic]] = None) -> Box:
-    """
-    Vectorized version of box coordinate calculation.
-    """
-    scale = np.array([width, height, width, height])
-    box_outputs = output * scale
-    
-    x0, y0, x1, y1 = box_outputs.astype(np.int_) if x is None else box_outputs[x.argmax()]
-    
-    return rs.crop_positions(x0, y0, x1 - x0, y1 - y0, job.face_percent, job.width,
-                             job.height, job.top, job.bottom, job.left, job.right)
+# def get_box_coordinates(output: Union[cvt.MatLike, npt.NDArray[np.generic]],
+#                         job: Job,
+#                         *,
+#                         width: int,
+#                         height: int,
+#                         x: Optional[npt.NDArray[np.generic]] = None) -> Box:
+#     """
+#     Vectorized version of box coordinate calculation.
+#     """
+#     scale = np.array([width, height, width, height])
+#     box_outputs = output * scale
+#
+#     x0, y0, x1, y1 = box_outputs.astype(np.int_) if x is None else box_outputs[x.argmax()]
+#
+#     return rs.crop_positions(x0, y0, x1 - x0, y1 - y0, job.face_percent, job.width,
+#                              job.height, job.top, job.bottom, job.left, job.right)
 
 
 def _draw_box_with_text(image: cvt.MatLike,
@@ -567,7 +566,7 @@ def crop_image(image: Union[Path, cvt.MatLike],
     Single-face cropping function. Returns the cropped face if found and resizes to `job.size`.
     """
 
-    pic_array = open_pic(image, face_detection_tools, exposure=job.fix_exposure_job,
+    pic_array = open_pic(image, face_detection_tools, job, exposure=job.fix_exposure_job,
                          tilt=job.auto_tilt_job) \
         if isinstance(image, Path) else image
 
@@ -598,7 +597,7 @@ def multi_crop(image: Union[cvt.MatLike, Path],
     Multi-face cropping function. Yields cropped faces above threshold, resized to `job.size`.
     """
 
-    img = open_pic(image, face_detection_tools, exposure=job.fix_exposure_job, tilt=job.auto_tilt_job) \
+    img = open_pic(image, face_detection_tools, job, exposure=job.fix_exposure_job, tilt=job.auto_tilt_job) \
         if isinstance(image, Path) else image
 
     if img is None:
