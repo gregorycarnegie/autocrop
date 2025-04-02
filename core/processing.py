@@ -590,15 +590,17 @@ def _(image: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair) -> Optio
     # Check if any faces were detected
     if np.any(confidences):
         # Cropped images
-        return map(lambda pos: process_image(image, job, pos), crop_positions)
+        valid_positions = [pos for i, pos in enumerate(crop_positions) if confidences[i]]
+        if not valid_positions:
+            return None
+        return (process_image(image, job, pos) for pos in valid_positions)
     else:
         return None
-
 
 @multi_crop.register(Path)
 def _(image: Path, job: Job, face_detection_tools: FaceToolPair) -> Optional[c.Iterator[cvt.MatLike]]:
     img = open_pic(image, face_detection_tools, job)
-    return None if img is None else multi_box(img, job, face_detection_tools)
+    return None if img is None else multi_crop(img, job, face_detection_tools)
 
 def get_crop_save_functions(job: Job) -> tuple[CropFunction, SaveFunction]:
     """
