@@ -100,26 +100,30 @@ class BatchCropper(Cropper):
     def worker_done_callback(self, future: Future) -> None:
         """
         Callback function to handle completion of a worker thread with detailed error reporting.
+        Uses a functional approach for cleaner exception handling.
         """
+        # Define error handlers based on exception types
+        error_handlers = {
+            FileNotFoundError: lambda _: self.create_error('file', "File not found. Please check that all input files exist."),
+            PermissionError: lambda _: self.create_error('access'),
+            MemoryError: lambda _: self.create_error('memory'),
+            OSError: lambda e: self.create_error('capacity') if "space" in str(e).lower() else 
+                            self._display_error(e, "File system error. Check input and output paths."),
+            ValueError: lambda e: self._display_error(e, "Invalid data format. Please check input files."),
+            (TypeError, AttributeError): lambda e: self._display_error(e, "Data type error. This may indicate a corrupted image file."),
+        }
+        
         try:
             future.result()  # This raises any exceptions that occurred during execution
-        except FileNotFoundError:
-            self.create_error('file',"File not found. Please check that all input files exist.")
-        except PermissionError:
-            self.create_error('access')
-        except OSError as e:
-            if "space" in str(e).lower():
-                self.create_error('capacity')
-            else:
-                self._display_error(e, "File system error. Check input and output paths.")
-        except ValueError as e:
-            self._display_error(e, "Invalid data format. Please check input files.")
-        except (TypeError, AttributeError) as e:
-            self._display_error(e, "Data type error. This may indicate a corrupted image file.")
-        except MemoryError:
-            self.create_error('memory')
         except Exception as e:
-            self._display_error(e, f"An unexpected error occurred: {type(e).__name__}")
+            # Find matching exception handler or use default
+            for exc_type, handler in error_handlers.items():
+                if isinstance(e, exc_type if isinstance(exc_type, tuple) else exc_type):
+                    handler(e)
+                    break
+            else:
+                # Default handler for unspecified exceptions
+                self._display_error(e, f"An unexpected error occurred: {type(e).__name__}")
         finally:
             # Check if all futures are done, then emit finished signal
             if all(f.done() for f in self.futures):

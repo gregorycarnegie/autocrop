@@ -1,4 +1,4 @@
-from functools import cache
+from functools import cache, partial
 from os import startfile
 from pathlib import Path
 from typing import Optional, Union
@@ -156,40 +156,46 @@ def initialise_message_box(window_title: str) -> QtWidgets.QMessageBox:
     msg_box.setWindowTitle(window_title)
     return msg_box
 
+def create_message_box(title: str, icon: QtWidgets.QMessageBox.Icon, 
+                     buttons: QtWidgets.QMessageBox.StandardButton = QtWidgets.QMessageBox.StandardButton.Ok) -> QtWidgets.QMessageBox:
+    """Factory function to create message boxes with standard settings"""
+    msg_box = initialise_message_box(title)
+    msg_box.setIcon(icon)
+    msg_box.setStandardButtons(buttons)
+    return msg_box
+
+# Create specialized message box creators using partial
+create_error_box = partial(
+    create_message_box, 
+    title='Error', 
+    icon=QtWidgets.QMessageBox.Icon.Warning
+)
+
+create_warning_box = partial(
+    create_message_box, 
+    title='Paths Match', 
+    icon=QtWidgets.QMessageBox.Icon.Warning, 
+    buttons=QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No
+)
+
+create_question_box = partial(
+    create_message_box, 
+    title='Open Destination Folder', 
+    icon=QtWidgets.QMessageBox.Icon.Question,
+    buttons=QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No
+)
 
 def show_message_box(destination: Path) -> None:
-    """
-    Shows a message box with the option to open the destination folder.
-
-    Args:
-        destination (Path): The path of the destination folder.
-
-    Returns:
-        None
-
-    Example:
-        ```python
-        destination_folder = Path('path/to/destination')
-
-        # Show a message box to open the destination folder
-        show_message_box(destination_folder)
-        ```
-    """
-    msg_box = initialise_message_box('Open Destination Folder')
+    """Shows a message box with the option to open the destination folder."""
+    msg_box = create_question_box()
     msg_box.setText('Open destination folder?')
-    msg_box.setIcon(QtWidgets.QMessageBox.Icon.Question)
-    msg_box.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
-    match msg_box.exec():
-        case QtWidgets.QMessageBox.StandardButton.Yes:
-            startfile(destination)
-        case _:
-            pass
+    if msg_box.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
+        startfile(destination)
 
 def show_error_box(*messages: str) -> None:
-    msg_box = initialise_message_box('Error')
+    """Shows an error message box with the given messages."""
+    msg_box = create_error_box()
     msg_box.setText('\n'.join(messages))
-    msg_box.setIcon(QtWidgets.QMessageBox.Icon.Warning)
-    msg_box.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Ok)
     msg_box.exec()
 
 def generate_message(msg_box: QtWidgets.QMessageBox, message: str) -> None:
@@ -217,34 +223,22 @@ def generate_message(msg_box: QtWidgets.QMessageBox, message: str) -> None:
 
 
 def show_warning(function_type: FunctionType) -> int:
-    """
-    Shows a warning message box with a specific message based on the function type.
-
-    Args:
-        function_type (FunctionType): The type of the function.
-
-    Returns:
-        int: The result of the message box execution.
-
-    Example:
-        ```python
-        function_type = FunctionType.PHOTO
-
-        # Show a warning message box for the specified function type
-        result = show_warning(function_type)
-        ```
-    """
-
-    msg_box = initialise_message_box('Paths Match')
-    msg_box.setIcon(QtWidgets.QMessageBox.Icon.Warning)
-    match function_type:
-        case FunctionType.PHOTO:
-            generate_message(msg_box, 'This will overwrite the original.')
-        case FunctionType.FOLDER | FunctionType.MAPPING | FunctionType.VIDEO:
-            generate_message(msg_box, 'If potential overwrites are detected, the images will save to a new folder.')
-        case FunctionType.FRAME:
-            generate_message(msg_box, 'This will overwrite any cropped frames with the same name.')
-    msg_box.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
+    """Shows a warning message based on function type."""
+    msg_box = create_warning_box()
+    
+    # Map function types to warning messages
+    warnings = {
+        FunctionType.PHOTO: 'This will overwrite the original.',
+        FunctionType.FOLDER: 'If potential overwrites are detected, the images will save to a new folder.',
+        FunctionType.MAPPING: 'If potential overwrites are detected, the images will save to a new folder.',
+        FunctionType.VIDEO: 'If potential overwrites are detected, the images will save to a new folder.',
+        FunctionType.FRAME: 'This will overwrite any cropped frames with the same name.'
+    }
+    
+    # Get the appropriate message or use a default
+    message = warnings.get(function_type, 'This operation may overwrite existing files.')
+    generate_message(msg_box, message)
+    
     return msg_box.exec()
 
 
