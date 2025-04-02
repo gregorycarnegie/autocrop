@@ -160,7 +160,7 @@ def align_head(image: cvt.MatLike,
     if not faces:
         return image
 
-    # Find face with highest confidence
+    # Find face with the highest confidence
     face = max(faces, key=lambda f: f.confidence)
 
     # Get facial landmarks
@@ -190,7 +190,7 @@ def align_head(image: cvt.MatLike,
     )
 
 
-def colour_expose_allign(image: cvt.MatLike, face_detection_tools: FaceToolPair, exposure:bool, tilt:bool) -> cvt.MatLike:
+def colour_expose_align(image: cvt.MatLike, face_detection_tools: FaceToolPair, exposure:bool, tilt:bool) -> cvt.MatLike:
     # Convert BGR -> RGB for consistency
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     image = correct_exposure(image, exposure)
@@ -212,7 +212,7 @@ def open_pic(file: Path,
         if img is None:
             return None
 
-        return colour_expose_allign(img, face_detection_tools, exposure, tilt)
+        return colour_expose_align(img, face_detection_tools, exposure, tilt)
 
     elif registry.is_valid_type(file, "raw"):
         try:
@@ -403,7 +403,7 @@ def box_detect(image: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair)
         if not faces:
             return None
             
-        # Find the face with highest confidence
+        # Find the face with the highest confidence
         face = max(faces, key=lambda f: f.confidence)
         
         # For resized images, scale the coordinates back
@@ -429,7 +429,7 @@ def box_detect(image: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair)
         return None
 
 
-def mask_extensions(file_list: npt.NDArray[np.str_], extentions: set[str]) -> tuple[npt.NDArray[np.bool_], int]:
+def mask_extensions(file_list: npt.NDArray[np.str_], extensions: set[str]) -> tuple[npt.NDArray[np.bool_], int]:
     """
     Masks the file list based on supported extensions, returning the mask and its count.
     """
@@ -438,7 +438,7 @@ def mask_extensions(file_list: npt.NDArray[np.str_], extentions: set[str]) -> tu
 
     file_suffixes = np.array([Path(file).suffix.lower() for file in file_list])
     # x = registry.get_extensions("photo") | registry.get_extensions("raw")
-    mask = np.isin(file_suffixes, list(extentions))
+    mask = np.isin(file_suffixes, list(extensions))
     return mask, np.count_nonzero(mask)
 
 

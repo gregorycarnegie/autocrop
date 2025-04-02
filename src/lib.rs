@@ -36,6 +36,18 @@ fn is_avx2_supported() -> bool {
     }
 }
 
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+/// Helper function for computing the prefix sum of 4 elements from a SIMD load.
+/// The running sum (passed in as `init`) is updated and the resulting prefix values are returned.
+unsafe fn simd_prefix_sum(values: &[f64; 4], init: &mut f64) -> [f64; 4] {
+    let mut result = [0.0; 4];
+    for i in 0..4 {
+        *init += values[i];
+        result[i] = *init;
+    }
+    result
+}
+
 /// Compute an optimized cumulative sum of a slice of f64 values.
 fn cumsum(vec: &[f64]) -> Vec<f64> {
     if vec.is_empty() {
@@ -56,7 +68,6 @@ fn cumsum(vec: &[f64]) -> Vec<f64> {
     
     // Process chunks for better cache locality
     for chunk in vec.chunks(CHUNK_SIZE) {
-        // Use a local accumulator for the chunk
         let mut local_sums = Vec::with_capacity(chunk.len());
         let mut local_sum = 0.0;
         
@@ -64,23 +75,19 @@ fn cumsum(vec: &[f64]) -> Vec<f64> {
             #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
             unsafe {
                 // Process 4 elements at a time using AVX
-                const LANE_WIDTH: usize = 4; // AVX2 can process 4 doubles at once
+                const LANE_WIDTH: usize = 4;
                 let chunk_len = chunk.len();
                 let simd_iterations = chunk_len / LANE_WIDTH;
                 
                 for i in 0..simd_iterations {
                     // Load 4 consecutive values
                     let values = _mm256_loadu_pd(&chunk[i * LANE_WIDTH]);
+                    let mut arr = [0.0; LANE_WIDTH];
+                    _mm256_storeu_pd(arr.as_mut_ptr(), values);
                     
-                    // Add to running sum
-                    let mut partial_sums = [0.0; LANE_WIDTH];
-                    _mm256_storeu_pd(partial_sums.as_mut_ptr(), values);
-                    
-                    // Manually compute prefix sum
-                    for j in 0..LANE_WIDTH {
-                        local_sum += partial_sums[j];
-                        local_sums.push(running_sum + local_sum);
-                    }
+                    // Use the helper to compute the prefix sum of these 4 values
+                    let prefix = simd_prefix_sum(&arr, &mut local_sum);
+                    local_sums.extend_from_slice(&prefix);
                 }
                 
                 // Handle remaining elements
@@ -98,7 +105,6 @@ fn cumsum(vec: &[f64]) -> Vec<f64> {
             }
         }
         
-        // Update the running sum and extend the result
         running_sum += local_sum;
         result.extend(local_sums);
     }
@@ -115,7 +121,6 @@ fn calc_alpha_beta(hist: Vec<f64>) -> PyResult<(f64, f64)> {
         ));
     }
 
-    // Check for invalid histogram values - use early return pattern
     for &x in &hist {
         if x < 0.0 || !x.is_finite() {
             return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
@@ -124,7 +129,6 @@ fn calc_alpha_beta(hist: Vec<f64>) -> PyResult<(f64, f64)> {
         }
     }
 
-    // Use the optimized cumsum function
     let accumulator = cumsum(&hist);
 
     let total = match accumulator.last() {
@@ -134,19 +138,16 @@ fn calc_alpha_beta(hist: Vec<f64>) -> PyResult<(f64, f64)> {
         )),
     };
 
-    // Check for zero total (degenerate histogram)
     if total <= 0.0 {
         return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
             "Histogram sum is zero or negative - cannot perform clipping"
         ));
     }
 
-    // 0.5% clipping
     const CLIP_PERCENTAGE: f64 = 0.005;
     let clip_hist_percent = total * CLIP_PERCENTAGE;
     let max_limit = total - clip_hist_percent;
 
-    // Find min_gray using binary search for better performance
     let min_gray = match accumulator.binary_search_by(|&x| {
         if x <= clip_hist_percent {
             std::cmp::Ordering::Less
@@ -155,10 +156,9 @@ fn calc_alpha_beta(hist: Vec<f64>) -> PyResult<(f64, f64)> {
         }
     }) {
         Ok(pos) => pos,
-        Err(pos) => pos, // binary_search_by returns insertion point if not found
+        Err(pos) => pos,
     };
 
-    // Find max_gray using binary search
     let mut max_gray = match accumulator.binary_search_by(|&x| {
         if x <= max_limit {
             std::cmp::Ordering::Less
@@ -167,10 +167,9 @@ fn calc_alpha_beta(hist: Vec<f64>) -> PyResult<(f64, f64)> {
         }
     }) {
         Ok(pos) => pos,
-        Err(pos) => pos, // binary_search_by returns insertion point if not found
+        Err(pos) => pos,
     };
 
-    // Handle edge case
     if max_gray == 0 {
         max_gray = 255;
     }
@@ -182,11 +181,9 @@ fn calc_alpha_beta(hist: Vec<f64>) -> PyResult<(f64, f64)> {
         ));
     }
 
-    // Calculate alpha and beta
     let alpha = 255.0 / (max_gray as f64 - min_gray as f64);
     let beta = -alpha * min_gray as f64;
 
-    // Final validation
     if !alpha.is_finite() || !beta.is_finite() {
         return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
             format!("Calculated non-finite values: alpha={}, beta={}. Check input histogram.", alpha, beta)
@@ -197,37 +194,31 @@ fn calc_alpha_beta(hist: Vec<f64>) -> PyResult<(f64, f64)> {
 }
 
 /// Generates a gamma correction lookup table for intensity values from 0 to 255.
-/// Replaces the numba.njit gamma function from Python.
 #[pyfunction]
 fn gamma(gamma_value: f64, py: Python<'_>) -> PyObject {
     let mut lookup = Array1::<u8>::zeros(256);
     
     if gamma_value <= 1.0 {
-        // If gamma <= 1.0, simply return a linear array from 0 to 255
         for i in 0..256 {
             lookup[i] = i as u8;
         }
     } else {
-        // Check if we can use AVX2 SIMD
         #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
         let use_avx = is_avx2_supported();
         #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
         let use_avx = false;
         
-        // Precalculate constants
         let inv_gamma = 1.0 / gamma_value;
         let scale = 255.0;
         
         if use_avx {
             #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
             unsafe {
-                // Process in chunks of 4
                 const LANE_WIDTH: usize = 4;
                 let scale_vector = _mm256_set1_pd(scale);
                 
                 for i in (0..256).step_by(LANE_WIDTH) {
                     if i + LANE_WIDTH <= 256 {
-                        // Create indices [i, i+1, i+2, i+3]
                         let indices = _mm256_set_pd(
                             (i + 3) as f64,
                             (i + 2) as f64,
@@ -235,22 +226,16 @@ fn gamma(gamma_value: f64, py: Python<'_>) -> PyObject {
                             i as f64,
                         );
                         
-                        // Normalize by dividing by 255.0
                         let normalized = _mm256_div_pd(indices, scale_vector);
                         
-                        // Apply power function manually - AVX doesn't have direct pow()
-                        // For power function, we'd need to use scalar operations or 
-                        // implement a vectorized approximation
                         let mut result = [0.0; LANE_WIDTH];
                         _mm256_storeu_pd(result.as_mut_ptr(), normalized);
                         
-                        // Apply power function and convert to u8
                         for j in 0..LANE_WIDTH {
                             let val = (result[j].powf(inv_gamma) * scale) as u8;
                             lookup[i + j] = val;
                         }
                     } else {
-                        // Handle remaining elements (less than LANE_WIDTH)
                         for j in i..256 {
                             let normalized = (j as f64) / scale;
                             let val = (normalized.powf(inv_gamma) * scale) as u8;
@@ -260,7 +245,6 @@ fn gamma(gamma_value: f64, py: Python<'_>) -> PyObject {
                 }
             }
         } else {
-            // Scalar fallback
             for i in 0..256 {
                 let normalized = (i as f64) / scale;
                 let val = (normalized.powf(inv_gamma) * scale) as u8;
@@ -273,7 +257,6 @@ fn gamma(gamma_value: f64, py: Python<'_>) -> PyObject {
 }
 
 /// Calculates output dimensions and scaling factor for resizing.
-/// Replaces the numba.njit calculate_dimensions function from Python.
 #[pyfunction]
 fn calculate_dimensions(height: i32, width: i32, target_height: i32) -> (i32, f64) {
     let scaling_factor = target_height as f64 / height as f64;
@@ -282,7 +265,6 @@ fn calculate_dimensions(height: i32, width: i32, target_height: i32) -> (i32, f6
 }
 
 /// Computes the mean of a 2D array along axis 0, returning a 1D array.
-/// Replaces the numba.njit mean_axis0 function from Python.
 fn mean_axis0(array: &Array2<f64>) -> Array1<f64> {
     if array.is_empty() {
         return Array1::<f64>::zeros(0);
@@ -291,15 +273,12 @@ fn mean_axis0(array: &Array2<f64>) -> Array1<f64> {
     let rows = array.shape()[0];
     let cols = array.shape()[1];
     
-    // If there are no rows, return zeros
     if rows == 0 {
         return Array1::<f64>::zeros(cols);
     }
     
-    // Initialize result array
     let mut result = Array1::<f64>::zeros(cols);
     
-    // Check if AVX2 is available
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     let use_avx = is_avx2_supported();
     #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
@@ -308,14 +287,12 @@ fn mean_axis0(array: &Array2<f64>) -> Array1<f64> {
     if use_avx && rows >= 4 {
         #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
         unsafe {
-            // Process 4 rows at a time
             const LANE_WIDTH: usize = 4;
             
             for col in 0..cols {
                 let mut sum = 0.0;
                 let mut i = 0;
                 
-                // Process in chunks of 4 rows
                 while i + LANE_WIDTH <= rows {
                     let values = _mm256_set_pd(
                         array[[i + 3, col]],
@@ -324,7 +301,6 @@ fn mean_axis0(array: &Array2<f64>) -> Array1<f64> {
                         array[[i, col]],
                     );
                     
-                    // Sum the values
                     let mut partial_sum = [0.0; LANE_WIDTH];
                     _mm256_storeu_pd(partial_sum.as_mut_ptr(), values);
                     
@@ -335,7 +311,6 @@ fn mean_axis0(array: &Array2<f64>) -> Array1<f64> {
                     i += LANE_WIDTH;
                 }
                 
-                // Handle remaining rows
                 for j in i..rows {
                     sum += array[[j, col]];
                 }
@@ -344,7 +319,6 @@ fn mean_axis0(array: &Array2<f64>) -> Array1<f64> {
             }
         }
     } else {
-        // Fallback implementation (no SIMD)
         for col in 0..cols {
             let mut sum = 0.0;
             for row in 0..rows {
@@ -358,25 +332,46 @@ fn mean_axis0(array: &Array2<f64>) -> Array1<f64> {
 }
 
 /// Concatenates two 2D arrays vertically.
-/// Replaces the numba.njit concat_rows function from Python.
 fn concat_rows(array1: &Array2<f64>, array2: &Array2<f64>) -> Array2<f64> {
-    // Check that the arrays have compatible shapes
     let rows1 = array1.shape()[0];
     let rows2 = array2.shape()[0];
     let cols = array1.shape()[1];
     
-    // Create a new array with enough space for both inputs
     let mut result = Array2::<f64>::zeros((rows1 + rows2, cols));
     
-    // Use slice assignment for better performance
     result.slice_mut(ndarray::s![0..rows1, ..]).assign(array1);
     result.slice_mut(ndarray::s![rows1.., ..]).assign(array2);
     
     result
 }
 
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+/// Helper function to load landmark coordinates using SIMD into a preallocated Array2.
+/// This reduces duplication in the get_rotation_matrix function.
+unsafe fn load_landmarks_simd(landmarks_x: &[f64], landmarks_y: &[f64], arr: &mut Array2<f64>) {
+    const LANE_WIDTH: usize = 4;
+    let n = landmarks_x.len();
+    let mut i = 0;
+    while i + LANE_WIDTH <= n {
+        let x_vals = _mm256_loadu_pd(&landmarks_x[i]);
+        let y_vals = _mm256_loadu_pd(&landmarks_y[i]);
+        let mut x_arr = [0.0; LANE_WIDTH];
+        let mut y_arr = [0.0; LANE_WIDTH];
+        _mm256_storeu_pd(x_arr.as_mut_ptr(), x_vals);
+        _mm256_storeu_pd(y_arr.as_mut_ptr(), y_vals);
+        for j in 0..LANE_WIDTH {
+            arr[[i + j, 0]] = x_arr[j];
+            arr[[i + j, 1]] = y_arr[j];
+        }
+        i += LANE_WIDTH;
+    }
+    for j in i..n {
+        arr[[j, 0]] = landmarks_x[j];
+        arr[[j, 1]] = landmarks_y[j];
+    }
+}
+
 /// Computes the rotation matrix parameters for face alignment.
-/// Replaces the numba.njit get_rotation_matrix function from Python.
 #[pyfunction]
 fn get_rotation_matrix(
     py: Python<'_>,
@@ -389,12 +384,9 @@ fn get_rotation_matrix(
     let num_left_landmarks = left_eye_landmarks_x.len();
     let num_right_landmarks = right_eye_landmarks_x.len();
     
-    // Create arrays with predetermined capacity
     let mut left_arr = Array2::<f64>::zeros((num_left_landmarks, 2));
     let mut right_arr = Array2::<f64>::zeros((num_right_landmarks, 2));
     
-    // Fill arrays efficiently
-    // Check if AVX2 is available
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     let use_avx = is_avx2_supported() && num_left_landmarks >= 4 && num_right_landmarks >= 4;
     #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
@@ -403,72 +395,10 @@ fn get_rotation_matrix(
     if use_avx {
         #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
         unsafe {
-            // Process left landmarks
-            const LANE_WIDTH: usize = 4;
-            let mut i = 0;
-            
-            while i + LANE_WIDTH <= num_left_landmarks {
-                // Load 4 x-coordinates
-                let x_vals = _mm256_loadu_pd(&left_eye_landmarks_x[i]);
-                // Load 4 y-coordinates
-                let y_vals = _mm256_loadu_pd(&left_eye_landmarks_y[i]);
-                
-                // Store x values
-                let mut x_arr = [0.0; LANE_WIDTH];
-                _mm256_storeu_pd(x_arr.as_mut_ptr(), x_vals);
-                
-                // Store y values
-                let mut y_arr = [0.0; LANE_WIDTH];
-                _mm256_storeu_pd(y_arr.as_mut_ptr(), y_vals);
-                
-                // Assign to left_arr
-                for j in 0..LANE_WIDTH {
-                    left_arr[[i + j, 0]] = x_arr[j];
-                    left_arr[[i + j, 1]] = y_arr[j];
-                }
-                
-                i += LANE_WIDTH;
-            }
-            
-            // Handle remaining left landmarks
-            for j in i..num_left_landmarks {
-                left_arr[[j, 0]] = left_eye_landmarks_x[j];
-                left_arr[[j, 1]] = left_eye_landmarks_y[j];
-            }
-            
-            // Process right landmarks
-            i = 0;
-            while i + LANE_WIDTH <= num_right_landmarks {
-                // Load 4 x-coordinates
-                let x_vals = _mm256_loadu_pd(&right_eye_landmarks_x[i]);
-                // Load 4 y-coordinates
-                let y_vals = _mm256_loadu_pd(&right_eye_landmarks_y[i]);
-                
-                // Store x values
-                let mut x_arr = [0.0; LANE_WIDTH];
-                _mm256_storeu_pd(x_arr.as_mut_ptr(), x_vals);
-                
-                // Store y values
-                let mut y_arr = [0.0; LANE_WIDTH];
-                _mm256_storeu_pd(y_arr.as_mut_ptr(), y_vals);
-                
-                // Assign to right_arr
-                for j in 0..LANE_WIDTH {
-                    right_arr[[i + j, 0]] = x_arr[j];
-                    right_arr[[i + j, 1]] = y_arr[j];
-                }
-                
-                i += LANE_WIDTH;
-            }
-            
-            // Handle remaining right landmarks
-            for j in i..num_right_landmarks {
-                right_arr[[j, 0]] = right_eye_landmarks_x[j];
-                right_arr[[j, 1]] = right_eye_landmarks_y[j];
-            }
+            load_landmarks_simd(&left_eye_landmarks_x, &left_eye_landmarks_y, &mut left_arr);
+            load_landmarks_simd(&right_eye_landmarks_x, &right_eye_landmarks_y, &mut right_arr);
         }
     } else {
-        // Scalar fallback implementation
         for i in 0..num_left_landmarks {
             left_arr[[i, 0]] = left_eye_landmarks_x[i];
             left_arr[[i, 1]] = left_eye_landmarks_y[i];
@@ -480,32 +410,24 @@ fn get_rotation_matrix(
         }
     }
     
-    // Calculate eye centers using optimized mean function
     let left_eye_center = mean_axis0(&left_arr);
     let right_eye_center = mean_axis0(&right_arr);
     
-    // Extract coordinates directly
     let left_eye_x = left_eye_center[0];
     let left_eye_y = left_eye_center[1];
     let right_eye_x = right_eye_center[0];
     let right_eye_y = right_eye_center[1];
     
-    // Calculate angle
     let dy = left_eye_y - right_eye_y;
     let dx = left_eye_x - right_eye_x;
     let angle = dy.atan2(dx) * 180.0 / std::f64::consts::PI;
     
-    // Concatenate arrays for both eyes
     let both_eyes = concat_rows(&left_arr, &right_arr);
-    
-    // Calculate face center
     let face_center = mean_axis0(&both_eyes);
     
-    // Adjust for scaling - only multiply if needed
     let face_center_x = if scale_factor > 1.0 { face_center[0] * scale_factor } else { face_center[0] };
     let face_center_y = if scale_factor > 1.0 { face_center[1] * scale_factor } else { face_center[1] };
     
-    // Create center as integers for rotation matrix
     let center = Array1::<i32>::from_vec(vec![
         face_center_x.round() as i32,
         face_center_y.round() as i32,
@@ -515,15 +437,6 @@ fn get_rotation_matrix(
 }
 
 /// Computes the desired crop width/height based on detected face size and desired output.
-///
-/// # Arguments
-/// * `rect` - The bounding rectangle for the detected face.
-/// * `output_width` - The target output width.
-/// * `output_height` - The target output height.
-/// * `percent_face` - The percentage of the face to include in the final crop.
-///
-/// # Returns
-/// * `(cropped_width, cropped_height)` - The float dimensions of the cropped region.
 #[inline]
 fn compute_cropped_lengths(
     rect: &Rectangle,
@@ -531,12 +444,10 @@ fn compute_cropped_lengths(
     output_height: u32,
     percent_face: u32
 ) -> (f64, f64) {
-    // Precompute inverse percentage once
     let inv_percentage = 100.0 / percent_face as f64;
     let face_width = rect.width * inv_percentage;
     let face_height = rect.height * inv_percentage;
 
-    // Avoid branch if possible by using math
     if output_height >= output_width {
         let scaled_width = (output_width as f64 * face_height) / output_height as f64;
         (scaled_width, face_height)
@@ -546,20 +457,7 @@ fn compute_cropped_lengths(
     }
 }
 
-/// Calculates the final bounding box coordinates given a face rectangle, cropped dimensions,
-/// and top/bottom/left/right padding (as percentages).
-///
-/// # Arguments
-/// * `rect` - The bounding rectangle of the detected face.
-/// * `cropped_width` - The width of the intended cropped region.
-/// * `cropped_height` - The height of the intended cropped region.
-/// * `top` - The top padding percentage.
-/// * `bottom` - The bottom padding percentage.
-/// * `left` - The left padding percentage.
-/// * `right` - The right padding percentage.
-///
-/// # Returns
-/// * `(left_edge, top_edge, right_edge, bottom_edge)` - as integer coordinates.
+/// Calculates the final bounding box coordinates given a face rectangle and cropping parameters.
 #[inline]
 fn compute_edges(
     rect: &Rectangle, 
@@ -570,25 +468,21 @@ fn compute_edges(
     left: u32, 
     right: u32
 ) -> BoxCoordinates {
-    // Optimize percentage calculations
     let left_offset = (left as f64) * 0.01 * cropped_width;
     let right_offset = (right as f64) * 0.01 * cropped_width;
     let top_offset = (top as f64) * 0.01 * cropped_height;
     let bottom_offset = (bottom as f64) * 0.01 * cropped_height;
 
-    // Precompute common expressions
     let half_width_diff = (rect.width - cropped_width) * 0.5;
     let half_width_sum = (rect.width + cropped_width) * 0.5;
     let half_height_diff = (rect.height - cropped_height) * 0.5;
     let half_height_sum = (rect.height + cropped_height) * 0.5;
 
-    // Calculate edges
     let left_edge = rect.x + half_width_diff - left_offset;
     let top_edge = rect.y + half_height_diff - top_offset;
     let right_edge = rect.x + half_width_sum + right_offset;
     let bottom_edge = rect.y + half_height_sum + bottom_offset;
 
-    // Round and convert to i32 in one step
     (
         left_edge.round() as i32,
         top_edge.round() as i32,
@@ -598,22 +492,6 @@ fn compute_edges(
 }
 
 /// Calculate the crop positions based on face detection.
-///
-/// # Arguments
-/// * `x_loc` - The x-coordinate of the detected face.
-/// * `y_loc` - The y-coordinate of the detected face.
-/// * `width_dim` - The width of the detected face.
-/// * `height_dim` - The height of the detected face.
-/// * `percent_face` - The percentage of the face to include in the crop.
-/// * `output_width` - The desired output width.
-/// * `output_height` - The desired output height.
-/// * `top` - The top padding percentage.
-/// * `bottom` - The bottom padding percentage.
-/// * `left` - The left padding percentage.
-/// * `right` - The right padding percentage.
-///
-/// # Returns
-/// * `Option<(i32, i32, i32, i32)>` - The coordinates of the crop box, or `None` if inputs are invalid.
 #[pyfunction]
 fn crop_positions(
     x_loc: f64,
@@ -628,12 +506,10 @@ fn crop_positions(
     left: u32,
     right: u32,
 ) -> Option<BoxCoordinates> {
-    // Fast path check for invalid inputs
     if percent_face == 0 || percent_face > 100 || output_width == 0 || output_height == 0 {
         return None;
     }
 
-    // Create rectangle struct
     let rect = Rectangle {
         x: x_loc,
         y: y_loc,
@@ -641,12 +517,11 @@ fn crop_positions(
         height: height_dim,
     };
 
-    // Compute dimensions and edges
     let (cropped_width, cropped_height) = compute_cropped_lengths(&rect, output_width, output_height, percent_face);
     Some(compute_edges(&rect, cropped_width, cropped_height, top, bottom, left, right))
 }
 
-// Module definition
+/// Module definition
 #[pymodule]
 fn autocrop_rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Register all functions at once
