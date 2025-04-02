@@ -13,6 +13,7 @@ from core.job import Job
 from core.operation_types import Box
 from file_types import registry
 
+
 RadioButtonTuple = tuple[bool, bool, bool, bool, bool, bool]
 WidgetState = tuple[str, str, str, bool, bool, bool, int, int, int, int, int, int, int, RadioButtonTuple]
 

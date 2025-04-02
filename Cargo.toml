@@ -9,6 +9,6 @@ name = "autocrop_rs"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.24.0", features = ["extension-module"] }
+pyo3 = { version = "0.24.1", features = ["extension-module"] }
 ndarray = "0.16.1"
 numpy = "0.24.0"

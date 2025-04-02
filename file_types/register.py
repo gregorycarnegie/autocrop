@@ -37,13 +37,6 @@ def initialize_file_types():
         can_save=False  # RAW files can only be read, not written
     ))
     
-    # Animation file types
-    FileRegistry.register_type("animation", FileTypeInfo(
-        extensions={'.gif', '.avif', '.apng'},
-        default_dir=Path.home() / 'Pictures',
-        description="Animated image formats"
-    ))
-    
     # Video file types
     FileRegistry.register_type("video", FileTypeInfo(
         extensions={'.avi', '.m4v', '.mkv', '.mov', '.mp4'},

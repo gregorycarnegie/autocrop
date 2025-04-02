@@ -23,6 +23,7 @@ from .image_loader import ImageLoader
 from .job import Job
 from .operation_types import SaveFunction, Box
 
+
 # Define constants
 GAMMA_THRESHOLD = .001
 
@@ -95,6 +96,7 @@ def numpy_array_crop(image: cvt.MatLike, bounding_box: Box) -> cvt.MatLike:
     else:
         # No padding was required
         return cropped_valid
+
 
 def correct_exposure(image: cvt.MatLike,
                      exposure: bool) -> cvt.MatLike:
@@ -187,6 +189,7 @@ def align_head(image: cvt.MatLike,
         borderMode=cv2.BORDER_REPLICATE,
     )
 
+
 def colour_expose_allign(image: cvt.MatLike, face_detection_tools: FaceToolPair, exposure:bool, tilt:bool) -> cvt.MatLike:
     # Convert BGR -> RGB for consistency
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -241,19 +244,6 @@ def open_pic(file: Path,
         return None
 
 
-def open_animation(file: Path,
-                   face_detection_tools: FaceToolPair,
-                   *,
-                   exposure: bool,
-                   tilt: bool):
-    
-    retval, animation = cv2.imreadanimation(file.as_posix())
-    if retval:
-        return animation.frames
-    else:
-        return (colour_expose_allign(frame, face_detection_tools, exposure, tilt) for frame in animation.frames)
-
-
 def open_table(file: Path) -> pl.DataFrame:
     """
     Opens a CSV or Excel file using Polars.
@@ -262,17 +252,6 @@ def open_table(file: Path) -> pl.DataFrame:
         return pl.read_csv(file) if file.suffix.lower() == '.csv' else pl.read_excel(file)
     except IsADirectoryError:
         return pl.DataFrame()
-
-
-def rs_crop_positions(box_outputs: npt.NDArray[np.int_],
-                      job: Job) -> Box:
-    """
-    Wrapper around `rs.crop_positions` to compute final bounding box.
-    """
-
-    x0, y0, x1, y1 = box_outputs
-    return rs.crop_positions(x0, y0, x1 - x0, y1 - y0, job.face_percent, job.width,
-                             job.height, job.top, job.bottom, job.left, job.right)
 
 
 def get_box_coordinates(output: Union[cvt.MatLike, npt.NDArray[np.generic]],
@@ -287,9 +266,11 @@ def get_box_coordinates(output: Union[cvt.MatLike, npt.NDArray[np.generic]],
     scale = np.array([width, height, width, height])
     box_outputs = output * scale
     
-    _box = box_outputs.astype(np.int_) if x is None else box_outputs[x.argmax()]
+    x0, y0, x1, y1 = box_outputs.astype(np.int_) if x is None else box_outputs[x.argmax()]
     
-    return rs_crop_positions(_box, job)
+    return rs.crop_positions(x0, y0, x1 - x0, y1 - y0, job.face_percent, job.width,
+                             job.height, job.top, job.bottom, job.left, job.right)
+
 
 def _draw_box_with_text(image: cvt.MatLike,
                         confidence: np.float64,
@@ -311,6 +292,7 @@ def _draw_box_with_text(image: cvt.MatLike,
     cv2.rectangle(image, (x0, y0), (x1, y1), colour, line_width)
     cv2.putText(image, text, (x0, y_text), cv2.FONT_HERSHEY_SIMPLEX, font_scale, colour, line_width)
     return image
+
 
 def multi_box(image: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair) -> cvt.MatLike:
     """
@@ -581,6 +563,7 @@ def save_detection(image: Path,
 
     save_function(cropped_images, file_path, job.gamma, is_tiff)
 
+
 def crop_image(image: Union[Path, cvt.MatLike],
                job: Job,
                face_detection_tools: FaceToolPair) -> Optional[cvt.MatLike]:
@@ -597,10 +580,8 @@ def crop_image(image: Union[Path, cvt.MatLike],
 
     if (bounding_box := box_detect(pic_array, job, face_detection_tools)) is None:
         return None
-    
-    cropped_pic = numpy_array_crop(pic_array, bounding_box)
-    result = convert_color_space(cropped_pic) if len(cropped_pic.shape) >= 3 else cropped_pic
-    return cv2.resize(result, job.size, interpolation=cv2.INTER_AREA)
+
+    return process_image(pic_array, job, bounding_box)
 
 
 def process_image(image: cvt.MatLike,
@@ -609,7 +590,6 @@ def process_image(image: cvt.MatLike,
     """
     Crops an image according to 'crop_position', converts color, and resizes to `job.size`.
     """
-
     cropped_image = numpy_array_crop(image, crop_position)
     result = convert_color_space(cropped_image) if len(cropped_image.shape) >= 3 else cropped_image
     return cv2.resize(result, job.size, interpolation=cv2.INTER_AREA)
