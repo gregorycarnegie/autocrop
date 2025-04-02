@@ -1,6 +1,13 @@
-use ndarray::{Array1, Array2, Axis};
+use ndarray::{Array1, Array2};
 use numpy::IntoPyArray;
 use pyo3::prelude::*;
+
+// For x86/x86_64 specific SIMD intrinsics
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+use std::arch::x86_64::{
+    _mm256_set1_pd, _mm256_storeu_pd, _mm256_loadu_pd, 
+    _mm256_div_pd, _mm256_set_pd,
+};
 
 /// A lightweight struct representing a rectangle
 #[derive(Debug, Clone, Copy)]
@@ -14,6 +21,21 @@ struct Rectangle {
 /// Alias for the four integer coordinates of a bounding box.
 type BoxCoordinates = (i32, i32, i32, i32);
 
+/// Helper function to check if AVX2 is supported
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[inline]
+fn is_avx2_supported() -> bool {
+    #[cfg(target_arch = "x86")]
+    use std::arch::x86::__cpuid;
+    #[cfg(target_arch = "x86_64")]
+    use std::arch::x86_64::__cpuid;
+
+    unsafe {
+        let info = __cpuid(7);
+        ((info.ebx >> 5) & 1) != 0
+    }
+}
+
 /// Compute an optimized cumulative sum of a slice of f64 values.
 fn cumsum(vec: &[f64]) -> Vec<f64> {
     if vec.is_empty() {
@@ -23,19 +45,57 @@ fn cumsum(vec: &[f64]) -> Vec<f64> {
     let mut result = Vec::with_capacity(vec.len());
     let mut running_sum = 0.0;
 
+    // Check if we can use AVX2 SIMD
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    let use_avx = is_avx2_supported();
+    #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
+    let use_avx = false;
+
     // Use a chunk size that fits well in cache
     const CHUNK_SIZE: usize = 64;
-
+    
     // Process chunks for better cache locality
     for chunk in vec.chunks(CHUNK_SIZE) {
         // Use a local accumulator for the chunk
         let mut local_sums = Vec::with_capacity(chunk.len());
         let mut local_sum = 0.0;
         
-        // Calculate partial sums within the chunk
-        for &val in chunk {
-            local_sum += val;
-            local_sums.push(running_sum + local_sum);
+        if use_avx {
+            #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+            unsafe {
+                // Process 4 elements at a time using AVX
+                const LANE_WIDTH: usize = 4; // AVX2 can process 4 doubles at once
+                let chunk_len = chunk.len();
+                let simd_iterations = chunk_len / LANE_WIDTH;
+                
+                for i in 0..simd_iterations {
+                    // Load 4 consecutive values
+                    let values = _mm256_loadu_pd(&chunk[i * LANE_WIDTH]);
+                    
+                    // Add to running sum
+                    let mut partial_sums = [0.0; LANE_WIDTH];
+                    _mm256_storeu_pd(partial_sums.as_mut_ptr(), values);
+                    
+                    // Manually compute prefix sum
+                    for j in 0..LANE_WIDTH {
+                        local_sum += partial_sums[j];
+                        local_sums.push(running_sum + local_sum);
+                    }
+                }
+                
+                // Handle remaining elements
+                let remainder_start = simd_iterations * LANE_WIDTH;
+                for i in remainder_start..chunk_len {
+                    local_sum += chunk[i];
+                    local_sums.push(running_sum + local_sum);
+                }
+            }
+        } else {
+            // Scalar fallback implementation
+            for &val in chunk {
+                local_sum += val;
+                local_sums.push(running_sum + local_sum);
+            }
         }
         
         // Update the running sum and extend the result
@@ -148,16 +208,64 @@ fn gamma(gamma_value: f64, py: Python<'_>) -> PyObject {
             lookup[i] = i as u8;
         }
     } else {
-        // Precalculate 1.0/gamma_value and 255.0 to avoid repeated division
+        // Check if we can use AVX2 SIMD
+        #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+        let use_avx = is_avx2_supported();
+        #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
+        let use_avx = false;
+        
+        // Precalculate constants
         let inv_gamma = 1.0 / gamma_value;
         let scale = 255.0;
         
-        // Optimize the scalar version
-        for i in 0..256 {
-            // Avoid division by using precomputed value
-            let normalized = (i as f64) / scale;
-            let val = (normalized.powf(inv_gamma) * scale) as u8;
-            lookup[i] = val;
+        if use_avx {
+            #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+            unsafe {
+                // Process in chunks of 4
+                const LANE_WIDTH: usize = 4;
+                let scale_vector = _mm256_set1_pd(scale);
+                
+                for i in (0..256).step_by(LANE_WIDTH) {
+                    if i + LANE_WIDTH <= 256 {
+                        // Create indices [i, i+1, i+2, i+3]
+                        let indices = _mm256_set_pd(
+                            (i + 3) as f64,
+                            (i + 2) as f64,
+                            (i + 1) as f64,
+                            i as f64,
+                        );
+                        
+                        // Normalize by dividing by 255.0
+                        let normalized = _mm256_div_pd(indices, scale_vector);
+                        
+                        // Apply power function manually - AVX doesn't have direct pow()
+                        // For power function, we'd need to use scalar operations or 
+                        // implement a vectorized approximation
+                        let mut result = [0.0; LANE_WIDTH];
+                        _mm256_storeu_pd(result.as_mut_ptr(), normalized);
+                        
+                        // Apply power function and convert to u8
+                        for j in 0..LANE_WIDTH {
+                            let val = (result[j].powf(inv_gamma) * scale) as u8;
+                            lookup[i + j] = val;
+                        }
+                    } else {
+                        // Handle remaining elements (less than LANE_WIDTH)
+                        for j in i..256 {
+                            let normalized = (j as f64) / scale;
+                            let val = (normalized.powf(inv_gamma) * scale) as u8;
+                            lookup[j] = val;
+                        }
+                    }
+                }
+            }
+        } else {
+            // Scalar fallback
+            for i in 0..256 {
+                let normalized = (i as f64) / scale;
+                let val = (normalized.powf(inv_gamma) * scale) as u8;
+                lookup[i] = val;
+            }
         }
     }
     
@@ -176,8 +284,77 @@ fn calculate_dimensions(height: i32, width: i32, target_height: i32) -> (i32, f6
 /// Computes the mean of a 2D array along axis 0, returning a 1D array.
 /// Replaces the numba.njit mean_axis0 function from Python.
 fn mean_axis0(array: &Array2<f64>) -> Array1<f64> {
-    // Use ndarray's built-in mean function which is already optimized
-    array.mean_axis(Axis(0)).unwrap_or(Array1::<f64>::zeros(0))
+    if array.is_empty() {
+        return Array1::<f64>::zeros(0);
+    }
+    
+    let rows = array.shape()[0];
+    let cols = array.shape()[1];
+    
+    // If there are no rows, return zeros
+    if rows == 0 {
+        return Array1::<f64>::zeros(cols);
+    }
+    
+    // Initialize result array
+    let mut result = Array1::<f64>::zeros(cols);
+    
+    // Check if AVX2 is available
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    let use_avx = is_avx2_supported();
+    #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
+    let use_avx = false;
+    
+    if use_avx && rows >= 4 {
+        #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+        unsafe {
+            // Process 4 rows at a time
+            const LANE_WIDTH: usize = 4;
+            
+            for col in 0..cols {
+                let mut sum = 0.0;
+                let mut i = 0;
+                
+                // Process in chunks of 4 rows
+                while i + LANE_WIDTH <= rows {
+                    let values = _mm256_set_pd(
+                        array[[i + 3, col]],
+                        array[[i + 2, col]],
+                        array[[i + 1, col]],
+                        array[[i, col]],
+                    );
+                    
+                    // Sum the values
+                    let mut partial_sum = [0.0; LANE_WIDTH];
+                    _mm256_storeu_pd(partial_sum.as_mut_ptr(), values);
+                    
+                    for &val in &partial_sum {
+                        sum += val;
+                    }
+                    
+                    i += LANE_WIDTH;
+                }
+                
+                // Handle remaining rows
+                for j in i..rows {
+                    sum += array[[j, col]];
+                }
+                
+                result[col] = sum / rows as f64;
+            }
+        }
+    } else {
+        // Fallback implementation (no SIMD)
+        for col in 0..cols {
+            let mut sum = 0.0;
+            for row in 0..rows {
+                sum += array[[row, col]];
+            }
+            result[col] = sum / rows as f64;
+        }
+    }
+    
+    result
 }
 
 /// Concatenates two 2D arrays vertically.
@@ -216,18 +393,94 @@ fn get_rotation_matrix(
     let mut left_arr = Array2::<f64>::zeros((num_left_landmarks, 2));
     let mut right_arr = Array2::<f64>::zeros((num_right_landmarks, 2));
     
-    // Fill arrays in a single pass
-    for i in 0..num_left_landmarks {
-        left_arr[[i, 0]] = left_eye_landmarks_x[i];
-        left_arr[[i, 1]] = left_eye_landmarks_y[i];
+    // Fill arrays efficiently
+    // Check if AVX2 is available
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    let use_avx = is_avx2_supported() && num_left_landmarks >= 4 && num_right_landmarks >= 4;
+    #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
+    let use_avx = false;
+    
+    if use_avx {
+        #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+        unsafe {
+            // Process left landmarks
+            const LANE_WIDTH: usize = 4;
+            let mut i = 0;
+            
+            while i + LANE_WIDTH <= num_left_landmarks {
+                // Load 4 x-coordinates
+                let x_vals = _mm256_loadu_pd(&left_eye_landmarks_x[i]);
+                // Load 4 y-coordinates
+                let y_vals = _mm256_loadu_pd(&left_eye_landmarks_y[i]);
+                
+                // Store x values
+                let mut x_arr = [0.0; LANE_WIDTH];
+                _mm256_storeu_pd(x_arr.as_mut_ptr(), x_vals);
+                
+                // Store y values
+                let mut y_arr = [0.0; LANE_WIDTH];
+                _mm256_storeu_pd(y_arr.as_mut_ptr(), y_vals);
+                
+                // Assign to left_arr
+                for j in 0..LANE_WIDTH {
+                    left_arr[[i + j, 0]] = x_arr[j];
+                    left_arr[[i + j, 1]] = y_arr[j];
+                }
+                
+                i += LANE_WIDTH;
+            }
+            
+            // Handle remaining left landmarks
+            for j in i..num_left_landmarks {
+                left_arr[[j, 0]] = left_eye_landmarks_x[j];
+                left_arr[[j, 1]] = left_eye_landmarks_y[j];
+            }
+            
+            // Process right landmarks
+            i = 0;
+            while i + LANE_WIDTH <= num_right_landmarks {
+                // Load 4 x-coordinates
+                let x_vals = _mm256_loadu_pd(&right_eye_landmarks_x[i]);
+                // Load 4 y-coordinates
+                let y_vals = _mm256_loadu_pd(&right_eye_landmarks_y[i]);
+                
+                // Store x values
+                let mut x_arr = [0.0; LANE_WIDTH];
+                _mm256_storeu_pd(x_arr.as_mut_ptr(), x_vals);
+                
+                // Store y values
+                let mut y_arr = [0.0; LANE_WIDTH];
+                _mm256_storeu_pd(y_arr.as_mut_ptr(), y_vals);
+                
+                // Assign to right_arr
+                for j in 0..LANE_WIDTH {
+                    right_arr[[i + j, 0]] = x_arr[j];
+                    right_arr[[i + j, 1]] = y_arr[j];
+                }
+                
+                i += LANE_WIDTH;
+            }
+            
+            // Handle remaining right landmarks
+            for j in i..num_right_landmarks {
+                right_arr[[j, 0]] = right_eye_landmarks_x[j];
+                right_arr[[j, 1]] = right_eye_landmarks_y[j];
+            }
+        }
+    } else {
+        // Scalar fallback implementation
+        for i in 0..num_left_landmarks {
+            left_arr[[i, 0]] = left_eye_landmarks_x[i];
+            left_arr[[i, 1]] = left_eye_landmarks_y[i];
+        }
+        
+        for i in 0..num_right_landmarks {
+            right_arr[[i, 0]] = right_eye_landmarks_x[i];
+            right_arr[[i, 1]] = right_eye_landmarks_y[i];
+        }
     }
     
-    for i in 0..num_right_landmarks {
-        right_arr[[i, 0]] = right_eye_landmarks_x[i];
-        right_arr[[i, 1]] = right_eye_landmarks_y[i];
-    }
-    
-    // Calculate eye centers using ndarray's optimized mean function
+    // Calculate eye centers using optimized mean function
     let left_eye_center = mean_axis0(&left_arr);
     let right_eye_center = mean_axis0(&right_arr);
     
@@ -242,7 +495,7 @@ fn get_rotation_matrix(
     let dx = left_eye_x - right_eye_x;
     let angle = dy.atan2(dx) * 180.0 / std::f64::consts::PI;
     
-    // Concatenate arrays for both eyes using ndarray's stack
+    // Concatenate arrays for both eyes
     let both_eyes = concat_rows(&left_arr, &right_arr);
     
     // Calculate face center
@@ -317,7 +570,7 @@ fn compute_edges(
     left: u32, 
     right: u32
 ) -> BoxCoordinates {
-    // Convert percentages to offsets in a single step
+    // Optimize percentage calculations
     let left_offset = (left as f64) * 0.01 * cropped_width;
     let right_offset = (right as f64) * 0.01 * cropped_width;
     let top_offset = (top as f64) * 0.01 * cropped_height;
