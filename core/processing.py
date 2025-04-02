@@ -3,7 +3,7 @@ import collections.abc as c
 import pstats
 import random
 import shutil
-from functools import cache, wraps
+from functools import cache, wraps, singledispatch
 from pathlib import Path
 from typing import Any, Union
 from typing import Optional
@@ -171,7 +171,7 @@ def align_head(image: cvt.MatLike,
                                  for i in range(L_EYE_START, L_EYE_END)])
     right_eye_landmarks = np.array([(landmarks.part(i).x, landmarks.part(i).y) 
                                   for i in range(R_EYE_START, R_EYE_END)])
-# New Python code
+
     left_x = left_eye_landmarks[:, 0]  # First column (x coordinates)
     left_y = left_eye_landmarks[:, 1]  # Second column (y coordinates)
     right_x = right_eye_landmarks[:, 0]
@@ -250,24 +250,6 @@ def open_table(file: Path) -> pl.DataFrame:
         return pl.read_csv(file) if file.suffix.lower() == '.csv' else pl.read_excel(file)
     except IsADirectoryError:
         return pl.DataFrame()
-
-
-# def get_box_coordinates(output: Union[cvt.MatLike, npt.NDArray[np.generic]],
-#                         job: Job,
-#                         *,
-#                         width: int,
-#                         height: int,
-#                         x: Optional[npt.NDArray[np.generic]] = None) -> Box:
-#     """
-#     Vectorized version of box coordinate calculation.
-#     """
-#     scale = np.array([width, height, width, height])
-#     box_outputs = output * scale
-#
-#     x0, y0, x1, y1 = box_outputs.astype(np.int_) if x is None else box_outputs[x.argmax()]
-#
-#     return rs.crop_positions(x0, y0, x1 - x0, y1 - y0, job.face_percent, job.width,
-#                              job.height, job.top, job.bottom, job.left, job.right)
 
 
 def _draw_box_with_text(image: cvt.MatLike,
@@ -559,25 +541,27 @@ def save_detection(image: Path,
     save_function(cropped_images, file_path, job.gamma, is_tiff)
 
 
-def crop_image(image: Union[Path, cvt.MatLike],
+@singledispatch
+def crop_image(image: Union[cvt.MatLike, Path],
                job: Job,
                face_detection_tools: FaceToolPair) -> Optional[cvt.MatLike]:
     """
     Single-face cropping function. Returns the cropped face if found and resizes to `job.size`.
     """
+    raise TypeError(f"Unsupported input type: {type(image)}")
 
-    pic_array = open_pic(image, face_detection_tools, job, exposure=job.fix_exposure_job,
-                         tilt=job.auto_tilt_job) \
-        if isinstance(image, Path) else image
+@crop_image.register(cvt.MatLike)
+def _(image: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair) -> Optional[cvt.MatLike]:
+    if (bounding_box := box_detect(image, job, face_detection_tools)) is None:
+        return None
+    return process_image(image, job, bounding_box)
 
+@crop_image.register(Path)
+def _(image: Path, job: Job, face_detection_tools: FaceToolPair) -> Optional[cvt.MatLike]:
+    pic_array = open_pic(image, face_detection_tools, job)
     if pic_array is None:
         return None
-
-    if (bounding_box := box_detect(pic_array, job, face_detection_tools)) is None:
-        return None
-
-    return process_image(pic_array, job, bounding_box)
-
+    return crop_image(pic_array, job, face_detection_tools)
 
 def process_image(image: cvt.MatLike,
                   job: Job,
@@ -590,28 +574,31 @@ def process_image(image: cvt.MatLike,
     return cv2.resize(result, job.size, interpolation=cv2.INTER_AREA)
 
 
+@singledispatch
 def multi_crop(image: Union[cvt.MatLike, Path],
                job: Job,
                face_detection_tools: FaceToolPair) -> Optional[c.Iterator[cvt.MatLike]]:
     """
     Multi-face cropping function. Yields cropped faces above threshold, resized to `job.size`.
     """
+    raise TypeError(f"Unsupported input type: {type(image)}")
 
-    img = open_pic(image, face_detection_tools, job, exposure=job.fix_exposure_job, tilt=job.auto_tilt_job) \
-        if isinstance(image, Path) else image
-
-    if img is None:
-        return None
-
-    confidences, crop_positions = multi_box_positions(img, job, face_detection_tools)
+@multi_crop.register(cvt.MatLike)
+def _(image: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair) -> Optional[c.Iterator[cvt.MatLike]]:
+    confidences, crop_positions = multi_box_positions(image, job, face_detection_tools)
     confidences = np.array(confidences) > job.threshold
     # Check if any faces were detected
     if np.any(confidences):
         # Cropped images
-        return map(lambda pos: process_image(img, job, pos), crop_positions)
+        return map(lambda pos: process_image(image, job, pos), crop_positions)
     else:
         return None
 
+
+@multi_crop.register(Path)
+def _(image: Path, job: Job, face_detection_tools: FaceToolPair) -> Optional[c.Iterator[cvt.MatLike]]:
+    img = open_pic(image, face_detection_tools, job)
+    return None if img is None else multi_box(img, job, face_detection_tools)
 
 def get_crop_save_functions(job: Job) -> tuple[CropFunction, SaveFunction]:
     """
@@ -621,25 +608,29 @@ def get_crop_save_functions(job: Job) -> tuple[CropFunction, SaveFunction]:
     return (multi_crop, multi_save_image) if job.multi_face_job else (crop_image, save_image)
 
 
+@singledispatch
 def crop(image: Union[Path, str],
          job: Job,
          face_detection_tools: FaceToolPair,
          new: Optional[Union[Path, str]] = None) -> None:
-    """
-    High-level API for performing cropping and saving the result.
-    """
+    """Applies cropping to an image based on the job configuration."""
+    raise TypeError(f"Unsupported input type: {type(image)}")
 
+
+@crop.register(Path)
+def _(image: Path, job: Job, face_detection_tools: FaceToolPair, new: Optional[Union[Path, str]] = None) -> None:
     crop_fn, save_fn = get_crop_save_functions(job)
-
-    # If working with table/folder logic
     if all(x is not None for x in [job.table, job.folder_path, new]):
-        source = Path(image) if isinstance(image, str) else image
-        save_detection(source, job, face_detection_tools, crop_fn, save_fn, new)
+        save_detection(image, job, face_detection_tools, crop_fn, save_fn, new)
     elif job.folder_path is not None:
-        source = job.folder_path / image.name
-        save_detection(source, job, face_detection_tools, crop_fn, save_fn)
+        save_detection(image, job, face_detection_tools, crop_fn, save_fn)
     else:
         save_detection(image, job, face_detection_tools, crop_fn, save_fn)
+
+
+@crop.register(str)
+def _(image: str, job: Job, face_detection_tools: FaceToolPair, new: Optional[Union[Path, str]] = None) -> None:
+    crop(Path(image), job, face_detection_tools, new)
 
 
 def frame_save(image: cvt.MatLike,
