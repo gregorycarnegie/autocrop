@@ -137,10 +137,9 @@ class UiMappingTabWidget(UiBatchCropWidget):
         """Connect widget signals to handlers"""
         # Button connections
         self.inputButton.clicked.connect(lambda: self.open_path(self.inputLineEdit))
-        self.tableButton.clicked.connect(lambda: self.open_table())
-        # self.destinationButton.clicked.connect(lambda: self.open_path(self.destinationLineEdit))
-        self.cropButton.clicked.connect(lambda: self.mapping_process())
-        self.cancelButton.clicked.connect(lambda: self.crop_worker.terminate())
+        self.tableButton.clicked.connect(self.open_table)
+        self.cropButton.clicked.connect(self.mapping_process)
+        self.cancelButton.clicked.connect(self.crop_worker.terminate)
         self.cancelButton.clicked.connect(lambda: self.cancel_button_operation(self.cancelButton, self.cropButton))
 
         # Combobox synchronization

@@ -429,29 +429,28 @@ class UiVideoTabWidget(UiCropWidget):
         
         # Button connections
         self.inputButton.clicked.connect(lambda: self.open_video())
-        # self.destinationButton.clicked.connect(lambda: self.open_path(self.destinationLineEdit))
         
         # Add preview update trigger
         self.inputLineEdit.textChanged.connect(lambda: QtCore.QTimer.singleShot(1000, self.display_crop_preview))
         
         # Connect media control widgets
         for control in [self.mediacontrolWidget_1, self.mediacontrolWidget_2]:
-            control.cropButton.clicked.connect(lambda: self.crop_frame())
-            control.videocropButton.clicked.connect(lambda: self.video_process())
-            control.cancelButton.clicked.connect(lambda: self.crop_worker.terminate())
+            control.cropButton.clicked.connect(self.crop_frame)
+            control.videocropButton.clicked.connect(self.video_process)
+            control.cancelButton.clicked.connect(self.crop_worker.terminate)
             control.cancelButton.clicked.connect(
                 lambda: self.cancel_button_operation(control.cancelButton,
                                                      control.videocropButton,
                                                      control.cropButton)
             )
             
-            control.playButton.clicked.connect(lambda: self.change_playback_state())
-            control.stopButton.clicked.connect(lambda: self.stop_playback())
-            control.stepbackButton.clicked.connect(lambda: self.step_back())
-            control.stepfwdButton.clicked.connect(lambda: self.step_forward())
-            control.fastfwdButton.clicked.connect(lambda: self.fast_forward())
-            control.goto_beginingButton.clicked.connect(lambda: self.goto_beginning())
-            control.goto_endButton.clicked.connect(lambda: self.goto_end())
+            control.playButton.clicked.connect(self.change_playback_state)
+            control.stopButton.clicked.connect(self.stop_playback)
+            control.stepbackButton.clicked.connect(self.step_back)
+            control.stepfwdButton.clicked.connect(self.step_forward)
+            control.fastfwdButton.clicked.connect(self.fast_forward)
+            control.goto_beginingButton.clicked.connect(self.goto_beginning)
+            control.goto_endButton.clicked.connect(self.goto_end)
             control.selectStartMarkerButton.clicked.connect(
                 lambda: self.goto(control.selectStartMarkerButton)
             )
@@ -460,11 +459,11 @@ class UiVideoTabWidget(UiCropWidget):
             )
             
         # Audio control buttons
-        self.muteButton_1.clicked.connect(lambda: self.volume_mute())
-        self.muteButton_2.clicked.connect(lambda: self.volume_mute())
+        self.muteButton_1.clicked.connect(self.volume_mute)
+        self.muteButton_2.clicked.connect(self.volume_mute)
         
         # Media player connections
-        self.audio.mutedChanged.connect(lambda: self.change_audio_icon())
+        self.audio.mutedChanged.connect(self.change_audio_icon)
         self.player.positionChanged.connect(self.position_changed)
         self.player.durationChanged.connect(self.duration_changed)
         self.player.errorOccurred.connect(self.player_error_occurred)

@@ -170,34 +170,30 @@ class UiMainWindow(QtWidgets.QMainWindow):
         # CONNECTIONS
         self.connect_combo_boxes(self.mapping_tab_widget)
 
-        self.actionAbout_Face_Cropper.triggered.connect(lambda: ut.load_about_form())
-        self.actionGolden_Ratio.triggered.connect(lambda: self.load_preset(Preset.GOLDEN_RATIO))
-        self.action2_3_Ratio.triggered.connect(lambda: self.load_preset(Preset.TWO_THIRDS))
-        self.action3_4_Ratio.triggered.connect(lambda: self.load_preset(Preset.THREE_QUARTERS))
-        self.action4_5_Ratio.triggered.connect(lambda: self.load_preset(Preset.FOUR_FIFTHS))
-        self.actionSquare.triggered.connect(lambda: self.load_preset(Preset.SQUARE))
-        self.actionCrop_File.triggered.connect(
-            lambda: self.function_tabWidget.setCurrentIndex(FunctionType.PHOTO))
-        self.actionCrop_Folder.triggered.connect(
-            lambda: self.function_tabWidget.setCurrentIndex(FunctionType.FOLDER))
-        self.actionUse_Mapping.triggered.connect(
-            lambda: self.function_tabWidget.setCurrentIndex(FunctionType.MAPPING))
-        self.actionCrop_Video.triggered.connect(
-            lambda: self.function_tabWidget.setCurrentIndex(FunctionType.VIDEO))
+        self.actionAbout_Face_Cropper.triggered.connect(ut.load_about_form)
+        self.actionGolden_Ratio.triggered.connect(partial(self.load_preset, Preset.GOLDEN_RATIO))
+        self.action2_3_Ratio.triggered.connect(partial(self.load_preset, Preset.TWO_THIRDS))
+        self.action3_4_Ratio.triggered.connect(partial(self.load_preset, Preset.THREE_QUARTERS))
+        self.action4_5_Ratio.triggered.connect(partial(self.load_preset, Preset.FOUR_FIFTHS))
+        self.actionSquare.triggered.connect(partial(self.load_preset, Preset.SQUARE))
+        self.actionCrop_File.triggered.connect(partial(self.function_tabWidget.setCurrentIndex, FunctionType.PHOTO))
+        self.actionCrop_Folder.triggered.connect(partial(self.function_tabWidget.setCurrentIndex, FunctionType.FOLDER))
+        self.actionUse_Mapping.triggered.connect(partial(self.function_tabWidget.setCurrentIndex, FunctionType.MAPPING))
+        self.actionCrop_Video.triggered.connect(partial(self.function_tabWidget.setCurrentIndex, FunctionType.VIDEO))
 
-        self.function_tabWidget.currentChanged.connect(lambda: self.check_tab_selection())
-        self.function_tabWidget.currentChanged.connect(lambda: self.video_tab_widget.player.pause())
+        self.function_tabWidget.currentChanged.connect(self.check_tab_selection)
+        self.function_tabWidget.currentChanged.connect(self.video_tab_widget.player.pause)
 
-        self.folder_worker.error.connect(lambda: self.folder_tab_widget.disable_buttons())
-        self.photo_worker.error.connect(lambda: self.photo_tab_widget.disable_buttons())
-        self.mapping_worker.error.connect(lambda: self.mapping_tab_widget.disable_buttons())
-        self.video_worker.error.connect(lambda: self.video_tab_widget.disable_buttons())
+        self.folder_worker.error.connect(self.folder_tab_widget.disable_buttons)
+        self.photo_worker.error.connect(self.photo_tab_widget.disable_buttons)
+        self.mapping_worker.error.connect(self.mapping_tab_widget.disable_buttons)
+        self.video_worker.error.connect(self.video_tab_widget.disable_buttons)
 
         self.retranslateUi()
-        self.actionCrop_File.triggered.connect(lambda: self.function_tabWidget.setFocus())
-        self.actionCrop_Folder.triggered.connect(lambda: self.function_tabWidget.setFocus())
-        self.actionCrop_Video.triggered.connect(lambda: self.function_tabWidget.setFocus())
-        self.actionUse_Mapping.triggered.connect(lambda: self.function_tabWidget.setFocus())
+        self.actionCrop_File.triggered.connect(self.function_tabWidget.setFocus)
+        self.actionCrop_Folder.triggered.connect(self.function_tabWidget.setFocus)
+        self.actionCrop_Video.triggered.connect(self.function_tabWidget.setFocus)
+        self.actionUse_Mapping.triggered.connect(self.function_tabWidget.setFocus)
 
         self.function_tabWidget.setCurrentIndex(0)
 
@@ -611,36 +607,24 @@ class UiMainWindow(QtWidgets.QMainWindow):
         """
 
         common_line_edits = (tab_widget.controlWidget.widthLineEdit, tab_widget.controlWidget.heightLineEdit)
+        check_button_state  = partial(self.all_filled,
+                                      tab_widget.inputLineEdit,
+                                      tab_widget.destinationLineEdit,
+                                      *common_line_edits)
 
         match tab_widget:
             case tab_widget if isinstance(tab_widget, (UiPhotoTabWidget, UiFolderTabWidget)):
-                ut.change_widget_state(
-                    self.all_filled(
-                        tab_widget.inputLineEdit,
-                        tab_widget.destinationLineEdit,
-                        *common_line_edits,
-                    ),
+                ut.change_widget_state(check_button_state(),
                     tab_widget.cropButton,
                 )
             case tab_widget if isinstance(tab_widget, UiMappingTabWidget):
                 ut.change_widget_state(
-                    self.all_filled(
-                        tab_widget.inputLineEdit,
-                        tab_widget.tableLineEdit,
-                        tab_widget.destinationLineEdit,
-                        tab_widget.comboBox_1,
-                        tab_widget.comboBox_2,
-                        *common_line_edits
-                    ),
+                    check_button_state(tab_widget.tableLineEdit, tab_widget.comboBox_1, tab_widget.comboBox_2),
                     self.mapping_tab_widget.cropButton
                 )
             case tab_widget if isinstance(tab_widget, UiVideoTabWidget):
                 ut.change_widget_state(
-                    self.all_filled(
-                        tab_widget.inputLineEdit,
-                        tab_widget.destinationLineEdit,
-                        *common_line_edits
-                    ),
+                    check_button_state(),
                     tab_widget.mediacontrolWidget_1.cropButton,
                     tab_widget.mediacontrolWidget_2.cropButton,
                     tab_widget.mediacontrolWidget_1.videocropButton,
@@ -665,5 +649,6 @@ class UiMainWindow(QtWidgets.QMainWindow):
             assert isinstance(tab_widget, UiMappingTabWidget)
         except AssertionError:
             return
-        tab_widget.comboBox_1.currentTextChanged.connect(lambda: self.disable_buttons(tab_widget))
-        tab_widget.comboBox_2.currentTextChanged.connect(lambda: self.disable_buttons(tab_widget))
+        disable_buttons = partial(self.disable_buttons, tab_widget)
+        tab_widget.comboBox_1.currentTextChanged.connect(disable_buttons)
+        tab_widget.comboBox_2.currentTextChanged.connect(disable_buttons)

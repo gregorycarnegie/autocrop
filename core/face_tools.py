@@ -45,9 +45,8 @@ class FaceDetector:
     Designed to be a drop-in replacement for dlib's face detector.
     """
     
-    def __init__(self, confidence_threshold=0.5):
+    def __init__(self):
         """Initialize the DNN face detector."""
-        self.confidence_threshold = confidence_threshold
         self._net = None
     
     def _get_network(self) -> cv2.dnn.Net:
@@ -56,7 +55,7 @@ class FaceDetector:
             _thread_local.net = cv2.dnn.readNetFromCaffe(PROTO_TXT, CAFFE_MODEL)
         return _thread_local.net
     
-    def __call__(self, image: cvt.MatLike) -> list[Rectangle]:
+    def __call__(self, image: cvt.MatLike, sensitivity: int) -> list[Rectangle]:
         """
         Detect faces in the image.
         
@@ -89,7 +88,7 @@ class FaceDetector:
             confidence = detections[0, 0, i, 2]
             
             # Filter by confidence
-            if confidence > self.confidence_threshold:
+            if confidence > sensitivity / 100:
                 # Compute the coordinates
                 box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
                 (startX, startY, endX, endY) = box.astype("int")
@@ -115,7 +114,7 @@ def create_tool_pair() -> FaceToolPair:
         A pair of face detection and shape prediction tools.
     """
     # Use our optimized face detector
-    detector = FaceDetector(confidence_threshold=0.5)
+    detector = FaceDetector()
     
     # Still use dlib's shape predictor for landmarks
     # Could be replaced with a custom implementation later

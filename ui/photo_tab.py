@@ -81,7 +81,7 @@ class UiPhotoTabWidget(UiCropWidget):
         """Connect widget signals to handlers"""
         # Button connections 
         self.inputButton.clicked.connect(lambda: self.open_path(self.inputLineEdit))
-        self.cropButton.clicked.connect(lambda: self.crop_photo())
+        self.cropButton.clicked.connect(self.crop_photo)
         
         # Register button dependencies with the TabStateManager
         self.tab_state_manager.register_button_dependencies(

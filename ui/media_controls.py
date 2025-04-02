@@ -99,7 +99,7 @@ class UiMediaControlWidget(QtWidgets.QWidget):
 
         self.media_player.playbackStateChanged.connect(self.player_state_changed)
         self.media_player.mediaStatusChanged.connect(self.player_status_changed)
-        self.media_player.errorOccurred.connect(lambda: self.stopped_case())
+        self.media_player.errorOccurred.connect(self.stopped_case)
 
         self.playButton.clicked.connect(
             lambda: ut.change_widget_state(

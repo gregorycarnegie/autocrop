@@ -97,7 +97,6 @@ def numpy_array_crop(image: cvt.MatLike, bounding_box: Box) -> cvt.MatLike:
         # No padding was required
         return cropped_valid
 
-
 def correct_exposure(image: cvt.MatLike,
                      exposure: bool) -> cvt.MatLike:
     """
@@ -192,7 +191,7 @@ def align_head(image: cvt.MatLike,
 
 def colour_expose_align(image: cvt.MatLike, face_detection_tools: FaceToolPair, exposure:bool, tilt:bool) -> cvt.MatLike:
     # Convert BGR -> RGB for consistency
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) if len(image.shape) >= 3 else image
     image = correct_exposure(image, exposure)
     return align_head(image, face_detection_tools, tilt)
 
@@ -336,10 +335,7 @@ def multi_box_positions(image: cvt.MatLike, job: Job, face_detection_tools: Face
     detector, _ = face_detection_tools
 
     # Use our optimized detector
-    faces = detector(image)
-
-    # Filter by threshold (should already be done in detector, but double-check)
-    faces = [face for face in faces if face.confidence * 100 >= job.threshold]
+    faces = detector(image, job.threshold)
 
     if not faces:
         return [], []
@@ -392,11 +388,11 @@ def box_detect(image: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair)
         
         if scale_factor <= 1:
             # Small image, detect directly
-            faces = detector(image)
+            faces = detector(image, job.threshold)
         else:
             # Large image, resize for faster detection
             small_img = cv2.resize(image, (width // scale_factor, height // scale_factor))
-            faces = detector(small_img)
+            faces = detector(small_img, job.threshold)
         
         # If no faces or faces below threshold confidence, return None
         # The threshold check is now in the detector itself

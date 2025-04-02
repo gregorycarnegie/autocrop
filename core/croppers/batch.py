@@ -1,5 +1,6 @@
 import collections.abc as c
 from concurrent.futures import Future, ThreadPoolExecutor
+from functools import partial
 from pathlib import Path
 from typing import Callable, Optional, Union, TypeVar
 
@@ -69,31 +70,17 @@ class BatchCropper(Cropper):
         if self.executor is None or self.executor._shutdown:
             self.executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)
 
+        worker_with_params = partial(worker, file_amount=amount, job=job)
         if list_2:
-            # For operations requiring two parallel lists (like mapping)
             self.futures = [
-                self.executor.submit(
-                    worker,
-                    file_amount=amount,
-                    job=job,
-                    face_detection_tools=tool_pair,
-                    old=old_chunk,
-                    new=new_chunk
-                )
+                worker_with_params(face_detection_tools=tool_pair, old=old_chunk, new=new_chunk)
                 for old_chunk, new_chunk, tool_pair in zip(list_1, list_2, self.face_detection_tools)
             ]
         else:
-            # For operations requiring a single list (like folder processing)
             self.futures = [
-                self.executor.submit(
-                    worker,
-                    file_amount=amount,
-                    job=job,
-                    face_detection_tools=tool_pair,
-                    file_list=chunk,
-                )
+                self.executor.submit(worker_with_params, face_detection_tools=tool_pair, file_list=chunk)
                 for chunk, tool_pair in zip(list_1, self.face_detection_tools)
-            ]
+                ]
 
     def complete_futures(self):
         """Attach a done callback to all futures"""

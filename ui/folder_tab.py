@@ -99,13 +99,12 @@ class UiFolderTabWidget(UiBatchCropWidget):
         """Connect widget signals to handlers"""
         # Button connections
         self.inputButton.clicked.connect(lambda: self.open_path(self.inputLineEdit))
-        # self.destinationButton.clicked.connect(lambda: self.open_path(self.destinationLineEdit))
-        self.cropButton.clicked.connect(lambda: self.folder_process())
-        self.cancelButton.clicked.connect(lambda: self.crop_worker.terminate())
+        self.cropButton.clicked.connect(self.folder_process)
+        self.cancelButton.clicked.connect(self.crop_worker.terminate)
         self.cancelButton.clicked.connect(lambda: self.cancel_button_operation(self.cancelButton, self.cropButton))
 
         # Input line edit also updates the tree view
-        self.inputLineEdit.textChanged.connect(lambda: self.load_data())
+        self.inputLineEdit.textChanged.connect(self.load_data)
 
         # Connect crop worker signals
         self.connect_crop_worker()
