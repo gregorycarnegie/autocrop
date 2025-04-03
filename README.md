@@ -38,7 +38,7 @@ Install CMake and Rust, clone the repository, and pip install the requirements.
 
 Autocrop is [currently being tested on](https://github.com/leblancfg/autocrop/actions/workflows/ci.yml):
 
-- Python 3.11
+- Python 3.13
 - OS:
   - Linux
   - macOS

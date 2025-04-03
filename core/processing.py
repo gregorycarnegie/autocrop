@@ -550,13 +550,13 @@ def crop_image(image: Union[cvt.MatLike, Path],
     """
     raise TypeError(f"Unsupported input type: {type(image)}")
 
-@crop_image.register(cvt.MatLike)
+@crop_image.register
 def _(image: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair) -> Optional[cvt.MatLike]:
     if (bounding_box := box_detect(image, job, face_detection_tools)) is None:
         return None
     return process_image(image, job, bounding_box)
 
-@crop_image.register(Path)
+@crop_image.register
 def _(image: Path, job: Job, face_detection_tools: FaceToolPair) -> Optional[cvt.MatLike]:
     pic_array = open_pic(image, face_detection_tools, job)
     if pic_array is None:
@@ -583,7 +583,7 @@ def multi_crop(image: Union[cvt.MatLike, Path],
     """
     raise TypeError(f"Unsupported input type: {type(image)}")
 
-@multi_crop.register(cvt.MatLike)
+@multi_crop.register
 def _(image: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair) -> Optional[c.Iterator[cvt.MatLike]]:
     confidences, crop_positions = multi_box_positions(image, job, face_detection_tools)
     confidences = np.array(confidences) > job.threshold
@@ -597,7 +597,7 @@ def _(image: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair) -> Optio
     else:
         return None
 
-@multi_crop.register(Path)
+@multi_crop.register
 def _(image: Path, job: Job, face_detection_tools: FaceToolPair) -> Optional[c.Iterator[cvt.MatLike]]:
     img = open_pic(image, face_detection_tools, job)
     return None if img is None else multi_crop(img, job, face_detection_tools)
@@ -619,7 +619,7 @@ def crop(image: Union[Path, str],
     raise TypeError(f"Unsupported input type: {type(image)}")
 
 
-@crop.register(Path)
+@crop.register
 def _(image: Path, job: Job, face_detection_tools: FaceToolPair, new: Optional[Union[Path, str]] = None) -> None:
     crop_fn, save_fn = get_crop_save_functions(job)
     if all(x is not None for x in [job.table, job.folder_path, new]):
@@ -630,7 +630,7 @@ def _(image: Path, job: Job, face_detection_tools: FaceToolPair, new: Optional[U
         save_detection(image, job, face_detection_tools, crop_fn, save_fn)
 
 
-@crop.register(str)
+@crop.register
 def _(image: str, job: Job, face_detection_tools: FaceToolPair, new: Optional[Union[Path, str]] = None) -> None:
     crop(Path(image), job, face_detection_tools, new)
 
