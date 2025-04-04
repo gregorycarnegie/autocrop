@@ -169,32 +169,9 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.menuInfo.addAction(self.actionAbout_Face_Cropper)
 
         # CONNECTIONS
-        self.connect_combo_boxes(self.mapping_tab_widget)
-
-        self.actionAbout_Face_Cropper.triggered.connect(ut.load_about_form)
-        self.actionGolden_Ratio.triggered.connect(partial(self.load_preset, Preset.GOLDEN_RATIO))
-        self.action2_3_Ratio.triggered.connect(partial(self.load_preset, Preset.TWO_THIRDS))
-        self.action3_4_Ratio.triggered.connect(partial(self.load_preset, Preset.THREE_QUARTERS))
-        self.action4_5_Ratio.triggered.connect(partial(self.load_preset, Preset.FOUR_FIFTHS))
-        self.actionSquare.triggered.connect(partial(self.load_preset, Preset.SQUARE))
-        self.actionCrop_File.triggered.connect(partial(self.function_tabWidget.setCurrentIndex, FunctionType.PHOTO))
-        self.actionCrop_Folder.triggered.connect(partial(self.function_tabWidget.setCurrentIndex, FunctionType.FOLDER))
-        self.actionUse_Mapping.triggered.connect(partial(self.function_tabWidget.setCurrentIndex, FunctionType.MAPPING))
-        self.actionCrop_Video.triggered.connect(partial(self.function_tabWidget.setCurrentIndex, FunctionType.VIDEO))
-
-        self.function_tabWidget.currentChanged.connect(self.check_tab_selection)
-        self.function_tabWidget.currentChanged.connect(self.video_tab_widget.player.pause)
-
-        self.folder_worker.error.connect(self.folder_tab_widget.disable_buttons)
-        self.photo_worker.error.connect(self.photo_tab_widget.disable_buttons)
-        self.mapping_worker.error.connect(self.mapping_tab_widget.disable_buttons)
-        self.video_worker.error.connect(self.video_tab_widget.disable_buttons)
+        self.connect_widgets()
 
         self.retranslateUi()
-        self.actionCrop_File.triggered.connect(self.function_tabWidget.setFocus)
-        self.actionCrop_Folder.triggered.connect(self.function_tabWidget.setFocus)
-        self.actionCrop_Video.triggered.connect(self.function_tabWidget.setFocus)
-        self.actionUse_Mapping.triggered.connect(self.function_tabWidget.setFocus)
 
         self.function_tabWidget.setCurrentIndex(0)
 
@@ -246,6 +223,34 @@ class UiMainWindow(QtWidgets.QMainWindow):
         
         # Stop any ongoing video playback
         self.video_tab_widget.player.stop()
+
+    def connect_widgets(self):
+        # CONNECTIONS
+        self.connect_combo_boxes(self.mapping_tab_widget)
+
+        self.actionAbout_Face_Cropper.triggered.connect(ut.load_about_form)
+        self.actionGolden_Ratio.triggered.connect(partial(self.load_preset, Preset.GOLDEN_RATIO))
+        self.action2_3_Ratio.triggered.connect(partial(self.load_preset, Preset.TWO_THIRDS))
+        self.action3_4_Ratio.triggered.connect(partial(self.load_preset, Preset.THREE_QUARTERS))
+        self.action4_5_Ratio.triggered.connect(partial(self.load_preset, Preset.FOUR_FIFTHS))
+        self.actionSquare.triggered.connect(partial(self.load_preset, Preset.SQUARE))
+        self.actionCrop_File.triggered.connect(partial(self.function_tabWidget.setCurrentIndex, FunctionType.PHOTO))
+        self.actionCrop_Folder.triggered.connect(partial(self.function_tabWidget.setCurrentIndex, FunctionType.FOLDER))
+        self.actionUse_Mapping.triggered.connect(partial(self.function_tabWidget.setCurrentIndex, FunctionType.MAPPING))
+        self.actionCrop_Video.triggered.connect(partial(self.function_tabWidget.setCurrentIndex, FunctionType.VIDEO))
+
+        self.function_tabWidget.currentChanged.connect(self.check_tab_selection)
+        self.function_tabWidget.currentChanged.connect(self.video_tab_widget.player.pause)
+
+        self.folder_worker.error.connect(self.folder_tab_widget.disable_buttons)
+        self.photo_worker.error.connect(self.photo_tab_widget.disable_buttons)
+        self.mapping_worker.error.connect(self.mapping_tab_widget.disable_buttons)
+        self.video_worker.error.connect(self.video_tab_widget.disable_buttons)
+
+        self.actionCrop_File.triggered.connect(self.function_tabWidget.setFocus)
+        self.actionCrop_Folder.triggered.connect(self.function_tabWidget.setFocus)
+        self.actionCrop_Video.triggered.connect(self.function_tabWidget.setFocus)
+        self.actionUse_Mapping.triggered.connect(self.function_tabWidget.setFocus)
 
     @staticmethod
     def get_widget_state(w: TabWidget):

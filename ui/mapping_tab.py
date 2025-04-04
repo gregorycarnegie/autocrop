@@ -223,13 +223,9 @@ class UiMappingTabWidget(UiBatchCropWidget):
         data = prc.open_table(Path(f_name))
         self.process_data(data)
 
-    def process_data(self, data: Any) -> None:
+    def process_data(self, data: pl.DataFrame) -> None:
         """Process the loaded data"""
         try:
-            # Ensure data is a polars DataFrame
-            if not isinstance(data, pl.DataFrame):
-                return
-
             self.data_frame = data
             self.model = DataFrameModel(self.data_frame)
             self.tableView.setModel(self.model)
