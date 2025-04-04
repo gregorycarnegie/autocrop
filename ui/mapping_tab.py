@@ -136,11 +136,9 @@ class UiMappingTabWidget(UiBatchCropWidget):
     def connect_signals(self) -> None:
         """Connect widget signals to handlers"""
         # Button connections
-        self.inputButton.clicked.connect(lambda: self.open_path(self.inputLineEdit))
+        super().connect_signals()
         self.tableButton.clicked.connect(self.open_table)
         self.cropButton.clicked.connect(self.mapping_process)
-        self.cancelButton.clicked.connect(self.crop_worker.terminate)
-        self.cancelButton.clicked.connect(lambda: self.cancel_button_operation(self.cancelButton, self.cropButton))
 
         # Combobox synchronization
         self.comboBox_1.currentTextChanged.connect(lambda text: self.comboBox_3.setCurrentText(text))
@@ -182,9 +180,6 @@ class UiMappingTabWidget(UiBatchCropWidget):
             self.controlWidget.leftDial,
             self.controlWidget.rightDial
         )
-
-        # Connect crop worker signals
-        self.connect_crop_worker()
 
     def retranslateUi(self) -> None:
         """Update UI text elements"""

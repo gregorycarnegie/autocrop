@@ -102,6 +102,9 @@ class UiCropWidget(QtWidgets.QWidget):
         # Initialize the checkbox connections
         self._setup_checkbox_relationships()
 
+    def connect_signals(self) -> None:
+        self.inputButton.clicked.connect(lambda: self.open_path(self.inputLineEdit))
+
     def _setup_checkbox_relationships(self) -> None:
         """Set up the standard checkbox exclusivity relationships"""
         # Multi-face is exclusive with exposure and tilt

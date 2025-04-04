@@ -43,6 +43,14 @@ class UiBatchCropWidget(UiCropWidget):
         self.cropButton = None
         self.cancelButton = None
 
+    def connect_signals(self) -> None:
+        """Connect widget signals to handlers"""
+        # Button connections
+        super().connect_signals()
+        self.cancelButton.clicked.connect(self.crop_worker.terminate)
+        self.cancelButton.clicked.connect(lambda: self.cancel_button_operation(self.cancelButton, self.cropButton))
+        self.connect_crop_worker()
+
     def create_progress_bar(self, name: str, parent: Optional[QtWidgets.QWidget] = None) -> QtWidgets.QProgressBar:
         """Create a progress bar with consistent styling"""
         progress_bar = QtWidgets.QProgressBar() if parent is None else QtWidgets.QProgressBar(parent)
