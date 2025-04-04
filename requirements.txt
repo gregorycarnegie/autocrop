@@ -1,10 +1,9 @@
 cachetools>=5.5.2
-dlib>=19.24.6
 fastexcel>=0.13.0
 ffmpeg-python>=0.2.0
 maturin>=1.8.3
 numpy>=2.2.4
-opencv-python>=4.11.0.86
+opencv-contrib-python>=4.11.0.86
 polars>=1.26.0
 psutil>=7.0.0
 PyQt6>=6.8.1

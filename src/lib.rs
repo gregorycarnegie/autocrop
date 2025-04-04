@@ -1,6 +1,7 @@
-use ndarray::{Array1, Array2};
-use numpy::IntoPyArray;
-use pyo3::prelude::*;
+use ndarray::{Array1, Axis};
+use numpy::{IntoPyArray, PyReadonlyArray2};
+use pyo3::{prelude::*, types::PyTuple};
+use std::sync::atomic::{AtomicBool, Ordering};
 
 // For x86/x86_64 specific SIMD intrinsics
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
@@ -21,19 +22,35 @@ struct Rectangle {
 /// Alias for the four integer coordinates of a bounding box.
 type BoxCoordinates = (i32, i32, i32, i32);
 
-/// Helper function to check if AVX2 is supported
+/// Helper function to check if AVX2 is supported with result caching
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[inline]
 fn is_avx2_supported() -> bool {
-    #[cfg(target_arch = "x86")]
-    use std::arch::x86::__cpuid;
-    #[cfg(target_arch = "x86_64")]
-    use std::arch::x86_64::__cpuid;
+    static AVX2_SUPPORTED: AtomicBool = AtomicBool::new(false);
+    static CHECKED: AtomicBool = AtomicBool::new(false);
+    
+    if !CHECKED.load(Ordering::Relaxed) {
+        #[cfg(target_arch = "x86")]
+        use std::arch::x86::__cpuid;
+        #[cfg(target_arch = "x86_64")]
+        use std::arch::x86_64::__cpuid;
 
-    unsafe {
-        let info = __cpuid(7);
-        ((info.ebx >> 5) & 1) != 0
+        let supported = unsafe {
+            let info = __cpuid(7);
+            ((info.ebx >> 5) & 1) != 0
+        };
+        
+        AVX2_SUPPORTED.store(supported, Ordering::Relaxed);
+        CHECKED.store(true, Ordering::Relaxed);
     }
+    
+    AVX2_SUPPORTED.load(Ordering::Relaxed)
+}
+
+#[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
+#[inline]
+fn is_avx2_supported() -> bool {
+    false
 }
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
@@ -264,176 +281,74 @@ fn calculate_dimensions(height: i32, width: i32, target_height: i32) -> (i32, f6
     (new_width, scaling_factor)
 }
 
-/// Computes the mean of a 2D array along axis 0, returning a 1D array.
-fn mean_axis0(array: &Array2<f64>) -> Array1<f64> {
-    if array.is_empty() {
-        return Array1::<f64>::zeros(0);
+// Helper function calculate_mean_center (remains the same) ---
+fn calculate_mean_center(arr: &PyReadonlyArray2<f64>) -> PyResult<Array1<f64>> {
+    let arr_view = arr.as_array(); // Get ndarray view without copying
+    if arr_view.shape()[0] == 0 {
+        // Raise Python ValueError if input array is empty
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "Input landmark array cannot be empty",
+        ));
     }
-    
-    let rows = array.shape()[0];
-    let cols = array.shape()[1];
-    
-    if rows == 0 {
-        return Array1::<f64>::zeros(cols);
-    }
-    
-    let mut result = Array1::<f64>::zeros(cols);
-    
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    let use_avx = is_avx2_supported();
-    #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
-    let use_avx = false;
-    
-    if use_avx && rows >= 4 {
-        #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-        unsafe {
-            const LANE_WIDTH: usize = 4;
-            
-            for col in 0..cols {
-                let mut sum = 0.0;
-                let mut i = 0;
-                
-                while i + LANE_WIDTH <= rows {
-                    let values = _mm256_set_pd(
-                        array[[i + 3, col]],
-                        array[[i + 2, col]],
-                        array[[i + 1, col]],
-                        array[[i, col]],
-                    );
-                    
-                    let mut partial_sum = [0.0; LANE_WIDTH];
-                    _mm256_storeu_pd(partial_sum.as_mut_ptr(), values);
-                    
-                    for &val in &partial_sum {
-                        sum += val;
-                    }
-                    
-                    i += LANE_WIDTH;
-                }
-                
-                for j in i..rows {
-                    sum += array[[j, col]];
-                }
-                
-                result[col] = sum / rows as f64;
-            }
-        }
-    } else {
-        for col in 0..cols {
-            let mut sum = 0.0;
-            for row in 0..rows {
-                sum += array[[row, col]];
-            }
-            result[col] = sum / rows as f64;
-        }
-    }
-    
-    result
+    // Calculate mean along axis 0 (columns). Returns Option<Array1<f64>>
+    arr_view.mean_axis(Axis(0))
+        // Convert Option to Result<_, PyErr>
+        .ok_or_else(|| pyo3::exceptions::PyRuntimeError::new_err(
+            "Failed to calculate mean axis, check array validity"
+        ))
 }
 
-/// Concatenates two 2D arrays vertically.
-fn concat_rows(array1: &Array2<f64>, array2: &Array2<f64>) -> Array2<f64> {
-    let rows1 = array1.shape()[0];
-    let rows2 = array2.shape()[0];
-    let cols = array1.shape()[1];
-    
-    let mut result = Array2::<f64>::zeros((rows1 + rows2, cols));
-    
-    result.slice_mut(ndarray::s![0..rows1, ..]).assign(array1);
-    result.slice_mut(ndarray::s![rows1.., ..]).assign(array2);
-    
-    result
-}
 
-#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-/// Helper function to load landmark coordinates using SIMD into a preallocated Array2.
-/// This reduces duplication in the get_rotation_matrix function.
-unsafe fn load_landmarks_simd(landmarks_x: &[f64], landmarks_y: &[f64], arr: &mut Array2<f64>) {
-    const LANE_WIDTH: usize = 4;
-    let n = landmarks_x.len();
-    let mut i = 0;
-    while i + LANE_WIDTH <= n {
-        let x_vals = _mm256_loadu_pd(&landmarks_x[i]);
-        let y_vals = _mm256_loadu_pd(&landmarks_y[i]);
-        let mut x_arr = [0.0; LANE_WIDTH];
-        let mut y_arr = [0.0; LANE_WIDTH];
-        _mm256_storeu_pd(x_arr.as_mut_ptr(), x_vals);
-        _mm256_storeu_pd(y_arr.as_mut_ptr(), y_vals);
-        for j in 0..LANE_WIDTH {
-            arr[[i + j, 0]] = x_arr[j];
-            arr[[i + j, 1]] = y_arr[j];
-        }
-        i += LANE_WIDTH;
-    }
-    for j in i..n {
-        arr[[j, 0]] = landmarks_x[j];
-        arr[[j, 1]] = landmarks_y[j];
-    }
-}
-
-/// Computes the rotation matrix parameters for face alignment.
 #[pyfunction]
+// Change return signature back to PyObject for the first element
 fn get_rotation_matrix(
     py: Python<'_>,
-    left_eye_landmarks_x: Vec<f64>,
-    left_eye_landmarks_y: Vec<f64>,
-    right_eye_landmarks_x: Vec<f64>,
-    right_eye_landmarks_y: Vec<f64>,
-    scale_factor: f64
-) -> (PyObject, f64) {
-    let num_left_landmarks = left_eye_landmarks_x.len();
-    let num_right_landmarks = right_eye_landmarks_x.len();
-    
-    let mut left_arr = Array2::<f64>::zeros((num_left_landmarks, 2));
-    let mut right_arr = Array2::<f64>::zeros((num_right_landmarks, 2));
-    
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    let use_avx = is_avx2_supported() && num_left_landmarks >= 4 && num_right_landmarks >= 4;
-    #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
-    let use_avx = false;
-    
-    if use_avx {
-        #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-        unsafe {
-            load_landmarks_simd(&left_eye_landmarks_x, &left_eye_landmarks_y, &mut left_arr);
-            load_landmarks_simd(&right_eye_landmarks_x, &right_eye_landmarks_y, &mut right_arr);
-        }
-    } else {
-        for i in 0..num_left_landmarks {
-            left_arr[[i, 0]] = left_eye_landmarks_x[i];
-            left_arr[[i, 1]] = left_eye_landmarks_y[i];
-        }
-        
-        for i in 0..num_right_landmarks {
-            right_arr[[i, 0]] = right_eye_landmarks_x[i];
-            right_arr[[i, 1]] = right_eye_landmarks_y[i];
-        }
+    left_eye_landmarks: PyReadonlyArray2<f64>,
+    right_eye_landmarks: PyReadonlyArray2<f64>,
+    scale_factor: f64,
+) -> PyResult<(PyObject, f64)> { // Return PyObject and f64
+
+    // --- Input validation ---
+    let left_view = left_eye_landmarks.as_array();
+    let right_view = right_eye_landmarks.as_array();
+    if left_view.shape().get(1) != Some(&2) || right_view.shape().get(1) != Some(&2) {
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "Landmark arrays must have shape (N, 2)",
+        ));
     }
-    
-    let left_eye_center = mean_axis0(&left_arr);
-    let right_eye_center = mean_axis0(&right_arr);
-    
+    // calculate_mean_center handles N=0 check below
+
+    // --- Calculations (Corrected logic) ---
+    let left_eye_center = calculate_mean_center(&left_eye_landmarks)?;
+    let right_eye_center = calculate_mean_center(&right_eye_landmarks)?;
+
     let left_eye_x = left_eye_center[0];
     let left_eye_y = left_eye_center[1];
     let right_eye_x = right_eye_center[0];
     let right_eye_y = right_eye_center[1];
-    
-    let dy = left_eye_y - right_eye_y;
-    let dx = left_eye_x - right_eye_x;
-    let angle = dy.atan2(dx) * 180.0 / std::f64::consts::PI;
-    
-    let both_eyes = concat_rows(&left_arr, &right_arr);
-    let face_center = mean_axis0(&both_eyes);
-    
-    let face_center_x = if scale_factor > 1.0 { face_center[0] * scale_factor } else { face_center[0] };
-    let face_center_y = if scale_factor > 1.0 { face_center[1] * scale_factor } else { face_center[1] };
-    
-    let center = Array1::<i32>::from_vec(vec![
-        face_center_x.round() as i32,
-        face_center_y.round() as i32,
-    ]);
-    
-    (center.into_pyarray(py).into(), angle)
+
+    // Angle calculation
+    let dy = right_eye_y - left_eye_y;
+    let dx = right_eye_x - left_eye_x;
+    let angle = dy.atan2(dx).to_degrees();
+
+    // Center calculation (midpoint of eye centers)
+    let center_x_unscaled = (left_eye_x + right_eye_x) / 2.0;
+    let center_y_unscaled = (left_eye_y + right_eye_y) / 2.0;
+
+    // Apply scaling
+    let center_x = if scale_factor > 1.0 { center_x_unscaled * scale_factor } else { center_x_unscaled };
+    let center_y = if scale_factor > 1.0 { center_y_unscaled * scale_factor } else { center_y_unscaled };
+
+    // Create ndarray for center point
+    let center_point = PyTuple::new(py, [
+        center_x.round() as i32,
+        center_y.round() as i32,
+    ])?;
+    Ok((
+        center_point.into(), // Chain .into_pyarray() and .into()
+        angle
+    ))
 }
 
 /// Computes the desired crop width/height based on detected face size and desired output.

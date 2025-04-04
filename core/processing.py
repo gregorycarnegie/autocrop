@@ -124,18 +124,16 @@ def format_image(image: cvt.MatLike) -> tuple[cvt.MatLike, float]:
     image_array = cv2.resize(image, (output_width, output_height), interpolation=cv2.INTER_AREA)
     return cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY) if len(image_array.shape) >= 3 else image_array, scaling_factor
 
-
 def align_head(image: cvt.MatLike,
                face_detection_tools: FaceToolPair,
                job: Job) -> cvt.MatLike:
     """
-    Performs face alignment by detecting face, computing tilt, and rotating the image.
+    Performs face alignment using OpenCV's Facemark model.
     
     Args:
-        job: Job
+        job: Job parameters
         image: Input image
-        face_detection_tools: Tuple of (detector, landmark predictor)
-        tilt: Whether to perform tilt correction
+        face_detection_tools: Tuple of (detector, facemark)
         
     Returns:
         Aligned image or original if no face detected
@@ -143,7 +141,7 @@ def align_head(image: cvt.MatLike,
     if not job.auto_tilt_job:
         return image
 
-    detector, predictor = face_detection_tools
+    detector, facemark = face_detection_tools
 
     # Optimize for smaller images for faster processing
     height, width = image.shape[:2]
@@ -163,32 +161,38 @@ def align_head(image: cvt.MatLike,
     # Find face with the highest confidence
     face = max(faces, key=lambda f: f.confidence)
 
-    # Get facial landmarks
-    landmarks = predictor(small_img, face)
-
+    # Convert the detected face to OpenCV rect format required by Facemark
+    faces_rect = np.array([[
+        face.left, 
+        face.top, 
+        face.width, 
+        face.height
+    ]])
+    
+    # Detect landmarks
+    success, landmarks = facemark.fit(small_img, faces_rect)
+    
+    if not success or len(landmarks) == 0:
+        return image  # Return original image if landmark detection fails
+    
     # Extract eye landmarks
-    left_eye_landmarks = np.array([(landmarks.part(i).x, landmarks.part(i).y) 
-                                 for i in range(L_EYE_START, L_EYE_END)])
-    right_eye_landmarks = np.array([(landmarks.part(i).x, landmarks.part(i).y) 
-                                  for i in range(R_EYE_START, R_EYE_END)])
-
-    left_x = left_eye_landmarks[:, 0]  # First column (x coordinates)
-    left_y = left_eye_landmarks[:, 1]  # Second column (y coordinates)
-    right_x = right_eye_landmarks[:, 0]
-    right_y = right_eye_landmarks[:, 1]
-
-    center, angle = rs.get_rotation_matrix(left_x, left_y, right_x, right_y, scale_factor)
-    center = int(center[0]), int(center[1])
+    landmarks = landmarks[0][0]  # First face, first set of landmarks
+    
+    # Get left and right eye landmarks (indices 36-41 for left eye, 42-47 for right eye in 68-point model)
+    left_eye = np.asanyarray(landmarks[L_EYE_START:L_EYE_END], dtype=np.float64)
+    right_eye = np.asanyarray(landmarks[R_EYE_START:R_EYE_END], dtype=np.float64)
+    
+    center, angle = rs.get_rotation_matrix(left_eye, right_eye, scale_factor)
     rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
-
+    
+    # Apply rotation to align the face
     return cv2.warpAffine(
         image,
         rotation_matrix,
         (width, height),
         flags=cv2.INTER_CUBIC,
-        borderMode=cv2.BORDER_REPLICATE,
+        borderMode=cv2.BORDER_REPLICATE
     )
-
 
 def colour_expose_align(image: cvt.MatLike, face_detection_tools: FaceToolPair, job: Job) -> cvt.MatLike:
     # Convert BGR -> RGB for consistency
@@ -327,14 +331,11 @@ def multi_box_positions(image: cvt.MatLike, job: Job, face_detection_tools: Face
     # Generate bounding boxes
     boxes = []
     for face in faces:
-        x0, y0 = face.left, face.top
-        width, height = face.right - face.left, face.bottom - face.top
-
         if box := rs.crop_positions(
-            x0,
-            y0,
-            width,
-            height,
+            face.left,
+            face.top,
+            face.width,
+            face.height,
             job.face_percent,
             job.width,
             job.height,
@@ -387,13 +388,13 @@ def box_detect(image: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair)
         if scale_factor > 1:
             x0 = face.left * scale_factor
             y0 = face.top * scale_factor
-            width = (face.right - face.left) * scale_factor
-            height = (face.bottom - face.top) * scale_factor
+            width = face.width * scale_factor
+            height = face.height * scale_factor
         else:
             x0 = face.left
             y0 = face.top
-            width = face.right - face.left
-            height = face.bottom - face.top
+            width = face.width
+            height = face.height
         
         # Use the crop_positions function from Rust
         return rs.crop_positions(

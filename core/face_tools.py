@@ -1,11 +1,7 @@
 import collections.abc as c
-import threading
 from pathlib import Path
 
 import cv2
-import cv2.typing as cvt
-import dlib
-import numpy as np
 import psutil
 
 from .resource_path import ResourcePath
@@ -14,96 +10,35 @@ from .resource_path import ResourcePath
 THREAD_NUMBER = min(psutil.cpu_count(), psutil.virtual_memory().total // (2 * 1024 ** 3), 8)
 
 # Paths to model files
-LANDMARKS = ResourcePath(Path('resources') / 'models' / 'shape_predictor_68_face_landmarks_GTX.dat').meipass_path # Non-commercial use only
-YOUTUBE_LANDMARKS = ResourcePath(Path('resources') / 'models' / 'youtube_faces_68_points.dat').meipass_path # UNLICENSE LICENSE
-# PROTO_TXT = ResourcePath(Path('resources') / 'weights' / 'deploy.prototxt.txt').meipass_path # CC BY 4.0
-# CAFFE_MODEL = ResourcePath(Path('resources') / 'models' / 'res10_300x300_ssd_iter_140000.caffemodel').meipass_path # UNKOWN LICENSE
 YUNET_MODEL = ResourcePath(Path('resources') / 'models' / 'face_detection_yunet_2023mar.onnx').meipass_path # MIT license
-# Thread-local storage for the face detection models
-_thread_local = threading.local()
+LBFMODEL = ResourcePath(Path('resources') / 'models' / 'lbfmodel.yaml').meipass_path # MIT license
 
 # Eye landmark indices
-# L_EYE_START, L_EYE_END = 42, 48 # iBug 300W
-# R_EYE_START, R_EYE_END = 36, 42 # iBug 300W
-L_EYE_START, L_EYE_END = 42, 48 # Youtube Faces
-R_EYE_START, R_EYE_END = 36, 42 # Youtube Faces
+L_EYE_START, L_EYE_END = 36, 42
+R_EYE_START, R_EYE_END = 42, 48
 
 
-class Rectangle(dlib.rectangle):
+class Rectangle:
     def __init__(self, left: int, top: int, right: int, bottom: int, confidence: float):
-        super().__init__(left, top, right, bottom)
+        # super().__init__(left, top, right, bottom)
         self.left = left
         self.top = top
         self.right = right
         self.bottom = bottom
         self.confidence = confidence
     
+    @property
+    def width(self):
+        return self.right - self.left
+    
+    @property
+    def height(self):
+        return self.bottom - self.top
+    
+    @property
     def area(self):
         return (self.right - self.left) * (self.bottom - self.top)
     
-
-# class FaceDetector:
-#     """
-#     Thread-safe face detector using OpenCV's DNN module with a pre-trained SSD model.
-#     Designed to be a drop-in replacement for dlib's face detector.
-#     """
-    
-#     def __init__(self):
-#         """Initialize the DNN face detector."""
-#         self._net = None
-    
-#     def _get_network(self) -> cv2.dnn.Net:
-#         """Get or create a thread-local network instance."""
-#         if not hasattr(_thread_local, 'net'):
-#             _thread_local.net = cv2.dnn.readNetFromCaffe(PROTO_TXT, CAFFE_MODEL)
-#         return _thread_local.net
-    
-#     def __call__(self, image: cvt.MatLike, sensitivity: int) -> list[Rectangle]:
-#         """
-#         Detect faces in the image.
-        
-#         Args:
-#             image: Input image (BGR format from OpenCV or grayscale)
-#             upsample_num_times: Ignored parameter for dlib compatibility
-            
-#         Returns:
-#             List of rectangle objects mimicking dlib's detection results
-#         """
-#         # Make sure we have a color image
-#         if len(image.shape) == 2:
-#             # Convert grayscale to BGR
-#             image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
-        
-#         # Get image dimensions
-#         (h, w) = image.shape[:2]
-        
-#         # Create a blob from the image
-#         blob = cv2.dnn.blobFromImage(image, 1.0, (300, 300), (104.0, 177.0, 123.0))
-        
-#         # Get network and perform inference
-#         net = self._get_network()
-#         net.setInput(blob)
-#         detections = net.forward()
-        
-#         # Process the detections
-#         faces = []
-#         for i in range(detections.shape[2]):
-#             confidence = detections[0, 0, i, 2]
-            
-#             # Filter by confidence
-#             if confidence > sensitivity / 100:
-#                 # Compute the coordinates
-#                 box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
-#                 (startX, startY, endX, endY) = box.astype("int")
-                
-#                 # Ensure coordinates are within image boundaries
-#                 startX, startY = max(0, startX), max(0, startY)
-#                 endX, endY = min(w, endX), min(h, endY)
-                
-#                 # Create a rectangle object that mimics dlib's rectangle
-#                 faces.append(Rectangle(startX, startY, endX, endY, confidence))
-        
-#         return faces
 
 class YuNetFaceDetector:
     """Face detector using YuNet with OpenCV's DNN module."""
@@ -119,7 +54,7 @@ class YuNetFaceDetector:
             5000         # Top K
         )
     
-    def __call__(self, image, sensitivity: int) -> list:
+    def __call__(self, image, sensitivity: int) -> list[Rectangle]:
         """
         Detect faces in the image.
         
@@ -157,7 +92,7 @@ class YuNetFaceDetector:
         return result
 
 
-FaceToolPair = tuple[YuNetFaceDetector, dlib.shape_predictor]
+FaceToolPair = tuple[YuNetFaceDetector, cv2.face.Facemark]
 
 
 def create_tool_pair() -> FaceToolPair:
@@ -170,11 +105,12 @@ def create_tool_pair() -> FaceToolPair:
     # Use our optimized face detector
     detector = YuNetFaceDetector()
     
-    # Still use dlib's shape predictor for landmarks
-    # Could be replaced with a custom implementation later
-    predictor = dlib.shape_predictor(LANDMARKS)
+    # Use OpenCV's FacemarkLBF instead of dlib's shape predictor
+    facemark = cv2.face.createFacemarkLBF()
+    facemark.loadModel(LBFMODEL)
     
-    return detector, predictor
+    # Return the detector and facemark model as a pair
+    return detector, facemark
 
 
 def generate_face_detection_tools() -> c.Iterator[FaceToolPair]:
