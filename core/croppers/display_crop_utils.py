@@ -41,10 +41,11 @@ def matlike_to_qimage(image: cvt.MatLike) -> QImage:
 
 def crop_to_qimage(input_image: cvt.MatLike,
                    bounding_box: Box,
-                   gamma_value: int) -> QImage:
+                   job: Job) -> QImage:
     try:
         cropped_image = prc.numpy_array_crop(input_image, bounding_box)
-        adjusted_image = prc.adjust_gamma(cropped_image, gamma_value)
+        cropped_image = prc.correct_exposure(cropped_image, job.fix_exposure_job)
+        adjusted_image = prc.adjust_gamma(cropped_image, job.gamma)
         return matlike_to_qimage(adjusted_image)
     except cv2.error:
         return QImage()
@@ -111,4 +112,4 @@ def handle_face_detection(pic_array: cvt.MatLike, job: Job, face_detection_tools
         return matlike_to_qimage(final_image)
     else:
         bounding_box = prc.box_detect(pic_array, job, face_detection_tools)
-        return crop_to_qimage(pic_array, bounding_box, job.gamma) if bounding_box else None
+        return crop_to_qimage(pic_array, bounding_box, job) if bounding_box else None

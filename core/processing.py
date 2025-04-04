@@ -197,7 +197,6 @@ def align_head(image: cvt.MatLike,
 def colour_expose_align(image: cvt.MatLike, face_detection_tools: FaceToolPair, job: Job) -> cvt.MatLike:
     # Convert BGR -> RGB for consistency
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) if len(image.shape) >= 3 else image
-    image = correct_exposure(image, job.fix_exposure_job)
     return align_head(image, face_detection_tools, job)
 
 
@@ -222,10 +221,6 @@ def open_pic(file: Path,
                 try:
                     # Post-processing can also raise exceptions
                     img = raw.postprocess(use_camera_wb=True)
-
-                    # Process the image further
-                    if exposure := job.fix_exposure_job:
-                        img = correct_exposure(img, exposure)
 
                     return align_head(img, face_detection_tools, job)
 
@@ -571,6 +566,7 @@ def process_image(image: cvt.MatLike,
     Crops an image according to 'crop_position', converts color, and resizes to `job.size`.
     """
     cropped_image = numpy_array_crop(image, crop_position)
+    cropped_image = correct_exposure(cropped_image, job.fix_exposure_job)
     result = convert_color_space(cropped_image) if len(cropped_image.shape) >= 3 else cropped_image
     return cv2.resize(result, job.size, interpolation=cv2.INTER_AREA)
 
