@@ -225,6 +225,28 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.menuTools.setTitle(QtCore.QCoreApplication.translate("self", u"Tools", None))
         self.menuInfo.setTitle(QtCore.QCoreApplication.translate("self", u"Info", None))
 
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        """
+        Handle window close event by performing proper cleanup.
+        This is called automatically when the window is closed.
+        """
+        # Clean up all worker thread pools
+        self.cleanup_workers()
+        
+        # Call the parent class implementation
+        super().closeEvent(event)
+    
+    def cleanup_workers(self) -> None:
+        """
+        Clean up all worker threads and resources before application exit.
+        """
+        # Clean up batch workers
+        self.folder_worker.cleanup()
+        self.mapping_worker.cleanup()
+        
+        # Stop any ongoing video playback
+        self.video_tab_widget.player.stop()
+
     @staticmethod
     def get_widget_state(w: TabWidget):
         control = w.controlWidget

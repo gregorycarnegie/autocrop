@@ -1,3 +1,4 @@
+import atexit
 import collections.abc as c
 from concurrent.futures import Future, ThreadPoolExecutor
 from functools import partial
@@ -21,12 +22,15 @@ class BatchCropper(Cropper):
     A class that manages image-cropping tasks using a thread pool.
     """
 
-    def __init__(self, face_detection_tools: c.Iterator[FaceToolPair]):
+    def __init__(self, face_detection_tools: list[FaceToolPair]):
         super().__init__()
         self.executor: Optional[ThreadPoolExecutor] = None
         self.futures: list[Future] = []
         self.executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)
-        self.face_detection_tools = list(face_detection_tools)
+        self.face_detection_tools = face_detection_tools
+
+        # Register an atexit handler to ensure proper cleanup
+        atexit.register(self._cleanup_executor)
 
     def __repr__(self) -> str:
         return (
@@ -36,6 +40,27 @@ class BatchCropper(Cropper):
             f"end_task={self.end_task}, "
             f"show_message_box={self.show_message_box})>"
         )
+
+    def cleanup(self) -> None:
+        """
+        Properly clean up resources before application exit.
+        This method should be called during application shutdown.
+        """
+        if self.executor and not self.executor._shutdown:
+            # Cancel any pending futures
+            for future in self.futures:
+                if not future.done():
+                    future.cancel()
+            
+            # Shutdown the executor with a timeout
+            self.executor.shutdown(wait=True, cancel_futures=True)
+            self.executor = None
+            self.futures = []
+
+    def _cleanup_executor(self):
+        """Ensure the executor is properly shut down at application exit."""
+        if self.executor and not self.executor._shutdown:
+            self.executor.shutdown(wait=True)
 
     def terminate(self) -> None:
         """
@@ -49,8 +74,8 @@ class BatchCropper(Cropper):
             for future in self.futures:
                 if not future.done():
                     future.cancel()
-            self.executor.shutdown(wait=False)
-            self.executor = None
+        # Clear the futures list
+        self.futures = []
 
     def emit_progress(self, amount: int):
         """Initialize progress tracking and emit started signal"""
@@ -92,8 +117,6 @@ class BatchCropper(Cropper):
         Checks if all futures have completed. If they have, shuts down the executor and emits done.
         """
         if not self.end_task and all(future.done() for future in self.futures):
-            if self.executor:
-                self.executor.shutdown(wait=False)  # Non-blocking shutdown
             self.emit_done()
             self.end_task = True
 

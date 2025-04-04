@@ -12,6 +12,7 @@ def main():
     window.adjust_ui(app)
     window.show()
     splash.finish(window)
+    app.aboutToQuit.connect(window.cleanup_workers)
     app.exec()
 
 
