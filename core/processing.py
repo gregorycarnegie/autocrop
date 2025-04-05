@@ -191,7 +191,7 @@ def align_head(image: cvt.MatLike,
         rotation_matrix,
         (width, height),
         flags=cv2.INTER_CUBIC,
-        borderMode=cv2.BORDER_REPLICATE
+        borderMode=cv2.BORDER_CONSTANT
     )
 
 def colour_expose_align(image: cvt.MatLike, face_detection_tools: FaceToolPair, job: Job) -> cvt.MatLike:
