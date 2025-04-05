@@ -27,11 +27,14 @@ class UiMainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
         self.setAcceptDrops(True)
-        face_detection_tools = list(ft.generate_face_detection_tools())
+
+        face_detection_tools = ft.generate_face_detection_tools()
+        self.display_worker = DisplayCropper(face_detection_tools[0])
         self.folder_worker = FolderCropper(face_detection_tools)
-        self.photo_worker = PhotoCropper(face_detection_tools[0])
         self.mapping_worker = MappingCropper(face_detection_tools)
+        self.photo_worker = PhotoCropper(face_detection_tools[0])
         self.video_worker = VideoCropper(face_detection_tools[0])
+
         self.setObjectName(u"MainWindow")
         self.resize(1256, 652)
         icon = QtGui.QIcon()
@@ -106,8 +109,6 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.video_tab.setObjectName(u"video_tab")
         self.verticalLayout_5 = ut.setup_vbox(u"verticalLayout_5", self.video_tab)
         self.video_tab_widget = UiVideoTabWidget(self.video_worker, u"video_tab_widget", self.video_tab)
-
-        self.display_worker = DisplayCropper(next(ft.generate_face_detection_tools()))
 
         # Register state retrieval functions for each widget type
         for func_type, widget in [

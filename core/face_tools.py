@@ -1,4 +1,3 @@
-import collections.abc as c
 from pathlib import Path
 
 import cv2
@@ -113,7 +112,7 @@ def create_tool_pair() -> FaceToolPair:
     return detector, facemark
 
 
-def generate_face_detection_tools() -> c.Iterator[FaceToolPair]:
+def generate_face_detection_tools() -> list[FaceToolPair]:
     """
     Generate a list of face detection and shape prediction tools.
     
@@ -124,4 +123,4 @@ def generate_face_detection_tools() -> c.Iterator[FaceToolPair]:
     Returns:
         Iterator of tool pairs for multi-threading.
     """
-    return (create_tool_pair() for _ in range(THREAD_NUMBER))
+    return [create_tool_pair() for _ in range(THREAD_NUMBER)]
