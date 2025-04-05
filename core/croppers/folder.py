@@ -10,7 +10,7 @@ from .batch import BatchCropper
 
 
 class FolderCropper(BatchCropper):
-    def __init__(self, face_detection_tools: c.Iterator[FaceToolPair]):
+    def __init__(self, face_detection_tools: list[FaceToolPair]):
         super().__init__(face_detection_tools)
 
     def worker(self, *, file_amount: int,

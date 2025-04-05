@@ -1,4 +1,3 @@
-import collections.abc as c
 from pathlib import Path
 from typing import Optional, Any
 
@@ -13,7 +12,7 @@ from .batch import BatchCropper
 
 
 class MappingCropper(BatchCropper):
-    def __init__(self, face_detection_tools: c.Iterator[FaceToolPair]):
+    def __init__(self, face_detection_tools: list[FaceToolPair]):
         super().__init__(face_detection_tools)
 
     def worker(self, *, file_amount: int,

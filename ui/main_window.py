@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
 from pathlib import Path
 from typing import Union, Optional
@@ -18,6 +19,7 @@ from .enums import GuiIcon
 from .folder_tab import UiFolderTabWidget
 from .mapping_tab import UiMappingTabWidget
 from .photo_tab import UiPhotoTabWidget
+from .splash_screen import UiClickableSplashScreen
 from .video_tab import UiVideoTabWidget
 
 type TabWidget = Union[UiPhotoTabWidget, UiFolderTabWidget, UiMappingTabWidget, UiVideoTabWidget]
@@ -28,12 +30,32 @@ class UiMainWindow(QtWidgets.QMainWindow):
         super().__init__()
         self.setAcceptDrops(True)
 
-        face_detection_tools = ft.generate_face_detection_tools()
+        # Start with a splash screen
+        splash = UiClickableSplashScreen()
+        splash.show_message("Loading face detection models...")
+        QtWidgets.QApplication.processEvents()
+
+        # Use ThreadPoolExecutor instead of ProcessPoolExecutor
+        face_detection_tools = []
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            # Submit threads to create tool pairs
+            future_tools = [executor.submit(ft.create_tool_pair) for _ in range(ft.THREAD_NUMBER)]
+
+            total = len(future_tools)
+            for completed, future in enumerate(as_completed(future_tools), start=1):
+                face_detection_tools.append(future.result())
+                splash.show_message(f"Loading face detection models... {completed}/{total}")
+                QtWidgets.QApplication.processEvents()
+            splash.finish(self)
+
+        # face_detection_tools = ft.generate_face_detection_tools()
         self.display_worker = DisplayCropper(face_detection_tools[0])
         self.folder_worker = FolderCropper(face_detection_tools)
         self.mapping_worker = MappingCropper(face_detection_tools)
         self.photo_worker = PhotoCropper(face_detection_tools[0])
         self.video_worker = VideoCropper(face_detection_tools[0])
+        
+        
 
         self.setObjectName(u"MainWindow")
         self.resize(1256, 652)
@@ -120,10 +142,10 @@ class UiMainWindow(QtWidgets.QMainWindow):
             self.display_worker.register_widget_state(
                 func_type, lambda w=widget: self.get_widget_state(w), lambda w=widget: self.get_path(w)
             )
-            
+
             # Connect signals
             self.connect_widget_signals(widget, partial(self.display_worker.crop, func_type))
-            
+
             # Connect the image updated event to the widget's setImage method
             self.display_worker.events.image_updated.connect(
                 lambda _ft, img, w=widget, ft_expected=func_type:
