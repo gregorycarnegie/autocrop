@@ -179,8 +179,8 @@ def align_head(image: cvt.MatLike,
     landmarks = landmarks[0][0]  # First face, first set of landmarks
     
     # Get left and right eye landmarks (indices 36-41 for left eye, 42-47 for right eye in 68-point model)
-    left_eye = np.asanyarray(landmarks[L_EYE_START:L_EYE_END], dtype=np.float64)
-    right_eye = np.asanyarray(landmarks[R_EYE_START:R_EYE_END], dtype=np.float64)
+    left_eye = np.ascontiguousarray(landmarks[L_EYE_START:L_EYE_END], dtype=np.float64)
+    right_eye = np.ascontiguousarray(landmarks[R_EYE_START:R_EYE_END], dtype=np.float64)
     
     center, angle = rs.get_rotation_matrix(left_eye, right_eye, scale_factor)
     rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
@@ -193,6 +193,7 @@ def align_head(image: cvt.MatLike,
         flags=cv2.INTER_CUBIC,
         borderMode=cv2.BORDER_CONSTANT
     )
+
 
 def colour_expose_align(image: cvt.MatLike, face_detection_tools: FaceToolPair, job: Job) -> cvt.MatLike:
     # Convert BGR -> RGB for consistency
