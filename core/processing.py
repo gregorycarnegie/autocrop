@@ -199,7 +199,6 @@ def colour_expose_align(image: cvt.MatLike, face_detection_tools: FaceToolPair, 
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) if len(image.shape) >= 3 else image
     return align_head(image, face_detection_tools, job)
 
-
 def open_pic(file: Path,
              face_detection_tools: FaceToolPair,
              job: Job) -> Optional[cvt.MatLike]:
@@ -208,7 +207,7 @@ def open_pic(file: Path,
     """
 
     img_path = file.as_posix()
-    if registry.is_valid_type(file, "photo"):
+    if registry.is_valid_type(file, "photo") or registry.is_valid_type(file, "tiff"):
         img = ImageLoader.loader('standard')(img_path)
         if img is None:
             return None
@@ -245,10 +244,12 @@ def open_table(file: Path) -> pl.DataFrame:
     """
     Opens a CSV or Excel file using Polars.
     """
-    try:
-        return pl.read_csv(file) if file.suffix.lower() == '.csv' else pl.read_excel(file)
-    except IsADirectoryError:
-        return pl.DataFrame()
+    if registry.is_valid_type(file, "table"):
+        try:
+            return pl.read_csv(file) if file.suffix.lower() == '.csv' else pl.read_excel(file)
+        except IsADirectoryError:
+            return pl.DataFrame()
+    return pl.DataFrame()
 
 
 def _draw_box_with_text(image: cvt.MatLike,
@@ -261,7 +262,6 @@ def _draw_box_with_text(image: cvt.MatLike,
     """
     Draws a bounding box and confidence text onto an image.
     """
-
     colours = (255, 0, 0), (0, 255, 0), (0, 0, 255)
     colour = random.choice(colours)
     font_scale, line_width, text_offset = .45, 2, 10

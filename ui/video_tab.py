@@ -595,7 +595,11 @@ class UiVideoTabWidget(UiCropWidget):
             self.default_directory,
             registry.get_filter_string("video")
         )
-        self.inputLineEdit.setText(file_name)
+
+        # Validate the file exists and is accessible
+        if file_name:= ut.sanitize_path(file_name):
+            self.inputLineEdit.setText(file_name)
+        
         if self.inputLineEdit.state is LineEditState.INVALID_INPUT:
             return
         self.player.setSource(QtCore.QUrl.fromLocalFile(file_name))

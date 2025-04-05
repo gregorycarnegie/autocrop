@@ -81,9 +81,6 @@ class PathLineEdit(CustomLineEdit):
         
         match self.path_type:
             case PathType.IMAGE:
-                # return is_file and (registry.is_valid_type(path, "photo") or 
-                #                     registry.is_valid_type(path, "raw") or
-                #                     registry.is_valid_type(path, "animation"))
                 return is_file and (registry.is_valid_type(path, "photo") or 
                                     registry.is_valid_type(path, "raw"))
             case PathType.TABLE:

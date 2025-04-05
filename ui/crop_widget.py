@@ -184,7 +184,9 @@ class UiCropWidget(QtWidgets.QWidget):
             'Select Directory', 
             registry.get_default_dir("photo").as_posix()
         )
-        line_edit.setText(f_name)
+        # Validate the file exists and is accessible
+        if f_name:= ut.sanitize_path(f_name):
+            line_edit.setText(f_name)
 
     def disable_buttons(self) -> None:
         """

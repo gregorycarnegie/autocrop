@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
 import polars as pl
 from PyQt6 import QtCore, QtWidgets
@@ -214,7 +214,10 @@ class UiMappingTabWidget(UiBatchCropWidget):
             registry.get_default_dir("photo").as_posix(),
             registry.get_filter_string("table")
         )
-        self.tableLineEdit.setText(f_name)
+
+        # Validate the file exists and is accessible
+        if f_name:= ut.sanitize_path(f_name):
+            self.tableLineEdit.setText(f_name)
 
         # Load the table if valid
         if self.tableLineEdit.state is LineEditState.INVALID_INPUT:

@@ -132,7 +132,9 @@ class UiPhotoTabWidget(UiCropWidget):
                 registry.get_default_dir("photo").as_posix(), 
                 registry.get_filter_string("photo")
             )
-            line_edit.setText(f_name)
+            # Validate the file exists and is accessible
+            if f_name:= ut.sanitize_path(f_name):
+                line_edit.setText(f_name)
         elif line_edit is self.destinationLineEdit:
             super().open_path(line_edit)
 

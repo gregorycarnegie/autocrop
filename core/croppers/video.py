@@ -182,6 +182,16 @@ class VideoCropper(Cropper):
             prc.frame_save(cropped_image, file_enum, destination, job)
 
     def extract_frame_ffmpeg(self, video_path: str, frame_number: int, width: int, height: int, fps: float) -> Optional[npt.NDArray]:
+        # Validate input parameters
+        if not Path(video_path).is_file():
+            raise ValueError(f"Invalid video path: {video_path}")
+            
+        if frame_number < 0:
+            raise ValueError(f"Invalid frame number: {frame_number}")
+            
+        if width <= 0 or height <= 0:
+            raise ValueError(f"Invalid dimensions: {width}x{height}")
+        
         try:
             timestamp = frame_to_timestamp(frame_number, fps)
             return ffmpeg_input(video_path, timestamp, width, height)

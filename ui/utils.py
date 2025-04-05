@@ -1,5 +1,5 @@
 from functools import cache, partial
-from os import startfile
+import os
 from pathlib import Path
 from typing import Optional, Union
 
@@ -11,6 +11,25 @@ from .dialog import UiDialog
 from .enums import GuiIcon
 from .image_widget import ImageWidget
 
+
+def sanitize_path(path_str: str) -> Optional[str]:
+    """Sanitize path input to prevent path traversal attacks."""
+    # Remove control characters and normalize
+    path_str = ''.join(c for c in path_str if c.isprintable())
+    
+    # Normalize path separators
+    path_str = path_str.replace('\\', '/').replace('//', '/')
+    
+    # Remove any attempts at directory traversal
+    while '..' in path_str:
+        path_str = path_str.replace('..', '')
+    
+    path = Path(path_str)
+    if not path.exists() or not os.access(path, os.R_OK):
+        show_error_box("Selected path is not accessible")
+        return
+
+    return path_str
 
 def setup_combobox(combobox: QtWidgets.QComboBox,
                    layout: Union[QtWidgets.QHBoxLayout, QtWidgets.QHBoxLayout],
@@ -190,7 +209,7 @@ def show_message_box(destination: Path) -> None:
     msg_box = create_question_box()
     msg_box.setText('Open destination folder?')
     if msg_box.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
-        startfile(destination)
+        os.startfile(destination)
 
 def show_error_box(*messages: str) -> None:
     """Shows an error message box with the given messages."""

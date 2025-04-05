@@ -9,6 +9,7 @@ from core.enums import FunctionType
 from file_types import registry
 from ui import utils as ut
 from .batch_tab import UiBatchCropWidget
+from line_edits import PathLineEdit
 
 
 class UiFolderTabWidget(UiBatchCropWidget):
@@ -152,7 +153,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
         self.toolBox.setItemText(self.toolBox.indexOf(self.page_2),
                                  QtCore.QCoreApplication.translate("self", "Folder View", None))
 
-    def open_path(self, line_edit) -> None:
+    def open_path(self, line_edit: PathLineEdit) -> None:
         """Open file/folder selection dialog for a path"""
         super().open_path(line_edit)
         if line_edit is self.inputLineEdit:
