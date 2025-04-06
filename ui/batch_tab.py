@@ -51,6 +51,10 @@ class UiBatchCropWidget(UiCropWidget):
         self.cancelButton.clicked.connect(lambda: self.cancel_button_operation(self.cancelButton, self.cropButton))
         self.connect_crop_worker()
 
+    def worker(self, *args: Any) -> None:
+        """Worker function to be overridden in subclasses"""
+        raise NotImplementedError("Worker function must be implemented in subclasses.")
+
     def create_progress_bar(self, name: str, parent: Optional[QtWidgets.QWidget] = None) -> QtWidgets.QProgressBar:
         """Create a progress bar with consistent styling"""
         progress_bar = QtWidgets.QProgressBar() if parent is None else QtWidgets.QProgressBar(parent)

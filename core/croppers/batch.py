@@ -49,7 +49,7 @@ class BatchCropper(Cropper):
         if self.executor and not self.executor._shutdown:
             # Cancel any pending futures
             for future in self.futures:
-                if not future.done():
+                if future and not future.done():
                     future.cancel()
             
             # Shutdown the executor with a timeout
@@ -72,7 +72,7 @@ class BatchCropper(Cropper):
 
         if self.executor:
             for future in self.futures:
-                if not future.done():
+                if future and not future.done():
                     future.cancel()
         # Clear the futures list
         self.futures = []
@@ -110,7 +110,8 @@ class BatchCropper(Cropper):
     def complete_futures(self):
         """Attach a done callback to all futures"""
         for future in self.futures:
-            future.add_done_callback(self.worker_done_callback)
+            if future is not None:
+                future.add_done_callback(self.worker_done_callback)
 
     def all_tasks_done(self) -> None:
         """

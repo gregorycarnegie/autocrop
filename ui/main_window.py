@@ -52,6 +52,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.display_worker = DisplayCropper(face_detection_tools[0])
         self.folder_worker = FolderCropper(face_detection_tools)
         self.mapping_worker = MappingCropper(face_detection_tools)
+        print(f"Worker type: {type(self.mapping_worker).__name__}")
         self.photo_worker = PhotoCropper(face_detection_tools[0])
         self.video_worker = VideoCropper(face_detection_tools[0])
         
