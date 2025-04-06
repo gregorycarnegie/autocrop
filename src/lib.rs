@@ -346,7 +346,7 @@ fn get_rotation_matrix(
         center_y.round() as i32,
     ])?;
     Ok((
-        center_point.into(), // Chain .into_pyarray() and .into()
+        center_point.into(),
         angle
     ))
 }
