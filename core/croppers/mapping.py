@@ -1,3 +1,4 @@
+from functools import partial
 from pathlib import Path
 from typing import Optional, Any
 
@@ -15,29 +16,6 @@ class MappingCropper(BatchCropper):
     def __init__(self, face_detection_tools: list[FaceToolPair]):
         super().__init__(face_detection_tools)
 
-    # Original worker method for mapping cropping
-    # def worker(self, *, file_amount: int,
-    #            job: Job,
-    #            face_detection_tools: FaceToolPair,
-    #            old: npt.NDArray[np.str_],
-    #            new: npt.NDArray[np.str_]):
-    #     """
-    #     Performs cropping for a mapping job.
-    #     """
-    #     for old, new in zip(old, new):
-    #         if self.end_task:
-    #             break
-
-    #         old_path: Path = job.folder_path / old
-    #         new_path: Path = job.destination / (new + old_path.suffix) if job.radio_choice() == 'No' else job.destination / (new + job.radio_choice())
-
-    #         if old_path.is_file():
-    #             prc.crop(old_path, job, face_detection_tools, new_path)
-    #         self._update_progress(file_amount)
-
-    #     if self.progress_count == file_amount or self.end_task:
-    #         self.show_message_box = False
-
     def worker(self, *, file_amount: int,
             job: Job,
             face_detection_tools: FaceToolPair,
@@ -47,22 +25,21 @@ class MappingCropper(BatchCropper):
         Performs cropping for a mapping job using batch_process_with_pipeline.
         """
         # Convert mapping arrays to list of image paths and their targets
-        image_paths = []
-        output_paths = []
+        image_paths:  list[Path] = []
+        output_paths:  list[Path] = []
         
         for old_name, new_name in zip(old, new):
-            old_path = job.folder_path / old_name
+            old_path: Path = job.folder_path / old_name
             if old_path.is_file():
-                new_path = job.destination / (new_name + old_path.suffix if job.radio_choice() == 'No' 
+                new_path: Path = job.destination / (new_name + old_path.suffix if job.radio_choice() == 'No' 
                                             else new_name + job.radio_choice())
                 image_paths.append(old_path)
                 output_paths.append(new_path)
         
+        # Create a progress callback that uses file_amount
+        progress_callback = partial(self._update_progress, file_amount)
         # Use a modified version of batch_process_with_pipeline that accepts custom output paths
-        prc.batch_process_with_mapping(image_paths, output_paths, job, face_detection_tools)
-        
-        # Update progress
-        self._update_progress(file_amount)
+        prc.batch_process_with_mapping(image_paths, output_paths, job, face_detection_tools, progress_callback)
         
         if self.progress_count == file_amount or self.end_task:
             self.show_message_box = False

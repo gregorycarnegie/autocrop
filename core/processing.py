@@ -41,7 +41,6 @@ def profile_it(func: c.Callable[..., Any]) -> c.Callable[..., Any]:
 
     return wrapper
 
-
 def create_image_pipeline(job: Job, face_detection_tools: FaceToolPair) -> list[c.Callable[[cvt.MatLike], cvt.MatLike]]:
     """
     Creates a pipeline of image processing functions based on job parameters.
@@ -74,86 +73,17 @@ def apply_pipeline(image: cvt.MatLike, pipeline: list[c.Callable[[cvt.MatLike], 
         result = func(result)
     return result
 
-# def test_pipeline(image_path: str, job: Job, face_detection_tools: FaceToolPair) -> None:
-#     """
-#     Test the pipeline approach on a single image.
-    
-#     Args:
-#         image_path: Path to the test image
-#         job: Job configuration
-#         face_detection_tools: Face detection tools
-#     """
-#     import time
-    
-#     # Open the image
-#     path = Path(image_path)
-#     img = open_pic(path, face_detection_tools, job)
-#     if img is None:
-#         print("Failed to open image")
-#         return
-    
-#     # Detect face
-#     bbox = box_detect(img, job, face_detection_tools)
-#     if bbox is None:
-#         print("No face detected")
-#         return
-    
-#     # Create a copy of the image for each approach
-#     img1 = img.copy()
-#     img2 = img.copy()
-    
-#     # Test traditional approach
-#     start_time = time.time()
-#     cropped1 = numpy_array_crop(img1, bbox)
-#     if job.auto_tilt_job:
-#         cropped1 = align_head(cropped1, face_detection_tools, job)
-#     if job.fix_exposure_job:
-#         cropped1 = correct_exposure(cropped1, True)
-#     cropped1 = adjust_gamma(cropped1, job.gamma)
-#     if len(cropped1.shape) >= 3:
-#         cropped1 = convert_color_space(cropped1)
-#     result1 = cv2.resize(cropped1, job.size, interpolation=cv2.INTER_AREA)
-#     traditional_time = time.time() - start_time
-    
-#     # Test pipeline approach
-#     start_time = time.time()
-#     cropped2 = numpy_array_crop(img2, bbox)
-#     pipeline = create_image_pipeline(job, face_detection_tools)
-#     processed = apply_pipeline(cropped2, pipeline)
-#     result2 = cv2.resize(processed, job.size, interpolation=cv2.INTER_AREA)
-#     pipeline_time = time.time() - start_time
-    
-#     # Save both results for comparison
-#     cv2.imwrite("traditional_result.jpg", result1)
-#     cv2.imwrite("pipeline_result.jpg", result2)
-    
-#     # Print timing information
-#     print(f"Traditional approach: {traditional_time:.4f} seconds")
-#     print(f"Pipeline approach: {pipeline_time:.4f} seconds")
-#     print(f"Difference: {traditional_time - pipeline_time:.4f} seconds")
-    
-#     # Check if the results are the same
-#     diff = cv2.absdiff(result1, result2)
-#     if np.any(diff > 0):
-#         print("Warning: Results differ!")
-#     else:
-#         print("Results are identical!")
-
 def adjust_gamma(image: cvt.MatLike, gam: int) -> cvt.MatLike:
     """
     Adjusts image gamma using a precomputed lookup table.
     """
-
     return cv2.LUT(image, rs.gamma(gam * GAMMA_THRESHOLD))
-
 
 def convert_color_space(image: cvt.MatLike) -> cvt.MatLike:
     """
     Converts the color space from BGR to RGB.
     """
-
     return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
 
 def numpy_array_crop(image: cvt.MatLike, bounding_box: Box) -> cvt.MatLike:
     x0, y0, x1, y1 = bounding_box
@@ -201,7 +131,6 @@ def correct_exposure(image: cvt.MatLike,
     # Calculate alpha and beta
     alpha, beta = rs.calc_alpha_beta(hist)
     return cv2.convertScaleAbs(src=image, alpha=alpha, beta=beta)
-
 
 def format_image(image: cvt.MatLike) -> tuple[cvt.MatLike, float]:
     """
@@ -284,7 +213,6 @@ def align_head(image: cvt.MatLike,
         borderMode=cv2.BORDER_CONSTANT
     )
 
-
 def colour_expose_align(image: cvt.MatLike, face_detection_tools: FaceToolPair, job: Job) -> cvt.MatLike:
     # Convert BGR -> RGB for consistency
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) if len(image.shape) >= 3 else image
@@ -330,7 +258,6 @@ def open_pic(file: Path,
     else:
         return None
 
-
 def open_table(file: Path) -> pl.DataFrame:
     """
     Opens a CSV or Excel file using Polars.
@@ -341,7 +268,6 @@ def open_table(file: Path) -> pl.DataFrame:
         except IsADirectoryError:
             return pl.DataFrame()
     return pl.DataFrame()
-
 
 def _draw_box_with_text(image: cvt.MatLike,
                         confidence: np.float64,
@@ -362,7 +288,6 @@ def _draw_box_with_text(image: cvt.MatLike,
     cv2.rectangle(image, (x0, y0), (x1, y1), colour, line_width)
     cv2.putText(image, text, (x0, y_text), cv2.FONT_HERSHEY_SIMPLEX, font_scale, colour, line_width)
     return image
-
 
 def multi_box(image: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair) -> cvt.MatLike:
     """
@@ -389,7 +314,6 @@ def multi_box(image: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair) 
         _draw_box_with_text(rgb_image, np.float64(confidence), x0=x0, y0=y0, x1=x1, y1=y1)
 
     return rgb_image
-
 
 def multi_box_positions(image: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair) -> Optional[c.Iterator[tuple[float, Box]]]:
     """
@@ -433,7 +357,6 @@ def multi_box_positions(image: cvt.MatLike, job: Job, face_detection_tools: Face
             boxes.append(box)
 
     return zip(confidences, boxes)
-
 
 def box_detect(image: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair) -> Optional[Box]:
     """
@@ -492,7 +415,6 @@ def box_detect(image: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair)
         print(f"Error in box_detect: {e}")
         return None
 
-
 def mask_extensions(file_list: npt.NDArray[np.str_], extensions: set[str]) -> tuple[npt.NDArray[np.bool_], int]:
     """
     Masks the file list based on supported extensions, returning the mask and its count.
@@ -505,7 +427,6 @@ def mask_extensions(file_list: npt.NDArray[np.str_], extensions: set[str]) -> tu
     mask = np.isin(file_suffixes, list(extensions))
     return mask, np.count_nonzero(mask)
 
-
 def split_by_cpus(mask: npt.NDArray[np.bool_],
                   core_count: int,
                   *file_lists: npt.NDArray[np.str_]) -> c.Iterator[list[npt.NDArray[np.str_]]]:
@@ -514,7 +435,6 @@ def split_by_cpus(mask: npt.NDArray[np.bool_],
     """
     return map(lambda x: np.array_split(x[mask], core_count), file_lists)
 
-
 def join_path_suffix(file_str: str, destination: Path) -> tuple[Path, bool]:
     """
     Joins a filename with a destination path and determines if it's a TIFF file.
@@ -522,7 +442,6 @@ def join_path_suffix(file_str: str, destination: Path) -> tuple[Path, bool]:
 
     path = destination.joinpath(file_str)
     return path, registry.should_use_tiff_save(path)
-
 
 @cache
 def set_filename(radio_options: tuple[str, ...],
@@ -543,7 +462,6 @@ def set_filename(radio_options: tuple[str, ...],
     final_name = f"{(new or image_path.stem)}{selected_ext}"
     return join_path_suffix(final_name, destination)
 
-
 def reject(*,
            path: Path,
            destination: Path) -> None:
@@ -554,7 +472,6 @@ def reject(*,
     reject_folder = destination.joinpath('rejects')
     reject_folder.mkdir(exist_ok=True)
     shutil.copy(path, reject_folder.joinpath(path.name))
-
 
 def save_image(image: cvt.MatLike,
                file_path: Path,
@@ -574,7 +491,6 @@ def save_image(image: cvt.MatLike,
         lut = cv2.LUT(image, rs.gamma(user_gam * GAMMA_THRESHOLD))
         cv2.imwrite(file_path.as_posix(), lut)
 
-
 def multi_save_image(images: c.Iterator[cvt.MatLike],
                      file_path: Path,
                      gamma_value: int,
@@ -587,7 +503,6 @@ def multi_save_image(images: c.Iterator[cvt.MatLike],
         new_file_path = file_path.with_stem(f'{file_path.stem}_{i}')
         save_image(img, new_file_path, gamma_value, is_tiff)
 
-
 def get_frame_path(destination: Path,
                    file_enum: str,
                    job: Job) -> tuple[Path, bool]:
@@ -598,7 +513,6 @@ def get_frame_path(destination: Path,
 
     file_str = f'{file_enum}.jpg' if job.radio_choice() == job.radio_options[0] else file_enum + job.radio_choice()
     return join_path_suffix(file_str, destination)
-
 
 def save_detection(image: Path,
                    job: Job,
@@ -663,8 +577,6 @@ def _(image: Path, job: Job, face_detection_tools: FaceToolPair) -> Optional[cvt
         return None
     return crop_image(pic_array, job, face_detection_tools)
 
-
-
 @singledispatch
 def multi_crop(image: Union[cvt.MatLike, Path],
                job: Job,
@@ -674,37 +586,6 @@ def multi_crop(image: Union[cvt.MatLike, Path],
     """
     raise TypeError(f"Unsupported input type: {type(image)}")
 
-# @multi_crop.register
-# def _(image: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair) -> Optional[c.Iterator[cvt.MatLike]]:
-#     confidences, crop_positions = multi_box_positions(image, job, face_detection_tools)
-#     confidences = np.array(confidences) > job.threshold
-    
-#     # Check if any faces were detected
-#     if np.any(confidences):
-#         # Get valid positions
-#         valid_positions = [pos for i, pos in enumerate(crop_positions) if confidences[i]]
-#         if not valid_positions:
-#             return None
-        
-#         # Create pipeline once for all faces
-#         pipeline = create_image_pipeline(job, face_detection_tools)
-        
-#         # Process each face with the same pipeline
-#         return (
-#             cv2.resize(
-#                 apply_pipeline(
-#                     numpy_array_crop(image, pos), 
-#                     pipeline
-#                 ),
-#                 job.size, 
-#                 interpolation=cv2.INTER_AREA
-#             )
-#             for pos in valid_positions
-#         )
-#     else:
-#         return None
-
-# Example implementation optimizing the multi-face workflow
 @multi_crop.register
 def _(image: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair) -> Optional[c.Iterator[cvt.MatLike]]:
     """
@@ -731,7 +612,7 @@ def _(image: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair) -> Optio
     pipeline = create_image_pipeline(job, face_detection_tools)
     
     # Step 4: Process each face
-    def process_face(confidence: float, position: Box) -> cvt.MatLike:
+    def process_face_box(confidence: float, position: Box) -> cvt.MatLike:
         # Crop the face
         cropped = numpy_array_crop(image, position)
         
@@ -742,172 +623,145 @@ def _(image: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair) -> Optio
         return cv2.resize(processed, job.size, interpolation=cv2.INTER_AREA)
     
     # Return a generator that processes each face on-demand
-    return (process_face(confidence, position) for confidence, position in valid_faces)
+    return (process_face_box(confidence, position) for confidence, position in valid_faces)
 
 @multi_crop.register
 def _(image: Path, job: Job, face_detection_tools: FaceToolPair) -> Optional[c.Iterator[cvt.MatLike]]:
     img = open_pic(image, face_detection_tools, job)
     return None if img is None else multi_crop(img, job, face_detection_tools)
 
-def batch_process_with_pipeline(images: list[Path], job: Job, face_detection_tools: FaceToolPair) -> list[Path]:
+def process_face(image_array: cvt.MatLike, bounding_box: Box, pipeline: list, job: Job) -> cvt.MatLike:
+    """Process a single face with the given pipeline"""
+    cropped = numpy_array_crop(image_array, bounding_box)
+    processed = apply_pipeline(cropped, pipeline)
+    return cv2.resize(processed, job.size, interpolation=cv2.INTER_AREA)
+
+def save_processed_face(processed_image: cvt.MatLike, output_path: Path, gamma: int) -> None:
+    """Save a processed face to the given output path"""
+    is_tiff = output_path.suffix.lower() in {'.tif', '.tiff'}
+    save_image(processed_image, output_path, gamma, is_tiff=is_tiff)
+
+def process_batch_item(image_array: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair, 
+                      pipeline: list, progress_callback: c.Callable, img_path: Path,
+                      get_output_path_fn: c.Callable) -> tuple[list[Path], list]:
     """
-    Process a batch of images with the same pipeline for efficiency.
-    
-    Args:
-        images: List of image paths to process
-        job: Job configuration
-        face_detection_tools: Face detection tools
-        
-    Returns:
-        List of saved output paths
+    Process a single image from a batch with the given pipeline.
+    Returns a tuple of (output_paths, pipeline)
     """
-    # Create the processing pipeline once for all images
-    pipeline = None
     output_paths = []
     
+    # Process based on multi-face setting
+    if job.multi_face_job:
+        # Multi-face processing
+        results = multi_box_positions(image_array, job, face_detection_tools)
+
+        if not results:
+            reject(path=img_path, destination=job.destination)
+            progress_callback()
+            return output_paths, pipeline
+
+        valid_positions = [pos for confidence, pos in results if confidence > job.threshold]
+
+        if not valid_positions:
+            progress_callback()
+            return output_paths, pipeline
+
+        # Create pipeline if not already created
+        if pipeline is None:
+            pipeline = create_image_pipeline(job, face_detection_tools)
+
+        # Process each face
+        for i, bounding_box in enumerate(valid_positions):
+            # Create output path using the provided function
+            output_path = get_output_path_fn(img_path, i)
+            
+            # Process and save
+            processed = process_face(image_array, bounding_box, pipeline, job)
+            save_processed_face(processed, output_path, job.gamma)
+            output_paths.append(output_path)
+    else:
+        # Single face processing
+        if (bounding_box := box_detect(image_array, job, face_detection_tools)) is None:
+            reject(path=img_path, destination=job.destination)
+            progress_callback()
+            return output_paths, pipeline
+
+        # Create pipeline if not already created
+        if pipeline is None:
+            pipeline = create_image_pipeline(job, face_detection_tools)
+
+        # Create output path using the provided function
+        output_path = get_output_path_fn(img_path, None)
+        
+        # Process and save
+        processed = process_face(image_array, bounding_box, pipeline, job)
+        save_processed_face(processed, output_path, job.gamma)
+        output_paths.append(output_path)
+    
+    progress_callback()
+    return output_paths, pipeline
+
+def batch_process_with_pipeline(images: list[Path], job: Job, face_detection_tools: FaceToolPair, 
+                               progress_callback: c.Callable) -> list[Path]:
+    """Process a batch of images with the same pipeline for efficiency."""
+    pipeline = None
+    all_output_paths = []
+    
+    # Create a function to get output paths for standard batch processing
+    def get_output_path_fn(image_path: Path, face_index: Optional[int]) -> Path:
+        return get_output_path(image_path, job.destination, face_index, job.radio_choice())
+
     for img_path in images:
         # Open the image
         image_array = open_pic(img_path, face_detection_tools, job)
         if image_array is None:
+            progress_callback()
             continue
+
+        # Process the image
+        output_paths, pipeline = process_batch_item(
+            image_array, job, face_detection_tools, pipeline, 
+            progress_callback, img_path, get_output_path_fn
+        )
         
-        # Detect face(s)
-        if job.multi_face_job:
-            # Multi-face processing
-            results = multi_box_positions(image_array, job, face_detection_tools)
-
-            if not results:
-                reject(path=img_path, destination=job.destination)
-                continue
-
-            valid_positions = [pos for confidence, pos in results if confidence > job.threshold]
-
-            if not valid_positions:
-                continue
-                
-            # Create pipeline if not already created
-            if pipeline is None:
-                pipeline = create_image_pipeline(job, face_detection_tools)
-            
-            # Process each face
-            for i, pos in enumerate(valid_positions):
-                # Create output path
-                output_path = get_output_path(img_path, job.destination, i, job.radio_choice())
-                
-                # Process and save
-                cropped = numpy_array_crop(image_array, pos)
-                processed = apply_pipeline(cropped, pipeline)
-                resized = cv2.resize(processed, job.size, interpolation=cv2.INTER_AREA)
-                save_image(resized, output_path, job.gamma, is_tiff=output_path.suffix.lower() in {'.tif', '.tiff'})
-                
-                output_paths.append(output_path)
-        else:
-            # Single face processing
-            if (bounding_box := box_detect(image_array, job, face_detection_tools)) is None:
-                continue
-                
-            # Create pipeline if not already created
-            if pipeline is None:
-                pipeline = create_image_pipeline(job, face_detection_tools)
-            
-            # Create output path
-            output_path = get_output_path(img_path, job.destination, None, job.radio_choice())
-            
-            # Process and save
-            cropped = numpy_array_crop(image_array, bounding_box)
-            processed = apply_pipeline(cropped, pipeline)
-            resized = cv2.resize(processed, job.size, interpolation=cv2.INTER_AREA)
-            save_image(resized, output_path, job.gamma, is_tiff=output_path.suffix.lower() in {'.tif', '.tiff'})
-            
-            output_paths.append(output_path)
-    
-    return output_paths
-
-def batch_process_with_mapping(images: list[Path], 
-                               output_paths: list[Path], 
-                               job: Job, 
-                               face_detection_tools: FaceToolPair) -> list[Path]:
-    """
-    Process a batch of images with custom output paths using the same pipeline.
-    
-    Args:
-        images: List of input image paths
-        output_paths: List of output paths (must match length of images)
-        job: Job configuration
-        face_detection_tools: Face detection tools
+        all_output_paths.extend(output_paths)
         
-    Returns:
-        List of successfully processed output paths
-    """
+    return all_output_paths
+
+def batch_process_with_mapping(images: list[Path], output_paths: list[Path], job: Job, 
+                              face_detection_tools: FaceToolPair, progress_callback: c.Callable) -> list[Path]:
+    """Process a batch of images with custom output paths using the same pipeline."""
     if len(images) != len(output_paths):
         raise ValueError("Input and output path lists must have same length")
-    
-    # Create the processing pipeline once for all images
+
     pipeline = None
-    successful_outputs = []
+    all_output_paths = []
     
     for img_path, out_path in zip(images, output_paths):
-        try:
-            # Open the image
-            image_array = open_pic(img_path, face_detection_tools, job)
-            if image_array is None:
-                continue
-            
-            # Process based on multi-face setting
-            if job.multi_face_job:
-                # Multi-face processing
-                results = multi_box_positions(image_array, job, face_detection_tools)
-                
-                if not results:
-                    reject(path=img_path, destination=job.destination)
-                    continue
+        # Open the image
+        image_array = open_pic(img_path, face_detection_tools, job)
+        if image_array is None:
+            progress_callback()
+            continue
 
-                valid_positions = [pos for confidence, pos in results if confidence > job.threshold]
-                
-                if not valid_positions:
-                    reject(path=img_path, destination=job.destination)
-                    continue
-                    
-                # Create pipeline if not already created
-                if pipeline is None:
-                    pipeline = create_image_pipeline(job, face_detection_tools)
-                
-                # Process each face
-                for i, pos in enumerate(valid_positions):
-                    # Create output path for this face
-                    face_output_path = out_path.with_stem(f"{out_path.stem}_{i}")
-                    
-                    # Process and save
-                    cropped = numpy_array_crop(image_array, pos)
-                    processed = apply_pipeline(cropped, pipeline)
-                    resized = cv2.resize(processed, job.size, interpolation=cv2.INTER_AREA)
-                    save_image(resized, face_output_path, job.gamma, 
-                               is_tiff=face_output_path.suffix.lower() in {'.tif', '.tiff'})
-                    
-                    successful_outputs.append(face_output_path)
+        # Create a function to get output paths for mapping
+        def get_output_path_fn(image_path: Path, face_index: Optional[int]) -> Path:
+            if face_index is not None:
+                # Multi-face output path
+                return out_path.with_stem(f"{out_path.stem}_{face_index}")
             else:
-                # Single face processing
-                if (bounding_box := box_detect(image_array, job, face_detection_tools)) is None:
-                    reject(path=img_path, destination=job.destination)
-                    continue
-                    
-                # Create pipeline if not already created
-                if pipeline is None:
-                    pipeline = create_image_pipeline(job, face_detection_tools)
-                
-                # Process and save
-                cropped = numpy_array_crop(image_array, bounding_box)
-                processed = apply_pipeline(cropped, pipeline)
-                resized = cv2.resize(processed, job.size, interpolation=cv2.INTER_AREA)
-                save_image(resized, out_path, job.gamma, 
-                           is_tiff=out_path.suffix.lower() in {'.tif', '.tiff'})
-                
-                successful_outputs.append(out_path)
-                
-        except Exception as e:
-            print(f"Error processing {img_path}: {e}")
-    
-    return successful_outputs
+                # Single face output path
+                return out_path
+
+        # Process the image
+        output_paths, pipeline = process_batch_item(
+            image_array, job, face_detection_tools, pipeline, 
+            progress_callback, img_path, get_output_path_fn
+        )
+        
+        all_output_paths.extend(output_paths)
+        
+    return all_output_paths
 
 def get_output_path(input_path: Path, destination: Path, face_index: Optional[int], radio_choice: str) -> Path:
     """Helper function to generate output paths."""
@@ -921,14 +775,11 @@ def get_output_path(input_path: Path, destination: Path, face_index: Optional[in
 
     return destination / f"{stem}{suffix}"
 
-
 def get_crop_save_functions(job: Job) -> tuple[CropFunction, SaveFunction]:
     """
     Determines the correct crop and save functions based on whether multi-face detection is enabled.
     """
-
     return (multi_crop, multi_save_image) if job.multi_face_job else (crop_image, save_image)
-
 
 @singledispatch
 def crop(image: Union[Path, str],
@@ -937,7 +788,6 @@ def crop(image: Union[Path, str],
          new: Optional[Union[Path, str]] = None) -> None:
     """Applies cropping to an image based on the job configuration."""
     raise TypeError(f"Unsupported input type: {type(image)}")
-
 
 @crop.register
 def _(image: Path, job: Job, face_detection_tools: FaceToolPair, new: Optional[Union[Path, str]] = None) -> None:
@@ -949,11 +799,9 @@ def _(image: Path, job: Job, face_detection_tools: FaceToolPair, new: Optional[U
     else:
         save_detection(image, job, face_detection_tools, crop_fn, save_fn)
 
-
 @crop.register
 def _(image: str, job: Job, face_detection_tools: FaceToolPair, new: Optional[Union[Path, str]] = None) -> None:
     crop(Path(image), job, face_detection_tools, new)
-
 
 def frame_save(image: cvt.MatLike,
                file_enum_str: str,
