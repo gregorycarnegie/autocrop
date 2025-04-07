@@ -90,7 +90,7 @@ class YuNetFaceDetector:
         return result
 
 
-FaceToolPair = tuple[YuNetFaceDetector, cv2.face.Facemark]
+type FaceToolPair = tuple[YuNetFaceDetector, cv2.face.Facemark]
 
 
 def create_tool_pair() -> FaceToolPair:
