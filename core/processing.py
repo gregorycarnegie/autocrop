@@ -486,7 +486,6 @@ def save_image(image: cvt.MatLike,
         # Only convert if actually needed
         if image.dtype != np.uint8:
             image = cv2.convertScaleAbs(image)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         tiff.imwrite(file_path, image)
     else:
         lut = cv2.LUT(image, rs.gamma(user_gam * GAMMA_THRESHOLD))
@@ -702,69 +701,6 @@ def process_batch_item(image_array: cvt.MatLike, job: Job, face_detection_tools:
     progress_callback()
     return output_paths, pipeline
 
-# def batch_process_with_pipeline(images: list[Path], job: Job, face_detection_tools: FaceToolPair, 
-#                                progress_callback: c.Callable) -> list[Path]:
-#     """Process a batch of images with the same pipeline for efficiency."""
-#     pipeline = None
-#     all_output_paths = []
-    
-#     # Create a function to get output paths for standard batch processing
-#     def get_output_path_fn(image_path: Path, face_index: Optional[int]) -> Path:
-#         return get_output_path(image_path, job.destination, face_index, job.radio_choice())
-
-#     for img_path in images:
-#         # Open the image
-#         image_array = open_pic(img_path, face_detection_tools, job)
-#         if image_array is None:
-#             progress_callback()
-#             continue
-
-#         # Process the image
-#         output_paths, pipeline = process_batch_item(
-#             image_array, job, face_detection_tools, pipeline, 
-#             progress_callback, img_path, get_output_path_fn
-#         )
-        
-#         all_output_paths.extend(output_paths)
-        
-#     return all_output_paths
-
-# def batch_process_with_mapping(images: list[Path], output_paths: list[Path], job: Job, 
-#                               face_detection_tools: FaceToolPair, progress_callback: c.Callable) -> list[Path]:
-#     """Process a batch of images with custom output paths using the same pipeline."""
-#     if len(images) != len(output_paths):
-#         raise ValueError("Input and output path lists must have same length")
-
-#     pipeline = None
-#     all_output_paths = []
-    
-#     for img_path, out_path in zip(images, output_paths):
-#         # Open the image
-#         image_array = open_pic(img_path, face_detection_tools, job)
-#         if image_array is None:
-#             progress_callback()
-#             continue
-
-#         # Create a function to get output paths for mapping
-#         def get_output_path_fn(image_path: Path, face_index: Optional[int]) -> Path:
-#             if face_index is not None:
-#                 # Multi-face output path
-#                 return out_path.with_stem(f"{out_path.stem}_{face_index}")
-#             else:
-#                 # Single face output path
-#                 return out_path
-
-#         # Process the image
-#         output_paths, pipeline = process_batch_item(
-#             image_array, job, face_detection_tools, pipeline, 
-#             progress_callback, img_path, get_output_path_fn
-#         )
-        
-#         all_output_paths.extend(output_paths)
-        
-#     return all_output_paths
-
-
 def batch_process_with_pipeline(images: list[Path], job: Job, face_detection_tools: FaceToolPair, 
                                progress_callback: c.Callable, chunk_size: int = 10) -> list[Path]:
     """Process a batch of images with the same pipeline for efficiency."""
@@ -801,7 +737,6 @@ def batch_process_with_pipeline(images: list[Path], job: Job, face_detection_too
         QtWidgets.QApplication.processEvents()
         
     return all_output_paths
-
 
 def batch_process_with_mapping(images: list[Path], output_paths: list[Path], job: Job, 
                               face_detection_tools: FaceToolPair, progress_callback: c.Callable,
