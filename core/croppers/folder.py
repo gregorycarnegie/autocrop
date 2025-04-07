@@ -1,4 +1,5 @@
 import collections.abc as c
+import threading
 from functools import partial
 from itertools import batched
 from pathlib import Path
@@ -17,7 +18,8 @@ class FolderCropper(BatchCropper):
     def worker(self, *, file_amount: int,
                job: Job,
                face_detection_tools: FaceToolPair,
-               file_list: tuple[Path, ...]) -> None:
+               file_list: tuple[Path, ...],
+               cancel_event: threading.Event) -> None:
         """
         Performs cropping for a folder job by iterating over the file list.
         Uses batch_process_with_pipeline for efficiency.
@@ -28,7 +30,7 @@ class FolderCropper(BatchCropper):
         progress_callback = partial(self._update_progress, file_amount)
         # Use batch_process_with_pipeline to handle the actual processing
         # This function creates the pipeline once and applies it to all images
-        prc.batch_process_with_pipeline(image_paths, job, face_detection_tools, progress_callback)
+        prc.batch_process_with_pipeline(image_paths, job, face_detection_tools, progress_callback, cancel_event)
         
         if self.progress_count == file_amount or self.end_task:
             self.show_message_box = False
