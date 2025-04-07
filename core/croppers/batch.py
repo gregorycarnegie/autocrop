@@ -1,5 +1,6 @@
 import atexit
 import collections.abc as c
+import threading
 from concurrent.futures import Future, ThreadPoolExecutor
 from functools import partial
 from pathlib import Path
@@ -28,6 +29,9 @@ class BatchCropper(Cropper):
         self.futures: list[Future] = []
         self.executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)
         self.face_detection_tools = face_detection_tools
+        
+        # Add a cancellation event for cooperative termination
+        self.cancel_event = threading.Event()
 
         # Register an atexit handler to ensure proper cleanup
         atexit.register(self._cleanup_executor)
@@ -66,6 +70,9 @@ class BatchCropper(Cropper):
         """
         Terminates all pending tasks and shuts down the executor.
         """
+        # Set the cancellation event to signal workers to stop
+        self.cancel_event.set()
+
         if not self.end_task:
             self.end_task = True
             self.emit_done()
@@ -76,6 +83,17 @@ class BatchCropper(Cropper):
                     future.cancel()
         # Clear the futures list
         self.futures = []
+
+    def reset_task(self) -> None:
+        """
+        Resets the task-specific variables to their default values.
+        """
+        # Reset cancellation event
+        self.cancel_event.clear()
+        
+        # Reset other task variables
+        self.progress_count, self.end_task, self.show_message_box = self.TASK_VALUES
+        self.finished_signal_emitted = False
 
     def emit_progress(self, amount: int):
         """Initialize progress tracking and emit started signal"""
@@ -95,7 +113,7 @@ class BatchCropper(Cropper):
         if self.executor is None or self.executor._shutdown:
             self.executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)
 
-        worker_with_params = partial(worker, file_amount=amount, job=job)
+        worker_with_params = partial(worker, file_amount=amount, job=job, cancel_event=self.cancel_event)
         if list_2:
             self.futures = [
                 worker_with_params(face_detection_tools=tool_pair, old=old_chunk, new=new_chunk)
