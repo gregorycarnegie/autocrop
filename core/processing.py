@@ -13,6 +13,7 @@ import cv2.typing as cvt
 import numpy as np
 import numpy.typing as npt
 import polars as pl
+from PyQt6 import QtWidgets
 import tifffile as tiff
 from rawpy._rawpy import NotSupportedError, LibRawError, LibRawFatalError, LibRawNonFatalError
 
@@ -562,7 +563,7 @@ def crop_image(image: Union[cvt.MatLike, Path],
     """
     Single-face cropping function. Returns the cropped face if found and resizes to `job.size`.
     """
-    raise TypeError(f"Unsupported input type: {type(image)}")
+    raise NotImplementedError(f"Unsupported input type: {type(image)}")
 
 @crop_image.register
 def _(image: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair) -> Optional[cvt.MatLike]:
@@ -701,65 +702,152 @@ def process_batch_item(image_array: cvt.MatLike, job: Job, face_detection_tools:
     progress_callback()
     return output_paths, pipeline
 
+# def batch_process_with_pipeline(images: list[Path], job: Job, face_detection_tools: FaceToolPair, 
+#                                progress_callback: c.Callable) -> list[Path]:
+#     """Process a batch of images with the same pipeline for efficiency."""
+#     pipeline = None
+#     all_output_paths = []
+    
+#     # Create a function to get output paths for standard batch processing
+#     def get_output_path_fn(image_path: Path, face_index: Optional[int]) -> Path:
+#         return get_output_path(image_path, job.destination, face_index, job.radio_choice())
+
+#     for img_path in images:
+#         # Open the image
+#         image_array = open_pic(img_path, face_detection_tools, job)
+#         if image_array is None:
+#             progress_callback()
+#             continue
+
+#         # Process the image
+#         output_paths, pipeline = process_batch_item(
+#             image_array, job, face_detection_tools, pipeline, 
+#             progress_callback, img_path, get_output_path_fn
+#         )
+        
+#         all_output_paths.extend(output_paths)
+        
+#     return all_output_paths
+
+# def batch_process_with_mapping(images: list[Path], output_paths: list[Path], job: Job, 
+#                               face_detection_tools: FaceToolPair, progress_callback: c.Callable) -> list[Path]:
+#     """Process a batch of images with custom output paths using the same pipeline."""
+#     if len(images) != len(output_paths):
+#         raise ValueError("Input and output path lists must have same length")
+
+#     pipeline = None
+#     all_output_paths = []
+    
+#     for img_path, out_path in zip(images, output_paths):
+#         # Open the image
+#         image_array = open_pic(img_path, face_detection_tools, job)
+#         if image_array is None:
+#             progress_callback()
+#             continue
+
+#         # Create a function to get output paths for mapping
+#         def get_output_path_fn(image_path: Path, face_index: Optional[int]) -> Path:
+#             if face_index is not None:
+#                 # Multi-face output path
+#                 return out_path.with_stem(f"{out_path.stem}_{face_index}")
+#             else:
+#                 # Single face output path
+#                 return out_path
+
+#         # Process the image
+#         output_paths, pipeline = process_batch_item(
+#             image_array, job, face_detection_tools, pipeline, 
+#             progress_callback, img_path, get_output_path_fn
+#         )
+        
+#         all_output_paths.extend(output_paths)
+        
+#     return all_output_paths
+
+
 def batch_process_with_pipeline(images: list[Path], job: Job, face_detection_tools: FaceToolPair, 
-                               progress_callback: c.Callable) -> list[Path]:
+                               progress_callback: c.Callable, chunk_size: int = 10) -> list[Path]:
     """Process a batch of images with the same pipeline for efficiency."""
     pipeline = None
     all_output_paths = []
+    total_images = len(images)
     
-    # Create a function to get output paths for standard batch processing
-    def get_output_path_fn(image_path: Path, face_index: Optional[int]) -> Path:
-        return get_output_path(image_path, job.destination, face_index, job.radio_choice())
-
-    for img_path in images:
-        # Open the image
-        image_array = open_pic(img_path, face_detection_tools, job)
-        if image_array is None:
-            progress_callback()
-            continue
-
-        # Process the image
-        output_paths, pipeline = process_batch_item(
-            image_array, job, face_detection_tools, pipeline, 
-            progress_callback, img_path, get_output_path_fn
-        )
+    # Process images in smaller chunks to maintain UI responsiveness
+    for i in range(0, total_images, chunk_size):
+        # Get current chunk
+        chunk = images[i:min(i + chunk_size, total_images)]
         
-        all_output_paths.extend(output_paths)
+        # Process each image in the chunk
+        for img_path in chunk:
+            # Open the image
+            image_array = open_pic(img_path, face_detection_tools, job)
+            if image_array is None:
+                progress_callback()
+                continue
+
+            # Create a function to get output paths for standard batch processing
+            def get_output_path_fn(image_path: Path, face_index: Optional[int]) -> Path:
+                return get_output_path(image_path, job.destination, face_index, job.radio_choice())
+
+            # Process the image
+            output_paths, pipeline = process_batch_item(
+                image_array, job, face_detection_tools, pipeline, 
+                progress_callback, img_path, get_output_path_fn
+            )
+            
+            all_output_paths.extend(output_paths)
+        
+        # Allow UI to update between chunks
+        QtWidgets.QApplication.processEvents()
         
     return all_output_paths
 
+
 def batch_process_with_mapping(images: list[Path], output_paths: list[Path], job: Job, 
-                              face_detection_tools: FaceToolPair, progress_callback: c.Callable) -> list[Path]:
+                              face_detection_tools: FaceToolPair, progress_callback: c.Callable,
+                              chunk_size: int = 10) -> list[Path]:
     """Process a batch of images with custom output paths using the same pipeline."""
     if len(images) != len(output_paths):
         raise ValueError("Input and output path lists must have same length")
 
     pipeline = None
     all_output_paths = []
+    total_images = len(images)
     
-    for img_path, out_path in zip(images, output_paths):
-        # Open the image
-        image_array = open_pic(img_path, face_detection_tools, job)
-        if image_array is None:
-            progress_callback()
-            continue
-
-        # Create a function to get output paths for mapping
-        def get_output_path_fn(image_path: Path, face_index: Optional[int]) -> Path:
-            if face_index is not None:
-                # Multi-face output path
-                return out_path.with_stem(f"{out_path.stem}_{face_index}")
-            else:
-                # Single face output path
-                return out_path
-
-        # Process the image
-        output_paths, pipeline = process_batch_item(
-            image_array, job, face_detection_tools, pipeline, 
-            progress_callback, img_path, get_output_path_fn
-        )
+    # Process images in chunks
+    for i in range(0, total_images, chunk_size):
+        # Get current chunk
+        chunk_end = min(i + chunk_size, total_images)
+        img_chunk = images[i:chunk_end]
+        out_chunk = output_paths[i:chunk_end]
         
-        all_output_paths.extend(output_paths)
+        # Process each image in the chunk
+        for img_path, out_path in zip(img_chunk, out_chunk):
+            # Open the image
+            image_array = open_pic(img_path, face_detection_tools, job)
+            if image_array is None:
+                progress_callback()
+                continue
+
+            # Create a function to get output paths for mapping
+            def get_output_path_fn(image_path: Path, face_index: Optional[int]) -> Path:
+                if face_index is not None:
+                    # Multi-face output path
+                    return out_path.with_stem(f"{out_path.stem}_{face_index}")
+                else:
+                    # Single face output path
+                    return out_path
+
+            # Process the image
+            output_paths_result, pipeline = process_batch_item(
+                image_array, job, face_detection_tools, pipeline, 
+                progress_callback, img_path, get_output_path_fn
+            )
+            
+            all_output_paths.extend(output_paths_result)
+        
+        # Allow UI to update between chunks
+        QtWidgets.QApplication.processEvents()
         
     return all_output_paths
 
@@ -787,7 +875,7 @@ def crop(image: Union[Path, str],
          face_detection_tools: FaceToolPair,
          new: Optional[Union[Path, str]] = None) -> None:
     """Applies cropping to an image based on the job configuration."""
-    raise TypeError(f"Unsupported input type: {type(image)}")
+    raise NotImplementedError(f"Unsupported input type: {type(image)}")
 
 @crop.register
 def _(image: Path, job: Job, face_detection_tools: FaceToolPair, new: Optional[Union[Path, str]] = None) -> None:
