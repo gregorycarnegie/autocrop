@@ -19,7 +19,6 @@ R_EYE_START, R_EYE_END = 42, 48
 
 class Rectangle:
     def __init__(self, left: int, top: int, right: int, bottom: int, confidence: float):
-        # super().__init__(left, top, right, bottom)
         self.left = left
         self.top = top
         self.right = right
