@@ -6,7 +6,7 @@ from typing import Optional
 import ffmpeg
 import numpy as np
 import numpy.typing as npt
-from PyQt6.QtWidgets import QLabel, QSlider
+from PyQt6.QtWidgets import QApplication, QLabel, QSlider
 
 from core import processing as prc
 from core.face_tools import FaceToolPair
@@ -200,6 +200,11 @@ class VideoCropper(Cropper):
             return self._display_error(exception, message)
 
     def extract_frames(self, job: Job) -> None:
+        """
+        Extract frames from a video with proper cancellation support.
+        This method periodically checks self.end_task flag and yields to the event loop
+        to allow cancellation to take effect.
+        """
         if not job.video_path or not job.start_position or not job.stop_position or not job.destination:
             return None
         if not job.destination_accessible:
@@ -234,11 +239,22 @@ class VideoCropper(Cropper):
         self.progress.emit(0, total_frames)
         self.started.emit()
 
+        # Reset end_task flag
+        self.end_task = False
+
         for frame_number in range(start_frame, end_frame + 1):
+            # Process UI events to allow cancel signals to be processed
+            QApplication.processEvents()
+            
+            # Check if cancellation has been requested
             if self.end_task:
                 break
 
             frame = self.extract_frame_ffmpeg(job.video_path.as_posix(), frame_number, width, height, fps)
+
+            # Check again after potentially long frame extraction
+            if self.end_task:
+                break
 
             if frame is not None:
                 file_enum = f"{job.video_path.stem}_frame_{frame_number:06d}"
@@ -250,8 +266,14 @@ class VideoCropper(Cropper):
 
             self._update_progress(total_frames)
 
-            if self.progress_count == total_frames or self.end_task:
+            # Check again after progress update
+            if self.end_task or self.progress_count == total_frames:
                 self.show_message_box = False
+                break
+
+        # Ensure we emit done signal even if cancelled
+        if self.end_task and not self.finished_signal_emitted:
+            self.emit_done()
 
     def terminate(self) -> None:
         """
