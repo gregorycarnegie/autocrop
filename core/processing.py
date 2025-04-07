@@ -3,6 +3,7 @@ import collections.abc as c
 import pstats
 import random
 import shutil
+import threading
 from functools import cache, wraps, singledispatch, partial
 from pathlib import Path
 from typing import Any, Union, Optional
@@ -702,19 +703,41 @@ def process_batch_item(image_array: cvt.MatLike, job: Job, face_detection_tools:
     return output_paths, pipeline
 
 def batch_process_with_pipeline(images: list[Path], job: Job, face_detection_tools: FaceToolPair, 
-                               progress_callback: c.Callable, chunk_size: int = 10) -> list[Path]:
-    """Process a batch of images with the same pipeline for efficiency."""
+                               progress_callback: c.Callable, cancel_event: threading.Event,
+                               chunk_size: int = 10) -> list[Path]:
+    """
+    Process a batch of images with the same pipeline for efficiency with cancellation support.
+    
+    Args:
+        images: List of image paths to process
+        job: Job parameters
+        face_detection_tools: Tools for face detection
+        progress_callback: Callback to update progress
+        cancel_event: Event to check for cancellation requests
+        chunk_size: Number of images to process in each chunk
+        
+    Returns:
+        List of output image paths
+    """
     pipeline = None
     all_output_paths = []
     total_images = len(images)
     
     # Process images in smaller chunks to maintain UI responsiveness
     for i in range(0, total_images, chunk_size):
+        # Check for cancellation BEFORE processing chunk
+        if cancel_event.is_set():
+            break
+            
         # Get current chunk
         chunk = images[i:min(i + chunk_size, total_images)]
         
-        # Process each image in the chunk
+        # Process each image in the chunk with cancellation checks
         for img_path in chunk:
+            # Check for cancellation BEFORE processing each image
+            if cancel_event.is_set():
+                break
+                
             # Open the image
             image_array = open_pic(img_path, face_detection_tools, job)
             if image_array is None:
@@ -732,16 +755,38 @@ def batch_process_with_pipeline(images: list[Path], job: Job, face_detection_too
             )
             
             all_output_paths.extend(output_paths)
+            
+            # Check for cancellation AFTER processing each image
+            if cancel_event.is_set():
+                break
         
-        # Allow UI to update between chunks
+        # Allow UI to update between chunks AND process cancellation events
         QtWidgets.QApplication.processEvents()
+        
+        # Final cancellation check after UI updates
+        if cancel_event.is_set():
+            break
         
     return all_output_paths
 
 def batch_process_with_mapping(images: list[Path], output_paths: list[Path], job: Job, 
                               face_detection_tools: FaceToolPair, progress_callback: c.Callable,
-                              chunk_size: int = 10) -> list[Path]:
-    """Process a batch of images with custom output paths using the same pipeline."""
+                              cancel_event: threading.Event, chunk_size: int = 10) -> list[Path]:
+    """
+    Process a batch of images with custom output paths using the same pipeline with cancellation support.
+    
+    Args:
+        images: List of image paths to process
+        output_paths: List of output paths for processed images
+        job: Job parameters
+        face_detection_tools: Tools for face detection
+        progress_callback: Callback to update progress
+        cancel_event: Event to check for cancellation requests
+        chunk_size: Number of images to process in each chunk
+        
+    Returns:
+        List of output image paths that were successfully processed
+    """
     if len(images) != len(output_paths):
         raise ValueError("Input and output path lists must have same length")
 
@@ -751,13 +796,21 @@ def batch_process_with_mapping(images: list[Path], output_paths: list[Path], job
     
     # Process images in chunks
     for i in range(0, total_images, chunk_size):
+        # Check for cancellation BEFORE processing chunk
+        if cancel_event.is_set():
+            break
+            
         # Get current chunk
         chunk_end = min(i + chunk_size, total_images)
         img_chunk = images[i:chunk_end]
         out_chunk = output_paths[i:chunk_end]
         
-        # Process each image in the chunk
+        # Process each image in the chunk with cancellation checks
         for img_path, out_path in zip(img_chunk, out_chunk):
+            # Check for cancellation BEFORE processing each image
+            if cancel_event.is_set():
+                break
+                
             # Open the image
             image_array = open_pic(img_path, face_detection_tools, job)
             if image_array is None:
@@ -780,9 +833,17 @@ def batch_process_with_mapping(images: list[Path], output_paths: list[Path], job
             )
             
             all_output_paths.extend(output_paths_result)
+            
+            # Check for cancellation AFTER processing each image
+            if cancel_event.is_set():
+                break
         
-        # Allow UI to update between chunks
+        # Allow UI to update between chunks AND process cancellation events
         QtWidgets.QApplication.processEvents()
+        
+        # Final cancellation check after UI updates
+        if cancel_event.is_set():
+            break
         
     return all_output_paths
 
