@@ -1,10 +1,94 @@
-# autocrop
+# Autocrop
 
 [![CI](https://github.com/leblancfg/autocrop/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/leblancfg/autocrop/actions/workflows/ci.yml) [![codecov](https://codecov.io/gh/leblancfg/autocrop/branch/master/graph/badge.svg)](https://codecov.io/gh/leblancfg/autocrop) [![Documentation](https://img.shields.io/badge/docs-passing-success.svg)](https://leblancfg.com/autocrop) [![PyPI version](https://badge.fury.io/py/autocrop.svg)](https://badge.fury.io/py/autocrop) [![Downloads](https://pepy.tech/badge/autocrop)](https://pepy.tech/project/autocrop)
 
 <p align="center"><img title="obama_crop" src="https://cloud.githubusercontent.com/assets/15659410/10975709/3e38de48-83b6-11e5-8885-d95da758ca17.png"></p>
 
-Perfect for profile picture processing for your website or batch work for ID cards, autocrop will output images centered around the biggest face detected.
+`autocrop` is a user-friendly GUI application built with PyQt6 designed to automatically crop images and videos based on detected faces. It intelligently centers the output on the largest face found (or optionally detects multiple faces), making it ideal for processing profile pictures, creating ID card photos, or batch-processing large sets of images. Core calculations are accelerated using Rust with AVX2 optimizations for improved performance.
+
+## Features
+
+* **Graphical User Interface:** Easy-to-use interface built with PyQt6 and styled with `qt-material`.
+* **Multiple Cropping Modes**:
+    * **Photo Crop:** Crop individual image files.
+    * **Folder Crop:** Batch crop all supported images within a selected folder.
+    * **Mapping Crop:** Batch crop images based on a mapping provided in a CSV or Excel file.
+    * **Video Crop:** Extract and crop frames from video files.
+* **Flexible Face Detection:**
+    * Detects the largest face by default.
+    * Option to detect and crop all faces found above a confidence threshold.
+* **Image Adjustments**:
+    * **Auto-Align:** Automatically correct head tilt.
+    * **Exposure Correction:** Fix under/over-exposed images.
+    * **Gamma Adjustment:** Fine-tune image brightness/contrast.
+* **Customizable Output:**
+    * Set specific output dimensions (width, height).
+    * Apply aspect ratio presets (Square, Golden Ratio, 2:3, 3:4, 4:5).
+    * Adjust margins around the detected face.
+    * Choose output format (including keeping original, or converting to JPG, PNG, TIFF, BMP, WEBP).
+* **Wide File Support**: Supports numerous image formats, RAW files (via `rawpy`), and video files (via `ffmpeg-python`).
+* **Performance:** CPU-intensive calculations (like cropping coordinate calculation, gamma/exposure adjustments, rotation matrix generation) are implemented in Rust for significant speed improvements. Uses AVX2 instructions when available.
+* **Live Preview:** See a preview of the crop result directly in the UI as you adjust settings.
+
+## Screenshots
+
+*(Placeholder: Insert screenshots of the Photo, Folder, Mapping, and Video tabs here)*
+
+## Installation
+
+**Prerequisites:**
+
+* Python (Tested on 3.13+)
+* CMake
+* Rust programming language toolchain (Install via [rustup.rs](https://rustup.rs/))
+
+**Install from Source (Recommended for development)**
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/your-username/autocrop.git # Or the original repo
+   cd autocrop
+   ```
+
+2. Create and activate a virtual environment:
+   ```bash
+   python -m venv env
+   source env/bin/activate  # On Windows: env\Scripts\activate
+   ```
+
+3. Install build tools and dependencies:
+   ```bash
+   pip install -U pip setuptools wheel
+   pip install maturin  # For building Rust extension
+   pip install -r requirements.txt
+   ```
+
+4. Build the Rust extension and install in editable mode:
+   ```bash
+   maturin develop
+   ```
+
+## Usage
+
+1. Activate your virtual environment if you installed from source.
+2. Run the application:
+   ```bash
+   python main.py
+   ```
+3. Select a Tab based on your task:
+   - **Photo Crop**: For single image files.
+   - **Folder Crop**: For batch processing an entire folder.
+   - **Mapping Crop**: For batch processing based on an Excel/CSV map.
+   - **Video Crop**: For cropping video frames.
+4. Select Input: Choose your input file, folder, or folder/table combination.
+5. Select Destination: Choose where to save the cropped files.
+6. Adjust Settings:
+   - Set desired Width and Height.
+   - Use Presets menu for common aspect ratios.
+   - Check boxes for Exposure Fix, Multi-Face, Tilt Correction.
+   - Use dials to adjust Sensitivity, Face %, Gamma, and Padding.
+   - Select the desired Output Format.
+7. Crop: Click the Crop button! Use the Cancel button to stop processing.
 
 ## Supported file types
 
@@ -30,33 +114,23 @@ The following file types are supported:
 - RAW files (`.dng`, `.arw`, `.cr2`, `.crw`, `.erf`, `.kdc`, `.nef`, `.nrw`, `.orf`, `.pef`, `.raf`, `.raw`, `.sr2`, `.srw`, `.x3f`)
 - Video files (`.avi`, `.m4v`, `.mkv`, `.mov`, `.mp4`)
 
-## Misc
+## Dependencies
 
-### Installing directly
+Key dependencies include:
 
-Install CMake and Rust, clone the repository, and pip install the requirements.
+- PyQt6
+- qt-material
+- OpenCV (opencv-contrib-python)
+- NumPy
+- Polars (for mapping)
+- fastexcel (for mapping)
+- Rawpy (for RAW files)
+- ffmpeg-python (for video)
+- Maturin (for Rust build)
+- psutil
+- tifffile
+- cachetools
 
-Autocrop is [currently being tested on](https://github.com/leblancfg/autocrop/actions/workflows/ci.yml):
+## License
 
-- Python 3.13
-- OS:
-  - Linux
-  - macOS
-  - Windows
-
-## More Info
-
-Check out:
-
-- <http://docs.opencv.org/master/d7/d8b/tutorial_py_face_detection.html#gsc.tab=0>
-- <http://docs.opencv.org/master/d5/daf/tutorial_py_histogram_equalization.html#gsc.tab=0>
-
-Adapted from:
-
-- <http://photo.stackexchange.com/questions/60411/how-can-i-batch-crop-based-on-face-location>
-
-### Contributing
-
-Although autocrop is essentially a CLI wrapper around a single OpenCV function, it is actively developed. It has active users throughout the world.
-
-If you would like to contribute, please consult the [contribution docs](CONTRIBUTING.md).
+This project is licensed under the MIT License - see the LICENSE file for details.
