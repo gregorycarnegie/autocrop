@@ -1,3 +1,4 @@
+import threading
 from functools import partial
 from pathlib import Path
 from typing import Optional, Any
@@ -20,7 +21,8 @@ class MappingCropper(BatchCropper):
             job: Job,
             face_detection_tools: FaceToolPair,
             old: npt.NDArray[np.str_],
-            new: npt.NDArray[np.str_]) -> None:
+            new: npt.NDArray[np.str_],
+            cancel_event: threading.Event) -> None:
         """
         Performs cropping for a mapping job using batch_process_with_pipeline.
         """
@@ -36,10 +38,13 @@ class MappingCropper(BatchCropper):
                 image_paths.append(old_path)
                 output_paths.append(new_path)
         
-        # Create a progress callback that uses file_amount
-        progress_callback = partial(self._update_progress, file_amount)
-        # Use a modified version of batch_process_with_pipeline that accepts custom output paths
-        prc.batch_process_with_mapping(image_paths, output_paths, job, face_detection_tools, progress_callback)
+        if image_paths and not cancel_event.is_set():
+            # Create a progress callback that uses file_amount
+            progress_callback = partial(self._update_progress, file_amount)
+            # Use a modified version of batch_process_with_pipeline that accepts custom output paths
+            prc.batch_process_with_mapping(
+                image_paths, output_paths, job, face_detection_tools, progress_callback, cancel_event
+            )
         
         if self.progress_count == file_amount or self.end_task:
             self.show_message_box = False
