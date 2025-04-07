@@ -35,28 +35,16 @@ class UiMainWindow(QtWidgets.QMainWindow):
         splash.show_message("Loading face detection models...")
         QtWidgets.QApplication.processEvents()
 
-        # Use ThreadPoolExecutor instead of ProcessPoolExecutor
-        face_detection_tools = []
-        with ThreadPoolExecutor(max_workers=4) as executor:
-            # Submit threads to create tool pairs
-            future_tools = [executor.submit(ft.create_tool_pair) for _ in range(ft.THREAD_NUMBER)]
+        face_detection_tools = self.get_face_detection_tools(splash)
 
-            total = len(future_tools)
-            for completed, future in enumerate(as_completed(future_tools), start=1):
-                face_detection_tools.append(future.result())
-                splash.show_message(f"Loading face detection models... {completed}/{total}")
-                QtWidgets.QApplication.processEvents()
-            splash.finish(self)
-
-        # face_detection_tools = ft.generate_face_detection_tools()
+        # Signle-threaded
         self.display_worker = DisplayCropper(face_detection_tools[0])
-        self.folder_worker = FolderCropper(face_detection_tools)
-        self.mapping_worker = MappingCropper(face_detection_tools)
-        print(f"Worker type: {type(self.mapping_worker).__name__}")
         self.photo_worker = PhotoCropper(face_detection_tools[0])
         self.video_worker = VideoCropper(face_detection_tools[0])
         
-        
+        # Multi-threaded
+        self.folder_worker = FolderCropper(face_detection_tools)
+        self.mapping_worker = MappingCropper(face_detection_tools)
 
         self.setObjectName(u"MainWindow")
         self.resize(1256, 652)
@@ -247,6 +235,21 @@ class UiMainWindow(QtWidgets.QMainWindow):
         
         # Stop any ongoing video playback
         self.video_tab_widget.player.stop()
+
+    def get_face_detection_tools(self, splash: UiClickableSplashScreen) -> list[ft.FaceToolPair]:
+        # Use ThreadPoolExecutor instead of ProcessPoolExecutor
+        face_detection_tools: list[ft.FaceToolPair] = []
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            # Submit threads to create tool pairs
+            future_tools = [executor.submit(ft.create_tool_pair) for _ in range(ft.THREAD_NUMBER)]
+
+            total = len(future_tools)
+            for completed, future in enumerate(as_completed(future_tools), start=1):
+                face_detection_tools.append(future.result())
+                splash.show_message(f"Loading face detection models... {completed}/{total}")
+                QtWidgets.QApplication.processEvents()
+            splash.finish(self)
+            return face_detection_tools
 
     def connect_widgets(self):
         # CONNECTIONS
