@@ -888,11 +888,15 @@ class UiVideoTabWidget(UiCropWidget):
         else:
             execute_crop()
 
-    @staticmethod
-    def run_batch_process(job: Job, *,
+    def run_batch_process(self, job: Job, *,
                           function: Callable[..., Any],
                           reset_worker_func: Callable[..., Any]) -> None:
         """Run a batch processing operation"""
         reset_worker_func()
+
+        # Reset progress bars
+        self.progressBar.setValue(0)
+        self.progressBar_2.setValue(0)
+
         process = Process(target=function, daemon=True, args=(job,))
         process.run()
