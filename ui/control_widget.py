@@ -295,7 +295,7 @@ class UiCropControlWidget(QtWidgets.QWidget):
 
     def create_radio_button(self, size_policy: QtWidgets.QSizePolicy, name: str,
                             icon_resource: tuple[str, str],
-                            layout: Union[QtWidgets.QHBoxLayout, QtWidgets.QHBoxLayout]) -> QtWidgets.QRadioButton:
+                            layout: Union[QtWidgets.QHBoxLayout, QtWidgets.QVBoxLayout]) -> QtWidgets.QRadioButton:
         radio_button = QtWidgets.QRadioButton(self)
         radio_button.setObjectName(name)
         size_policy.setHeightForWidth(radio_button.sizePolicy().hasHeightForWidth())
