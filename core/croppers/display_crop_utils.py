@@ -10,7 +10,6 @@ from core import processing as prc
 from core.enums import FunctionType
 from core.face_tools import FaceToolPair
 from core.job import Job
-from core.operation_types import Box
 from file_types import registry
 
 
@@ -37,19 +36,7 @@ def matlike_to_qimage(image: cvt.MatLike) -> QImage:
     Convert a BGR NumPy array (shape = [height, width, channels])
     to a QImage using QImage.Format_BGR888.
     """
-    return QImage(image, image.shape[1], image.shape[0], image.strides[0], QImage.Format.Format_BGR888).rgbSwapped()
-
-def crop_to_qimage(input_image: cvt.MatLike,
-                   bounding_box: Box,
-                   job: Job) -> QImage:
-    try:
-        cropped_image = prc.numpy_array_crop(input_image, bounding_box)
-        cropped_image = prc.correct_exposure(cropped_image, job.fix_exposure_job)
-        adjusted_image = prc.adjust_gamma(cropped_image, job.gamma)
-        return matlike_to_qimage(adjusted_image)
-    except cv2.error:
-        return QImage()
-
+    return QImage(image, image.shape[1], image.shape[0], image.strides[0], QImage.Format.Format_RGB888).rgbSwapped()
 
 def perform_crop_helper(function_type: FunctionType,
                         widget_state: WidgetState,
@@ -71,19 +58,16 @@ def perform_crop_helper(function_type: FunctionType,
     pic_array = prc.open_pic(next_img_path, face_detection_tools, job)
     return None if pic_array is None else handle_face_detection(pic_array, job, face_detection_tools)
 
-
 @cached(cache)
 def validate_widget_state(widget_state: WidgetState) -> bool:
     # input_line_edit_text, width_line_edit_text, height_line_edit_text
     return all(widget_state[:3])
-
 
 def get_image_path(function_type: FunctionType, input_line_edit_text: str) -> Optional[Path]:
     img_path = Path(input_line_edit_text)
     if function_type == FunctionType.PHOTO:
         return img_path if img_path.is_file() else None
     return path_iterator(img_path)
-
 
 def create_job(widget_state: WidgetState, img_path_str: str, function_type: FunctionType) -> Job:
     return Job(
@@ -104,7 +88,6 @@ def create_job(widget_state: WidgetState, img_path_str: str, function_type: Func
         folder_path=img_path_str if function_type != FunctionType.PHOTO else None,
     )
 
-
 def handle_face_detection(pic_array: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair) -> Optional[QImage]:
     if job.multi_face_job:
         pic = prc.multi_box(pic_array, job, face_detection_tools)
@@ -112,4 +95,13 @@ def handle_face_detection(pic_array: cvt.MatLike, job: Job, face_detection_tools
         return matlike_to_qimage(final_image)
     else:
         bounding_box = prc.box_detect(pic_array, job, face_detection_tools)
-        return crop_to_qimage(pic_array, bounding_box, job) if bounding_box else None
+        if not bounding_box:
+            return None
+            
+        # Create pipeline with bounding box
+        pipeline = prc.create_image_pipeline(job, face_detection_tools, bounding_box, True)
+        
+        # Apply pipeline to original image
+        processed = prc.apply_pipeline(pic_array, pipeline)
+        
+        return matlike_to_qimage(processed)
