@@ -19,7 +19,7 @@ import tifffile as tiff
 from rawpy._rawpy import NotSupportedError, LibRawError, LibRawFatalError, LibRawNonFatalError
 
 from file_types import file_manager, FileCategory
-from .face_tools import L_EYE_START, L_EYE_END, R_EYE_START, R_EYE_END, FaceToolPair
+from .face_tools import L_EYE_START, L_EYE_END, R_EYE_START, R_EYE_END, FaceToolPair, YuNetFaceDetector, Rectangle
 from .image_loader import ImageLoader
 from .job import Job
 from .operation_types import CropFunction, SaveFunction, Box
@@ -366,6 +366,64 @@ def multi_box_positions(image: cvt.MatLike, job: Job, face_detection_tools: Face
 
     return zip(confidences, boxes)
 
+def determine_scale_factor(width: int, height: int) -> int:
+    """
+    Determine the scale factor for face detection based on image dimensions.
+    
+    Args:
+        width: Image width
+        height: Image height
+        
+    Returns:
+        Scale factor (1 for small images, larger for big images)
+    """
+    return max(1, min(width, height) // 500)
+
+
+def detect_faces(image: cvt.MatLike, threshold: int, detector: YuNetFaceDetector, scale_factor: int) -> list[Rectangle]:
+    """
+    Detect faces in an image, with optional resizing for performance.
+    
+    Args:
+        image: Input image
+        threshold: Detection confidence threshold
+        detector: Face detector object
+        scale_factor: Scale factor for resizing
+        
+    Returns:
+        List of detected faces
+    """
+    if scale_factor <= 1:
+        # Small image, detect directly
+        return detector(image, threshold)
+    
+    # Large image, resize for faster detection
+    height, width = image.shape[:2]
+    small_img = cv2.resize(image, (width // scale_factor, height // scale_factor))
+    return detector(small_img, threshold)
+
+
+def scale_face_coordinates(face: Any, scale_factor: int) -> tuple[int, int, int, int]:
+    """
+    Scale face coordinates based on the scale factor.
+    
+    Args:
+        face: Detected face object
+        scale_factor: Scale factor that was used for detection
+        
+    Returns:
+        Tuple of (x, y, width, height) with adjusted coordinates
+    """
+    if scale_factor > 1:
+        return (
+            face.left * scale_factor,
+            face.top * scale_factor,
+            face.width * scale_factor,
+            face.height * scale_factor
+        )
+    return face.left, face.top, face.width, face.height
+
+
 def box_detect(image: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair) -> Optional[Box]:
     """
     Detect face in an image with optimized performance.
@@ -382,40 +440,25 @@ def box_detect(image: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair)
         height, width = image.shape[:2]
         detector, _ = face_detection_tools
         
-        # Determine if we need to resize for performance
-        scale_factor = max(1, min(width, height) // 500)
+        # Determine optimal scale factor for performance
+        scale_factor = determine_scale_factor(width, height)
         
-        if scale_factor <= 1:
-            # Small image, detect directly
-            faces = detector(image, job.threshold)
-        else:
-            # Large image, resize for faster detection
-            small_img = cv2.resize(image, (width // scale_factor, height // scale_factor))
-            faces = detector(small_img, job.threshold)
+        # Detect faces with appropriate scaling
+        faces = detect_faces(image, job.threshold, detector, scale_factor)
         
-        # If no faces or faces below threshold confidence, return None
-        # The threshold check is now in the detector itself
+        # Exit early if no faces detected
         if not faces:
             return None
             
         # Find the face with the highest confidence
         face = max(faces, key=lambda f: f.confidence)
         
-        # For resized images, scale the coordinates back
-        if scale_factor > 1:
-            x0 = face.left * scale_factor
-            y0 = face.top * scale_factor
-            width = face.width * scale_factor
-            height = face.height * scale_factor
-        else:
-            x0 = face.left
-            y0 = face.top
-            width = face.width
-            height = face.height
+        # Scale coordinates if needed
+        x0, y0, face_width, face_height = scale_face_coordinates(face, scale_factor)
         
-        # Use the crop_positions function from Rust
+        # Calculate crop box using Rust module
         return rs.crop_positions(
-            x0, y0, width, height, 
+            x0, y0, face_width, face_height, 
             job.face_percent, job.width, job.height,
             job.top, job.bottom, job.left, job.right
         )
