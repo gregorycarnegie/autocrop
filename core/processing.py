@@ -43,25 +43,31 @@ def profile_it(func: c.Callable[..., Any]) -> c.Callable[..., Any]:
 
     return wrapper
 
-def create_image_pipeline(job: Job, face_detection_tools: FaceToolPair) -> list[c.Callable[[cvt.MatLike], cvt.MatLike]]:
+def create_image_pipeline(job: Job, face_detection_tools: FaceToolPair, bounding_box: Optional[Box] = None, display=False) -> list[c.Callable[[cvt.MatLike], cvt.MatLike]]:
     """
     Creates a pipeline of image processing functions based on job parameters.
     """
-    pipeline = []
-
+    pipeline: list[c.Callable[[cvt.MatLike], cvt.MatLike]] = []
     # Add alignment if requested
     if job.auto_tilt_job:
         pipeline.append(partial(align_head, face_detection_tools=face_detection_tools, job=job))
+
+    # Add cropping first if a bounding box is provided
+    if bounding_box is not None:
+        pipeline.append(partial(numpy_array_crop, bounding_box=bounding_box))
 
     # Add exposure correction if requested
     if job.fix_exposure_job:
         pipeline.append(partial(correct_exposure, exposure=True))
 
-    # Always add gamma adjustment
-    pipeline.append(partial(adjust_gamma, gam=job.gamma))
-
+    pipeline.extend(
+        (
+            partial(adjust_gamma, gam=job.gamma),
+            partial(cv2.resize, dsize=job.size, interpolation=cv2.INTER_AREA),
+        )
+    )
     # Add color space conversion if needed
-    if job.radio_choice() in ['.jpg', '.png', '.bmp', '.webp', 'No']:
+    if display or job.radio_choice() in ['.jpg', '.png', '.bmp', '.webp', 'No']:
         pipeline.append(convert_color_space)
 
     return pipeline
@@ -546,15 +552,9 @@ def process_image(image: cvt.MatLike, job: Job, bounding_box: Box, face_detectio
     """
     Crops an image according to 'bounding_box', applies processing pipeline, and resizes.
     """
-    # Crop the image
-    cropped_image = numpy_array_crop(image, bounding_box)
-    
     # Create and apply the processing pipeline
-    pipeline = create_image_pipeline(job, face_detection_tools)
-    processed = apply_pipeline(cropped_image, pipeline)
-    
-    # Resize to final dimensions
-    return cv2.resize(processed, job.size, interpolation=cv2.INTER_AREA)
+    pipeline = create_image_pipeline(job, face_detection_tools, bounding_box)
+    return apply_pipeline(image, pipeline)
 
 @singledispatch
 def crop_image(image: Union[cvt.MatLike, Path],
@@ -609,33 +609,22 @@ def _(image: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair) -> Optio
     if not valid_faces:
         return None
     
-    # Step 3: Create the processing pipeline once (reused for all faces)
-    pipeline = create_image_pipeline(job, face_detection_tools)
-    
     # Step 4: Process each face
-    def process_face_box(confidence: float, position: Box) -> cvt.MatLike:
-        # Crop the face
-        cropped = numpy_array_crop(image, position)
+    def process_face_box(position: Box) -> cvt.MatLike:
+        # Create a pipeline specific to this face with its bounding box
+        # This ensures alignment happens before cropping
+        face_pipeline = create_image_pipeline(job, face_detection_tools, position)
         
-        # Apply the processing pipeline
-        processed = apply_pipeline(cropped, pipeline)
-        
-        # Resize to final dimensions
-        return cv2.resize(processed, job.size, interpolation=cv2.INTER_AREA)
+        # Apply the pipeline to the original image
+        return apply_pipeline(image, face_pipeline)
     
     # Return a generator that processes each face on-demand
-    return (process_face_box(confidence, position) for confidence, position in valid_faces)
+    return (process_face_box(position) for _, position in valid_faces)
 
 @multi_crop.register
 def _(image: Path, job: Job, face_detection_tools: FaceToolPair) -> Optional[c.Iterator[cvt.MatLike]]:
     img = open_pic(image, face_detection_tools, job)
     return None if img is None else multi_crop(img, job, face_detection_tools)
-
-def process_face(image_array: cvt.MatLike, bounding_box: Box, pipeline: list, job: Job) -> cvt.MatLike:
-    """Process a single face with the given pipeline"""
-    cropped = numpy_array_crop(image_array, bounding_box)
-    processed = apply_pipeline(cropped, pipeline)
-    return cv2.resize(processed, job.size, interpolation=cv2.INTER_AREA)
 
 def save_processed_face(processed_image: cvt.MatLike, output_path: Path, gamma: int) -> None:
     """Save a processed face to the given output path"""
@@ -667,17 +656,18 @@ def process_batch_item(image_array: cvt.MatLike, job: Job, face_detection_tools:
             progress_callback()
             return output_paths, pipeline
 
-        # Create pipeline if not already created
-        if pipeline is None:
-            pipeline = create_image_pipeline(job, face_detection_tools)
-
         # Process each face
         for i, bounding_box in enumerate(valid_positions):
             # Create output path using the provided function
             output_path = get_output_path_fn(img_path, i)
             
-            # Process and save
-            processed = process_face(image_array, bounding_box, pipeline, job)
+            # Create a pipeline specific to this face with its bounding box
+            face_pipeline = create_image_pipeline(job, face_detection_tools, bounding_box)
+            
+            # Apply the pipeline to the original image
+            processed = apply_pipeline(image_array, face_pipeline)
+            
+            # Save the processed image
             save_processed_face(processed, output_path, job.gamma)
             output_paths.append(output_path)
     else:
@@ -687,15 +677,16 @@ def process_batch_item(image_array: cvt.MatLike, job: Job, face_detection_tools:
             progress_callback()
             return output_paths, pipeline
 
-        # Create pipeline if not already created
-        if pipeline is None:
-            pipeline = create_image_pipeline(job, face_detection_tools)
-
         # Create output path using the provided function
         output_path = get_output_path_fn(img_path, None)
         
-        # Process and save
-        processed = process_face(image_array, bounding_box, pipeline, job)
+        # Create a pipeline specific to this face with its bounding box
+        face_pipeline = create_image_pipeline(job, face_detection_tools, bounding_box)
+        
+        # Apply the pipeline to the original image
+        processed = apply_pipeline(image_array, face_pipeline)
+        
+        # Save the processed image
         save_processed_face(processed, output_path, job.gamma)
         output_paths.append(output_path)
     
