@@ -13,7 +13,6 @@ from core.face_tools import FaceToolPair
 from core.job import Job
 from .base import Cropper
 
-# Type definitions for better type hints
 T = TypeVar('T')
 FileList = Union[list[Path], npt.NDArray[np.str_]]
 
@@ -25,7 +24,6 @@ class BatchCropper(Cropper):
 
     def __init__(self, face_detection_tools: list[FaceToolPair]):
         super().__init__()
-        self.executor: Optional[ThreadPoolExecutor] = None
         self.futures: list[Future] = []
         self.executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)
         self.face_detection_tools = face_detection_tools
