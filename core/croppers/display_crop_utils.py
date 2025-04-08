@@ -1,7 +1,6 @@
 from pathlib import Path
 from typing import Optional
 
-import cv2
 import cv2.typing as cvt
 from PyQt6.QtGui import QImage
 from cachetools import cached, TTLCache
