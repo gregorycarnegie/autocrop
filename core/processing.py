@@ -43,7 +43,7 @@ def profile_it(func: c.Callable[..., Any]) -> c.Callable[..., Any]:
 
     return wrapper
 
-def create_image_pipeline(job: Job, face_detection_tools: FaceToolPair, bounding_box: Optional[Box] = None, display=False) -> list[c.Callable[[cvt.MatLike], cvt.MatLike]]:
+def create_image_pipeline(job: Job, face_detection_tools: FaceToolPair, bounding_box: Box=None, display=False) -> list[c.Callable[[cvt.MatLike], cvt.MatLike]]:
     """
     Creates a pipeline of image processing functions based on job parameters.
     """
@@ -601,7 +601,7 @@ def _(image: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair) -> Optio
     
     # Step 2: Filter faces based on confidence threshold
     valid_faces = [
-        (confidence, position) for confidence, position in results
+        (confidence, bounding_box) for confidence, bounding_box in results
         if confidence > job.threshold
     ]
     
@@ -610,16 +610,16 @@ def _(image: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair) -> Optio
         return None
     
     # Step 4: Process each face
-    def process_face_box(position: Box) -> cvt.MatLike:
+    def process_face_box(bounding_box: Box) -> cvt.MatLike:
         # Create a pipeline specific to this face with its bounding box
         # This ensures alignment happens before cropping
-        face_pipeline = create_image_pipeline(job, face_detection_tools, position)
+        face_pipeline = create_image_pipeline(job, face_detection_tools, bounding_box)
         
         # Apply the pipeline to the original image
         return apply_pipeline(image, face_pipeline)
     
     # Return a generator that processes each face on-demand
-    return (process_face_box(position) for _, position in valid_faces)
+    return (process_face_box(bounding_box) for _, bounding_box in valid_faces)
 
 @multi_crop.register
 def _(image: Path, job: Job, face_detection_tools: FaceToolPair) -> Optional[c.Iterator[cvt.MatLike]]:
