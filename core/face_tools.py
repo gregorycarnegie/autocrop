@@ -76,18 +76,14 @@ class YuNetFaceDetector:
         # Detect faces
         _, faces = self._detector.detect(image)
         
-        # Process detections
-        result = []
-        if faces is not None:
-            for face in faces:
-                x, y, w, h = int(face[0]), int(face[1]), int(face[2]), int(face[3])
-                confidence = face[14]
-                
-                # Create a Rectangle object compatible with your existing code
-                rect = Rectangle(x, y, x + w, y + h, confidence)
-                result.append(rect)
+        def create_rectangle(face) -> Rectangle:
+            x, y, w, h = map(int, face[:4])
+            # Create the rectangle with the top-left (x, y) and bottom-right (x+w, y+h)
+            return Rectangle(x, y, x + w, y + h, face[14])
+
+        # result = list(map(create_rectangle, faces)) if faces is not None else []
         
-        return result
+        return list(map(create_rectangle, faces)) if faces is not None else []
 
 
 type FaceToolPair = tuple[YuNetFaceDetector, cv2.face.Facemark]
