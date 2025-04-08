@@ -403,7 +403,7 @@ def detect_faces(image: cvt.MatLike, threshold: int, detector: YuNetFaceDetector
     return detector(small_img, threshold)
 
 
-def scale_face_coordinates(face: Any, scale_factor: int) -> tuple[int, int, int, int]:
+def scale_face_coordinates(face: Rectangle, scale_factor: int) -> tuple[int, int, int, int]:
     """
     Scale face coordinates based on the scale factor.
     

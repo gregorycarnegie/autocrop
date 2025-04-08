@@ -2,7 +2,7 @@
 Utilities for file signature detection and validation.
 """
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Set
+from typing import Optional
 
 from .file_type_manager import FileCategory, FileTypeManager
 
@@ -13,7 +13,7 @@ class SignatureChecker:
     Only used when more accurate type detection is needed beyond extensions.
     """
     # Common file signatures as (signature bytes, offset)
-    _SIGNATURES: Dict[FileCategory, Dict[str, List[Tuple[bytes, int]]]] = {
+    _SIGNATURES: dict[FileCategory, dict[str, list[tuple[bytes, int]]]] = {
         FileCategory.PHOTO: {
             '.jpg': [(b'\xFF\xD8\xFF', 0)],
             '.jpeg': [(b'\xFF\xD8\xFF', 0)],
@@ -43,7 +43,7 @@ class SignatureChecker:
     }
     
     # Extensions without reliable signatures (text-based formats)
-    _TEXT_EXTENSIONS: Set[str] = {'.csv'}
+    _TEXT_EXTENSIONS: set[str] = {'.csv'}
     
     @classmethod
     def check_signature(cls, file_path: Path, expected_category: Optional[FileCategory] = None) -> bool:
@@ -83,7 +83,7 @@ class SignatureChecker:
             return True
     
     @classmethod
-    def _get_signatures(cls, category: FileCategory, extension: str) -> List[Tuple[bytes, int]]:
+    def _get_signatures(cls, category: FileCategory, extension: str) -> list[tuple[bytes, int]]:
         """Get signatures for a given category and extension."""
         if category not in cls._SIGNATURES:
             return []
@@ -107,7 +107,7 @@ class SignatureChecker:
             return False
     
     @staticmethod
-    def _check_file_signatures(file_path: Path, signatures: List[Tuple[bytes, int]]) -> bool:
+    def _check_file_signatures(file_path: Path, signatures: list[tuple[bytes, int]]) -> bool:
         """Check if file matches any of the provided signatures."""
         try:
             # Read enough bytes for signature checking
