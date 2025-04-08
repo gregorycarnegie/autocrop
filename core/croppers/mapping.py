@@ -9,7 +9,7 @@ import numpy.typing as npt
 from core import processing as prc
 from core.face_tools import FaceToolPair
 from core.job import Job
-from file_types import registry
+from file_types import file_manager, FileCategory
 from .batch import BatchCropper
 
 
@@ -56,7 +56,7 @@ class MappingCropper(BatchCropper):
         if not (file_tuple := job.file_list_to_numpy()):
             return None, None
 
-        exts = registry.get_extensions('photo') | registry.get_extensions('raw')
+        exts = file_manager.get_extensions(FileCategory.PHOTO) | file_manager.get_extensions(FileCategory.RAW)
         # Get the extensions of the file names and create a mask for supported extensions
         mask, amount = prc.mask_extensions(file_tuple[0], exts)
 

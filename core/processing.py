@@ -18,7 +18,7 @@ from PyQt6 import QtWidgets
 import tifffile as tiff
 from rawpy._rawpy import NotSupportedError, LibRawError, LibRawFatalError, LibRawNonFatalError
 
-from file_types import registry
+from file_types import file_manager, FileCategory
 from .face_tools import L_EYE_START, L_EYE_END, R_EYE_START, R_EYE_END, FaceToolPair
 from .image_loader import ImageLoader
 from .job import Job
@@ -234,14 +234,14 @@ def open_pic(file: Path,
     """
 
     img_path = file.as_posix()
-    if registry.is_valid_type(file, "photo") or registry.is_valid_type(file, "tiff"):
+    if file_manager.is_valid_type(file, FileCategory.PHOTO) or file_manager.is_valid_type(file, FileCategory.TIFF):
         img = ImageLoader.loader('standard')(img_path)
         if img is None:
             return None
 
         return colour_expose_align(img, face_detection_tools, job)
 
-    elif registry.is_valid_type(file, "raw"):
+    elif file_manager.is_valid_type(file, FileCategory.RAW):
         try:
             with ImageLoader.loader('raw')(img_path) as raw:
                 try:
@@ -270,7 +270,7 @@ def open_table(file: Path) -> pl.DataFrame:
     """
     Opens a CSV or Excel file using Polars.
     """
-    if registry.is_valid_type(file, "table"):
+    if file_manager.is_valid_type(file, FileCategory.TABLE):
         try:
             return pl.read_csv(file) if file.suffix.lower() == '.csv' else pl.read_excel(file)
         except IsADirectoryError:
@@ -449,7 +449,7 @@ def join_path_suffix(file_str: str, destination: Path) -> tuple[Path, bool]:
     """
 
     path = destination.joinpath(file_str)
-    return path, registry.should_use_tiff_save(path)
+    return path, file_manager.should_use_tiff_save(path)
 
 @cache
 def set_filename(radio_options: tuple[str, ...],
@@ -462,7 +462,7 @@ def set_filename(radio_options: tuple[str, ...],
     Sets the output filename based on radio choice, RAW or non-RAW input, and optional custom filename.
     """
     suffix = image_path.suffix.lower()
-    if registry.is_valid_type(image_path, "raw"):
+    if file_manager.is_valid_type(image_path, FileCategory.RAW):
         selected_ext = radio_options[2] if radio_choice == radio_options[0] else radio_choice
     else:
         selected_ext = suffix if radio_choice == radio_options[0] else radio_choice

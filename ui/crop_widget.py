@@ -7,7 +7,7 @@ from PyQt6 import QtCore, QtWidgets
 
 from core import Job
 from core.enums import FunctionType
-from file_types import registry, FileTypeInfo
+from file_types import file_manager, FileCategory
 from line_edits import PathLineEdit, PathType
 from ui import utils as ut
 from .control_widget import UiCropControlWidget
@@ -182,7 +182,7 @@ class UiCropWidget(QtWidgets.QWidget):
         f_name = QtWidgets.QFileDialog.getExistingDirectory(
             self, 
             'Select Directory', 
-            registry.get_default_dir("photo").as_posix()
+            file_manager.get_default_dir(FileCategory.PHOTO).as_posix()
         )
         # Validate the file exists and is accessible
         if f_name:= ut.sanitize_path(f_name):
@@ -228,10 +228,10 @@ class UiCropWidget(QtWidgets.QWidget):
         if function_type is not None:
             if function_type in (FunctionType.FOLDER, FunctionType.MAPPING):
                 if destination and folder_path:
-                    destination = self._handle_folder_path(destination, folder_path, FileTypeInfo.save_types)
+                    destination = self._handle_folder_path(destination, folder_path, file_manager.get_save_formats(FileCategory.PHOTO))
             elif function_type == FunctionType.VIDEO:
                 if destination and video_path:
-                    destination = self._handle_video_path(destination, video_path, FileTypeInfo.save_types)
+                    destination = self._handle_video_path(destination, video_path, file_manager.get_save_formats(FileCategory.PHOTO))
 
         # Update the destination
         self.destination = destination if destination is not None else self.destination

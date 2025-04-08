@@ -4,7 +4,7 @@ from PyQt6 import QtCore, QtWidgets
 
 from core.croppers import PhotoCropper
 from core.enums import FunctionType
-from file_types import registry
+from file_types import file_manager, FileCategory
 from line_edits import PathLineEdit, PathType
 from ui import utils as ut
 from .crop_widget import UiCropWidget
@@ -129,8 +129,8 @@ class UiPhotoTabWidget(UiCropWidget):
         if line_edit is self.inputLineEdit:
             f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
                 self, 'Open File', 
-                registry.get_default_dir("photo").as_posix(), 
-                registry.get_filter_string("photo")
+                file_manager.get_default_dir(FileCategory.PHOTO).as_posix(), 
+                file_manager.get_filter_string(FileCategory.PHOTO)
             )
             # Validate the file exists and is accessible
             if f_name:= ut.sanitize_path(f_name):

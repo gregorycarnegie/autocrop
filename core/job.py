@@ -8,7 +8,7 @@ import numpy.typing as npt
 import polars as pl
 from PyQt6.QtWidgets import QComboBox
 
-from file_types import registry
+from file_types import file_manager, FileCategory
 
 StringArrayTuple = tuple[npt.NDArray[np.str_], npt.NDArray[np.str_]]
 RadioButtonTuple = tuple[bool, bool, bool, bool, bool, bool]
@@ -135,9 +135,9 @@ Column 2: {self.column2}
         return list(
             filter(
                 lambda f: f.is_file() and (
-                        registry.is_valid_type(f, "photo") or
-                        registry.is_valid_type(f, "raw") or
-                        registry.is_valid_type(f, "tiff")
+                        file_manager.is_valid_type(f, FileCategory.PHOTO) or
+                        file_manager.is_valid_type(f, FileCategory.RAW) or
+                        file_manager.is_valid_type(f, FileCategory.TIFF)
                 ),
                 self.folder_path.iterdir()
             )

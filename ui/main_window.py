@@ -10,7 +10,7 @@ from core import face_tools as ft
 from core import processing as prc
 from core.croppers import FolderCropper, PhotoCropper, MappingCropper, VideoCropper, DisplayCropper
 from core.enums import FunctionType, Preset
-from file_types import registry
+from file_types import file_manager, FileCategory
 from line_edits import NumberLineEdit, PathLineEdit, LineEditState
 from ui import utils as ut
 from .control_widget import UiCropControlWidget
@@ -465,7 +465,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         """
 
         extensions = {y.suffix.lower() for y in file_path.iterdir()}
-        mask = {ext in extensions for ext in registry.get_extensions('table')}
+        mask = {ext in extensions for ext in file_manager.get_extensions(FileCategory.TABLE)}
         try:
             assert isinstance(self.mapping_tab_widget, UiMappingTabWidget)
             assert isinstance(self.folder_tab_widget, UiFolderTabWidget)
@@ -488,11 +488,11 @@ class UiMainWindow(QtWidgets.QMainWindow):
             None
         """
 
-        if registry.is_valid_type(file_path, "photo") or registry.is_valid_type(file_path, "tiff") or registry.is_valid_type(file_path, "raw"):
+        if file_manager.is_valid_type(file_path, FileCategory.PHOTO) | file_manager.is_valid_type(file_path, FileCategory.TIFF) | file_manager.is_valid_type(file_path, FileCategory.RAW):
             self.handle_image_file(file_path)
-        elif registry.is_valid_type(file_path, "video"):
+        elif file_manager.is_valid_type(file_path, FileCategory.VIDEO):
             self.handle_video_file(file_path)
-        elif registry.is_valid_type(file_path, "table"):
+        elif file_manager.is_valid_type(file_path, FileCategory.TABLE):
             self.handle_table_file(file_path)
 
     def handle_image_file(self, file_path: Path) -> None:

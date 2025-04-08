@@ -8,7 +8,7 @@ from core import DataFrameModel
 from core import processing as prc
 from core.croppers import MappingCropper
 from core.enums import FunctionType
-from file_types import registry
+from file_types import file_manager, FileCategory
 from line_edits import LineEditState, PathType
 from ui import utils as ut
 from .batch_tab import UiBatchCropWidget
@@ -211,8 +211,8 @@ class UiMappingTabWidget(UiBatchCropWidget):
         """Open a table file dialog"""
         f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
             self, 'Open File',
-            registry.get_default_dir("photo").as_posix(),
-            registry.get_filter_string("table")
+            file_manager.get_default_dir(FileCategory.PHOTO).as_posix(),
+            file_manager.get_filter_string(FileCategory.TABLE)
         )
 
         # Validate the file exists and is accessible

@@ -3,7 +3,7 @@ from typing import Optional
 
 from PyQt6 import QtCore, QtWidgets
 
-from file_types import registry
+from file_types import file_manager, FileCategory
 from .custom_line_edit import CustomLineEdit
 from .enums import PathType
 from .file_path_validator import FilePathValidator
@@ -81,12 +81,12 @@ class PathLineEdit(CustomLineEdit):
         
         match self.path_type:
             case PathType.IMAGE:
-                return is_file and (registry.is_valid_type(path, "photo") or 
-                                    registry.is_valid_type(path, "raw"))
+                return is_file and (file_manager.is_valid_type(path, FileCategory.PHOTO) or 
+                                    file_manager.is_valid_type(path, FileCategory.RAW))
             case PathType.TABLE:
-                return is_file and registry.is_valid_type(path, "table")
+                return is_file and file_manager.is_valid_type(path, FileCategory.TABLE)
             case PathType.VIDEO:
-                return is_file and registry.is_valid_type(path, "video")
+                return is_file and file_manager.is_valid_type(path, FileCategory.VIDEO)
             case PathType.FOLDER:
                 return path.is_dir()
             case _:

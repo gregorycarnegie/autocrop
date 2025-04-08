@@ -10,7 +10,7 @@ from core import Job
 from core import processing as prc
 from core.croppers import VideoCropper
 from core.enums import FunctionType
-from file_types import registry
+from file_types import file_manager, FileCategory
 from line_edits import LineEditState, PathType
 from ui import utils as ut
 from .crop_widget import UiCropWidget
@@ -31,7 +31,7 @@ class UiVideoTabWidget(UiCropWidget):
         # Media player attributes
         self.vol_cache = 70
         self.rewind_timer = QtCore.QTimer()
-        self.default_directory = registry.get_default_dir("video").as_posix()
+        self.default_directory = file_manager.get_default_directory(FileCategory.VIDEO).as_posix()
         self.player = QtMultimedia.QMediaPlayer()
         self.audio = QtMultimedia.QAudioOutput()
         self.start_position, self.stop_position, self.step = .0, .0, 100
@@ -593,7 +593,7 @@ class UiVideoTabWidget(UiCropWidget):
         file_name, _ = QtWidgets.QFileDialog.getOpenFileName(
             self, 'Open Video', 
             self.default_directory,
-            registry.get_filter_string("video")
+            file_manager.get_filter_string(FileCategory.VIDEO)
         )
 
         # Validate the file exists and is accessible

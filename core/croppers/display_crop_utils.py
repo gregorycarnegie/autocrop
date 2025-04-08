@@ -9,7 +9,7 @@ from core import processing as prc
 from core.enums import FunctionType
 from core.face_tools import FaceToolPair
 from core.job import Job
-from file_types import registry
+from file_types import file_manager, FileCategory
 
 
 RadioButtonTuple = tuple[bool, bool, bool, bool, bool, bool]
@@ -24,7 +24,7 @@ def path_iterator(path: Path) -> Optional[Path]:
     
     return next(
         filter(
-            lambda f: f.is_file() and registry.is_valid_type(f, "photo"), path.iterdir()
+            lambda f: f.is_file() and file_manager.is_valid_type(f, FileCategory.PHOTO), path.iterdir()
         ),
         None
     )
