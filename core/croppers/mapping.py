@@ -56,9 +56,13 @@ class MappingCropper(BatchCropper):
         if not (file_tuple := job.file_list_to_numpy()):
             return None, None
 
-        exts = file_manager.get_extensions(FileCategory.PHOTO) | file_manager.get_extensions(FileCategory.RAW)
+        extensions = (
+                file_manager.get_extensions(FileCategory.PHOTO) |
+                file_manager.get_extensions(FileCategory.RAW) |
+                file_manager.get_extensions(FileCategory.TIFF)
+        )
         # Get the extensions of the file names and create a mask for supported extensions
-        mask, amount = prc.mask_extensions(file_tuple[0], exts)
+        mask, amount = prc.mask_extensions(file_tuple[0], extensions)
 
         # Split the file lists and the mapping data into chunks
         old_file_list, new_file_list = prc.split_by_cpus(mask, self.THREAD_NUMBER, file_tuple[0], file_tuple[1])
