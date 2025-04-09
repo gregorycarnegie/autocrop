@@ -39,7 +39,6 @@
 **Prerequisites:**
 
 * Python (Tested on 3.13+)
-* CMake
 * Rust programming language toolchain (Install via [rustup.rs](https://rustup.rs/))
 
 **Install from Source (Recommended for development)**
