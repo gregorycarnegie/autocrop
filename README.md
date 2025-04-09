@@ -2,7 +2,9 @@
 
 [![CI](https://github.com/leblancfg/autocrop/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/leblancfg/autocrop/actions/workflows/ci.yml) [![codecov](https://codecov.io/gh/leblancfg/autocrop/branch/master/graph/badge.svg)](https://codecov.io/gh/leblancfg/autocrop) [![Documentation](https://img.shields.io/badge/docs-passing-success.svg)](https://leblancfg.com/autocrop) [![PyPI version](https://badge.fury.io/py/autocrop.svg)](https://badge.fury.io/py/autocrop) [![Downloads](https://pepy.tech/badge/autocrop)](https://pepy.tech/project/autocrop)
 
-<p align="center"><img title="obama_crop" src="https://cloud.githubusercontent.com/assets/15659410/10975709/3e38de48-83b6-11e5-8885-d95da758ca17.png"></p>
+<div align="center">
+   <img title="obama_crop" src="https://cloud.githubusercontent.com/assets/15659410/10975709/3e38de48-83b6-11e5-8885-d95da758ca17.png">
+</div>
 
 `autocrop` is a user-friendly GUI application built with PyQt6 designed to automatically crop images and videos based on detected faces. It intelligently centers the output on the largest face found (or optionally detects multiple faces), making it ideal for processing profile pictures, creating ID card photos, or batch-processing large sets of images. Core calculations are accelerated using Rust with AVX2 optimizations for improved performance.
 
@@ -30,9 +32,25 @@
 * **Performance:** CPU-intensive calculations (like cropping coordinate calculation, gamma/exposure adjustments, rotation matrix generation) are implemented in Rust for significant speed improvements. Uses AVX2 instructions when available.
 * **Live Preview:** See a preview of the crop result directly in the UI as you adjust settings.
 
+
 ## Screenshots
 
-*(Placeholder: Insert screenshots of the Photo, Folder, Mapping, and Video tabs here)*
+### Graphical User Interface
+
+<div align="center">
+  <img title="app_preview" src="https://github.com/gregorycarnegie/autocrop/blob/master/examples/app.jpg?raw=true" alt="App Preview">
+</div>
+
+### Cropped Images
+
+<div align="center">
+  <img title="face_crop_0" src="https://github.com/gregorycarnegie/autocrop/blob/master/examples/original_0.jpg?raw=true" alt="Face Crop 0">
+</div>
+
+<div align="center">
+  <img title="face_crop_1" src="https://github.com/gregorycarnegie/autocrop/blob/master/examples/original_1.jpg?raw=true" alt="Face Crop 1">
+</div>
+
 
 ## Installation
 
