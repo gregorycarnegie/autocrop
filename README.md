@@ -51,6 +51,7 @@
   <img title="face_crop_1" src="https://github.com/gregorycarnegie/autocrop/blob/master/examples/original_1.jpg?raw=true" alt="Face Crop 1">
 </div>
 
+<a href="https://stocksnap.io/photo/business-people-H6PSN9BPGZ">Photo</a> by <a href="https://stocksnap.io/author/directmedia">Direct Media</a> on <a href="https://stocksnap.io">StockSnap</a>
 
 ## Installation
 
