@@ -1,0 +1,1 @@
+<a href="https://stocksnap.io/photo/business-people-H6PSN9BPGZ">Photo</a> by <a href="https://stocksnap.io/author/directmedia">Direct Media</a> on <a href="https://stocksnap.io">StockSnap</a>
