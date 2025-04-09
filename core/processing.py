@@ -300,9 +300,9 @@ def _draw_box_with_text(image: cv2.Mat,
     cv2.putText(image, text, (x0, y_text), cv2.FONT_HERSHEY_SIMPLEX, font_scale, colour, line_width)
     return image
 
-def multi_box(image: cv2.Mat,
+def multi_box(image: Union[cv2.Mat, np.ndarray],
               job: Job,
-              face_detection_tools: FaceToolPair) -> cv2.Mat:
+              face_detection_tools: FaceToolPair) -> Optional[cv2.Mat]:
     """
     Draws bounding boxes for all detected faces above a given threshold.
     
@@ -316,7 +316,8 @@ def multi_box(image: cv2.Mat,
     """
     # Get confidences and boxes
     results = multi_box_positions(image, job, face_detection_tools)
-
+    if not results:
+        return None
     # Adjust gamma and convert color space for visualization
     adjusted_image = adjust_gamma(image.copy(), job.gamma)
     rgb_image = convert_color_space(adjusted_image)
