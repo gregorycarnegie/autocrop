@@ -4,7 +4,7 @@ import rawpy
 
 class ImageLoader:
     @staticmethod
-    def loader(loader_type: str) -> Callable:
+    def loader(loader_type: str) -> Callable[..., cv2.Mat]:
         loaders = {
             'standard': cv2.imread,
             'raw': rawpy.imread,

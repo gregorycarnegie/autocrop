@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Optional
 
-import cv2.typing as cvt
+import cv2
 from PyQt6.QtGui import QImage
 from cachetools import cached, TTLCache
 
@@ -30,7 +30,7 @@ def path_iterator(path: Path) -> Optional[Path]:
     )
 
 # Define helper functions within the scope
-def matlike_to_qimage(image: cvt.MatLike) -> QImage:
+def matlike_to_qimage(image: cv2.Mat) -> QImage:
     """
     Convert a BGR NumPy array (shape = [height, width, channels])
     to a QImage using QImage.Format_BGR888.
@@ -87,7 +87,7 @@ def create_job(widget_state: WidgetState, img_path_str: str, function_type: Func
         folder_path=img_path_str if function_type != FunctionType.PHOTO else None,
     )
 
-def handle_face_detection(pic_array: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair) -> Optional[QImage]:
+def handle_face_detection(pic_array: cv2.Mat, job: Job, face_detection_tools: FaceToolPair) -> Optional[QImage]:
     if job.multi_face_job:
         pic = prc.multi_box(pic_array, job, face_detection_tools)
         final_image = prc.convert_color_space(pic)
