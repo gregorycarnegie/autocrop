@@ -558,7 +558,9 @@ class UiVideoTabWidget(UiCropWidget):
             # Process the frame
             if job.multi_face_job:
                 # If multi-face is enabled, show bounding boxes on all faces
-                processed_image = prc.multi_box(frame, job)
+                processed_image = prc.multi_box(frame, job, self.crop_worker.face_detection_tools)
+                if processed_image is None:
+                    return None
                 ut.display_image_on_widget(processed_image, self.imageWidget)
             else:
                 # For single face, show a crop preview
