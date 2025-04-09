@@ -91,16 +91,16 @@ def handle_face_detection(pic_array: cv2.Mat, job: Job, face_detection_tools: Fa
     if job.multi_face_job:
         pic = prc.multi_box(pic_array, job, face_detection_tools)
         # final_image = prc.convert_color_space(pic) # Uncomment if needed
-        return matlike_to_qimage(pic)
+        return None if pic is None else matlike_to_qimage(pic)
     else:
         bounding_box = prc.box_detect(pic_array, job, face_detection_tools)
         if not bounding_box:
             return None
-            
+
         # Create pipeline with bounding box
         pipeline = prc.create_image_pipeline(job, face_detection_tools, bounding_box, True)
-        
+
         # Apply pipeline to original image
         processed = prc.apply_pipeline(pic_array, pipeline)
-        
+
         return matlike_to_qimage(processed)
