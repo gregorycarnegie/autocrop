@@ -114,7 +114,7 @@ class BatchCropper(Cropper):
         worker_with_params = partial(worker, file_amount=amount, job=job, cancel_event=self.cancel_event)
         if list_2:
             self.futures = [
-                worker_with_params(face_detection_tools=tool_pair, old=old_chunk, new=new_chunk)
+                self.executor.submit(worker_with_params, face_detection_tools=tool_pair, old=old_chunk, new=new_chunk)
                 for old_chunk, new_chunk, tool_pair in zip(list_1, list_2, self.face_detection_tools)
             ]
         else:

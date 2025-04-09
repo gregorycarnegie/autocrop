@@ -129,7 +129,7 @@ class UiPhotoTabWidget(UiCropWidget):
         if line_edit is self.inputLineEdit:
             f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
                 self, 'Open File', 
-                file_manager.get_default_dir(FileCategory.PHOTO).as_posix(), 
+                file_manager.get_default_directory(FileCategory.PHOTO).as_posix(),
                 file_manager.get_filter_string(FileCategory.PHOTO)
             )
             # Validate the file exists and is accessible

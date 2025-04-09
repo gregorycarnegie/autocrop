@@ -182,7 +182,7 @@ class UiCropWidget(QtWidgets.QWidget):
         f_name = QtWidgets.QFileDialog.getExistingDirectory(
             self, 
             'Select Directory', 
-            file_manager.get_default_dir(FileCategory.PHOTO).as_posix()
+            file_manager.get_default_directory(FileCategory.PHOTO).as_posix()
         )
         # Validate the file exists and is accessible
         if f_name:= ut.sanitize_path(f_name):

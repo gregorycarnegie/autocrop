@@ -211,7 +211,7 @@ class UiMappingTabWidget(UiBatchCropWidget):
         """Open a table file dialog"""
         f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
             self, 'Open File',
-            file_manager.get_default_dir(FileCategory.PHOTO).as_posix(),
+            file_manager.get_default_directory(FileCategory.PHOTO).as_posix(),
             file_manager.get_filter_string(FileCategory.TABLE)
         )
 
