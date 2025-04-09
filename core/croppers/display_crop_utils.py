@@ -90,8 +90,8 @@ def create_job(widget_state: WidgetState, img_path_str: str, function_type: Func
 def handle_face_detection(pic_array: cv2.Mat, job: Job, face_detection_tools: FaceToolPair) -> Optional[QImage]:
     if job.multi_face_job:
         pic = prc.multi_box(pic_array, job, face_detection_tools)
-        final_image = prc.convert_color_space(pic)
-        return matlike_to_qimage(final_image)
+        # final_image = prc.convert_color_space(pic) # Uncomment if needed
+        return matlike_to_qimage(pic)
     else:
         bounding_box = prc.box_detect(pic_array, job, face_detection_tools)
         if not bounding_box:
