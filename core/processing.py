@@ -928,12 +928,6 @@ def get_output_path(input_path: Path, destination: Path, face_index: Optional[in
 
     return destination / f"{stem}{suffix}"
 
-# def get_crop_save_functions(job: Job) -> tuple[CropFunction, SaveFunction]:
-#     """
-#     Determines the correct crop and save functions based on whether multi-face detection is enabled.
-#     """
-#     return (multi_crop, multi_save_image) if job.multi_face_job else (crop_image, save_image)
-
 @singledispatch
 def crop(a0: Union[Path, str], *args, **kwargs) -> None:
     """Applies cropping to an image based on the job configuration."""
