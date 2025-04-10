@@ -125,12 +125,12 @@ class VideoCropper(Cropper):
 
             for i, image in enumerate(images):
                 new_file_path = file_path.with_stem(f'{file_path.stem}_{i}')
-                prc.save_image(image, new_file_path, job.gamma, is_tiff)
+                prc.save(image, new_file_path, job.gamma, is_tiff)
             return None
 
         cropped_image = prc.crop_image(frame, job, self.face_detection_tools)
         if cropped_image is not None:
-            prc.save_image(cropped_image, file_path, job.gamma, is_tiff)
+            prc.save(cropped_image, file_path, job.gamma, is_tiff)
 
     def process_multiface_frame_job(self, frame: npt.NDArray,
                                     job: Job,
@@ -152,11 +152,11 @@ class VideoCropper(Cropper):
 
         if (images := prc.multi_crop(frame, job, self.face_detection_tools)) is None:
             file_path, is_tiff = prc.get_frame_path(destination, f'failed_{file_enum}', job)
-            prc.save_image(frame, file_path, job.gamma, is_tiff)
+            prc.save(frame, file_path, job.gamma, is_tiff)
         else:
             for i, image in enumerate(images):
                 file_path, is_tiff = prc.get_frame_path(destination, f'{file_enum}_{i}', job)
-                prc.save_image(image, file_path, job.gamma, is_tiff)
+                prc.save(image, file_path, job.gamma, is_tiff)
 
     def process_singleface_frame_job(self, frame: npt.NDArray,
                                      job: Job,
