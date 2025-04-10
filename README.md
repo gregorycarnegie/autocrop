@@ -10,7 +10,7 @@
 
 ## Features
 
-* **Graphical User Interface:** Easy-to-use interface built with PyQt6 and styled with `qt-material`.
+* **Graphical User Interface:** Easy-to-use interface built with PyQt6.
 * **Multiple Cropping Modes**:
     * **Photo Crop:** Crop individual image files.
     * **Folder Crop:** Batch crop all supported images within a selected folder.
@@ -137,7 +137,6 @@ The following file types are supported:
 Key dependencies include:
 
 - PyQt6
-- qt-material
 - OpenCV (opencv-contrib-python)
 - NumPy
 - Polars (for mapping)
