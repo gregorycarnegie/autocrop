@@ -1,3 +1,4 @@
+from functools import partial
 from multiprocessing import Process
 from pathlib import Path
 from typing import Optional, Callable, Any
@@ -40,14 +41,14 @@ class UiBatchCropWidget(UiCropWidget):
         self.verticalLayout_300 = ut.setup_vbox("verticalLayout_300", self.page_2)
 
         # Buttons that all batch processors need
-        self.cropButton = None
-        self.cancelButton = None
+        self.cropButton , self.cancelButton = self.create_main_action_buttons()
 
     def connect_signals(self) -> None:
         """Connect widget signals to handlers"""
         # Button connections
+        self.cropButton.clicked.connect(partial(self.cancelButton.setDisabled, True))
         self.cancelButton.clicked.connect(self.crop_worker.terminate)
-        self.cancelButton.clicked.connect(lambda: self.cancel_button_operation(self.cancelButton, self.cropButton))
+        self.cancelButton.clicked.connect(partial(self.cancel_button_operation, self.cancelButton, self.cropButton))
         self.connect_crop_worker()
 
     def connect_crop_worker(self) -> None:
@@ -61,14 +62,32 @@ class UiBatchCropWidget(UiCropWidget):
         """Create a progress bar with consistent styling"""
         progress_bar = QtWidgets.QProgressBar() if parent is None else QtWidgets.QProgressBar(parent)
         progress_bar.setObjectName(name)
-        progress_bar.setMinimumSize(QtCore.QSize(0, 12))
-        progress_bar.setMaximumSize(QtCore.QSize(16_777_215, 12))
+        progress_bar.setMinimumSize(QtCore.QSize(0, 15))
+        progress_bar.setMaximumSize(QtCore.QSize(16_777_215, 15))
         progress_bar.setRange(0, self.PROGRESSBAR_STEPS)
         progress_bar.setValue(0)
+    
+        # Apply styling
+        progress_bar.setStyleSheet("""
+            QProgressBar {
+                border: 1px solid #cccccc;
+                border-radius: 3px;
+                background-color: #f0f0f0;
+                text-align: center;
+                color: #505050;
+            }
+            
+            QProgressBar::chunk {
+                background-color: #4285f4;
+                width: 10px;
+                margin: 0.5px;
+            }
+        """)
+
         progress_bar.setTextVisible(False)
         return progress_bar
 
-    def create_main_action_buttons(self, parent_frame: QtWidgets.QFrame) -> tuple[QtWidgets.QPushButton, QtWidgets.QPushButton]:
+    def create_main_action_buttons(self, parent_frame: Optional[QtWidgets.QFrame]=None) -> tuple[QtWidgets.QPushButton, QtWidgets.QPushButton]:
         """Create crop and cancel buttons with consistent styling"""
         # Crop button
         crop_button = self.create_main_button("cropButton", GuiIcon.CROP)

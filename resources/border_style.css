@@ -124,7 +124,7 @@ ImageWidget {
 }
 
 /* Progress bar styling */
-QProgressBar {
+/* QProgressBar {
     border: 1px solid #cccccc;
     border-radius: 3px;
     background-color: #f0f0f0;
@@ -136,7 +136,7 @@ QProgressBar::chunk {
     background-color: #4285f4;
     width: 10px;
     margin: 0.5px;
-}
+} */
 
 /* Slider styling */
 QSlider::groove:horizontal {
@@ -166,7 +166,7 @@ QSlider::sub-page:horizontal {
 }
 
 /* Checkbox styling */
-QCheckBox {
+/* QCheckBox {
     spacing: 5px;
     color: #505050;
 }
@@ -185,7 +185,7 @@ QCheckBox::indicator:checked {
 
 QCheckBox::indicator:hover {
     border-color: #4285f4;
-}
+} */
 
 /* Dial styling */
 QDial {

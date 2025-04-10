@@ -41,9 +41,6 @@ class UiVideoTabWidget(UiCropWidget):
         self.speed = 0
         self.reverse = 0
         
-        # Override the input line edit to use the correct path type
-        # self.inputLineEdit = self.create_str_line_edit("inputLineEdit", PathType.VIDEO)
-        
         # Create additional UI elements
         self.progressBar = self.create_progress_bar("progressBar")
         self.progressBar_2 = self.create_progress_bar("progressBar_2")
@@ -126,28 +123,34 @@ class UiVideoTabWidget(UiCropWidget):
         """Create a progress bar with consistent styling"""
         progress_bar = QtWidgets.QProgressBar() if parent is None else QtWidgets.QProgressBar(parent)
         progress_bar.setObjectName(name)
-        progress_bar.setMinimumSize(QtCore.QSize(0, 12))
-        progress_bar.setMaximumSize(QtCore.QSize(16_777_215, 12))
+        progress_bar.setMinimumSize(QtCore.QSize(0, 15))
+        progress_bar.setMaximumSize(QtCore.QSize(16_777_215, 15))
         progress_bar.setRange(0, self.PROGRESSBAR_STEPS)
         progress_bar.setValue(0)
+    
+        # Apply styling
+        progress_bar.setStyleSheet("""
+            QProgressBar {
+                border: 1px solid #cccccc;
+                border-radius: 3px;
+                background-color: #f0f0f0;
+                text-align: center;
+                color: #505050;
+            }
+            
+            QProgressBar::chunk {
+                background-color: #4285f4;
+                width: 10px;
+                margin: 0.5px;
+            }
+        """)
+
         progress_bar.setTextVisible(False)
         return progress_bar
 
     def setup_layouts(self) -> None:
         """Set up the main layout structure"""
         # ---- Page 1: Video Player ----
-        # Input file selection
-        # self.inputLineEdit.setParent(self.page_1)
-        # self.inputButton.setParent(self.page_1)
-        # icon = ut.create_button_icon(GuiIcon.CLAPPERBOARD)
-        # self.inputButton.setIcon(icon)
-        
-        # input_layout = ut.setup_hbox("horizontalLayout_2")
-        # input_layout.addWidget(self.inputLineEdit)
-        # input_layout.addWidget(self.inputButton)
-        # input_layout.setStretch(0, 1)
-        # 
-        # self.verticalLayout_200.addLayout(input_layout)
         
         # Main frame with video player
         frame_1 = self.create_main_frame("frame_1")

@@ -19,7 +19,7 @@ class UiMappingTabWidget(UiBatchCropWidget):
     def __init__(self, crop_worker: MappingCropper, object_name: str, parent: QtWidgets.QWidget) -> None:
         """Initialize the mapping tab widget"""
         super().__init__(crop_worker, object_name, parent)
-    
+        
         # Path storage fields
         self.input_path = ""         # Folder path 
         self.table_path = ""         # Table file path
@@ -65,7 +65,10 @@ class UiMappingTabWidget(UiBatchCropWidget):
         ut.setup_combobox(self.comboBox_2, buttonLayout, self.size_policy_expand_fixed, "comboBox_2")
 
         # Crop and cancel buttons
-        self.cropButton, self.cancelButton = self.create_main_action_buttons(frame)
+        # self.cropButton, self.cancelButton = self.create_main_action_buttons(frame)
+        self.cropButton.setParent(frame)
+        self.cancelButton.setParent(frame)
+
         buttonLayout.addWidget(self.cropButton)
         buttonLayout.addWidget(self.cancelButton)
 
@@ -76,9 +79,6 @@ class UiMappingTabWidget(UiBatchCropWidget):
         verticalLayout.addWidget(self.progressBar)
 
         self.verticalLayout_200.addWidget(frame)
-
-        # # Destination selection
-        # self.verticalLayout_200.addLayout(self.horizontalLayout_3)
 
         # Add page to toolbox
         self.toolBox.addItem(self.page_1, "Crop View")
@@ -148,18 +148,6 @@ class UiMappingTabWidget(UiBatchCropWidget):
     def retranslateUi(self) -> None:
         """Update UI text elements"""
         super().retranslateUi()
-        # self.inputLineEdit.setPlaceholderText(
-        #     QtCore.QCoreApplication.translate("self", "Choose the folder you want to crop", None)
-        # )
-        # self.inputButton.setText(QtCore.QCoreApplication.translate("self", "Select Folder", None))
-        # self.tableLineEdit.setPlaceholderText(
-        #     QtCore.QCoreApplication.translate("self", "Choose the Excel or CSV file with the mapping", None)
-        # )
-        # self.tableButton.setText(QtCore.QCoreApplication.translate("self", "Open File", None))
-        # self.destinationLineEdit.setPlaceholderText(
-        #     QtCore.QCoreApplication.translate("self", "Choose where you want to save the cropped images", None)
-        # )
-        # self.destinationButton.setText(QtCore.QCoreApplication.translate("self", "Destination Folder", None))
         self.comboBox_1.setPlaceholderText(QtCore.QCoreApplication.translate("self", "Filename column", None))
         self.comboBox_2.setPlaceholderText(QtCore.QCoreApplication.translate("self", "Mapping column", None))
         self.comboBox_3.setPlaceholderText(QtCore.QCoreApplication.translate("self", "Filename column", None))

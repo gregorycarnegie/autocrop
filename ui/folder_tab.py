@@ -17,7 +17,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
     def __init__(self, crop_worker: FolderCropper, object_name: str, parent: QtWidgets.QWidget) -> None:
         """Initialize the folder tab widget"""
         super().__init__(crop_worker, object_name, parent)
-    
+        
         # Path storage fields
         self.input_path = ""
         self.destination_path = ""
@@ -60,7 +60,9 @@ class UiFolderTabWidget(UiBatchCropWidget):
         # Crop and cancel buttons
         buttonLayout = ut.setup_hbox("horizontalLayout_2")
 
-        self.cropButton, self.cancelButton = self.create_main_action_buttons(frame)
+        # self.cropButton, self.cancelButton = self.create_main_action_buttons(frame)
+        self.cropButton.setParent(frame)
+        self.cancelButton.setParent(frame)
         buttonLayout.addWidget(self.cropButton)
         buttonLayout.addWidget(self.cancelButton)
 
@@ -71,9 +73,6 @@ class UiFolderTabWidget(UiBatchCropWidget):
         verticalLayout.addWidget(self.progressBar)
 
         self.verticalLayout_200.addWidget(frame)
-
-        # # Destination selection
-        # self.verticalLayout_200.addLayout(self.horizontalLayout_3)
 
         # Add page to toolbox
         self.toolBox.addItem(self.page_1, "Crop View")
@@ -135,7 +134,23 @@ class UiFolderTabWidget(UiBatchCropWidget):
 
     def open_path(self, line_edit_type: str) -> None:
         """Open file/folder selection dialog with updated string-based approach"""
-        if line_edit_type == "input":
+        if line_edit_type == "destination":
+            f_name = QtWidgets.QFileDialog.getExistingDirectory(
+                self,
+                'Select Directory',
+                file_manager.get_default_directory(FileCategory.PHOTO).as_posix()
+            )
+            # Validate the file exists and is accessible
+            if f_name := ut.sanitize_path(f_name):
+                # Update the destination path
+                self.destination_path = f_name
+
+                # Also update the main window's destination input if this is the active tab
+                main_window = self.parent().parent().parent()
+                if main_window.function_tabWidget.currentIndex() == FunctionType.FOLDER:
+                    main_window.destination_input.setText(f_name)
+
+        elif line_edit_type == "input":
             f_name = QtWidgets.QFileDialog.getExistingDirectory(
                 self,
                 'Select Directory',
@@ -154,22 +169,6 @@ class UiFolderTabWidget(UiBatchCropWidget):
                 # Load the data into the tree view
                 self.load_data()
 
-        elif line_edit_type == "destination":
-            f_name = QtWidgets.QFileDialog.getExistingDirectory(
-                self,
-                'Select Directory',
-                file_manager.get_default_directory(FileCategory.PHOTO).as_posix()
-            )
-            # Validate the file exists and is accessible
-            if f_name := ut.sanitize_path(f_name):
-                # Update the destination path
-                self.destination_path = f_name
-
-                # Also update the main window's destination input if this is the active tab
-                main_window = self.parent().parent().parent()
-                if main_window.function_tabWidget.currentIndex() == FunctionType.FOLDER:
-                    main_window.destination_input.setText(f_name)
-
     def load_data(self) -> None:
         """Load data into the tree view from the selected folder"""
         try:
@@ -187,9 +186,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
         widget_list = (self.controlWidget.widthLineEdit, self.controlWidget.heightLineEdit,
                        self.controlWidget.sensitivityDial, self.controlWidget.fpctDial, self.controlWidget.gammaDial,
                        self.controlWidget.topDial, self.controlWidget.bottomDial, self.controlWidget.leftDial,
-                       self.controlWidget.rightDial, #self.inputLineEdit, self.destinationLineEdit,
-                       # self.destinationButton, self.inputButton,
-                       self.controlWidget.radioButton_none,
+                       self.controlWidget.rightDial, self.controlWidget.radioButton_none,
                        self.controlWidget.radioButton_bmp, self.controlWidget.radioButton_jpg,
                        self.controlWidget.radioButton_png, self.controlWidget.radioButton_tiff,
                        self.controlWidget.radioButton_webp, self.cropButton, self.exposureCheckBox, self.mfaceCheckBox,
