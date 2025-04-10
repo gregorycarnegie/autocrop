@@ -11,6 +11,55 @@ from .dialog import UiDialog
 from .enums import GuiIcon
 from .image_widget import ImageWidget
 
+def register_button_dependencies(widget, button: QtWidgets.QPushButton,
+                                 dependent_widgets: set[QtWidgets.QWidget]) -> None:
+    """
+    Register button dependencies with path validation support
+
+    Args:
+        button: The button whose enabled state depends on other widgets
+        dependent_widgets: Set of widgets that must be valid for the button to be enabled
+    """
+    widget._button_dependencies[button] = dependent_widgets
+
+    # Get the tab widget (parent of the button)
+    tab_widget = button.parent()
+    while tab_widget: # and not isinstance(tab_widget, UiCropWidget):
+        tab_widget = tab_widget.parent()
+
+    if tab_widget:
+        # Register a custom path validation handler
+        widget.register_validation_handler(button, lambda: check_paths_valid(tab_widget))
+
+    widget.update_button_states()
+
+def check_paths_valid(tab_widget) -> bool:
+    """
+    Check if the paths stored in the tab widget are valid
+
+    Args:
+        tab_widget: The tab widget to check
+
+    Returns:
+        bool: True if all required paths are valid
+    """
+    # Get the main window
+    main_window = tab_widget.parent().parent().parent()
+
+    # Check the current tab type
+    current_index = main_window.function_tabWidget.currentIndex()
+
+    # For all tabs, we need at least input_path and destination_path
+    input_valid = bool(tab_widget.input_path) and Path(tab_widget.input_path).exists()
+    dest_valid = bool(tab_widget.destination_path) and Path(tab_widget.destination_path).exists()
+
+    # For mapping tab, we also need table_path
+    if current_index == FunctionType.MAPPING:
+        table_valid = bool(tab_widget.table_path) and Path(tab_widget.table_path).exists()
+        return input_valid and dest_valid and table_valid
+
+    # For other tabs, just check input and destination
+    return input_valid and dest_valid
 
 def sanitize_path(path_str: str) -> Optional[str]:
     """Sanitize path input to prevent path traversal attacks."""
