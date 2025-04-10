@@ -1,3 +1,4 @@
+import contextlib
 from multiprocessing import Process
 from pathlib import Path
 from threading import Thread
@@ -803,32 +804,74 @@ class UiVideoTabWidget(UiCropWidget):
             self.controlWidget.rightDial,
             *controls,
         ]
-        # Video start connection
+
+        # Disconnect any existing connections to avoid duplicate signals
+        with contextlib.suppress(TypeError, RuntimeError):
+            self.crop_worker.started.disconnect()
+            self.crop_worker.finished.disconnect()
+            self.crop_worker.progress.disconnect()
+        # Video start connection - setup buttons
         self.crop_worker.started.connect(lambda: ut.disable_widget(*widget_list))
         self.crop_worker.started.connect(
-            lambda: ut.enable_widget(
-                self.mediacontrolWidget_1.cancelButton, 
-                self.mediacontrolWidget_2.cancelButton
-            )
+            lambda: self.enable_cancel_buttons()
         )
 
-        # Video end connection
+        # Video end connection - restore buttons
         self.crop_worker.finished.connect(lambda: ut.enable_widget(*widget_list))
         self.crop_worker.finished.connect(
-            lambda: ut.disable_widget(
-                self.mediacontrolWidget_1.cancelButton, 
-                self.mediacontrolWidget_2.cancelButton
-            )
+            lambda: self.disable_cancel_buttons()
         )
         self.crop_worker.finished.connect(lambda: ut.show_message_box(self.destination))
+
+        # Ensure progress signal is connected correctly
         self.crop_worker.progress.connect(self.update_progress)
 
+        # Add direct connections for cancel buttons
+        for control in [self.mediacontrolWidget_1, self.mediacontrolWidget_2]:
+            control.cancelButton.clicked.connect(self.handle_cancel_click)
+
+    def enable_cancel_buttons(self) -> None:
+        """Enable both cancel buttons"""
+        self.mediacontrolWidget_1.cancelButton.setEnabled(True)
+        self.mediacontrolWidget_1.cancelButton.repaint()
+        self.mediacontrolWidget_2.cancelButton.setEnabled(True)
+        self.mediacontrolWidget_2.cancelButton.repaint()
+        QtWidgets.QApplication.processEvents()
+
+    def disable_cancel_buttons(self) -> None:
+        """Disable both cancel buttons"""
+        self.mediacontrolWidget_1.cancelButton.setEnabled(False)
+        self.mediacontrolWidget_1.cancelButton.repaint()
+        self.mediacontrolWidget_2.cancelButton.setEnabled(False)
+        self.mediacontrolWidget_2.cancelButton.repaint()
+        QtWidgets.QApplication.processEvents()
+
+    def handle_cancel_click(self) -> None:
+        """Handle cancel button clicks"""
+        # Call terminate to stop the job
+        self.crop_worker.terminate()
+        
+        # Re-enable control buttons
+        for control in [self.mediacontrolWidget_1, self.mediacontrolWidget_2]:
+            control.cropButton.setEnabled(True)
+            control.cropButton.repaint()
+            control.videocropButton.setEnabled(True)
+            control.videocropButton.repaint()
+            control.cancelButton.setEnabled(False)
+            control.cancelButton.repaint()
+        
+        QtWidgets.QApplication.processEvents()
+        print("Video processing cancelled")
+
+    # Improve update_progress method:
     def update_progress(self, x: int, y:int) -> None:
         """Update the progress bars based on crop worker progress"""
         value = int(self.PROGRESSBAR_STEPS * x / y)
         self.progressBar.setValue(value)
+        self.progressBar.repaint()  # Force immediate repaint
         self.progressBar_2.setValue(value)
-        QtWidgets.QApplication.processEvents()
+        self.progressBar_2.repaint()  # Force immediate repaint
+        QtWidgets.QApplication.processEvents()  # Process events to update UI
 
     @staticmethod
     def cancel_button_operation(cancel_button: QtWidgets.QPushButton, *crop_buttons: QtWidgets.QPushButton) -> None:
@@ -841,6 +884,18 @@ class UiVideoTabWidget(UiCropWidget):
         """Crop the current video frame"""
         def execute_crop():
             self.player.pause()
+            
+            # Disable crop buttons immediately
+            for control in [self.mediacontrolWidget_1, self.mediacontrolWidget_2]:
+                control.cropButton.setEnabled(False)
+                control.cropButton.repaint()
+                control.videocropButton.setEnabled(False)
+                control.videocropButton.repaint()
+                control.cancelButton.setEnabled(True)
+                control.cancelButton.repaint()
+                
+            QtWidgets.QApplication.processEvents()
+            
             job = self.create_job(
                 FunctionType.FRAME,
                 video_path=Path(self.input_path),
@@ -865,6 +920,18 @@ class UiVideoTabWidget(UiCropWidget):
 
         def execute_crop():
             self.player.pause()
+            
+            # Disable crop buttons immediately
+            for control in [self.mediacontrolWidget_1, self.mediacontrolWidget_2]:
+                control.cropButton.setEnabled(False)
+                control.cropButton.repaint()
+                control.videocropButton.setEnabled(False)
+                control.videocropButton.repaint()
+                control.cancelButton.setEnabled(True)
+                control.cancelButton.repaint()
+                
+            QtWidgets.QApplication.processEvents()
+            
             job = self.create_job(
                 FunctionType.VIDEO,
                 video_path=Path(self.input_path),
@@ -872,11 +939,15 @@ class UiVideoTabWidget(UiCropWidget):
                 start_position=ut.pos_from_marker(x),
                 stop_position=ut.pos_from_marker(y)
             )
-            self.run_batch_process(
-                job, 
-                function=self.crop_worker.extract_frames,
-                reset_worker_func=lambda: self.crop_worker.reset_task()
+            
+            # Use Thread instead of Process to avoid pickling issues
+            self.crop_worker.reset_task()
+            thread = Thread(
+                target=self.crop_worker.extract_frames,
+                args=(job,),
+                daemon=True
             )
+            thread.start()
 
         # Check if source and destination are the same and warn if needed
         if Path(self.input_path).parent == Path(self.destination_path):

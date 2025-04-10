@@ -16,14 +16,18 @@ class FolderCropper(BatchCropper):
         super().__init__(face_detection_tools)
 
     def worker(self, *, file_amount: int,
-               job: Job,
-               face_detection_tools: FaceToolPair,
-               file_list: tuple[Path, ...],
-               cancel_event: threading.Event) -> None:
+            job: Job,
+            face_detection_tools: FaceToolPair,
+            file_list: tuple[Path, ...],
+            cancel_event: threading.Event) -> None:
         """
         Performs cropping for a folder job by iterating over the file list.
         Uses batch_process_with_pipeline for efficiency.
         """
+        # Emit started signal at the beginning of processing
+        if not self.finished_signal_emitted:
+            self.started.emit()
+        
         # Convert tuple to list if needed
         image_paths = list(file_list)
         

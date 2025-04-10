@@ -811,6 +811,7 @@ def batch_process_with_pipeline(images: list[Path],
             image_array = open_pic(img_path, face_detection_tools, job)
             if image_array is None:
                 progress_callback()
+                QtWidgets.QApplication.processEvents()  # Force UI update
                 continue
 
             # Create a function to get output paths for standard batch processing
@@ -884,6 +885,7 @@ def batch_process_with_mapping(images: list[Path], output_paths: list[Path], job
             image_array = open_pic(img_path, face_detection_tools, job)
             if image_array is None:
                 progress_callback()
+                QtWidgets.QApplication.processEvents()  # Force UI update
                 continue
 
             # Create a function to get output paths for mapping

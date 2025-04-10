@@ -1,5 +1,6 @@
 import atexit
 import collections.abc as c
+import contextlib
 import threading
 from concurrent.futures import Future, ThreadPoolExecutor
 from functools import partial
@@ -8,6 +9,8 @@ from typing import Callable, Optional, Union, TypeVar
 
 import numpy as np
 import numpy.typing as npt
+from PyQt6.QtWidgets import QApplication
+from PyQt6.QtCore import QCoreApplication
 
 from core.face_tools import FaceToolPair
 from core.job import Job
@@ -73,6 +76,12 @@ class BatchCropper(Cropper):
 
         if not self.end_task:
             self.end_task = True
+            
+            # Force reset progress to prevent lingering jobs
+            self.progress_count = 0
+            self.progress.emit(0, 1)  # Send a zero progress
+            
+            # Emit finished signal to reset UI
             self.emit_done()
 
         if self.executor:
@@ -81,6 +90,8 @@ class BatchCropper(Cropper):
                     future.cancel()
         # Clear the futures list
         self.futures = []
+    
+    print("Worker terminated. All tasks cancelled.")
 
     def reset_task(self) -> None:
         """
@@ -224,14 +235,20 @@ class BatchCropper(Cropper):
         if not self.validate_job(job, file_count):
             return
 
-        # Start the processing
-        self.emit_progress(file_count)
+        # Start the processing - emit signal before setting up futures
+        self.reset_task()  # Make sure we're starting fresh
+        self.progress_count = 0
+        self.progress.emit(self.progress_count, file_count)
+        self.started.emit()  # Emit started signal immediately
 
         # Let child class set up the futures based on its specific worker
         self.set_futures_for_crop(job, file_count, chunked_data)
 
         # Complete futures is common to all
         self.complete_futures()
+        
+        # Make sure cancel buttons are enabled right away
+        QApplication.processEvents()
 
     def set_futures_for_crop(self, job: Job, file_count: int, chunked_data: c.Iterable) -> None:
         """
@@ -239,3 +256,25 @@ class BatchCropper(Cropper):
         Should set up the futures for the crop operation.
         """
         raise NotImplementedError("Child classes must implement set_futures_for_crop")
+
+    def _update_progress(self, file_amount: int) -> None:
+        """
+        Increments the progress count in a thread-safe manner
+        and emits the progress signal accordingly.
+        """
+        with self.lock:
+            self.progress_count += 1
+
+            # Calculate percentage for smoother progress updates
+            # percent_complete = min(100, int(100 * self.progress_count / file_amount))
+
+            # Always emit progress to keep UI updated
+            self.progress.emit(self.progress_count, file_amount)
+
+            # Use QtCore.QCoreApplication.processEvents instead of QtWidgets version
+            # for thread safety
+            with contextlib.suppress(Exception):
+                QCoreApplication.processEvents()
+            # Check if we're done
+            if self.progress_count >= file_amount:
+                self.emit_done()

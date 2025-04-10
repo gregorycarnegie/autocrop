@@ -1,4 +1,6 @@
+import contextlib
 from functools import partial
+import threading
 from multiprocessing import Process
 from pathlib import Path
 from typing import Optional, Callable, Any
@@ -45,11 +47,37 @@ class UiBatchCropWidget(UiCropWidget):
 
     def connect_signals(self) -> None:
         """Connect widget signals to handlers"""
-        # Button connections
-        self.cropButton.clicked.connect(partial(self.cancelButton.setDisabled, True))
+        # NO NEED TO MANIPULATE BUTTON STATE HERE SINCE WE'RE DOING IT MANUALLY
+        # IN RUN_BATCH_PROCESS AND CANCEL_BUTTON_OPERATION
+        
+        # Only connect to terminate
         self.cancelButton.clicked.connect(self.crop_worker.terminate)
-        self.cancelButton.clicked.connect(partial(self.cancel_button_operation, self.cancelButton, self.cropButton))
+        
+        # Create an explicit method to handle cancel button operation
+        self.cancelButton.clicked.connect(self.handle_cancel_button_click)
+        
+        # Connect crop worker signals for proper state management
         self.connect_crop_worker()
+
+    def handle_cancel_button_click(self) -> None:
+        """Handle cancel button click to properly update button states"""
+        # Call terminate to stop the job
+        self.crop_worker.terminate()
+        
+        # Update button states immediately - don't wait for signals
+        self.cancelButton.setEnabled(False)
+        self.cancelButton.repaint()
+        self.cropButton.setEnabled(True)
+        self.cropButton.repaint()
+        QtWidgets.QApplication.processEvents()
+        
+        print("Cancelling job...")
+
+    def enable_cancel_button(self) -> None:
+        """Enable the cancel button immediately"""
+        self.cancelButton.setEnabled(True)
+        self.cancelButton.repaint()
+        QtWidgets.QApplication.processEvents()
 
     def connect_crop_worker(self) -> None:
         raise NotImplementedError("function must be implemented in subclasses.")
@@ -125,8 +153,23 @@ class UiBatchCropWidget(UiCropWidget):
 
     def update_progress(self, x: int, y: int) -> None:
         """Update the progress bar based on crop worker progress"""
-        self.progressBar.setValue(int(self.PROGRESSBAR_STEPS * x / y))
-        QtWidgets.QApplication.processEvents()
+        # Calculate percentage for better granularity
+        if y > 0:  # Avoid division by zero
+            # Use floating point calculation for more precise percentage
+            percentage = min(100.0, (x / y) * 100.0)
+            value = int(self.PROGRESSBAR_STEPS * percentage / 100.0)
+            
+            # Update progress bar value
+            self.progressBar.setValue(value)
+            
+            # Force immediate visual update
+            self.progressBar.repaint()
+            
+            # Process any pending UI events
+            QtWidgets.QApplication.processEvents()
+        
+        # Add some debug output to console
+        print(f"Progress: {x}/{y} tasks completed ({percentage:.1f}%)")
 
     @staticmethod
     def cancel_button_operation(cancel_button: QtWidgets.QPushButton, *crop_buttons: QtWidgets.QPushButton) -> None:
@@ -137,24 +180,42 @@ class UiBatchCropWidget(UiCropWidget):
 
     def connect_crop_worker_signals(self, widget_list: tuple) -> None:
         """Connect the signals from the crop worker to UI handlers"""
-        # Batch start connection
+        with contextlib.suppress(TypeError, RuntimeError):
+            # Disconnect existing connections to avoid duplicates
+            self.crop_worker.started.disconnect()
+            self.crop_worker.finished.disconnect()
+            self.crop_worker.progress.disconnect()
+        # Batch start connection - disable all controls
         self.crop_worker.started.connect(lambda: ut.disable_widget(*widget_list))
         self.crop_worker.started.connect(lambda: ut.enable_widget(self.cancelButton))
 
-        # Batch end connection
+        # Connect progress update
+        self.crop_worker.progress.connect(self.update_progress)
+
+        # Batch end connection - re-enable controls 
         self.crop_worker.finished.connect(lambda: ut.enable_widget(*widget_list))
         self.crop_worker.finished.connect(lambda: ut.disable_widget(self.cancelButton))
         self.crop_worker.finished.connect(lambda: ut.show_message_box(self.destination))
-        self.crop_worker.progress.connect(self.update_progress)
 
-    @staticmethod
-    def run_batch_process(job: Job, *,
-                          function: Callable[..., Any],
-                          reset_worker_func: Callable[..., Any]) -> None:
-        """Run a batch processing operation"""
+        # Print helpful debug info
+        print("Worker signals connected.")
+
+    def run_batch_process(self, job: Job, *,
+                        function: Callable[..., Any],
+                        reset_worker_func: Callable[..., Any]) -> None:
+        """Run a batch processing operation using threading instead of multiprocessing"""
         reset_worker_func()
-        process = Process(target=function, daemon=True, args=(job,))
-        process.run()
+        
+        # Disable crop button and enable cancel button manually
+        self.cropButton.setEnabled(False)
+        self.cropButton.repaint()
+        self.cancelButton.setEnabled(True)
+        self.cancelButton.repaint()
+        QtWidgets.QApplication.processEvents()
+        
+        # Use Thread instead of Process to avoid pickling issues
+        thread = threading.Thread(target=function, args=(job,), daemon=True)
+        thread.start()
 
     @staticmethod
     def check_source_destination_same(source_path: str, dest_path: str,

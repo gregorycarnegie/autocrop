@@ -3,7 +3,7 @@ from typing import ClassVar, Literal, Optional
 
 import ffmpeg
 import psutil
-from PyQt6.QtCore import pyqtSignal, QObject
+from PyQt6.QtCore import pyqtSignal, QObject, Qt, QMetaObject
 
 from ui import utils as ut
 
@@ -33,9 +33,23 @@ class Cropper(QObject):
 
         # # Synchronization
         self.lock = Lock()
+        
+        # Enable cross-thread signals (only needed for Qt 6.5+)
+        self.started.connect(self._handle_started, Qt.ConnectionType.QueuedConnection)
+        self.finished.connect(self._handle_finished, Qt.ConnectionType.QueuedConnection)
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__}>"
+
+    def _handle_started(self):
+        """Helper method to handle started signal in main thread"""
+        # This just helps with cross-thread signal delivery
+        print("Processing started.")
+        
+    def _handle_finished(self):
+        """Helper method to handle finished signal in main thread"""
+        # This just helps with cross-thread signal delivery
+        print("Processing complete.")
 
     @staticmethod
     def create_error(error_type: Literal['access', 'amount', 'capacity', 'ffmpeg', 'file', 'file_type', 'directory', 'memory', 'thread'],
@@ -92,10 +106,19 @@ class Cropper(QObject):
     def emit_done(self) -> None:
         """
         Emits the `finished` signal if it has not already been emitted.
+        Uses a cross-thread safe approach.
         """
         if not self.finished_signal_emitted:
-            self.finished.emit()
+            # Set flag to prevent multiple emissions
             self.finished_signal_emitted = True
+            
+            # Use QMetaObject.invokeMethod for cross-thread signal emission
+            QMetaObject.invokeMethod(
+                self, 
+                "finished", 
+                Qt.ConnectionType.QueuedConnection
+            )
+            print("Finished signal emitted")
 
     def _update_progress(self, file_amount: int) -> None:
         """

@@ -312,82 +312,49 @@ def show_warning(function_type: FunctionType) -> int:
 
 def disable_widget(*args: QtWidgets.QWidget) -> None:
     """
-    Disables multiple widgets.
+    Disables multiple widgets with improved state handling.
 
     Args:
         *args (QtWidgets.QWidget): Variable number of widgets to disable.
-
-    Returns:
-        None
-
-    Example:
-        ```python
-        button1 = QtWidgets.QPushButton()
-        button2 = QtWidgets.QPushButton()
-        button3 = QtWidgets.QPushButton()
-
-        # Disable the buttons
-        disable_widget(button1, button2, button3)
-        ```
     """
-
     for arg in args:
+        arg.blockSignals(True)  # Block signals during state change
         arg.setDisabled(True)
-
+        arg.blockSignals(False)  # Unblock signals
+        arg.repaint()  # Force immediate repaint
 
 def enable_widget(*args: QtWidgets.QWidget) -> None:
     """
-    Enables multiple widgets.
+    Enables multiple widgets with improved state handling.
 
     Args:
         *args (QtWidgets.QWidget): Variable number of widgets to enable.
-
-    Returns:
-        None
-
-    Example:
-        ```python
-        button1 = QtWidgets.QPushButton()
-        button2 = QtWidgets.QPushButton()
-        button3 = QtWidgets.QPushButton()
-
-        # Enable the buttons
-        enable_widget(button1, button2, button3)
-        ```
     """
-
     for arg in args:
+        arg.blockSignals(True)  # Block signals during state change
         arg.setEnabled(True)
-
+        arg.blockSignals(False)  # Unblock signals
+        arg.repaint()  # Force immediate repaint
 
 def change_widget_state(boolean: bool, *args: QtWidgets.QWidget) -> None:
     """
-    Changes the state of multiple widgets based on a boolean value.
+    Changes the state of multiple widgets based on a boolean value with improved state handling.
 
     Args:
         boolean (bool): The boolean value to determine the state of the widgets.
         *args (QtWidgets.QWidget): Variable number of widgets to change the state of.
-
-    Returns:
-        None
-
-    Example:
-        ```python
-        button1 = QtWidgets.QPushButton()
-        button2 = QtWidgets.QPushButton()
-        button3 = QtWidgets.QPushButton()
-
-        # Change the state of the buttons based on the boolean value
-        change_widget_state(boolean=True, button1, button2, button3)
-        ```
     """
-
     for arg in args:
+        arg.blockSignals(True)  # Block signals during state change
         if boolean:
             arg.setEnabled(boolean)
         else:
             arg.setDisabled(not boolean)
-
+        arg.blockSignals(False)  # Unblock signals
+        arg.repaint()  # Force immediate repaint
+    
+    # Process events to ensure UI updates
+    QtWidgets.QApplication.processEvents()
 
 def check_mime_data(event: Union[QtGui.QDragEnterEvent, QtGui.QDragMoveEvent]) -> None:
     """

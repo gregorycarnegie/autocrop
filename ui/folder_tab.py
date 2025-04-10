@@ -199,14 +199,18 @@ class UiFolderTabWidget(UiBatchCropWidget):
         self.crop_worker.show_message_box = False
 
         def execute_crop():
+            # Manually disable crop button right away
+            self.cropButton.setEnabled(False)
+            self.cropButton.repaint()
+            
             job = self.create_job(
                 FunctionType.FOLDER,
                 folder_path=Path(self.input_path) if self.input_path else None,
                 destination=Path(self.destination_path) if self.destination_path else None
             )
             self.run_batch_process(job,
-                                  function=self.crop_worker.crop,
-                                  reset_worker_func=lambda: self.crop_worker.reset_task())
+                                function=self.crop_worker.crop,
+                                reset_worker_func=lambda: self.crop_worker.reset_task())
 
         # Check if source and destination are the same and warn if needed
         if self.input_path and self.destination_path:
