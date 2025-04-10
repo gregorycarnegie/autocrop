@@ -1,6 +1,6 @@
-import collections.abc as c
+from collections.abc import Callable
 from pathlib import Path
-from typing import ClassVar, Optional, Callable, Dict
+from typing import ClassVar, Optional, Dict
 
 import polars as pl
 from PyQt6 import QtCore, QtWidgets
@@ -75,12 +75,6 @@ class UiCropWidget(QtWidgets.QWidget):
         self.horizontalLayout_2 = ut.setup_hbox(f"{name}_horizontalLayout_2")
         self.horizontalLayout_3 = ut.setup_hbox(f"{name}_horizontalLayout_3")
         
-        # Common input widgets
-        self.inputButton = self.create_nav_button("inputButton")
-        self.inputLineEdit = self.create_str_line_edit("inputLineEdit", PathType.FOLDER)
-        self.destinationButton = self.create_nav_button("destinationButton")
-        self.destinationLineEdit = self.create_str_line_edit("destinationLineEdit", PathType.FOLDER)
-        
         # Main image widget and control widget
         self.imageWidget = self.create_image_widget()
         self.controlWidget = self.create_control_widget()
@@ -101,9 +95,6 @@ class UiCropWidget(QtWidgets.QWidget):
         
         # Initialize the checkbox connections
         self._setup_checkbox_relationships()
-
-    def connect_signals(self) -> None:
-        self.inputButton.clicked.connect(lambda: self.open_path(self.inputLineEdit))
 
     def _setup_checkbox_relationships(self) -> None:
         """Set up the standard checkbox exclusivity relationships"""
@@ -263,12 +254,12 @@ class UiCropWidget(QtWidgets.QWidget):
         )
 
     @staticmethod
-    def _get_file_names_without_extension(directory: Path) -> c.Set[str]:
+    def _get_file_names_without_extension(directory: Path) -> set[str]:
         """Return a set of filenames (without extensions) in the given directory."""
         return {p.stem for p in directory.iterdir() if p.is_file()}
 
     @staticmethod
-    def _check_matching_files(destination: Path, filenames: c.Set[str], extensions: tuple[str]) -> bool:
+    def _check_matching_files(destination: Path, filenames: set[str], extensions: tuple[str]) -> bool:
         """Recursively check if destination contains any files with the given extensions that match the filenames."""
         return any(p.is_file()
                    and p.suffix.lower() in extensions
@@ -333,20 +324,6 @@ class UiCropWidget(QtWidgets.QWidget):
         # Set stretch factor for spacer
         layout.setStretch(1, 20)
 
-    def setup_destination_layout(self, layout: QtWidgets.QHBoxLayout) -> None:
-        """Set up the destination path selection layout"""
-        layout.addWidget(self.destinationLineEdit)
-        layout.addWidget(self.destinationButton)
-        layout.setStretch(0, 1)
-        
-        # Set the destination button icon
-        self.destinationButton.setIcon(self.folder_icon)
-        
-        # Connect click handler
-        self.destinationButton.clicked.connect(
-            lambda: self.open_path(self.destinationLineEdit)
-        )
-
     def retranslateUi(self) -> None:
         """Update UI text elements (to be overridden by subclasses)"""
         self.setWindowTitle(QtCore.QCoreApplication.translate("self", "Form", None))
@@ -354,5 +331,3 @@ class UiCropWidget(QtWidgets.QWidget):
         self.mfaceCheckBox.setText(QtCore.QCoreApplication.translate("self", "Multi-Face", None))
         self.tiltCheckBox.setText(QtCore.QCoreApplication.translate("self", "Autotilt", None))
         self.exposureCheckBox.setText(QtCore.QCoreApplication.translate("self", "Autocorrect", None))
-        self.inputButton.setText(QtCore.QCoreApplication.translate("self", "Select Input", None))
-        self.destinationButton.setText(QtCore.QCoreApplication.translate("self", "Destination Folder", None))

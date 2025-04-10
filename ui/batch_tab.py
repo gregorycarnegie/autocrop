@@ -46,10 +46,12 @@ class UiBatchCropWidget(UiCropWidget):
     def connect_signals(self) -> None:
         """Connect widget signals to handlers"""
         # Button connections
-        super().connect_signals()
         self.cancelButton.clicked.connect(self.crop_worker.terminate)
         self.cancelButton.clicked.connect(lambda: self.cancel_button_operation(self.cancelButton, self.cropButton))
         self.connect_crop_worker()
+
+    def connect_crop_worker(self) -> None:
+        raise NotImplementedError("function must be implemented in subclasses.")
 
     def worker(self, *args: Any) -> None:
         """Worker function to be overridden in subclasses"""

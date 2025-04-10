@@ -9,7 +9,6 @@ from core.enums import FunctionType
 from file_types import file_manager, FileCategory
 from ui import utils as ut
 from .batch_tab import UiBatchCropWidget
-from line_edits import PathLineEdit
 
 
 class UiFolderTabWidget(UiBatchCropWidget):
@@ -18,6 +17,10 @@ class UiFolderTabWidget(UiBatchCropWidget):
     def __init__(self, crop_worker: FolderCropper, object_name: str, parent: QtWidgets.QWidget) -> None:
         """Initialize the folder tab widget"""
         super().__init__(crop_worker, object_name, parent)
+    
+        # Path storage fields
+        self.input_path = ""
+        self.destination_path = ""
 
         # Create file model for the tree view
         self.file_model = QtGui.QFileSystemModel(self)
@@ -45,13 +48,8 @@ class UiFolderTabWidget(UiBatchCropWidget):
         """Set up the main layout structure"""
         # ---- Page 1: Crop View ----
         # Input file selection
-        self.inputLineEdit.setParent(self.page_1)
-        self.inputButton.setParent(self.page_1)
-        self.inputButton.setIcon(self.folder_icon)
 
         input_layout = ut.setup_hbox("horizontalLayout_4")
-        input_layout.addWidget(self.inputLineEdit)
-        input_layout.addWidget(self.inputButton)
         input_layout.setStretch(0, 1)
 
         self.verticalLayout_200.addLayout(input_layout)
@@ -75,9 +73,6 @@ class UiFolderTabWidget(UiBatchCropWidget):
         self.verticalLayout_200.addWidget(frame)
 
         # Destination selection
-        self.destinationLineEdit.setParent(self.page_1)
-        self.destinationButton.setParent(self.page_1)
-        self.setup_destination_layout(self.horizontalLayout_3)
         self.verticalLayout_200.addLayout(self.horizontalLayout_3)
 
         # Add page to toolbox
@@ -99,18 +94,13 @@ class UiFolderTabWidget(UiBatchCropWidget):
     def connect_signals(self) -> None:
         """Connect widget signals to handlers"""
         # Button connections
-        super().connect_signals()
         self.cropButton.clicked.connect(self.folder_process)
-
-        # Input line edit also updates the tree view
-        self.inputLineEdit.textChanged.connect(self.load_data)
         
         # Register button dependencies with the TabStateManager
-        self.tab_state_manager.register_button_dependencies(
+        ut.register_button_dependencies(
+            self.tab_state_manager,
             self.cropButton,
             {
-                self.inputLineEdit, 
-                self.destinationLineEdit, 
                 self.controlWidget.widthLineEdit,
                 self.controlWidget.heightLineEdit
             }
@@ -118,10 +108,8 @@ class UiFolderTabWidget(UiBatchCropWidget):
         
         # Connect all input widgets for validation tracking
         self.tab_state_manager.connect_widgets(
-            self.inputLineEdit,
             self.controlWidget.widthLineEdit,
-            self.controlWidget.heightLineEdit, 
-            self.destinationLineEdit,
+            self.controlWidget.heightLineEdit,
             self.exposureCheckBox,
             self.mfaceCheckBox,
             self.tiltCheckBox,
@@ -138,14 +126,6 @@ class UiFolderTabWidget(UiBatchCropWidget):
     def retranslateUi(self) -> None:
         """Update UI text elements"""
         super().retranslateUi()
-        self.inputLineEdit.setPlaceholderText(
-            QtCore.QCoreApplication.translate("self", "Choose the folder you want to crop", None)
-        )
-        self.inputButton.setText(QtCore.QCoreApplication.translate("self", "Select Folder", None))
-        self.destinationLineEdit.setPlaceholderText(
-            QtCore.QCoreApplication.translate("self", "Choose where you want to save the cropped images", None)
-        )
-        self.destinationButton.setText(QtCore.QCoreApplication.translate("self", "Destination Folder", None))
         self.cropButton.setText("")
         self.cancelButton.setText("")
         self.toolBox.setItemText(self.toolBox.indexOf(self.page_1),
@@ -153,18 +133,52 @@ class UiFolderTabWidget(UiBatchCropWidget):
         self.toolBox.setItemText(self.toolBox.indexOf(self.page_2),
                                  QtCore.QCoreApplication.translate("self", "Folder View", None))
 
-    def open_path(self, line_edit: PathLineEdit) -> None:
-        """Open file/folder selection dialog for a path"""
-        super().open_path(line_edit)
-        if line_edit is self.inputLineEdit:
-            self.load_data()
+    def open_path(self, line_edit_type: str) -> None:
+        """Open file/folder selection dialog with updated string-based approach"""
+        if line_edit_type == "input":
+            f_name = QtWidgets.QFileDialog.getExistingDirectory(
+                self,
+                'Select Directory',
+                file_manager.get_default_directory(FileCategory.PHOTO).as_posix()
+            )
+            # Validate the file exists and is accessible
+            if f_name := ut.sanitize_path(f_name):
+                # Update the input path
+                self.input_path = f_name
+
+                # Also update the main window's unified address bar if this is the active tab
+                main_window = self.parent().parent().parent()
+                if main_window.function_tabWidget.currentIndex() == FunctionType.FOLDER:
+                    main_window.unified_address_bar.setText(f_name)
+
+                # Load the data into the tree view
+                self.load_data()
+
+        elif line_edit_type == "destination":
+            f_name = QtWidgets.QFileDialog.getExistingDirectory(
+                self,
+                'Select Directory',
+                file_manager.get_default_directory(FileCategory.PHOTO).as_posix()
+            )
+            # Validate the file exists and is accessible
+            if f_name := ut.sanitize_path(f_name):
+                # Update the destination path
+                self.destination_path = f_name
+
+                # Also update the main window's destination input if this is the active tab
+                main_window = self.parent().parent().parent()
+                if main_window.function_tabWidget.currentIndex() == FunctionType.FOLDER:
+                    main_window.destination_input.setText(f_name)
 
     def load_data(self) -> None:
         """Load data into the tree view from the selected folder"""
         try:
-            f_name = self.inputLineEdit.text()
-            self.file_model.setRootPath(f_name)
-            self.treeView.setRootIndex(self.file_model.index(f_name))
+            # Use the stored input_path instead of inputLineEdit.text()
+            if not self.input_path:
+                return
+
+            self.file_model.setRootPath(self.input_path)
+            self.treeView.setRootIndex(self.file_model.index(self.input_path))
         except (IndexError, FileNotFoundError, ValueError, AttributeError):
             return
 
@@ -173,8 +187,9 @@ class UiFolderTabWidget(UiBatchCropWidget):
         widget_list = (self.controlWidget.widthLineEdit, self.controlWidget.heightLineEdit,
                        self.controlWidget.sensitivityDial, self.controlWidget.fpctDial, self.controlWidget.gammaDial,
                        self.controlWidget.topDial, self.controlWidget.bottomDial, self.controlWidget.leftDial,
-                       self.controlWidget.rightDial, self.inputLineEdit, self.destinationLineEdit,
-                       self.destinationButton, self.inputButton, self.controlWidget.radioButton_none,
+                       self.controlWidget.rightDial, #self.inputLineEdit, self.destinationLineEdit,
+                       # self.destinationButton, self.inputButton,
+                       self.controlWidget.radioButton_none,
                        self.controlWidget.radioButton_bmp, self.controlWidget.radioButton_jpg,
                        self.controlWidget.radioButton_png, self.controlWidget.radioButton_tiff,
                        self.controlWidget.radioButton_webp, self.cropButton, self.exposureCheckBox, self.mfaceCheckBox,
@@ -189,17 +204,18 @@ class UiFolderTabWidget(UiBatchCropWidget):
         def execute_crop():
             job = self.create_job(
                 FunctionType.FOLDER,
-                folder_path=Path(self.inputLineEdit.text()),
-                destination=Path(self.destinationLineEdit.text())
+                folder_path=Path(self.input_path) if self.input_path else None,
+                destination=Path(self.destination_path) if self.destination_path else None
             )
             self.run_batch_process(job,
-                                   function=self.crop_worker.crop,
-                                   reset_worker_func=lambda: self.crop_worker.reset_task())
+                                  function=self.crop_worker.crop,
+                                  reset_worker_func=lambda: self.crop_worker.reset_task())
 
         # Check if source and destination are the same and warn if needed
-        self.check_source_destination_same(
-            self.inputLineEdit.text(),
-            self.destinationLineEdit.text(),
-            FunctionType.FOLDER,
-            execute_crop
-        )
+        if self.input_path and self.destination_path:
+            self.check_source_destination_same(
+                self.input_path,
+                self.destination_path,
+                FunctionType.FOLDER,
+                execute_crop
+            )

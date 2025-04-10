@@ -11,7 +11,6 @@ from core import processing as prc
 from core.croppers import VideoCropper
 from core.enums import FunctionType
 from file_types import file_manager, FileCategory
-from line_edits import LineEditState, PathType
 from ui import utils as ut
 from .crop_widget import UiCropWidget
 from .enums import GuiIcon
@@ -26,6 +25,10 @@ class UiVideoTabWidget(UiCropWidget):
     def __init__(self, crop_worker: VideoCropper, object_name: str, parent: QtWidgets.QWidget) -> None:
         """Initialize the video tab widget"""
         super().__init__(parent, object_name)
+    
+        # Path storage fields
+        self.input_path = ""
+        self.destination_path = ""
         self.crop_worker = crop_worker
         
         # Media player attributes
@@ -39,7 +42,7 @@ class UiVideoTabWidget(UiCropWidget):
         self.reverse = 0
         
         # Override the input line edit to use the correct path type
-        self.inputLineEdit = self.create_str_line_edit("inputLineEdit", PathType.VIDEO)
+        # self.inputLineEdit = self.create_str_line_edit("inputLineEdit", PathType.VIDEO)
         
         # Create additional UI elements
         self.progressBar = self.create_progress_bar("progressBar")
@@ -134,17 +137,17 @@ class UiVideoTabWidget(UiCropWidget):
         """Set up the main layout structure"""
         # ---- Page 1: Video Player ----
         # Input file selection
-        self.inputLineEdit.setParent(self.page_1)
-        self.inputButton.setParent(self.page_1)
-        icon = ut.create_button_icon(GuiIcon.CLAPPERBOARD)
-        self.inputButton.setIcon(icon)
+        # self.inputLineEdit.setParent(self.page_1)
+        # self.inputButton.setParent(self.page_1)
+        # icon = ut.create_button_icon(GuiIcon.CLAPPERBOARD)
+        # self.inputButton.setIcon(icon)
         
-        input_layout = ut.setup_hbox("horizontalLayout_2")
-        input_layout.addWidget(self.inputLineEdit)
-        input_layout.addWidget(self.inputButton)
-        input_layout.setStretch(0, 1)
-        
-        self.verticalLayout_200.addLayout(input_layout)
+        # input_layout = ut.setup_hbox("horizontalLayout_2")
+        # input_layout.addWidget(self.inputLineEdit)
+        # input_layout.addWidget(self.inputButton)
+        # input_layout.setStretch(0, 1)
+        # 
+        # self.verticalLayout_200.addLayout(input_layout)
         
         # Main frame with video player
         frame_1 = self.create_main_frame("frame_1")
@@ -251,9 +254,9 @@ class UiVideoTabWidget(UiCropWidget):
         self.verticalLayout_200.addWidget(frame_1)
         
         # Destination selection
-        self.destinationLineEdit.setParent(self)
-        self.destinationButton.setParent(self)
-        self.setup_destination_layout(self.horizontalLayout_3)
+        # self.destinationLineEdit.setParent(self)
+        # self.destinationButton.setParent(self)
+        # self.setup_destination_layout(self.horizontalLayout_3)
         self.verticalLayout_200.addLayout(self.horizontalLayout_3)
         
         # Add page to toolbox
@@ -428,10 +431,10 @@ class UiVideoTabWidget(UiCropWidget):
         self.timelineSlider_2.sliderMoved.connect(self.timelineSlider_1.setSliderPosition)
         
         # Button connections
-        self.inputButton.clicked.connect(lambda: self.open_video())
+        # self.inputButton.clicked.connect(lambda: self.open_video())
         
         # Add preview update trigger
-        self.inputLineEdit.textChanged.connect(lambda: QtCore.QTimer.singleShot(1000, self.display_crop_preview))
+        # self.inputLineEdit.textChanged.connect(lambda: QtCore.QTimer.singleShot(1000, self.display_crop_preview))
         
         # Connect media control widgets
         for control in [self.mediacontrolWidget_1, self.mediacontrolWidget_2]:
@@ -470,21 +473,23 @@ class UiVideoTabWidget(UiCropWidget):
         
         # Register button dependencies with TabStateManager
         for control in [self.mediacontrolWidget_1, self.mediacontrolWidget_2]:
-            self.tab_state_manager.register_button_dependencies(
+            ut.register_button_dependencies(
+                self.tab_state_manager,
                 control.cropButton,
                 {
-                    self.inputLineEdit, 
-                    self.destinationLineEdit, 
+                    # self.inputLineEdit, 
+                    # self.destinationLineEdit, 
                     self.controlWidget.widthLineEdit,
                     self.controlWidget.heightLineEdit
                 }
             )
             
-            self.tab_state_manager.register_button_dependencies(
+            ut.register_button_dependencies(
+                self.tab_state_manager,
                 control.videocropButton,
                 {
-                    self.inputLineEdit, 
-                    self.destinationLineEdit, 
+                    # self.inputLineEdit, 
+                    # self.destinationLineEdit, 
                     self.controlWidget.widthLineEdit,
                     self.controlWidget.heightLineEdit
                 }
@@ -492,10 +497,10 @@ class UiVideoTabWidget(UiCropWidget):
         
         # Connect input widgets for validation tracking
         self.tab_state_manager.connect_widgets(
-            self.inputLineEdit,
+            # self.inputLineEdit,
             self.controlWidget.widthLineEdit,
             self.controlWidget.heightLineEdit, 
-            self.destinationLineEdit,
+            # self.destinationLineEdit,
             self.exposureCheckBox,
             self.mfaceCheckBox,
             self.tiltCheckBox,
@@ -514,14 +519,6 @@ class UiVideoTabWidget(UiCropWidget):
     def retranslateUi(self) -> None:
         """Update UI text elements"""
         super().retranslateUi()
-        self.inputLineEdit.setPlaceholderText(
-            QtCore.QCoreApplication.translate("self", "Choose the video you want to crop", None)
-        )
-        self.inputButton.setText(QtCore.QCoreApplication.translate("self", "Open Video", None))
-        self.destinationLineEdit.setPlaceholderText(
-            QtCore.QCoreApplication.translate("self", "Choose where you want to save the cropped images", None)
-        )
-        self.destinationButton.setText(QtCore.QCoreApplication.translate("self", "Destination Folder", None))
         self.muteButton_1.setText("")
         self.muteButton_2.setText("")
         self.positionLabel_1.setText(QtCore.QCoreApplication.translate("self", "00:00:00", None))
@@ -536,25 +533,25 @@ class UiVideoTabWidget(UiCropWidget):
     def display_crop_preview(self) -> None:
         """Captures the current frame and displays crop preview in the imageWidget"""
         try:
-            # Only proceed if we have a valid video loaded
-            if not self.inputLineEdit.text() or self.inputLineEdit.state == LineEditState.INVALID_INPUT:
+            # Only proceed if we have a valid video path
+            if not self.input_path:
                 return
-            
+
             # Get current position
             position = self.timelineSlider_1.value()
-            
+
             # Use the optimized grab_frame method for preview
-            frame = self.crop_worker.grab_frame(position, self.inputLineEdit.text(), for_preview=True)
+            frame = self.crop_worker.grab_frame(position, self.input_path, for_preview=True)
             if frame is None:
                 return
-            
+
             # Create a job with current settings
             job = self.create_job(
                 FunctionType.FRAME,
-                video_path=Path(self.inputLineEdit.text()),
-                destination=Path(self.destinationLineEdit.text() or ".")
+                video_path=Path(self.input_path),
+                destination=Path(self.destination_path or ".")
             )
-            
+
             # Process the frame
             if job.multi_face_job:
                 # If multi-face is enabled, show bounding boxes on all faces
@@ -590,26 +587,31 @@ class UiVideoTabWidget(UiCropWidget):
                 )
 
     def open_video(self) -> None:
-        """Open a video file dialog"""
+        """Open a video file dialog with the string-based approach"""
         self.check_playback_state()
         file_name, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self, 'Open Video', 
+            self, 'Open Video',
             self.default_directory,
             file_manager.get_filter_string(FileCategory.VIDEO)
         )
 
         # Validate the file exists and is accessible
-        if file_name:= ut.sanitize_path(file_name):
-            self.inputLineEdit.setText(file_name)
-        
-        if self.inputLineEdit.state is LineEditState.INVALID_INPUT:
-            return
-        self.player.setSource(QtCore.QUrl.fromLocalFile(file_name))
-        self.reset_video_widgets()
+        if file_name := ut.sanitize_path(file_name):
+            # Update the input path
+            self.input_path = file_name
+
+            # Also update the main window's unified address bar if this is the active tab
+            main_window = self.parent().parent().parent()
+            if main_window.function_tabWidget.currentIndex() == FunctionType.VIDEO:
+                main_window.unified_address_bar.setText(file_name)
+
+            # Load the video
+            self.player.setSource(QtCore.QUrl.fromLocalFile(file_name))
+            self.reset_video_widgets()
 
     def open_dropped_video(self) -> None:
         """Handle video dropped onto the widget"""
-        self.player.setSource(QtCore.QUrl.fromLocalFile(self.inputLineEdit.text()))
+        self.player.setSource(QtCore.QUrl.fromLocalFile(self.input_path))
         self.reset_video_widgets()
 
     def reset_video_widgets(self) -> None:
@@ -799,10 +801,6 @@ class UiVideoTabWidget(UiCropWidget):
             self.controlWidget.bottomDial,
             self.controlWidget.leftDial,
             self.controlWidget.rightDial,
-            self.inputLineEdit,
-            self.destinationLineEdit,
-            self.destinationButton,
-            self.inputButton,
             *controls,
         ]
         # Video start connection
@@ -845,13 +843,13 @@ class UiVideoTabWidget(UiCropWidget):
             self.player.pause()
             job = self.create_job(
                 FunctionType.FRAME,
-                video_path=Path(self.inputLineEdit.text()),
-                destination=Path(self.destinationLineEdit.text())
+                video_path=Path(self.input_path),
+                destination=Path(self.destination_path)
             )
             self.crop_worker.crop_frame(job, self.positionLabel_1, self.timelineSlider_1)
 
         # Check if source and destination are the same and warn if needed
-        if Path(self.inputLineEdit.text()).parent == Path(self.destinationLineEdit.text()):
+        if Path(self.input_path).parent == Path(self.destination_path):
             match ut.show_warning(FunctionType.FRAME):
                 case QtWidgets.QMessageBox.StandardButton.Yes:
                     execute_crop()
@@ -869,8 +867,8 @@ class UiVideoTabWidget(UiCropWidget):
             self.player.pause()
             job = self.create_job(
                 FunctionType.VIDEO,
-                video_path=Path(self.inputLineEdit.text()),
-                destination=Path(self.destinationLineEdit.text()),
+                video_path=Path(self.input_path),
+                destination=Path(self.destination_path),
                 start_position=ut.pos_from_marker(x),
                 stop_position=ut.pos_from_marker(y)
             )
@@ -881,7 +879,7 @@ class UiVideoTabWidget(UiCropWidget):
             )
 
         # Check if source and destination are the same and warn if needed
-        if Path(self.inputLineEdit.text()).parent == Path(self.destinationLineEdit.text()):
+        if Path(self.input_path).parent == Path(self.destination_path):
             match ut.show_warning(FunctionType.VIDEO):
                 case QtWidgets.QMessageBox.StandardButton.Yes:
                     execute_crop()

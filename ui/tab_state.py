@@ -1,5 +1,5 @@
-from typing import Dict, Optional, Set, Callable
-
+from typing import Optional
+from collections.abc import Callable
 from PyQt6 import QtWidgets
 
 from line_edits import NumberLineEdit, PathLineEdit, LineEditState
@@ -23,13 +23,13 @@ class TabStateManager:
             parent: Optional parent widget that owns this state manager
         """
         self.parent = parent
-        self._checkbox_handlers: Dict[QtWidgets.QCheckBox, Set[QtWidgets.QCheckBox]] = {}
-        self._button_dependencies: Dict[QtWidgets.QPushButton, Set[QtWidgets.QWidget]] = {}
-        self._validation_handlers: Dict[QtWidgets.QWidget, Callable[[], bool]] = {}
+        self._checkbox_handlers: dict[QtWidgets.QCheckBox, set[QtWidgets.QCheckBox]] = {}
+        self._button_dependencies: dict[QtWidgets.QPushButton, set[QtWidgets.QWidget]] = {}
+        self._validation_handlers: dict[QtWidgets.QWidget, Callable[[], bool]] = {}
         self._state_change_callback: Optional[Callable[[], None]] = None
         
     def register_checkbox_exclusivity(self, checkbox: QtWidgets.QCheckBox, 
-                                     exclude_checkboxes: Set[QtWidgets.QCheckBox]) -> None:
+                                     exclude_checkboxes: set[QtWidgets.QCheckBox]) -> None:
         """
         Register checkbox exclusivity relationships.
         When a checkbox is checked, it will uncheck the specified excluded checkboxes.
@@ -54,21 +54,8 @@ class TabStateManager:
                 excluded.blockSignals(True)
                 excluded.setChecked(False)
                 excluded.blockSignals(False)
-                
-    def register_button_dependencies(self, button: QtWidgets.QPushButton, 
-                                    dependent_widgets: Set[QtWidgets.QWidget]) -> None:
-        """
-        Register button dependencies on other widgets' states.
-        The button will be enabled only when all dependent widgets are in a valid state.
-        
-        Args:
-            button: The button whose enabled state depends on other widgets
-            dependent_widgets: Set of widgets that must be valid for the button to be enabled
-        """
-        self._button_dependencies[button] = dependent_widgets
-        self.update_button_states()
-        
-    def register_validation_handler(self, widget: QtWidgets.QWidget, 
+
+    def register_validation_handler(self, widget: QtWidgets.QWidget,
                                    handler: Callable[[], bool]) -> None:
         """
         Register a custom validation handler for a widget.
@@ -105,12 +92,20 @@ class TabStateManager:
         
     def update_button_states(self) -> None:
         """
-        Update button enabled states based on registered dependencies.
+        Update button enabled states based on registered dependencies and path validation.
         """
         for button, dependencies in self._button_dependencies.items():
-            is_valid = all(self._is_widget_valid(widget) for widget in dependencies)
-            ut.change_widget_state(is_valid, button)
-            
+            # Check widget-based dependencies
+            widgets_valid = all(self._is_widget_valid(widget) for widget in dependencies)
+
+            # Get custom validation result, if any
+            custom_valid = True
+            if button in self._validation_handlers:
+                custom_valid = self._validation_handlers[button]()
+
+            # Button is enabled only if all validations pass
+            ut.change_widget_state(widgets_valid and custom_valid, button)
+
         if self._state_change_callback:
             self._state_change_callback()
     

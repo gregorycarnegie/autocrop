@@ -9,10 +9,8 @@ from core import processing as prc
 from core.croppers import MappingCropper
 from core.enums import FunctionType
 from file_types import file_manager, FileCategory
-from line_edits import LineEditState, PathType
 from ui import utils as ut
 from .batch_tab import UiBatchCropWidget
-from .enums import GuiIcon
 
 
 class UiMappingTabWidget(UiBatchCropWidget):
@@ -21,13 +19,17 @@ class UiMappingTabWidget(UiBatchCropWidget):
     def __init__(self, crop_worker: MappingCropper, object_name: str, parent: QtWidgets.QWidget) -> None:
         """Initialize the mapping tab widget"""
         super().__init__(crop_worker, object_name, parent)
+    
+        # Path storage fields
+        self.input_path = ""         # Folder path 
+        self.table_path = ""         # Table file path
+        self.destination_path = ""   # Destination folder
 
         # Data model
         self.model: Optional[DataFrameModel] = None
         self.data_frame: Optional[pl.DataFrame] = None
 
         # Create mapping-specific widgets
-        self.tableLineEdit = self.create_str_line_edit("tableLineEdit", PathType.TABLE)
         self.tableButton = self.create_nav_button("tableButton")
         self.comboBox_1 = QtWidgets.QComboBox()
         self.comboBox_2 = QtWidgets.QComboBox()
@@ -52,35 +54,6 @@ class UiMappingTabWidget(UiBatchCropWidget):
     def setup_layouts(self) -> None:
         """Set up the main layout structure"""
         # ---- Page 1: Crop View ----
-        # Grid layout for input fields
-        gridLayout = QtWidgets.QGridLayout()
-        gridLayout.setObjectName("gridLayout")
-
-        # Input folder selection
-        self.inputLineEdit.setParent(self.page_1)
-        self.inputButton.setParent(self.page_1)
-        self.inputButton.setIcon(self.folder_icon)
-
-        gridLayout.addWidget(self.inputLineEdit, 0, 0, 1, 1)
-        gridLayout.addWidget(self.inputButton, 0, 1, 1, 1)
-
-        # Table file selection
-        self.tableLineEdit.setParent(self.page_1)
-        self.tableButton.setParent(self.page_1)
-        icon = ut.create_button_icon(GuiIcon.EXCEL)
-        self.tableButton.setIcon(icon)
-
-        gridLayout.addWidget(self.tableLineEdit, 1, 0, 1, 1)
-        gridLayout.addWidget(self.tableButton, 1, 1, 1, 1)
-
-        # Set column properties
-        gridLayout.setColumnStretch(0, 20)
-        gridLayout.setColumnStretch(1, 1)
-        gridLayout.setColumnMinimumWidth(0, 20)
-        gridLayout.setColumnMinimumWidth(1, 1)
-
-        self.verticalLayout_200.addLayout(gridLayout)
-
         # Main frame with image and controls
         frame, verticalLayout = self.setup_main_crop_frame(self.page_1)
 
@@ -105,9 +78,6 @@ class UiMappingTabWidget(UiBatchCropWidget):
         self.verticalLayout_200.addWidget(frame)
 
         # Destination selection
-        self.destinationLineEdit.setParent(self.page_1)
-        self.destinationButton.setParent(self.page_1)
-        self.setup_destination_layout(self.horizontalLayout_3)
         self.verticalLayout_200.addLayout(self.horizontalLayout_3)
 
         # Add page to toolbox
@@ -136,7 +106,6 @@ class UiMappingTabWidget(UiBatchCropWidget):
     def connect_signals(self) -> None:
         """Connect widget signals to handlers"""
         # Button connections
-        super().connect_signals()
         self.tableButton.clicked.connect(self.open_table)
         self.cropButton.clicked.connect(self.mapping_process)
 
@@ -147,12 +116,10 @@ class UiMappingTabWidget(UiBatchCropWidget):
         self.comboBox_4.currentTextChanged.connect(lambda text: self.comboBox_2.setCurrentText(text))
 
         # Register button dependencies with the TabStateManager
-        self.tab_state_manager.register_button_dependencies(
+        ut.register_button_dependencies(
+            self.tab_state_manager,
             self.cropButton,
             {
-                self.inputLineEdit,
-                self.tableLineEdit,
-                self.destinationLineEdit,
                 self.comboBox_1,
                 self.comboBox_2,
                 self.controlWidget.widthLineEdit,
@@ -162,11 +129,8 @@ class UiMappingTabWidget(UiBatchCropWidget):
         
         # Connect all input widgets for validation tracking
         self.tab_state_manager.connect_widgets(
-            self.inputLineEdit,
             self.controlWidget.widthLineEdit,
-            self.controlWidget.heightLineEdit, 
-            self.destinationLineEdit,
-            self.tableLineEdit,
+            self.controlWidget.heightLineEdit,
             self.comboBox_1,
             self.comboBox_2,
             self.exposureCheckBox,
@@ -184,18 +148,18 @@ class UiMappingTabWidget(UiBatchCropWidget):
     def retranslateUi(self) -> None:
         """Update UI text elements"""
         super().retranslateUi()
-        self.inputLineEdit.setPlaceholderText(
-            QtCore.QCoreApplication.translate("self", "Choose the folder you want to crop", None)
-        )
-        self.inputButton.setText(QtCore.QCoreApplication.translate("self", "Select Folder", None))
-        self.tableLineEdit.setPlaceholderText(
-            QtCore.QCoreApplication.translate("self", "Choose the Excel or CSV file with the mapping", None)
-        )
-        self.tableButton.setText(QtCore.QCoreApplication.translate("self", "Open File", None))
-        self.destinationLineEdit.setPlaceholderText(
-            QtCore.QCoreApplication.translate("self", "Choose where you want to save the cropped images", None)
-        )
-        self.destinationButton.setText(QtCore.QCoreApplication.translate("self", "Destination Folder", None))
+        # self.inputLineEdit.setPlaceholderText(
+        #     QtCore.QCoreApplication.translate("self", "Choose the folder you want to crop", None)
+        # )
+        # self.inputButton.setText(QtCore.QCoreApplication.translate("self", "Select Folder", None))
+        # self.tableLineEdit.setPlaceholderText(
+        #     QtCore.QCoreApplication.translate("self", "Choose the Excel or CSV file with the mapping", None)
+        # )
+        # self.tableButton.setText(QtCore.QCoreApplication.translate("self", "Open File", None))
+        # self.destinationLineEdit.setPlaceholderText(
+        #     QtCore.QCoreApplication.translate("self", "Choose where you want to save the cropped images", None)
+        # )
+        # self.destinationButton.setText(QtCore.QCoreApplication.translate("self", "Destination Folder", None))
         self.comboBox_1.setPlaceholderText(QtCore.QCoreApplication.translate("self", "Filename column", None))
         self.comboBox_2.setPlaceholderText(QtCore.QCoreApplication.translate("self", "Mapping column", None))
         self.comboBox_3.setPlaceholderText(QtCore.QCoreApplication.translate("self", "Filename column", None))
@@ -208,7 +172,7 @@ class UiMappingTabWidget(UiBatchCropWidget):
                                  QtCore.QCoreApplication.translate("self", "Table View", None))
 
     def open_table(self) -> None:
-        """Open a table file dialog"""
+        """Open a table file dialog with the string-based approach"""
         f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
             self, 'Open File',
             file_manager.get_default_directory(FileCategory.PHOTO).as_posix(),
@@ -216,15 +180,18 @@ class UiMappingTabWidget(UiBatchCropWidget):
         )
 
         # Validate the file exists and is accessible
-        if f_name:= ut.sanitize_path(f_name):
-            self.tableLineEdit.setText(f_name)
+        if f_name := ut.sanitize_path(f_name):
+            # Update the table path
+            self.table_path = f_name
 
-        # Load the table if valid
-        if self.tableLineEdit.state is LineEditState.INVALID_INPUT:
-            return
+            # Also update the main window's secondary input if this is the active tab
+            main_window = self.parent().parent().parent()
+            if main_window.function_tabWidget.currentIndex() == FunctionType.MAPPING:
+                main_window.secondary_input.setText(f_name)
 
-        data = prc.open_table(Path(f_name))
-        self.process_data(data)
+            # Load and process the table data
+            data = prc.open_table(Path(f_name))
+            self.process_data(data)
 
     def process_data(self, data: pl.DataFrame) -> None:
         """Process the loaded data"""
@@ -247,8 +214,8 @@ class UiMappingTabWidget(UiBatchCropWidget):
         widget_list = (self.controlWidget.widthLineEdit, self.controlWidget.heightLineEdit,
                        self.controlWidget.sensitivityDial, self.controlWidget.fpctDial, self.controlWidget.gammaDial,
                        self.controlWidget.topDial, self.controlWidget.bottomDial, self.controlWidget.leftDial,
-                       self.controlWidget.rightDial, self.inputLineEdit, self.destinationLineEdit,
-                       self.tableButton, self.destinationButton, self.inputButton, self.tableLineEdit,
+                       self.controlWidget.rightDial, #self.inputLineEdit, self.destinationLineEdit,
+                       self.tableButton, #self.destinationButton, self.inputButton, self.tableLineEdit,
                        self.comboBox_1, self.comboBox_2, self.controlWidget.radioButton_none,
                        self.controlWidget.radioButton_bmp, self.controlWidget.radioButton_jpg,
                        self.controlWidget.radioButton_png, self.controlWidget.radioButton_tiff,
@@ -264,8 +231,8 @@ class UiMappingTabWidget(UiBatchCropWidget):
         def execute_crop():
             job = self.create_job(
                 FunctionType.MAPPING,
-                folder_path=Path(self.inputLineEdit.text()),
-                destination=Path(self.destinationLineEdit.text()),
+                folder_path=Path(self.input_path),
+                destination=Path(self.destination_path ),
                 table=self.data_frame,
                 column1=self.comboBox_1,
                 column2=self.comboBox_2
@@ -276,8 +243,8 @@ class UiMappingTabWidget(UiBatchCropWidget):
 
         # Check if source and destination are the same and warn if needed
         self.check_source_destination_same(
-            self.inputLineEdit.text(),
-            self.destinationLineEdit.text(),
+            self.input_path,
+            self.destination_path ,
             FunctionType.MAPPING,
             execute_crop
         )
