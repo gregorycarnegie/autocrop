@@ -719,6 +719,7 @@ def batch_process_with_pipeline(images: list[Path],
                                 face_detection_tools: FaceToolPair,
                                 cancel_event: threading.Event,
                                 progress_bars: list[QtWidgets.QProgressBar] = None,
+                                progress_count: int = 0,
                                 chunk_size: int = 10) -> list[Path]:
     """
     Process a batch of images with the same pipeline for efficiency with cancellation support.
@@ -731,8 +732,8 @@ def batch_process_with_pipeline(images: list[Path],
     if cancel_event.is_set():
         return all_output_paths
     
-    # Initialize progress tracking
-    progress_count = 0
+    # # Initialize progress tracking
+    # progress_count = 0
     
     # Process images in smaller chunks
     for i in range(0, total_images, chunk_size):
@@ -784,7 +785,8 @@ def batch_process_with_mapping(images: list[Path],
                                job: Job,
                                face_detection_tools: FaceToolPair,
                                cancel_event: threading.Event,
-                               progress_bars: list[QtWidgets.QProgressBar] = None, 
+                               progress_bars: list[QtWidgets.QProgressBar] = None,
+                               progress_count: int = 0,
                                chunk_size: int = 10) -> list[Path]:
     """
     Process a batch of images with custom output paths using the same pipeline with cancellation support.
@@ -809,8 +811,8 @@ def batch_process_with_mapping(images: list[Path],
     all_output_paths = []
     total_images = len(images)
     
-    # Initialize progress tracking
-    progress_count = 0
+    # # Initialize progress tracking
+    # progress_count = 0
     
     # Process images in chunks
     for i in range(0, total_images, chunk_size):
