@@ -6,7 +6,7 @@ from typing import Optional
 import ffmpeg
 import numpy as np
 import numpy.typing as npt
-from PyQt6.QtWidgets import QApplication, QLabel, QSlider
+from PyQt6.QtWidgets import QApplication, QLabel, QSlider, QProgressBar
 
 from core import processing as prc
 from core.face_tools import FaceToolPair
@@ -39,6 +39,7 @@ class VideoCropper(Cropper):
     def __init__(self, face_detection_tools: FaceToolPair):
         super().__init__()
         self.face_detection_tools = face_detection_tools
+        self.progressBars: list[QProgressBar] = []
 
     def grab_frame(self, position_slider: int, video_line_edit: str, for_preview: bool = False) -> Optional[npt.NDArray[np.uint8]]:
         """

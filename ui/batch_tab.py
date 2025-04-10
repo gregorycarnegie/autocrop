@@ -23,7 +23,7 @@ class UiBatchCropWidget(UiCropWidget):
     def __init__(self, crop_worker: BatchCropper, object_name: str, parent: QtWidgets.QWidget) -> None:
         """Initialize the batch crop widget with common components"""
         super().__init__(parent, object_name)
-        self.crop_worker = crop_worker
+        self.crop_worker = crop_worker  # List to hold progress bars for each batch operation
 
         # Create common UI elements for batch operations
         self.progressBar = self.create_progress_bar("progressBar")
@@ -85,10 +85,6 @@ class UiBatchCropWidget(UiCropWidget):
 
     def connect_crop_worker(self) -> None:
         raise NotImplementedError("function must be implemented in subclasses.")
-
-    def worker(self, *args: Any) -> None:
-        """Worker function to be overridden in subclasses"""
-        raise NotImplementedError("Worker function must be implemented in subclasses.")
 
     def reset_progress_bar(self) -> None:
         """Reset the progress bar to zero and ensure it's visible"""
@@ -199,7 +195,7 @@ class UiBatchCropWidget(UiCropWidget):
         self.crop_worker.started.connect(lambda: ut.enable_widget(self.cancelButton))
 
         # Connect progress update
-        self.crop_worker.progress.connect(self.update_progress)
+        self.crop_worker.progress.connect(self.update_progress, QtCore.Qt.ConnectionType.QueuedConnection)
 
         # Batch end connection - re-enable controls 
         self.crop_worker.finished.connect(lambda: ut.enable_widget(*widget_list))

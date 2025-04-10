@@ -1,5 +1,5 @@
 import threading
-from functools import partial
+# from functools import partial
 from pathlib import Path
 from typing import Optional, Any
 
@@ -40,10 +40,10 @@ class MappingCropper(BatchCropper):
         
         if image_paths and not cancel_event.is_set():
             # Create a progress callback that uses file_amount
-            progress_callback = partial(self._update_progress, file_amount)
+            # progress_callback = partial(self._update_progress, file_amount)
             # Use a modified version of batch_process_with_pipeline that accepts custom output paths
             prc.batch_process_with_mapping(
-                image_paths, output_paths, job, face_detection_tools, progress_callback, cancel_event
+                image_paths, output_paths, job, face_detection_tools, cancel_event, self.progressBars
             )
         
         if self.progress_count == file_amount or self.end_task:

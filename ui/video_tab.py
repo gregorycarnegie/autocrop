@@ -877,14 +877,34 @@ class UiVideoTabWidget(UiCropWidget):
         print("Video processing cancelled")
 
     # Improve update_progress method:
+    # def update_progress(self, x: int, y:int) -> None:
+    #     """Update the progress bars based on crop worker progress"""
+    #     value = int(self.PROGRESSBAR_STEPS * x / y)
+    #     self.progressBar.setValue(value)
+    #     self.progressBar.repaint()  # Force immediate repaint
+    #     self.progressBar_2.setValue(value)
+    #     self.progressBar_2.repaint()  # Force immediate repaint
+    #     QtWidgets.QApplication.processEvents()  # Process events to update UI
+
     def update_progress(self, x: int, y:int) -> None:
-        """Update the progress bars based on crop worker progress"""
-        value = int(self.PROGRESSBAR_STEPS * x / y)
-        self.progressBar.setValue(value)
-        self.progressBar.repaint()  # Force immediate repaint
-        self.progressBar_2.setValue(value)
-        self.progressBar_2.repaint()  # Force immediate repaint
-        QtWidgets.QApplication.processEvents()  # Process events to update UI
+        """Update both progress bars based on crop worker progress"""
+        if y <= 0:  # Prevent division by zero
+            return
+            
+        # Calculate percentage
+        percentage = min(100.0, (x / y) * 100.0)
+        value = int(self.PROGRESSBAR_STEPS * percentage / 100.0)
+        
+        # Force UI updates on both progress bars
+        for progress_bar in [self.progressBar, self.progressBar_2]:
+            progress_bar.setValue(value)
+            progress_bar.repaint()
+        
+        # Process events to ensure UI updates immediately
+        QtWidgets.QApplication.processEvents()
+        
+        # Log progress
+        print(f"Video processing progress: {percentage:.1f}%")
 
     @staticmethod
     def cancel_button_operation(cancel_button: QtWidgets.QPushButton, *crop_buttons: QtWidgets.QPushButton) -> None:

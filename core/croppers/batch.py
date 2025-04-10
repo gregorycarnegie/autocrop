@@ -5,11 +5,11 @@ import threading
 from concurrent.futures import Future, ThreadPoolExecutor, CancelledError
 from functools import partial
 from pathlib import Path
-from typing import Callable, Optional, Union, TypeVar
+from typing import Callable, Optional, Union, TypeVar, Any
 
 import numpy as np
 import numpy.typing as npt
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication, QProgressBar
 from PyQt6.QtCore import QCoreApplication, QMetaObject, Qt, Q_ARG
 
 from core.face_tools import FaceToolPair
@@ -30,6 +30,7 @@ class BatchCropper(Cropper):
         self.futures: list[Future] = []
         self.executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)
         self.face_detection_tools = face_detection_tools
+        self.progressBars: list[QProgressBar] = []
         
         # Add a cancellation event for cooperative termination
         self.cancel_event = threading.Event()
@@ -147,6 +148,10 @@ class BatchCropper(Cropper):
         if not self.end_task and all(future.done() for future in self.futures):
             self.emit_done()
             self.end_task = True
+
+    def worker(self, *args: Any) -> None:
+        """Worker function to be overridden in subclasses"""
+        raise NotImplementedError("Worker function must be implemented in subclasses.")
 
     def worker_done_callback(self, future: Future) -> None:
         """

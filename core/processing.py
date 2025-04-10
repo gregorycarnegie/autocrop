@@ -13,7 +13,7 @@ import cv2
 import numpy as np
 import numpy.typing as npt
 import polars as pl
-from PyQt6 import QtWidgets
+from PyQt6 import QtWidgets, QtCore
 import tifffile as tiff
 from rawpy._rawpy import NotSupportedError, LibRawError, LibRawFatalError, LibRawNonFatalError
 
@@ -705,8 +705,8 @@ def _(image: Path, job: Job, face_detection_tools: FaceToolPair) -> Optional[c.I
 def batch_process_with_pipeline(images: list[Path],
                              job: Job,
                              face_detection_tools: FaceToolPair,
-                             progress_callback: c.Callable,
                              cancel_event: threading.Event,
+                             progress_bars: list[QtWidgets.QProgressBar] = None,
                              chunk_size: int = 10) -> list[Path]:
     """
     Process a batch of images with the same pipeline for efficiency with cancellation support.
@@ -718,17 +718,20 @@ def batch_process_with_pipeline(images: list[Path],
     # Check for cancellation before starting
     if cancel_event.is_set():
         return all_output_paths
-        
-    # Process images in smaller chunks to maintain UI responsiveness
+    
+    # Initialize progress tracking
+    progress_count = 0
+    
+    # Process images in smaller chunks
     for i in range(0, total_images, chunk_size):
-        # Check for cancellation BEFORE processing chunk
+        # Check for cancellation
         if cancel_event.is_set():
             return all_output_paths
             
         # Get current chunk
         chunk = images[i:min(i + chunk_size, total_images)]
         
-        # Process each image in the chunk with cancellation checks
+        # Process each image in the chunk
         for img_path in chunk:
             # Check for cancellation BEFORE processing each image
             if cancel_event.is_set():
@@ -737,8 +740,20 @@ def batch_process_with_pipeline(images: list[Path],
             # Open the image
             image_array = open_pic(img_path, face_detection_tools, job)
             if image_array is None:
-                progress_callback()
-                QtWidgets.QApplication.processEvents()  # Force UI update
+                progress_count += 1
+                if progress_bars:
+                    percentage = min(100.0, (progress_count / total_images) * 100.0)
+                    value = int(1000 * percentage / 100.0)
+                    
+                    # Use safe thread approach to update UI
+                    for bar in progress_bars:
+                        # Use invokeMethod to update progress bars on the main thread
+                        QtCore.QMetaObject.invokeMethod(
+                            bar, 
+                            "setValue", 
+                            QtCore.Qt.ConnectionType.QueuedConnection,
+                            QtCore.Q_ARG(int, value)
+                        )
                 continue
 
             # Create a function to get output paths for standard batch processing
@@ -748,10 +763,139 @@ def batch_process_with_pipeline(images: list[Path],
             # Process the image
             output_paths, pipeline = process_batch_item(
                 image_array, job, face_detection_tools, pipeline, 
-                progress_callback, img_path, get_output_path_fn
+                img_path, get_output_path_fn
             )
             
             all_output_paths.extend(output_paths)
+            
+            # Check for cancellation AFTER processing each image
+            if cancel_event.is_set():
+                return all_output_paths
+            
+            # Update progress count and progress bars directly
+            progress_count += 1
+            if progress_bars:
+                percentage = min(100.0, (progress_count / total_images) * 100.0)
+                value = int(1000 * percentage / 100.0)
+                
+                # Use safe thread approach to update UI
+                for bar in progress_bars:
+                    # Use invokeMethod to update progress bars on the main thread
+                    QtCore.QMetaObject.invokeMethod(
+                        bar, 
+                        "setValue", 
+                        QtCore.Qt.ConnectionType.QueuedConnection,
+                        QtCore.Q_ARG(int, value)
+                    )
+            
+        # Allow UI updates between chunks
+        QtWidgets.QApplication.processEvents()
+    
+    return all_output_paths
+
+def batch_process_with_mapping(images: list[Path],
+                               output_paths: list[Path],
+                               job: Job,
+                               face_detection_tools: FaceToolPair,
+                               cancel_event: threading.Event,
+                               progress_bars: list[QtWidgets.QProgressBar] = None, 
+                               chunk_size: int = 10) -> list[Path]:
+    """
+    Process a batch of images with custom output paths using the same pipeline with cancellation support.
+    
+    Args:
+        images: List of image paths to process
+        output_paths: List of output paths for processed images
+        job: Job parameters
+        face_detection_tools: Tools for face detection
+        progress_callback: Callback to update progress
+        cancel_event: Event to check for cancellation requests
+        progress_bars: Optional list of progress bars to update directly
+        chunk_size: Number of images to process in each chunk
+        
+    Returns:
+        List of output image paths that were successfully processed
+    """
+    if len(images) != len(output_paths):
+        raise ValueError("Input and output path lists must have same length")
+
+    pipeline = None
+    all_output_paths = []
+    total_images = len(images)
+    
+    # Initialize progress tracking
+    progress_count = 0
+    
+    # Process images in chunks
+    for i in range(0, total_images, chunk_size):
+        # Check for cancellation BEFORE processing chunk
+        if cancel_event.is_set():
+            return all_output_paths
+            
+        # Get current chunk
+        chunk_end = min(i + chunk_size, total_images)
+        img_chunk = images[i:chunk_end]
+        out_chunk = output_paths[i:chunk_end]
+        
+        # Process each image in the chunk with cancellation checks
+        for img_path, out_path in zip(img_chunk, out_chunk):
+            # Check for cancellation BEFORE processing each image
+            if cancel_event.is_set():
+                return all_output_paths
+                
+            # Open the image
+            image_array = open_pic(img_path, face_detection_tools, job)
+            if image_array is None:
+                progress_count += 1
+                
+                # Update progress bars directly if provided
+                if progress_bars:
+                    percentage = min(100.0, (progress_count / total_images) * 100.0)
+                    value = int(1000 * percentage / 100.0)
+                    
+                    # Use safe thread approach to update UI
+                    for bar in progress_bars:
+                        # Use invokeMethod to update progress bars on the main thread
+                        QtCore.QMetaObject.invokeMethod(
+                            bar, 
+                            "setValue", 
+                            QtCore.Qt.ConnectionType.QueuedConnection,
+                            QtCore.Q_ARG(int, value)
+                        )
+                continue
+
+            # Create a function to get output paths for mapping
+            def get_output_path_fn(image_path: Path, face_index: Optional[int]) -> Path:
+                if face_index is not None:
+                    # Multi-face output path
+                    return out_path.with_stem(f"{out_path.stem}_{face_index}")
+                else:
+                    # Single face output path
+                    return out_path
+
+            # Process the image
+            output_paths_result, pipeline = process_batch_item(
+                image_array, job, face_detection_tools, pipeline, 
+                img_path, get_output_path_fn
+            )
+            
+            all_output_paths.extend(output_paths_result)
+            
+            # Update progress count and progress bars directly
+            progress_count += 1
+            if progress_bars:
+                percentage = min(100.0, (progress_count / total_images) * 100.0)
+                value = int(1000 * percentage / 100.0)
+                
+                # Use safe thread approach to update UI
+                for bar in progress_bars:
+                    # Use invokeMethod to update progress bars on the main thread
+                    QtCore.QMetaObject.invokeMethod(
+                        bar, 
+                        "setValue", 
+                        QtCore.Qt.ConnectionType.QueuedConnection,
+                        QtCore.Q_ARG(int, value)
+                    )
             
             # Check for cancellation AFTER processing each image
             if cancel_event.is_set():
@@ -766,13 +910,10 @@ def batch_process_with_pipeline(images: list[Path],
         
     return all_output_paths
 
-# 2. Add cooperative cancellation to process_batch_item function
-
 def process_batch_item(image_array: cv2.Mat,
                        job: Job,
                        face_detection_tools: FaceToolPair,
                        pipeline: list,
-                       progress_callback: c.Callable,
                        img_path: Path,
                        get_output_path_fn: c.Callable) -> tuple[list[Path], list]:
     """
@@ -788,13 +929,11 @@ def process_batch_item(image_array: cv2.Mat,
 
         if not results:
             reject(path=img_path, destination=job.destination)
-            progress_callback()
             return output_paths, pipeline
 
         valid_positions = [pos for confidence, pos in results if confidence > job.threshold]
 
         if not valid_positions:
-            progress_callback()
             return output_paths, pipeline
 
         # Process each face
@@ -815,7 +954,6 @@ def process_batch_item(image_array: cv2.Mat,
         # Single face processing
         if (bounding_box := box_detect(image_array, job, face_detection_tools)) is None:
             reject(path=img_path, destination=job.destination)
-            progress_callback()
             return output_paths, pipeline
 
         # Create output path using the provided function
@@ -831,87 +969,7 @@ def process_batch_item(image_array: cv2.Mat,
         save_processed_face(processed, output_path, job.gamma)
         output_paths.append(output_path)
     
-    progress_callback()
     return output_paths, pipeline
-
-def batch_process_with_mapping(images: list[Path], output_paths: list[Path], job: Job,
-                               face_detection_tools: FaceToolPair, progress_callback: c.Callable,
-                               cancel_event: threading.Event, chunk_size: int = 10) -> list[Path]:
-    """
-    Process a batch of images with custom output paths using the same pipeline with cancellation support.
-    
-    Args:
-        images: List of image paths to process
-        output_paths: List of output paths for processed images
-        job: Job parameters
-        face_detection_tools: Tools for face detection
-        progress_callback: Callback to update progress
-        cancel_event: Event to check for cancellation requests
-        chunk_size: Number of images to process in each chunk
-        
-    Returns:
-        List of output image paths that were successfully processed
-    """
-    if len(images) != len(output_paths):
-        raise ValueError("Input and output path lists must have same length")
-
-    pipeline = None
-    all_output_paths = []
-    total_images = len(images)
-    
-    # Process images in chunks
-    for i in range(0, total_images, chunk_size):
-        # Check for cancellation BEFORE processing chunk
-        if cancel_event.is_set():
-            break
-            
-        # Get current chunk
-        chunk_end = min(i + chunk_size, total_images)
-        img_chunk = images[i:chunk_end]
-        out_chunk = output_paths[i:chunk_end]
-        
-        # Process each image in the chunk with cancellation checks
-        for img_path, out_path in zip(img_chunk, out_chunk):
-            # Check for cancellation BEFORE processing each image
-            if cancel_event.is_set():
-                break
-                
-            # Open the image
-            image_array = open_pic(img_path, face_detection_tools, job)
-            if image_array is None:
-                progress_callback()
-                QtWidgets.QApplication.processEvents()  # Force UI update
-                continue
-
-            # Create a function to get output paths for mapping
-            def get_output_path_fn(image_path: Path, face_index: Optional[int]) -> Path:
-                if face_index is not None:
-                    # Multi-face output path
-                    return out_path.with_stem(f"{out_path.stem}_{face_index}")
-                else:
-                    # Single face output path
-                    return out_path
-
-            # Process the image
-            output_paths_result, pipeline = process_batch_item(
-                image_array, job, face_detection_tools, pipeline, 
-                progress_callback, img_path, get_output_path_fn
-            )
-            
-            all_output_paths.extend(output_paths_result)
-            
-            # Check for cancellation AFTER processing each image
-            if cancel_event.is_set():
-                break
-        
-        # Allow UI to update between chunks AND process cancellation events
-        QtWidgets.QApplication.processEvents()
-        
-        # Final cancellation check after UI updates
-        if cancel_event.is_set():
-            break
-        
-    return all_output_paths
 
 def get_output_path(input_path: Path, destination: Path, face_index: Optional[int], radio_choice: str) -> Path:
     """Helper function to generate output paths."""
