@@ -369,3 +369,79 @@ NumberLineEdit[state="invalid"] {
     background-color: #ffebee;
     border: 1px solid #f44336;
 }
+
+/* Unified address bar styling */
+#addressBarWidget {
+    background-color: #f8f8f8;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+#unifiedAddressBar {
+    background-color: #ffffff;
+    border: 1px solid #cccccc;
+    border-radius: 20px;
+    padding: 6px 10px 6px 16px;
+    selection-background-color: #b3d7ff;
+}
+
+#unifiedAddressBar:hover, #unifiedAddressBar:focus {
+    border: 1px solid #4285f4;
+}
+
+#backButton, #forwardButton, #refreshButton, #contextButton, #secondaryButton, #destinationButton, #settingsButton {
+    background-color: transparent;
+    border: none;
+    border-radius: 18px;
+    padding: 4px;
+}
+
+#backButton:hover, #forwardButton:hover, #refreshButton:hover, 
+#contextButton:hover, #secondaryButton:hover, #destinationButton:hover, #settingsButton:hover {
+    background-color: #e0e0e0;
+}
+
+#backButton:pressed, #forwardButton:pressed, #refreshButton:pressed, 
+#contextButton:pressed, #secondaryButton:pressed, #destinationButton:pressed, #settingsButton:pressed {
+    background-color: #d0d0d0;
+}
+
+#backButton:disabled, #forwardButton:disabled {
+    opacity: 0.5;
+}
+
+#secondaryInput {
+    background-color: #ffffff;
+    border: 1px solid #cccccc;
+    border-radius: 20px;
+    padding: 6px 10px 6px 16px;
+    selection-background-color: #b3d7ff;
+}
+
+#secondaryInput:hover, #secondaryInput:focus {
+    border: 1px solid #4285f4;
+}
+
+#destinationInput {
+    background-color: #ffffff;
+    border: 1px solid #cccccc;
+    border-radius: 20px;
+    padding: 6px 10px 6px 16px;
+    selection-background-color: #b3d7ff;
+}
+
+#destinationInput:hover, #destinationInput:focus {
+    border: 1px solid #4285f4;
+}
+
+#destinationLabel {
+    color: #505050;
+    font-weight: bold;
+    margin-right: 5px;
+}
+
+#secondaryInputContainer, #destinationContainer {
+    background-color: transparent;
+    border: none;
+    padding: 0;
+    margin: 0 5px;
+}
