@@ -166,7 +166,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.menuInfo.addAction(self.actionAbout_Face_Cropper)
         
     def create_address_bar(self):
-        """Create a browser-like address bar layout"""
+        """Create a dynamic, context-aware address bar layout"""
         # Address bar container
         self.address_bar_widget = QtWidgets.QWidget()
         self.address_bar_widget.setObjectName("addressBarWidget")
@@ -178,7 +178,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         address_bar_layout.setContentsMargins(10, 5, 10, 5)
         address_bar_layout.setSpacing(10)
         
-        # Navigation buttons (like browser back/forward)
+        # Navigation buttons
         self.back_button = QtWidgets.QPushButton()
         self.back_button.setIcon(QtGui.QIcon.fromTheme("go-previous"))
         self.back_button.setObjectName("backButton")
@@ -197,12 +197,66 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.refresh_button.setToolTip("Refresh")
         self.refresh_button.setFixedSize(36, 36)
         
-        # Address bar (unified search/path field like in a browser)
-        self.address_bar = PathLineEdit(path_type=PathType.IMAGE)
-        self.address_bar.setObjectName("addressBar")
-        self.address_bar.setPlaceholderText("Enter file path or drag and drop files here")
+        # Unified address bar (dynamic path field)
+        self.unified_address_bar = PathLineEdit(path_type=PathType.IMAGE)  # Default to image
+        self.unified_address_bar.setObjectName("unifiedAddressBar")
+        self.unified_address_bar.setPlaceholderText("Enter path...")
         
-        # Settings button (like browser's menu button)
+        # Context-aware open button with changing icon
+        self.context_button = QtWidgets.QPushButton()
+        self.context_button.setObjectName("contextButton")
+        self.context_button.setToolTip("Open File")
+        self.context_button.setIcon(QtGui.QIcon(GuiIcon.PICTURE))  # Default icon
+        self.context_button.setFixedSize(36, 36)
+        
+        # Secondary input for mapping tab (initially hidden)
+        self.secondary_input_container = QtWidgets.QWidget()
+        self.secondary_input_container.setObjectName("secondaryInputContainer")
+        self.secondary_input_container.setVisible(False)  # Hidden by default
+        
+        secondary_layout = QtWidgets.QHBoxLayout(self.secondary_input_container)
+        secondary_layout.setContentsMargins(0, 0, 0, 0)
+        secondary_layout.setSpacing(5)
+        
+        self.secondary_input = PathLineEdit(path_type=PathType.TABLE)
+        self.secondary_input.setObjectName("secondaryInput")
+        self.secondary_input.setPlaceholderText("Select table file...")
+        
+        self.secondary_button = QtWidgets.QPushButton()
+        self.secondary_button.setObjectName("secondaryButton")
+        self.secondary_button.setIcon(QtGui.QIcon(GuiIcon.EXCEL))
+        self.secondary_button.setFixedSize(36, 36)
+        self.secondary_button.setToolTip("Open Table File")
+        
+        secondary_layout.addWidget(self.secondary_input)
+        secondary_layout.addWidget(self.secondary_button)
+        
+        # Destination section (always visible)
+        self.destination_container = QtWidgets.QWidget()
+        self.destination_container.setObjectName("destinationContainer")
+        
+        destination_layout = QtWidgets.QHBoxLayout(self.destination_container)
+        destination_layout.setContentsMargins(0, 0, 0, 0)
+        destination_layout.setSpacing(5)
+        
+        self.destination_label = QtWidgets.QLabel("Save to:")
+        self.destination_label.setObjectName("destinationLabel")
+        
+        self.destination_input = PathLineEdit(path_type=PathType.FOLDER)
+        self.destination_input.setObjectName("destinationInput")
+        self.destination_input.setPlaceholderText("Select destination folder...")
+        
+        self.destination_button = QtWidgets.QPushButton()
+        self.destination_button.setObjectName("destinationButton")
+        self.destination_button.setIcon(QtGui.QIcon(GuiIcon.FOLDER))
+        self.destination_button.setFixedSize(36, 36)
+        self.destination_button.setToolTip("Select Destination Folder")
+        
+        destination_layout.addWidget(self.destination_label)
+        destination_layout.addWidget(self.destination_input)
+        destination_layout.addWidget(self.destination_button)
+        
+        # Settings button (on the right)
         self.settings_button = QtWidgets.QPushButton()
         self.settings_button.setIcon(QtGui.QIcon.fromTheme("preferences-system"))
         self.settings_button.setObjectName("settingsButton")
@@ -213,12 +267,20 @@ class UiMainWindow(QtWidgets.QMainWindow):
         address_bar_layout.addWidget(self.back_button)
         address_bar_layout.addWidget(self.forward_button)
         address_bar_layout.addWidget(self.refresh_button)
-        address_bar_layout.addWidget(self.address_bar)
+        address_bar_layout.addWidget(self.unified_address_bar)
+        address_bar_layout.addWidget(self.context_button)
+        address_bar_layout.addWidget(self.secondary_input_container)
+        address_bar_layout.addWidget(self.destination_container)
         address_bar_layout.addWidget(self.settings_button)
+        
+        # Set stretch factors
+        address_bar_layout.setStretch(3, 3)  # Unified address bar gets more space
+        address_bar_layout.setStretch(5, 3)  # Secondary input gets more space
+        address_bar_layout.setStretch(6, 4)  # Destination gets more space
         
         # Add to main layout
         self.main_layout.addWidget(self.address_bar_widget)
-        
+
     def create_tab_widget(self):
         """Create browser-like tab widget layout"""
         # Create the tab widget
@@ -236,7 +298,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.main_layout.addWidget(self.function_tabWidget)
         
     def create_photo_tab(self):
-        """Create photo tab"""
+        """Create photo tab without redundant input fields"""
         icon2 = QtGui.QIcon()
         icon2.addFile(GuiIcon.PICTURE, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         
@@ -244,11 +306,16 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.photo_tab.setObjectName(u"photo_tab")
         self.verticalLayout_2 = ut.setup_vbox(u"verticalLayout_2", self.photo_tab)
         self.photo_tab_widget = UiPhotoTabWidget(self.photo_worker, u"photo_tab_widget", self.photo_tab)
+        
+        # Hide the redundant input fields that will be handled by unified address bar
+        self.photo_tab_widget.horizontalLayout_2.setParent(None)  # Remove input layout
+        self.photo_tab_widget.horizontalLayout_3.setParent(None)  # Remove destination layout
+        
         self.verticalLayout_2.addWidget(self.photo_tab_widget)
         self.function_tabWidget.addTab(self.photo_tab, icon2, "")
         
     def create_folder_tab(self):
-        """Create folder tab"""
+        """Create folder tab without redundant input fields"""
         icon3 = QtGui.QIcon()
         icon3.addFile(GuiIcon.FOLDER, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         
@@ -256,11 +323,32 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.folder_tab.setObjectName(u"folder_tab")
         self.verticalLayout_3 = ut.setup_vbox(u"verticalLayout_3", self.folder_tab)
         self.folder_tab_widget = UiFolderTabWidget(self.folder_worker, u"folder_tab_widget", self.folder_tab)
+        
+        # Modify the setup to remove redundant input fields
+        # Access the verticalLayout_200 in page_1 to remove input and destination layouts
+        input_layout = None
+        destination_layout = None
+        
+        # Find the input and destination layouts
+        for i in range(self.folder_tab_widget.verticalLayout_200.count()):
+            item = self.folder_tab_widget.verticalLayout_200.itemAt(i)
+            if isinstance(item, QtWidgets.QHBoxLayout) and hasattr(item, "objectName"):
+                if item.objectName() == "horizontalLayout_4":  # Input layout
+                    input_layout = item
+                elif item.objectName() == "horizontalLayout_3":  # Destination layout
+                    destination_layout = item
+        
+        # Remove input and destination layouts if found
+        if input_layout:
+            self.folder_tab_widget.verticalLayout_200.removeItem(input_layout)
+        if destination_layout:
+            self.folder_tab_widget.verticalLayout_200.removeItem(destination_layout)
+        
         self.verticalLayout_3.addWidget(self.folder_tab_widget)
         self.function_tabWidget.addTab(self.folder_tab, icon3, "")
         
     def create_mapping_tab(self):
-        """Create mapping tab"""
+        """Create mapping tab without redundant input fields"""
         icon1 = QtGui.QIcon()
         icon1.addFile(GuiIcon.EXCEL, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         
@@ -268,11 +356,38 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.mapping_tab.setObjectName(u"mapping_tab")
         self.verticalLayout_4 = ut.setup_vbox(u"verticalLayout_4", self.mapping_tab)
         self.mapping_tab_widget = UiMappingTabWidget(self.mapping_worker, u"mapping_tab_widget", self.mapping_tab)
+        
+        # Remove redundant input fields that will be handled by unified address bar
+        # Access gridLayout in page_1 to remove input and destination layouts
+        
+        # Find gridLayout
+        for i in range(self.mapping_tab_widget.verticalLayout_200.count()):
+            item = self.mapping_tab_widget.verticalLayout_200.itemAt(i)
+            if isinstance(item, QtWidgets.QGridLayout) and hasattr(item, "objectName"):
+                if item.objectName() == "gridLayout":
+                    # Remove all items from gridLayout
+                    while item.count():
+                        child = item.takeAt(0)
+                        if child.widget():
+                            child.widget().setParent(None)
+                    
+                    # Remove gridLayout from verticalLayout_200
+                    self.mapping_tab_widget.verticalLayout_200.removeItem(item)
+                    break
+        
+        # Remove destination layout
+        for i in range(self.mapping_tab_widget.verticalLayout_200.count()):
+            item = self.mapping_tab_widget.verticalLayout_200.itemAt(i)
+            if isinstance(item, QtWidgets.QHBoxLayout) and hasattr(item, "objectName"):
+                if item.objectName() == "horizontalLayout_3":  # Destination layout
+                    self.mapping_tab_widget.verticalLayout_200.removeItem(item)
+                    break
+        
         self.verticalLayout_4.addWidget(self.mapping_tab_widget)
         self.function_tabWidget.addTab(self.mapping_tab, icon1, "")
         
     def create_video_tab(self):
-        """Create video tab"""
+        """Create video tab without redundant input fields"""
         icon4 = QtGui.QIcon()
         icon4.addFile(GuiIcon.CLAPPERBOARD, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         
@@ -280,6 +395,31 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.video_tab.setObjectName(u"video_tab")
         self.verticalLayout_5 = ut.setup_vbox(u"verticalLayout_5", self.video_tab)
         self.video_tab_widget = UiVideoTabWidget(self.video_worker, u"video_tab_widget", self.video_tab)
+        
+        # Remove input and destination layouts from the video tab
+        # Find and remove the input layout
+        input_layout = None
+        for i in range(self.video_tab_widget.verticalLayout_200.count()):
+            item = self.video_tab_widget.verticalLayout_200.itemAt(i)
+            if isinstance(item, QtWidgets.QHBoxLayout) and hasattr(item, "objectName"):
+                if item.objectName() == "horizontalLayout_2":  # Input layout
+                    input_layout = item
+                    break
+        
+        if input_layout:
+            self.video_tab_widget.verticalLayout_200.removeItem(input_layout)
+        
+        # Find and remove the destination layout
+        destination_layout = None
+        for i in range(self.video_tab_widget.verticalLayout_200.count()):
+            item = self.video_tab_widget.verticalLayout_200.itemAt(i)
+            if isinstance(item, QtWidgets.QHBoxLayout) and hasattr(item, "objectName"):
+                if item.objectName() == "horizontalLayout_3":  # Destination layout
+                    destination_layout = item
+                    break
+        
+        if destination_layout:
+            self.video_tab_widget.verticalLayout_200.removeItem(destination_layout)
         
         # Register state retrieval functions for each widget type
         for func_type, widget in [
@@ -303,7 +443,95 @@ class UiMainWindow(QtWidgets.QMainWindow):
         
         self.verticalLayout_5.addWidget(self.video_tab_widget)
         self.function_tabWidget.addTab(self.video_tab, icon4, "")
+
+    def update_address_bar_context(self):
+        """Update address bar context based on current tab"""
+        current_index = self.function_tabWidget.currentIndex()
         
+        match current_index:
+            case FunctionType.PHOTO:
+                # Update primary address bar
+                self.unified_address_bar.setPathType(PathType.IMAGE)
+                self.unified_address_bar.setPlaceholderText("Enter image file path...")
+                self.context_button.setIcon(QtGui.QIcon(GuiIcon.PICTURE))
+                self.context_button.setToolTip("Open Image")
+                
+                # Hide secondary input (not needed for photo tab)
+                self.secondary_input_container.setVisible(False)
+                
+                # Get current path from tab widget if it exists
+                self.unified_address_bar.blockSignals(True)
+                self.unified_address_bar.setText(self.photo_tab_widget.input_path)
+                self.unified_address_bar.blockSignals(False)
+                
+                # Get destination path
+                self.destination_input.blockSignals(True)
+                self.destination_input.setText(self.photo_tab_widget.destination_path)
+                self.destination_input.blockSignals(False)
+            
+            case FunctionType.FOLDER:
+                self.unified_address_bar.setPathType(PathType.FOLDER)
+                self.unified_address_bar.setPlaceholderText("Enter folder path...")
+                self.context_button.setIcon(QtGui.QIcon(GuiIcon.FOLDER))
+                self.context_button.setToolTip("Select Folder")
+                
+                # Hide secondary input (not needed for folder tab)
+                self.secondary_input_container.setVisible(False)
+                
+                # Get current path from tab widget if it exists
+                self.unified_address_bar.blockSignals(True)
+                self.unified_address_bar.setText(self.folder_tab_widget.input_path)
+                self.unified_address_bar.blockSignals(False)
+                
+                # Get destination path
+                self.destination_input.blockSignals(True)
+                self.destination_input.setText(self.folder_tab_widget.destination_path)
+                self.destination_input.blockSignals(False)
+            
+            case FunctionType.MAPPING:
+                self.unified_address_bar.setPathType(PathType.FOLDER)
+                self.unified_address_bar.setPlaceholderText("Enter source folder path...")
+                self.context_button.setIcon(QtGui.QIcon(GuiIcon.FOLDER))
+                self.context_button.setToolTip("Select Source Folder")
+                
+                # Show and configure secondary input for mapping tab
+                self.secondary_input_container.setVisible(True)
+                self.secondary_input.setPathType(PathType.TABLE)
+                self.secondary_input.setPlaceholderText("Enter table file path...")
+                
+                # Get current paths from tab widget if they exist
+                self.unified_address_bar.blockSignals(True)
+                self.unified_address_bar.setText(self.mapping_tab_widget.input_path)
+                self.unified_address_bar.blockSignals(False)
+                
+                self.secondary_input.blockSignals(True)
+                self.secondary_input.setText(self.mapping_tab_widget.table_path)
+                self.secondary_input.blockSignals(False)
+                
+                # Get destination path
+                self.destination_input.blockSignals(True)
+                self.destination_input.setText(self.mapping_tab_widget.destination_path)
+                self.destination_input.blockSignals(False)
+            
+            case FunctionType.VIDEO:
+                self.unified_address_bar.setPathType(PathType.VIDEO)
+                self.unified_address_bar.setPlaceholderText("Enter video file path...")
+                self.context_button.setIcon(QtGui.QIcon(GuiIcon.CLAPPERBOARD))
+                self.context_button.setToolTip("Open Video")
+                
+                # Hide secondary input (not needed for video tab)
+                self.secondary_input_container.setVisible(False)
+                
+                # Get current path from tab widget if it exists
+                self.unified_address_bar.blockSignals(True)
+                self.unified_address_bar.setText(self.video_tab_widget.input_path)
+                self.unified_address_bar.blockSignals(False)
+                
+                # Get destination path
+                self.destination_input.blockSignals(True)
+                self.destination_input.setText(self.video_tab_widget.destination_path)
+                self.destination_input.blockSignals(False)
+
     # retranslateUi
     def retranslateUi(self):
         self.setWindowTitle(QtCore.QCoreApplication.translate("self", u"Autocrop Browser", None))
@@ -330,7 +558,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.menuInfo.setTitle(QtCore.QCoreApplication.translate("self", u"Info", None))
         
         # Address bar elements
-        self.address_bar.setPlaceholderText(QtCore.QCoreApplication.translate("self", 
+        self.unified_address_bar.setPlaceholderText(QtCore.QCoreApplication.translate("self", 
                                             u"Enter file path or drag and drop files here", None))
         self.back_button.setToolTip(QtCore.QCoreApplication.translate("self", u"Back", None))
         self.forward_button.setToolTip(QtCore.QCoreApplication.translate("self", u"Forward", None))
@@ -342,6 +570,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         # CONNECTIONS
         self.connect_combo_boxes(self.mapping_tab_widget)
 
+        # Menu actions
         self.actionAbout_Face_Cropper.triggered.connect(ut.load_about_form)
         self.actionGolden_Ratio.triggered.connect(partial(self.load_preset, Preset.GOLDEN_RATIO))
         self.action2_3_Ratio.triggered.connect(partial(self.load_preset, Preset.TWO_THIRDS))
@@ -361,12 +590,11 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.refresh_button.clicked.connect(self.refresh_current_view)
         self.settings_button.clicked.connect(self.show_settings)
         
-        # Connect address bar to current tab's input field
-        self.address_bar.textChanged.connect(self.update_current_tab_path)
+        # Connect unified address bar signals
+        self.connect_address_bar_signals()
         
-        # Connect tab change events
+        # Tab change event
         self.function_tabWidget.currentChanged.connect(self.check_tab_selection)
-        self.function_tabWidget.currentChanged.connect(self.update_address_bar)
         self.function_tabWidget.currentChanged.connect(self.video_tab_widget.player.pause)
 
         # Error handling connections
@@ -375,12 +603,123 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.mapping_worker.error.connect(self.mapping_tab_widget.disable_buttons)
         self.video_worker.error.connect(self.video_tab_widget.disable_buttons)
 
-        # Focus connections
-        self.actionCrop_File.triggered.connect(self.function_tabWidget.setFocus)
-        self.actionCrop_Folder.triggered.connect(self.function_tabWidget.setFocus)
-        self.actionCrop_Video.triggered.connect(self.function_tabWidget.setFocus)
-        self.actionUse_Mapping.triggered.connect(self.function_tabWidget.setFocus)
+    def connect_address_bar_signals(self):
+        """Connect signals for the unified address bar"""
+        # Connect tab change to update address bar context
+        self.function_tabWidget.currentChanged.connect(self.update_address_bar_context)
         
+        # Connect unified address bar to update the current tab's input field
+        self.unified_address_bar.textChanged.connect(self.unified_address_changed)
+        
+        # Connect secondary input for mapping tab
+        self.secondary_input.textChanged.connect(self.secondary_input_changed)
+        
+        # Connect destination input
+        self.destination_input.textChanged.connect(self.destination_input_changed)
+        
+        # Connect context-aware buttons
+        self.context_button.clicked.connect(self.handle_context_button)
+        self.secondary_button.clicked.connect(self.handle_secondary_button)
+        self.destination_button.clicked.connect(self.handle_destination_button)
+
+    def unified_address_changed(self, text):
+        """Handle changes to the unified address bar"""
+        current_index = self.function_tabWidget.currentIndex()
+        
+        # Update the appropriate input field in the current tab
+        match current_index:
+            case FunctionType.PHOTO:
+                self.photo_tab_widget.input_path = text
+            case FunctionType.FOLDER:
+                self.folder_tab_widget.input_path = text
+            case FunctionType.MAPPING:
+                self.mapping_tab_widget.input_path = text
+            case FunctionType.VIDEO:
+                self.video_tab_widget.input_path = text
+
+    def secondary_input_changed(self, text):
+        """Handle changes to the secondary input (only for mapping tab)"""
+        current_index = self.function_tabWidget.currentIndex()
+        
+        if current_index == FunctionType.MAPPING:
+            self.mapping_tab_widget.table_path = text
+
+    def destination_input_changed(self, text):
+        """Handle changes to the destination input"""
+        current_index = self.function_tabWidget.currentIndex()
+        match current_index:
+            case FunctionType.PHOTO:
+                self.photo_tab_widget.destination_path = text
+            case FunctionType.FOLDER:
+                self.folder_tab_widget.destination_path = text
+            case FunctionType.MAPPING:
+                self.mapping_tab_widget.destination_path = text
+            case FunctionType.VIDEO:
+                self.video_tab_widget.destination_path = text
+
+    def handle_context_button(self):
+        """Handle clicks on the context-aware button"""
+        current_index = self.function_tabWidget.currentIndex()
+        match current_index:
+            case FunctionType.PHOTO:
+                self.open_file_dialog(PathType.IMAGE, self.unified_address_bar)
+            case FunctionType.FOLDER:
+                self.open_folder_dialog(self.unified_address_bar)
+            case FunctionType.MAPPING:
+                self.open_folder_dialog(self.unified_address_bar)
+            case FunctionType.VIDEO:
+                self.open_file_dialog(PathType.VIDEO, self.unified_address_bar)
+
+    def handle_secondary_button(self):
+        """Handle clicks on the secondary button (only for mapping tab)"""
+        current_index = self.function_tabWidget.currentIndex()
+        
+        if current_index == FunctionType.MAPPING:
+            self.open_file_dialog(PathType.TABLE, self.secondary_input)
+
+    def handle_destination_button(self):
+        """Handle clicks on the destination button"""
+        self.open_folder_dialog(self.destination_input)
+
+    def open_file_dialog(self, path_type: PathType, target_input: PathLineEdit):
+        """Open a file dialog for the specified path type and update the target input"""
+        if path_type == PathType.IMAGE:
+            f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
+                self, 'Open Image', 
+                file_manager.get_default_directory(FileCategory.PHOTO).as_posix(),
+                file_manager.get_filter_string(FileCategory.PHOTO)
+            )
+        elif path_type == PathType.VIDEO:
+            f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
+                self, 'Open Video', 
+                file_manager.get_default_directory(FileCategory.VIDEO).as_posix(),
+                file_manager.get_filter_string(FileCategory.VIDEO)
+            )
+        elif path_type == PathType.TABLE:
+            f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
+                self, 'Open Table', 
+                file_manager.get_default_directory(FileCategory.TABLE).as_posix(),
+                file_manager.get_filter_string(FileCategory.TABLE)
+            )
+        else:
+            return
+            
+        # Validate the file exists and is accessible
+        if f_name := ut.sanitize_path(f_name):
+            target_input.setText(f_name)
+
+    def open_folder_dialog(self, target_input: PathLineEdit):
+        """Open a folder dialog and update the target input"""
+        f_name = QtWidgets.QFileDialog.getExistingDirectory(
+            self, 
+            'Select Directory', 
+            file_manager.get_default_directory(FileCategory.PHOTO).as_posix()
+        )
+        
+        # Validate the folder exists and is accessible
+        if f_name := ut.sanitize_path(f_name):
+            target_input.setText(f_name)
+
     # Browser-style navigation methods
     def navigate_back(self):
         """Navigate to previous tab"""
@@ -396,30 +735,29 @@ class UiMainWindow(QtWidgets.QMainWindow):
     
     def refresh_current_view(self):
         """Refresh the current tab's view"""
-        # Get the current tab widget
+        # Get the current tab index
         current_index = self.function_tabWidget.currentIndex()
-        tab_widget = None
         
-        if current_index == FunctionType.PHOTO:
-            tab_widget = self.photo_tab_widget
-            # Refresh photo preview
-            if tab_widget.inputLineEdit.text() and tab_widget.inputLineEdit.state == LineEditState.VALID_INPUT:
-                self.display_worker.crop(FunctionType.PHOTO)
-        elif current_index == FunctionType.FOLDER:
-            tab_widget = self.folder_tab_widget
-            # Refresh folder view
-            tab_widget.load_data()
-        elif current_index == FunctionType.MAPPING:
-            tab_widget = self.mapping_tab_widget
-            # Refresh mapping preview
-            if tab_widget.tableLineEdit.text() and tab_widget.tableLineEdit.state == LineEditState.VALID_INPUT:
-                if file_path := Path(tab_widget.tableLineEdit.text()):
-                    data = prc.open_table(file_path)
-                    tab_widget.process_data(data)
-        elif current_index == FunctionType.VIDEO:
-            tab_widget = self.video_tab_widget
-            # Refresh video preview
-            self.display_worker.crop(FunctionType.VIDEO)
+        # Handle refresh based on current tab
+        match current_index:
+            case FunctionType.PHOTO:
+                # Refresh photo preview
+                if self.unified_address_bar.text() and self.unified_address_bar.state == LineEditState.VALID_INPUT:
+                    self.display_worker.crop(FunctionType.PHOTO)
+            case FunctionType.FOLDER:
+                # Refresh folder view
+                self.folder_tab_widget.load_data()
+            case FunctionType.MAPPING:
+                # Refresh mapping preview
+                if self.secondary_input.text() and self.secondary_input.state == LineEditState.VALID_INPUT:
+                    if file_path := Path(self.secondary_input.text()):
+                        data = prc.open_table(file_path)
+                        self.mapping_tab_widget.process_data(data)
+            case FunctionType.VIDEO:
+                # Refresh video preview
+                self.display_worker.crop(FunctionType.VIDEO)
+            case _:
+                pass
             
         # Update status bar with message
         self.statusbar.showMessage("View refreshed", 2000)
@@ -435,34 +773,40 @@ class UiMainWindow(QtWidgets.QMainWindow):
         path = ""
         
         # Get the appropriate path based on the current tab
-        if current_index == FunctionType.PHOTO:
-            path = self.photo_tab_widget.inputLineEdit.text()
-        elif current_index == FunctionType.FOLDER:
-            path = self.folder_tab_widget.inputLineEdit.text()
-        elif current_index == FunctionType.MAPPING:
-            path = self.mapping_tab_widget.tableLineEdit.text()
-        elif current_index == FunctionType.VIDEO:
-            path = self.video_tab_widget.inputLineEdit.text()
+        match current_index:
+            case FunctionType.PHOTO:
+                path = self.photo_tab_widget.input_path
+            case FunctionType.FOLDER:
+                path = self.folder_tab_widget.input_path
+            case FunctionType.MAPPING:
+                path = self.mapping_tab_widget.table_path
+            case FunctionType.VIDEO:
+                path = self.video_tab_widget.input_path
+            case _:
+                pass
             
         # Update address bar without triggering text changed event
-        self.address_bar.blockSignals(True)
-        self.address_bar.setText(path)
-        self.address_bar.blockSignals(False)
+        self.unified_address_bar.blockSignals(True)
+        self.unified_address_bar.setText(path)
+        self.unified_address_bar.blockSignals(False)
     
     def update_current_tab_path(self):
         """Update current tab's path with address bar text"""
         current_index = self.function_tabWidget.currentIndex()
-        path = self.address_bar.text()
+        path = self.unified_address_bar.text()
         
         # Update the appropriate input field based on the current tab
-        if current_index == FunctionType.PHOTO:
-            self.photo_tab_widget.inputLineEdit.setText(path)
-        elif current_index == FunctionType.FOLDER:
-            self.folder_tab_widget.inputLineEdit.setText(path)
-        elif current_index == FunctionType.MAPPING:
-            self.mapping_tab_widget.tableLineEdit.setText(path)
-        elif current_index == FunctionType.VIDEO:
-            self.video_tab_widget.inputLineEdit.setText(path)
+        match current_index:
+            case FunctionType.PHOTO:
+                self.photo_tab_widget.input_path = path
+            case FunctionType.FOLDER:
+                self.folder_tab_widget.input_path = path
+            case FunctionType.MAPPING:
+                self.mapping_tab_widget.table_path = path
+            case FunctionType.VIDEO:
+                self.video_tab_widget.input_path = path
+            case _:
+                pass
     
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """
@@ -521,7 +865,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
     def get_widget_state(w: TabWidget):
         control = w.controlWidget
         return (
-            w.inputLineEdit.text(),
+            w.input_path,
             control.widthLineEdit.text(),
             control.heightLineEdit.text(),
             w.exposureCheckBox.isChecked(),
@@ -539,13 +883,13 @@ class UiMainWindow(QtWidgets.QMainWindow):
     
     @staticmethod
     def get_path(w: TabWidget) -> str:
-        return w.inputLineEdit.text()
+        return w.input_path
 
     @staticmethod
     def connect_widget_signals(widget: TabWidget, crop_method: Callable) -> None:
         """Connect signals with minimal overhead"""
         signals = (
-            widget.inputLineEdit.textChanged,
+            # widget.inputLineEdit.textChanged,
             widget.controlWidget.widthLineEdit.textChanged,
             widget.controlWidget.heightLineEdit.textChanged,
             widget.exposureCheckBox.stateChanged,
@@ -596,26 +940,26 @@ class UiMainWindow(QtWidgets.QMainWindow):
         For a browser-like experience, we don't actually close tabs but reset their state.
         """
         # Don't actually close the tab, just reset its state
-        current_tab = self.function_tabWidget.widget(index)
         
         # Show a message in the status bar
         self.statusbar.showMessage(f"Tab {self.function_tabWidget.tabText(index)} reset", 2000)
         
         # Reset the appropriate tab widget
-        if index == FunctionType.PHOTO:
-            self.photo_tab_widget.inputLineEdit.clear()
-            self.photo_tab_widget.destinationLineEdit.clear()
-        elif index == FunctionType.FOLDER:
-            self.folder_tab_widget.inputLineEdit.clear()
-            self.folder_tab_widget.destinationLineEdit.clear()
-        elif index == FunctionType.MAPPING:
-            self.mapping_tab_widget.inputLineEdit.clear()
-            self.mapping_tab_widget.tableLineEdit.clear()
-            self.mapping_tab_widget.destinationLineEdit.clear()
-        elif index == FunctionType.VIDEO:
-            self.video_tab_widget.inputLineEdit.clear()
-            self.video_tab_widget.destinationLineEdit.clear()
-            self.video_tab_widget.player.stop()
+        match index:
+            case FunctionType.PHOTO:
+                self.photo_tab_widget.input_path = ''
+                self.photo_tab_widget.destination_path = ''
+            case FunctionType.FOLDER:
+                self.folder_tab_widget.input_path = ''
+                self.folder_tab_widget.destination_path = ''
+            case FunctionType.MAPPING:
+                self.mapping_tab_widget.input_path = ''
+                self.mapping_tab_widget.table_path = ''
+                self.mapping_tab_widget.destination_path = ''
+            case FunctionType.VIDEO:
+                self.video_tab_widget.input_path = ''
+                self.video_tab_widget.destination_path = ''
+                self.video_tab_widget.player.stop()
             
         # Update the address bar
         self.update_address_bar()
@@ -638,23 +982,27 @@ class UiMainWindow(QtWidgets.QMainWindow):
         # Update navigation buttons
         self.update_navigation_button_states()
         
-        # Update address bar
-        self.update_address_bar()
+        # Update unified address bar context
+        self.update_address_bar_context()
         
         # Process tab selection as before
         match self.function_tabWidget.currentIndex():
             case FunctionType.PHOTO:
-                self.handle_function_tab_state(self.photo_tab_widget, self.folder_tab_widget, self.mapping_tab_widget,
-                                              self.video_tab_widget)
+                self.handle_function_tab_state(
+                    self.photo_tab_widget, self.folder_tab_widget, self.mapping_tab_widget, self.video_tab_widget
+                )
             case FunctionType.FOLDER:
-                self.handle_function_tab_state(self.folder_tab_widget, self.mapping_tab_widget, self.video_tab_widget,
-                                              self.photo_tab_widget)
+                self.handle_function_tab_state(
+                    self.folder_tab_widget, self.mapping_tab_widget, self.video_tab_widget, self.photo_tab_widget
+                )
             case FunctionType.MAPPING:
-                self.handle_function_tab_state(self.mapping_tab_widget, self.video_tab_widget, self.photo_tab_widget,
-                                              self.folder_tab_widget)
+                self.handle_function_tab_state(
+                    self.mapping_tab_widget, self.video_tab_widget, self.photo_tab_widget, self.folder_tab_widget
+                )
             case FunctionType.VIDEO:
-                self.handle_function_tab_state(self.video_tab_widget, self.photo_tab_widget, self.folder_tab_widget,
-                                              self.mapping_tab_widget)
+                self.handle_function_tab_state(
+                    self.video_tab_widget, self.photo_tab_widget, self.folder_tab_widget, self.mapping_tab_widget
+                )
             case _:
                 pass
 
@@ -747,14 +1095,28 @@ class UiMainWindow(QtWidgets.QMainWindow):
         a0.setDropAction(QtCore.Qt.DropAction.CopyAction)
         file_path = Path(x.urls()[0].toLocalFile())
         
-        # Update the address bar with the dropped path
-        self.address_bar.setText(file_path.as_posix())
-        
+        # Update the unified address bar with the dropped path
         if file_path.is_dir():
-            self.handle_path_main(file_path)
+            # For directories, always select the folder tab
+            self.function_tabWidget.setCurrentIndex(FunctionType.FOLDER)
+            self.unified_address_bar.setText(file_path.as_posix())
+            self.folder_tab_widget.load_data()
         elif file_path.is_file():
-            self.handle_file(file_path)
-            
+            # For files, detect type and select appropriate tab
+            if file_manager.is_valid_type(file_path, FileCategory.PHOTO) or file_manager.is_valid_type(file_path, FileCategory.RAW) or file_manager.is_valid_type(file_path, FileCategory.TIFF):
+                self.function_tabWidget.setCurrentIndex(FunctionType.PHOTO)
+                self.unified_address_bar.setText(file_path.as_posix())
+                self.display_worker.crop(FunctionType.PHOTO)
+            elif file_manager.is_valid_type(file_path, FileCategory.VIDEO):
+                self.function_tabWidget.setCurrentIndex(FunctionType.VIDEO)
+                self.unified_address_bar.setText(file_path.as_posix())
+                self.video_tab_widget.open_dropped_video()
+            elif file_manager.is_valid_type(file_path, FileCategory.TABLE):
+                self.function_tabWidget.setCurrentIndex(FunctionType.MAPPING)
+                self.secondary_input.setText(file_path.as_posix())
+                data = prc.open_table(file_path)
+                self.mapping_tab_widget.process_data(data)
+                
         a0.accept()
         
         # Show status message
@@ -847,7 +1209,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         Handles a table file by setting the function tab widget to the mapping tab, validating the file path, and opening the table.
         """
         self.function_tabWidget.setCurrentIndex(FunctionType.MAPPING)
-        self.mapping_tab_widget.tableLineEdit.setText(file_path.as_posix())
+        self.mapping_tab_widget.table_path = file_path.as_posix()
         data = prc.open_table(file_path)
         self.mapping_tab_widget.process_data(data)
 
@@ -872,8 +1234,8 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
         common_line_edits = (tab_widget.controlWidget.widthLineEdit, tab_widget.controlWidget.heightLineEdit)
         check_button_state  = partial(self.all_filled,
-                                      tab_widget.inputLineEdit,
-                                      tab_widget.destinationLineEdit,
+                                      self.unified_address_bar,
+                                      self.destination_input,
                                       *common_line_edits)
 
         match tab_widget:
@@ -883,7 +1245,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 )
             case tab_widget if isinstance(tab_widget, UiMappingTabWidget):
                 ut.change_widget_state(
-                    check_button_state(tab_widget.tableLineEdit, tab_widget.comboBox_1, tab_widget.comboBox_2),
+                    check_button_state(self.secondary_input, tab_widget.comboBox_1, tab_widget.comboBox_2),
                     self.mapping_tab_widget.cropButton
                 )
             case tab_widget if isinstance(tab_widget, UiVideoTabWidget):
