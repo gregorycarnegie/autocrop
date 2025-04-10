@@ -112,8 +112,7 @@ class UiBatchCropWidget(UiCropWidget):
             
             QProgressBar::chunk {
                 background-color: #4285f4;
-                width: 10px;
-                margin: 0.5px;
+                border-radius: 3px;
             }
         """)
 
