@@ -91,3 +91,14 @@ class PathLineEdit(CustomLineEdit):
                 return path.is_dir()
             case _:
                 return False
+
+    def setPathType(self, path_type: PathType) -> None:
+        """
+        Sets the path type for the line edit and updates validation accordingly.
+        
+        Args:
+            path_type (PathType): The type of path to validate against.
+        """
+        self.path_type = path_type
+        # Re-validate with new path type
+        self.validate_path()
