@@ -104,7 +104,6 @@ class UiBatchCropWidget(UiCropWidget):
         progress_bar.setMaximumSize(QtCore.QSize(16_777_215, 15))
         progress_bar.setRange(0, self.PROGRESSBAR_STEPS)
         progress_bar.setValue(0)
-    
         # Apply styling
         progress_bar.setStyleSheet("""
             QProgressBar {
