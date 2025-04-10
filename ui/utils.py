@@ -344,6 +344,9 @@ def change_widget_state(boolean: bool, *args: QtWidgets.QWidget) -> None:
         boolean (bool): The boolean value to determine the state of the widgets.
         *args (QtWidgets.QWidget): Variable number of widgets to change the state of.
     """
+    if not args:
+        return
+        
     for arg in args:
         arg.blockSignals(True)  # Block signals during state change
         if boolean:

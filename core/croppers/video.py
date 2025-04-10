@@ -242,19 +242,26 @@ class VideoCropper(Cropper):
         # Reset end_task flag
         self.end_task = False
 
+        # Check for cancellation at the beginning
+        if self.end_task:
+            self.emit_done()
+            return
+
         for frame_number in range(start_frame, end_frame + 1):
             # Process UI events to allow cancel signals to be processed
             QApplication.processEvents()
             
             # Check if cancellation has been requested
             if self.end_task:
-                break
+                self.emit_done()
+                return
 
             frame = self.extract_frame_ffmpeg(job.video_path.as_posix(), frame_number, width, height, fps)
 
             # Check again after potentially long frame extraction
             if self.end_task:
-                break
+                self.emit_done()
+                return
 
             if frame is not None:
                 file_enum = f"{job.video_path.stem}_frame_{frame_number:06d}"
@@ -267,13 +274,12 @@ class VideoCropper(Cropper):
             self._update_progress(total_frames)
 
             # Check again after progress update
-            if self.end_task or self.progress_count == total_frames:
-                self.show_message_box = False
-                break
+            if self.end_task:
+                self.emit_done()
+                return
 
-        # Ensure we emit done signal even if cancelled
-        if self.end_task and not self.finished_signal_emitted:
-            self.emit_done()
+        # Ensure we emit done signal
+        self.emit_done()
 
     def terminate(self) -> None:
         """

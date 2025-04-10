@@ -89,6 +89,7 @@ class UiVideoTabWidget(UiCropWidget):
         self.connect_preview_updates() 
 
         # Connect signals
+        
         self.connect_signals()
         
         # Set initial UI text
@@ -810,17 +811,15 @@ class UiVideoTabWidget(UiCropWidget):
             self.crop_worker.started.disconnect()
             self.crop_worker.finished.disconnect()
             self.crop_worker.progress.disconnect()
+            
         # Video start connection - setup buttons
         self.crop_worker.started.connect(lambda: ut.disable_widget(*widget_list))
-        self.crop_worker.started.connect(
-            lambda: self.enable_cancel_buttons()
-        )
+        self.crop_worker.started.connect(self.enable_cancel_buttons)
 
         # Video end connection - restore buttons
         self.crop_worker.finished.connect(lambda: ut.enable_widget(*widget_list))
-        self.crop_worker.finished.connect(
-            lambda: self.disable_cancel_buttons()
-        )
+        self.crop_worker.finished.connect(self.disable_cancel_buttons)
+        self.crop_worker.finished.connect(self.reset_progress_bars)
         self.crop_worker.finished.connect(lambda: ut.show_message_box(self.destination))
 
         # Ensure progress signal is connected correctly
@@ -829,6 +828,14 @@ class UiVideoTabWidget(UiCropWidget):
         # Add direct connections for cancel buttons
         for control in [self.mediacontrolWidget_1, self.mediacontrolWidget_2]:
             control.cancelButton.clicked.connect(self.handle_cancel_click)
+
+    def reset_progress_bars(self) -> None:
+        """Reset both progress bars to zero"""
+        self.progressBar.setValue(0)
+        self.progressBar.repaint()
+        self.progressBar_2.setValue(0)
+        self.progressBar_2.repaint()
+        QtWidgets.QApplication.processEvents()
 
     def enable_cancel_buttons(self) -> None:
         """Enable both cancel buttons"""
@@ -851,7 +858,7 @@ class UiVideoTabWidget(UiCropWidget):
         # Call terminate to stop the job
         self.crop_worker.terminate()
         
-        # Re-enable control buttons
+        # Re-enable control buttons and reset progress
         for control in [self.mediacontrolWidget_1, self.mediacontrolWidget_2]:
             control.cropButton.setEnabled(True)
             control.cropButton.repaint()
@@ -859,6 +866,12 @@ class UiVideoTabWidget(UiCropWidget):
             control.videocropButton.repaint()
             control.cancelButton.setEnabled(False)
             control.cancelButton.repaint()
+        
+        # Reset progress bars
+        self.progressBar.setValue(0)
+        self.progressBar.repaint()
+        self.progressBar_2.setValue(0)
+        self.progressBar_2.repaint()
         
         QtWidgets.QApplication.processEvents()
         print("Video processing cancelled")

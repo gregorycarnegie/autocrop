@@ -2,7 +2,7 @@ import atexit
 import collections.abc as c
 import contextlib
 import threading
-from concurrent.futures import Future, ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor, CancelledError
 from functools import partial
 from pathlib import Path
 from typing import Callable, Optional, Union, TypeVar
@@ -10,7 +10,7 @@ from typing import Callable, Optional, Union, TypeVar
 import numpy as np
 import numpy.typing as npt
 from PyQt6.QtWidgets import QApplication
-from PyQt6.QtCore import QCoreApplication
+from PyQt6.QtCore import QCoreApplication, QMetaObject, Qt, Q_ARG
 
 from core.face_tools import FaceToolPair
 from core.job import Job
@@ -91,7 +91,7 @@ class BatchCropper(Cropper):
         # Clear the futures list
         self.futures = []
     
-    print("Worker terminated. All tasks cancelled.")
+        print("Worker terminated. All tasks cancelled.")
 
     def reset_task(self) -> None:
         """
@@ -162,11 +162,16 @@ class BatchCropper(Cropper):
                             self._display_error(e, "File system error. Check input and output paths."),
             ValueError: lambda e: self._display_error(e, "Invalid data format. Please check input files."),
             (TypeError, AttributeError): lambda e: self._display_error(e, "Data type error. This may indicate a corrupted image file."),
+            CancelledError: lambda _: None,  # Silently handle cancelled futures
         }
         
         try:
             future.result()  # This raises any exceptions that occurred during execution
         except Exception as e:
+            # Special handling for cancellation - don't show any error
+            if isinstance(e, CancelledError):
+                return
+                
             # Find matching exception handler or use default
             for exc_type, handler in error_handlers.items():
                 if isinstance(e, exc_type if isinstance(exc_type, tuple) else exc_type):
@@ -177,7 +182,7 @@ class BatchCropper(Cropper):
                 self._display_error(e, f"An unexpected error occurred: {type(e).__name__}")
         finally:
             # Check if all futures are done, then emit finished signal
-            if all(f.done() for f in self.futures):
+            if self.end_task or all(f.done() for f in self.futures):
                 self.all_tasks_done()
 
     def validate_job(self, job: Job, file_count: Optional[int] = None) -> bool:
@@ -278,3 +283,31 @@ class BatchCropper(Cropper):
             # Check if we're done
             if self.progress_count >= file_amount:
                 self.emit_done()
+
+    def emit_done(self) -> None:
+        """
+        Emits the `finished` signal if it has not already been emitted.
+        Uses a cross-thread safe approach.
+        """
+        if not self.finished_signal_emitted:
+            # Set flag to prevent multiple emissions
+            self.finished_signal_emitted = True
+            
+            # Use QMetaObject.invokeMethod for cross-thread signal emission
+            QMetaObject.invokeMethod(
+                self, 
+                "finished", 
+                Qt.ConnectionType.QueuedConnection
+            )
+            
+            # Also force a progress update to 100% to ensure UI is updated
+            self.progress_count = 0  # Reset progress count
+            QMetaObject.invokeMethod(
+                self,
+                "progress",
+                Qt.ConnectionType.QueuedConnection,
+                Q_ARG(int, 0),
+                Q_ARG(int, 1)
+            )
+            
+            print("Finished signal emitted")

@@ -702,6 +702,72 @@ def _(image: Path, job: Job, face_detection_tools: FaceToolPair) -> Optional[c.I
     img = open_pic(image, face_detection_tools, job)
     return None if img is None else multi_crop(img, job, face_detection_tools)
 
+def batch_process_with_pipeline(images: list[Path],
+                             job: Job,
+                             face_detection_tools: FaceToolPair,
+                             progress_callback: c.Callable,
+                             cancel_event: threading.Event,
+                             chunk_size: int = 10) -> list[Path]:
+    """
+    Process a batch of images with the same pipeline for efficiency with cancellation support.
+    """
+    pipeline = None
+    all_output_paths = []
+    total_images = len(images)
+    
+    # Check for cancellation before starting
+    if cancel_event.is_set():
+        return all_output_paths
+        
+    # Process images in smaller chunks to maintain UI responsiveness
+    for i in range(0, total_images, chunk_size):
+        # Check for cancellation BEFORE processing chunk
+        if cancel_event.is_set():
+            return all_output_paths
+            
+        # Get current chunk
+        chunk = images[i:min(i + chunk_size, total_images)]
+        
+        # Process each image in the chunk with cancellation checks
+        for img_path in chunk:
+            # Check for cancellation BEFORE processing each image
+            if cancel_event.is_set():
+                return all_output_paths
+                
+            # Open the image
+            image_array = open_pic(img_path, face_detection_tools, job)
+            if image_array is None:
+                progress_callback()
+                QtWidgets.QApplication.processEvents()  # Force UI update
+                continue
+
+            # Create a function to get output paths for standard batch processing
+            def get_output_path_fn(image_path: Path, face_index: Optional[int]) -> Path:
+                return get_output_path(image_path, job.destination, face_index, job.radio_choice())
+
+            # Process the image
+            output_paths, pipeline = process_batch_item(
+                image_array, job, face_detection_tools, pipeline, 
+                progress_callback, img_path, get_output_path_fn
+            )
+            
+            all_output_paths.extend(output_paths)
+            
+            # Check for cancellation AFTER processing each image
+            if cancel_event.is_set():
+                return all_output_paths
+        
+        # Allow UI to update between chunks AND process cancellation events
+        QtWidgets.QApplication.processEvents()
+        
+        # Final cancellation check after UI updates
+        if cancel_event.is_set():
+            return all_output_paths
+        
+    return all_output_paths
+
+# 2. Add cooperative cancellation to process_batch_item function
+
 def process_batch_item(image_array: cv2.Mat,
                        job: Job,
                        face_detection_tools: FaceToolPair,
@@ -767,77 +833,6 @@ def process_batch_item(image_array: cv2.Mat,
     
     progress_callback()
     return output_paths, pipeline
-
-def batch_process_with_pipeline(images: list[Path],
-                                job: Job,
-                                face_detection_tools: FaceToolPair,
-                                progress_callback: c.Callable,
-                                cancel_event: threading.Event,
-                                chunk_size: int = 10) -> list[Path]:
-    """
-    Process a batch of images with the same pipeline for efficiency with cancellation support.
-    
-    Args:
-        images: List of image paths to process
-        job: Job parameters
-        face_detection_tools: Tools for face detection
-        progress_callback: Callback to update progress
-        cancel_event: Event to check for cancellation requests
-        chunk_size: Number of images to process in each chunk
-        
-    Returns:
-        List of output image paths
-    """
-    pipeline = None
-    all_output_paths = []
-    total_images = len(images)
-    
-    # Process images in smaller chunks to maintain UI responsiveness
-    for i in range(0, total_images, chunk_size):
-        # Check for cancellation BEFORE processing chunk
-        if cancel_event.is_set():
-            break
-            
-        # Get current chunk
-        chunk = images[i:min(i + chunk_size, total_images)]
-        
-        # Process each image in the chunk with cancellation checks
-        for img_path in chunk:
-            # Check for cancellation BEFORE processing each image
-            if cancel_event.is_set():
-                break
-                
-            # Open the image
-            image_array = open_pic(img_path, face_detection_tools, job)
-            if image_array is None:
-                progress_callback()
-                QtWidgets.QApplication.processEvents()  # Force UI update
-                continue
-
-            # Create a function to get output paths for standard batch processing
-            def get_output_path_fn(image_path: Path, face_index: Optional[int]) -> Path:
-                return get_output_path(image_path, job.destination, face_index, job.radio_choice())
-
-            # Process the image
-            output_paths, pipeline = process_batch_item(
-                image_array, job, face_detection_tools, pipeline, 
-                progress_callback, img_path, get_output_path_fn
-            )
-            
-            all_output_paths.extend(output_paths)
-            
-            # Check for cancellation AFTER processing each image
-            if cancel_event.is_set():
-                break
-        
-        # Allow UI to update between chunks AND process cancellation events
-        QtWidgets.QApplication.processEvents()
-        
-        # Final cancellation check after UI updates
-        if cancel_event.is_set():
-            break
-        
-    return all_output_paths
 
 def batch_process_with_mapping(images: list[Path], output_paths: list[Path], job: Job,
                                face_detection_tools: FaceToolPair, progress_callback: c.Callable,

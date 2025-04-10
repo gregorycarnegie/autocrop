@@ -1,7 +1,5 @@
 import contextlib
-from functools import partial
 import threading
-from multiprocessing import Process
 from pathlib import Path
 from typing import Optional, Callable, Any
 
@@ -44,6 +42,7 @@ class UiBatchCropWidget(UiCropWidget):
 
         # Buttons that all batch processors need
         self.cropButton , self.cancelButton = self.create_main_action_buttons()
+        self.cancelButton.clicked.connect(lambda: self.handle_cancel_button_click())
 
     def connect_signals(self) -> None:
         """Connect widget signals to handlers"""
@@ -62,16 +61,21 @@ class UiBatchCropWidget(UiCropWidget):
     def handle_cancel_button_click(self) -> None:
         """Handle cancel button click to properly update button states"""
         # Call terminate to stop the job
-        self.crop_worker.terminate()
+        try:
+            self.crop_worker.terminate()
+        except Exception as e:
+            print(f"Error terminating worker: {e}")
         
-        # Update button states immediately - don't wait for signals
+        # Force button states immediately regardless of signal handling
         self.cancelButton.setEnabled(False)
-        self.cancelButton.repaint()
         self.cropButton.setEnabled(True)
-        self.cropButton.repaint()
-        QtWidgets.QApplication.processEvents()
         
-        print("Cancelling job...")
+        # Reset progress bar to zero
+        self.progressBar.setValue(0)
+        
+        # Force UI update
+        QtWidgets.QApplication.processEvents()
+        print("Cancellation handled directly")
 
     def enable_cancel_button(self) -> None:
         """Enable the cancel button immediately"""
@@ -85,6 +89,12 @@ class UiBatchCropWidget(UiCropWidget):
     def worker(self, *args: Any) -> None:
         """Worker function to be overridden in subclasses"""
         raise NotImplementedError("Worker function must be implemented in subclasses.")
+
+    def reset_progress_bar(self) -> None:
+        """Reset the progress bar to zero and ensure it's visible"""
+        self.progressBar.setValue(0)
+        self.progressBar.repaint()
+        QtWidgets.QApplication.processEvents()
 
     def create_progress_bar(self, name: str, parent: Optional[QtWidgets.QWidget] = None) -> QtWidgets.QProgressBar:
         """Create a progress bar with consistent styling"""
