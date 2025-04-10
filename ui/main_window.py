@@ -626,9 +626,11 @@ class UiMainWindow(QtWidgets.QMainWindow):
     def handle_secondary_button(self):
         """Handle clicks on the secondary button (only for mapping tab)"""
         current_index = self.function_tabWidget.currentIndex()
-        
-        if current_index == FunctionType.MAPPING:
-            self.open_file_dialog(PathType.TABLE, self.secondary_input)
+        match current_index:
+            case FunctionType.MAPPING:
+                self.open_file_dialog(PathType.TABLE, self.secondary_input)
+            case _:
+                pass
 
     def handle_destination_button(self):
         """Handle clicks on the destination button"""
@@ -636,26 +638,29 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
     def open_file_dialog(self, path_type: PathType, target_input: PathLineEdit):
         """Open a file dialog for the specified path type and update the target input"""
-        if path_type == PathType.IMAGE:
-            f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
-                self, 'Open Image', 
-                file_manager.get_default_directory(FileCategory.PHOTO).as_posix(),
-                file_manager.get_filter_string(FileCategory.PHOTO)
-            )
-        elif path_type == PathType.VIDEO:
-            f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
-                self, 'Open Video', 
-                file_manager.get_default_directory(FileCategory.VIDEO).as_posix(),
-                file_manager.get_filter_string(FileCategory.VIDEO)
-            )
-        elif path_type == PathType.TABLE:
-            f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
-                self, 'Open Table', 
-                file_manager.get_default_directory(FileCategory.TABLE).as_posix(),
-                file_manager.get_filter_string(FileCategory.TABLE)
-            )
-        else:
-            return
+        match path_type:
+            case PathType.IMAGE:
+                f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
+                    self, 'Open Image',
+                    file_manager.get_default_directory(FileCategory.PHOTO).as_posix(),
+                    file_manager.get_filter_string(FileCategory.PHOTO)
+                )
+                target_input.setText(f_name)
+            case PathType.VIDEO:
+                f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
+                    self, 'Open Video',
+                    file_manager.get_default_directory(FileCategory.VIDEO).as_posix(),
+                    file_manager.get_filter_string(FileCategory.VIDEO)
+                )
+                target_input.setText(f_name)
+            case PathType.TABLE:
+                f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
+                    self, 'Open Table',
+                    file_manager.get_default_directory(FileCategory.TABLE).as_posix(),
+                    file_manager.get_filter_string(FileCategory.TABLE)
+                )
+            case _:
+                return None
             
         # Validate the file exists and is accessible
         if f_name := ut.sanitize_path(f_name):
