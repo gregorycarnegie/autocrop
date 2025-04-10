@@ -77,8 +77,8 @@ class UiMappingTabWidget(UiBatchCropWidget):
 
         self.verticalLayout_200.addWidget(frame)
 
-        # Destination selection
-        self.verticalLayout_200.addLayout(self.horizontalLayout_3)
+        # # Destination selection
+        # self.verticalLayout_200.addLayout(self.horizontalLayout_3)
 
         # Add page to toolbox
         self.toolBox.addItem(self.page_1, "Crop View")

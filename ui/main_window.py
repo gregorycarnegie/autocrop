@@ -301,16 +301,16 @@ class UiMainWindow(QtWidgets.QMainWindow):
         """Create photo tab without redundant input fields"""
         icon2 = QtGui.QIcon()
         icon2.addFile(GuiIcon.PICTURE, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        
+
         self.photo_tab = QtWidgets.QWidget()
         self.photo_tab.setObjectName(u"photo_tab")
         self.verticalLayout_2 = ut.setup_vbox(u"verticalLayout_2", self.photo_tab)
         self.photo_tab_widget = UiPhotoTabWidget(self.photo_worker, u"photo_tab_widget", self.photo_tab)
-        
+
         # Hide the redundant input fields that will be handled by unified address bar
         self.photo_tab_widget.horizontalLayout_2.setParent(None)  # Remove input layout
         self.photo_tab_widget.horizontalLayout_3.setParent(None)  # Remove destination layout
-        
+
         self.verticalLayout_2.addWidget(self.photo_tab_widget)
         self.function_tabWidget.addTab(self.photo_tab, icon2, "")
         
@@ -318,17 +318,17 @@ class UiMainWindow(QtWidgets.QMainWindow):
         """Create folder tab without redundant input fields"""
         icon3 = QtGui.QIcon()
         icon3.addFile(GuiIcon.FOLDER, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        
+
         self.folder_tab = QtWidgets.QWidget()
         self.folder_tab.setObjectName(u"folder_tab")
         self.verticalLayout_3 = ut.setup_vbox(u"verticalLayout_3", self.folder_tab)
         self.folder_tab_widget = UiFolderTabWidget(self.folder_worker, u"folder_tab_widget", self.folder_tab)
-        
+
         # Modify the setup to remove redundant input fields
         # Access the verticalLayout_200 in page_1 to remove input and destination layouts
         input_layout = None
         destination_layout = None
-        
+
         # Find the input and destination layouts
         for i in range(self.folder_tab_widget.verticalLayout_200.count()):
             item = self.folder_tab_widget.verticalLayout_200.itemAt(i)
@@ -337,13 +337,13 @@ class UiMainWindow(QtWidgets.QMainWindow):
                     input_layout = item
                 elif item.objectName() == "horizontalLayout_3":  # Destination layout
                     destination_layout = item
-        
+
         # Remove input and destination layouts if found
         if input_layout:
             self.folder_tab_widget.verticalLayout_200.removeItem(input_layout)
         if destination_layout:
             self.folder_tab_widget.verticalLayout_200.removeItem(destination_layout)
-        
+
         self.verticalLayout_3.addWidget(self.folder_tab_widget)
         self.function_tabWidget.addTab(self.folder_tab, icon3, "")
         
@@ -351,38 +351,12 @@ class UiMainWindow(QtWidgets.QMainWindow):
         """Create mapping tab without redundant input fields"""
         icon1 = QtGui.QIcon()
         icon1.addFile(GuiIcon.EXCEL, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        
+
         self.mapping_tab = QtWidgets.QWidget()
         self.mapping_tab.setObjectName(u"mapping_tab")
         self.verticalLayout_4 = ut.setup_vbox(u"verticalLayout_4", self.mapping_tab)
         self.mapping_tab_widget = UiMappingTabWidget(self.mapping_worker, u"mapping_tab_widget", self.mapping_tab)
-        
-        # Remove redundant input fields that will be handled by unified address bar
-        # Access gridLayout in page_1 to remove input and destination layouts
-        
-        # Find gridLayout
-        for i in range(self.mapping_tab_widget.verticalLayout_200.count()):
-            item = self.mapping_tab_widget.verticalLayout_200.itemAt(i)
-            if isinstance(item, QtWidgets.QGridLayout) and hasattr(item, "objectName"):
-                if item.objectName() == "gridLayout":
-                    # Remove all items from gridLayout
-                    while item.count():
-                        child = item.takeAt(0)
-                        if child.widget():
-                            child.widget().setParent(None)
-                    
-                    # Remove gridLayout from verticalLayout_200
-                    self.mapping_tab_widget.verticalLayout_200.removeItem(item)
-                    break
-        
-        # Remove destination layout
-        for i in range(self.mapping_tab_widget.verticalLayout_200.count()):
-            item = self.mapping_tab_widget.verticalLayout_200.itemAt(i)
-            if isinstance(item, QtWidgets.QHBoxLayout) and hasattr(item, "objectName"):
-                if item.objectName() == "horizontalLayout_3":  # Destination layout
-                    self.mapping_tab_widget.verticalLayout_200.removeItem(item)
-                    break
-        
+
         self.verticalLayout_4.addWidget(self.mapping_tab_widget)
         self.function_tabWidget.addTab(self.mapping_tab, icon1, "")
         
@@ -390,37 +364,12 @@ class UiMainWindow(QtWidgets.QMainWindow):
         """Create video tab without redundant input fields"""
         icon4 = QtGui.QIcon()
         icon4.addFile(GuiIcon.CLAPPERBOARD, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        
+
         self.video_tab = QtWidgets.QWidget()
         self.video_tab.setObjectName(u"video_tab")
         self.verticalLayout_5 = ut.setup_vbox(u"verticalLayout_5", self.video_tab)
         self.video_tab_widget = UiVideoTabWidget(self.video_worker, u"video_tab_widget", self.video_tab)
-        
-        # Remove input and destination layouts from the video tab
-        # Find and remove the input layout
-        input_layout = None
-        for i in range(self.video_tab_widget.verticalLayout_200.count()):
-            item = self.video_tab_widget.verticalLayout_200.itemAt(i)
-            if isinstance(item, QtWidgets.QHBoxLayout) and hasattr(item, "objectName"):
-                if item.objectName() == "horizontalLayout_2":  # Input layout
-                    input_layout = item
-                    break
-        
-        if input_layout:
-            self.video_tab_widget.verticalLayout_200.removeItem(input_layout)
-        
-        # Find and remove the destination layout
-        destination_layout = None
-        for i in range(self.video_tab_widget.verticalLayout_200.count()):
-            item = self.video_tab_widget.verticalLayout_200.itemAt(i)
-            if isinstance(item, QtWidgets.QHBoxLayout) and hasattr(item, "objectName"):
-                if item.objectName() == "horizontalLayout_3":  # Destination layout
-                    destination_layout = item
-                    break
-        
-        if destination_layout:
-            self.video_tab_widget.verticalLayout_200.removeItem(destination_layout)
-        
+
         # Register state retrieval functions for each widget type
         for func_type, widget in [
             (FunctionType.PHOTO, self.photo_tab_widget),
@@ -440,7 +389,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 lambda _ft, img, w=widget, ft_expected=func_type:
                     w.imageWidget.setImage(img) if _ft == ft_expected else None
             )
-        
+
         self.verticalLayout_5.addWidget(self.video_tab_widget)
         self.function_tabWidget.addTab(self.video_tab, icon4, "")
 

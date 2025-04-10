@@ -254,9 +254,6 @@ class UiVideoTabWidget(UiCropWidget):
         self.verticalLayout_200.addWidget(frame_1)
         
         # Destination selection
-        # self.destinationLineEdit.setParent(self)
-        # self.destinationButton.setParent(self)
-        # self.setup_destination_layout(self.horizontalLayout_3)
         self.verticalLayout_200.addLayout(self.horizontalLayout_3)
         
         # Add page to toolbox
