@@ -414,7 +414,7 @@ def detect_faces(image: cv2.Mat,
     return detector(small_img, threshold)
 
 
-def scale_face_coordinates(face: Rectangle,scale_factor: int) -> tuple[int, int, int, int]:
+def scale_face_coordinates(face: Rectangle, scale_factor: int) -> tuple[int, int, int, int]:
     """
     Scale face coordinates based on the scale factor.
     
@@ -479,8 +479,7 @@ def box_detect(image: cv2.Mat,
         print(f"Error in box_detect: {e}")
         return None
 
-def mask_extensions(file_list: npt.NDArray[np.str_],
-                    extensions: set[str]) -> tuple[npt.NDArray[np.bool_], int]:
+def mask_extensions(file_list: npt.NDArray[np.str_], extensions: set[str]) -> tuple[npt.NDArray[np.bool_], int]:
     """
     Masks the file list based on supported extensions, returning the mask and its count.
     """
@@ -612,7 +611,9 @@ def _(image: Path,
 
     save(cropped_images, file_path, job.gamma, is_tiff)
 
-def save_processed_face(processed_image: cv2.Mat, output_path: Path, gamma: int) -> None:
+def save_processed_face(processed_image: cv2.Mat,
+                        output_path: Path,
+                        gamma: int) -> None:
     """Save a processed face to the given output path"""
     is_tiff = output_path.suffix.lower() in {'.tif', '.tiff'}
     save(processed_image, output_path, gamma, is_tiff=is_tiff)
@@ -628,7 +629,10 @@ def frame_save(image: cv2.Mat,
     file_path, is_tiff = get_frame_path(destination, file_enum_str, job)
     save(image, file_path, job.gamma, is_tiff)
 
-def process_image(image: cv2.Mat, job: Job, bounding_box: Box, face_detection_tools: FaceToolPair) -> cv2.Mat:
+def process_image(image: cv2.Mat,
+                  job: Job,
+                  bounding_box: Box,
+                  face_detection_tools: FaceToolPair) -> cv2.Mat:
     """
     Crops an image according to 'bounding_box', applies processing pipeline, and resizes.
     """
@@ -644,13 +648,17 @@ def crop_image(a0: Union[cv2.Mat, np.ndarray, Path], *args, **kwargs) -> Optiona
     raise NotImplementedError(f"Unsupported input type: {type(a0)}")
 
 @crop_image.register
-def _(image: Union[cv2.Mat, np.ndarray], job: Job, face_detection_tools: FaceToolPair) -> Optional[cv2.Mat]:
+def _(image: Union[cv2.Mat, np.ndarray],
+      job: Job,
+      face_detection_tools: FaceToolPair) -> Optional[cv2.Mat]:
     if (bounding_box := box_detect(image, job, face_detection_tools)) is None:
         return None
     return process_image(image, job, bounding_box, face_detection_tools)
 
 @crop_image.register
-def _(image: Path, job: Job, face_detection_tools: FaceToolPair) -> Optional[cv2.Mat]:
+def _(image: Path,
+      job: Job,
+      face_detection_tools: FaceToolPair) -> Optional[cv2.Mat]:
     pic_array = open_pic(image, face_detection_tools, job)
     if pic_array is None:
         return None
@@ -664,7 +672,9 @@ def multi_crop(a0: Union[cv2.Mat, np.ndarray, Path], *args, **kwargs) -> Optiona
     raise NotImplementedError(f"Unsupported input type: {type(a0)}")
 
 @multi_crop.register
-def _(image: Union[cv2.Mat, np.ndarray], job: Job, face_detection_tools: FaceToolPair) -> Optional[c.Iterator[cv2.Mat]]:
+def _(image: Union[cv2.Mat, np.ndarray],
+      job: Job,
+      face_detection_tools: FaceToolPair) -> Optional[c.Iterator[cv2.Mat]]:
     """
     Optimized multi-face cropping function using the pipeline approach.
     Yields cropped faces above threshold, resized to `job.size`.
@@ -698,16 +708,18 @@ def _(image: Union[cv2.Mat, np.ndarray], job: Job, face_detection_tools: FaceToo
     return (process_face_box(bounding_box) for _, bounding_box in valid_faces)
 
 @multi_crop.register
-def _(image: Path, job: Job, face_detection_tools: FaceToolPair) -> Optional[c.Iterator[cv2.Mat]]:
+def _(image: Path,
+      job: Job,
+      face_detection_tools: FaceToolPair) -> Optional[c.Iterator[cv2.Mat]]:
     img = open_pic(image, face_detection_tools, job)
     return None if img is None else multi_crop(img, job, face_detection_tools)
 
 def batch_process_with_pipeline(images: list[Path],
-                             job: Job,
-                             face_detection_tools: FaceToolPair,
-                             cancel_event: threading.Event,
-                             progress_bars: list[QtWidgets.QProgressBar] = None,
-                             chunk_size: int = 10) -> list[Path]:
+                                job: Job,
+                                face_detection_tools: FaceToolPair,
+                                cancel_event: threading.Event,
+                                progress_bars: list[QtWidgets.QProgressBar] = None,
+                                chunk_size: int = 10) -> list[Path]:
     """
     Process a batch of images with the same pipeline for efficiency with cancellation support.
     """
@@ -740,20 +752,7 @@ def batch_process_with_pipeline(images: list[Path],
             # Open the image
             image_array = open_pic(img_path, face_detection_tools, job)
             if image_array is None:
-                progress_count += 1
-                if progress_bars:
-                    percentage = min(100.0, (progress_count / total_images) * 100.0)
-                    value = int(1000 * percentage / 100.0)
-                    
-                    # Use safe thread approach to update UI
-                    for bar in progress_bars:
-                        # Use invokeMethod to update progress bars on the main thread
-                        QtCore.QMetaObject.invokeMethod(
-                            bar, 
-                            "setValue", 
-                            QtCore.Qt.ConnectionType.QueuedConnection,
-                            QtCore.Q_ARG(int, value)
-                        )
+                progress_count = invoke_progress(progress_count, total_images, progress_bars)
                 continue
 
             # Create a function to get output paths for standard batch processing
@@ -773,20 +772,7 @@ def batch_process_with_pipeline(images: list[Path],
                 return all_output_paths
             
             # Update progress count and progress bars directly
-            progress_count += 1
-            if progress_bars:
-                percentage = min(100.0, (progress_count / total_images) * 100.0)
-                value = int(1000 * percentage / 100.0)
-                
-                # Use safe thread approach to update UI
-                for bar in progress_bars:
-                    # Use invokeMethod to update progress bars on the main thread
-                    QtCore.QMetaObject.invokeMethod(
-                        bar, 
-                        "setValue", 
-                        QtCore.Qt.ConnectionType.QueuedConnection,
-                        QtCore.Q_ARG(int, value)
-                    )
+            progress_count = invoke_progress(progress_count, total_images, progress_bars)
             
         # Allow UI updates between chunks
         QtWidgets.QApplication.processEvents()
@@ -846,22 +832,8 @@ def batch_process_with_mapping(images: list[Path],
             # Open the image
             image_array = open_pic(img_path, face_detection_tools, job)
             if image_array is None:
-                progress_count += 1
-                
                 # Update progress bars directly if provided
-                if progress_bars:
-                    percentage = min(100.0, (progress_count / total_images) * 100.0)
-                    value = int(1000 * percentage / 100.0)
-                    
-                    # Use safe thread approach to update UI
-                    for bar in progress_bars:
-                        # Use invokeMethod to update progress bars on the main thread
-                        QtCore.QMetaObject.invokeMethod(
-                            bar, 
-                            "setValue", 
-                            QtCore.Qt.ConnectionType.QueuedConnection,
-                            QtCore.Q_ARG(int, value)
-                        )
+                progress_count = invoke_progress(progress_count, total_images, progress_bars)
                 continue
 
             # Create a function to get output paths for mapping
@@ -882,20 +854,7 @@ def batch_process_with_mapping(images: list[Path],
             all_output_paths.extend(output_paths_result)
             
             # Update progress count and progress bars directly
-            progress_count += 1
-            if progress_bars:
-                percentage = min(100.0, (progress_count / total_images) * 100.0)
-                value = int(1000 * percentage / 100.0)
-                
-                # Use safe thread approach to update UI
-                for bar in progress_bars:
-                    # Use invokeMethod to update progress bars on the main thread
-                    QtCore.QMetaObject.invokeMethod(
-                        bar, 
-                        "setValue", 
-                        QtCore.Qt.ConnectionType.QueuedConnection,
-                        QtCore.Q_ARG(int, value)
-                    )
+            progress_count = invoke_progress(progress_count, total_images, progress_bars)
             
             # Check for cancellation AFTER processing each image
             if cancel_event.is_set():
@@ -909,6 +868,25 @@ def batch_process_with_mapping(images: list[Path],
             return all_output_paths
         
     return all_output_paths
+
+def invoke_progress(progress_count: int,
+                    total_images: int,
+                    progress_bars: list[QtWidgets.QProgressBar]) -> int:
+    progress_count += 1
+    if progress_bars:
+        percentage = min(100.0, (progress_count / total_images) * 100.0)
+        value = int(10 * percentage)
+        
+        # Use safe thread approach to update UI
+        for bar in progress_bars:
+            # Use invokeMethod to update progress bars on the main thread
+            QtCore.QMetaObject.invokeMethod(
+                bar, 
+                "setValue", 
+                QtCore.Qt.ConnectionType.QueuedConnection,
+                QtCore.Q_ARG(int, value)
+            )
+    return progress_count
 
 def process_batch_item(image_array: cv2.Mat,
                        job: Job,
@@ -971,7 +949,10 @@ def process_batch_item(image_array: cv2.Mat,
     
     return output_paths, pipeline
 
-def get_output_path(input_path: Path, destination: Path, face_index: Optional[int], radio_choice: str) -> Path:
+def get_output_path(input_path: Path,
+                    destination: Path,
+                    face_index: Optional[int],
+                    radio_choice: str) -> Path:
     """Helper function to generate output paths."""
     suffix = input_path.suffix if radio_choice == 'No' else radio_choice
     if face_index is not None:
@@ -989,7 +970,10 @@ def crop(a0: Union[Path, str], *args, **kwargs) -> None:
     raise NotImplementedError(f"Unsupported input type: {type(a0)}")
 
 @crop.register
-def _(image: Path, job: Job, face_detection_tools: FaceToolPair, new: Optional[Union[Path, str]] = None) -> None:
+def _(image: Path,
+      job: Job,
+      face_detection_tools: FaceToolPair,
+      new: Optional[Union[Path, str]] = None) -> None:
     crop_fn = multi_crop if job.multi_face_job else crop_image
     if all(x is not None for x in [job.table, job.folder_path, new]):
         save(image, job, face_detection_tools, crop_fn, new)
@@ -999,5 +983,8 @@ def _(image: Path, job: Job, face_detection_tools: FaceToolPair, new: Optional[U
         save(image, job, face_detection_tools, crop_fn)
 
 @crop.register
-def _(image: str, job: Job, face_detection_tools: FaceToolPair, new: Optional[Union[Path, str]] = None) -> None:
+def _(image: str,
+      job: Job,
+      face_detection_tools: FaceToolPair,
+      new: Optional[Union[Path, str]] = None) -> None:
     crop(Path(image), job, face_detection_tools, new)
