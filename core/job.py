@@ -87,7 +87,7 @@ class Job(NamedTuple):
     left: int
     right: int
     radio_buttons: RadioButtonTuple
-    radio_options: npt.NDArray[np.str_] = np.array(['No', '.bmp', '.jpg', '.png', '.tiff', '.webp'])
+    radio_options: np.ndarray[np.str_] = np.array(['No', '.bmp', '.jpg', '.png', '.tiff', '.webp'])
     destination: Optional[Path] = None
     photo_path: Optional[Path] = None
     folder_path: Optional[Path] = None

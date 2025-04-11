@@ -91,8 +91,6 @@ class BatchCropper(Cropper):
                     future.cancel()
         # Clear the futures list
         self.futures = []
-    
-        print("Worker terminated. All tasks cancelled.")
 
     def reset_task(self) -> None:
         """

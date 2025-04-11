@@ -521,6 +521,9 @@ class UiVideoTabWidget(UiCropWidget):
     def retranslateUi(self) -> None:
         """Update UI text elements"""
         super().retranslateUi()
+        self.mfaceCheckBox_2.setText(QtCore.QCoreApplication.translate("self", "Multi-Face", None))
+        self.tiltCheckBox_2.setText(QtCore.QCoreApplication.translate("self", "Autotilt", None))
+        self.exposureCheckBox_2.setText(QtCore.QCoreApplication.translate("self", "Autocorrect", None))
         self.muteButton_1.setText("")
         self.muteButton_2.setText("")
         self.positionLabel_1.setText(QtCore.QCoreApplication.translate("self", "00:00:00", None))
@@ -568,7 +571,7 @@ class UiVideoTabWidget(UiCropWidget):
                     # Display the cropped image
                     ut.display_image_on_widget(cropped_image, self.imageWidget)
         except Exception as e:
-            print(f"Error in display_crop_preview: {e}")
+            ut.show_error_box(f"Error in display_crop_preview: {e}")
 
     # Media player methods
     def create_media_player(self) -> None:
@@ -874,7 +877,6 @@ class UiVideoTabWidget(UiCropWidget):
         self.progressBar_2.repaint()
         
         QtWidgets.QApplication.processEvents()
-        print("Video processing cancelled")
 
     # Improve update_progress method:
     # def update_progress(self, x: int, y:int) -> None:
@@ -902,9 +904,6 @@ class UiVideoTabWidget(UiCropWidget):
         
         # Process events to ensure UI updates immediately
         QtWidgets.QApplication.processEvents()
-        
-        # Log progress
-        print(f"Video processing progress: {percentage:.1f}%")
 
     @staticmethod
     def cancel_button_operation(cancel_button: QtWidgets.QPushButton, *crop_buttons: QtWidgets.QPushButton) -> None:

@@ -76,7 +76,7 @@ def sanitize_path(path_str: str) -> Optional[str]:
     path = Path(path_str)
     if not path.exists() or not os.access(path, os.R_OK):
         show_error_box("Selected path is not accessible")
-        return
+        return None
 
     return path_str
 

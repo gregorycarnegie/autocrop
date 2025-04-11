@@ -155,25 +155,25 @@ class UiBatchCropWidget(UiCropWidget):
 
         return frame, verticalLayout
 
-    def update_progress(self, x: int, y: int) -> None:
-        """Update the progress bar based on crop worker progress"""
-        # Calculate percentage for better granularity
-        if y > 0:  # Avoid division by zero
-            # Use floating point calculation for more precise percentage
-            percentage = min(100.0, (x / y) * 100.0)
-            value = int(self.PROGRESSBAR_STEPS * percentage / 100.0)
-            
-            # Update progress bar value
-            self.progressBar.setValue(value)
-            
-            # Force immediate visual update
-            self.progressBar.repaint()
-            
-            # Process any pending UI events
-            QtWidgets.QApplication.processEvents()
-        
-        # Add some debug output to console
-        print(f"Progress: {x}/{y} tasks completed ({percentage:.1f}%)")
+    # def update_progress(self, x: int, y: int) -> None:
+    #     """Update the progress bar based on crop worker progress"""
+    #     # Calculate percentage for better granularity
+    #     if y > 0:  # Avoid division by zero
+    #         # Use floating point calculation for more precise percentage
+    #         percentage = min(100.0, (x / y) * 100.0)
+    #         value = int(self.PROGRESSBAR_STEPS * percentage / 100.0)
+    #
+    #         # Update progress bar value
+    #         self.progressBar.setValue(value)
+    #
+    #         # Force immediate visual update
+    #         self.progressBar.repaint()
+    #
+    #         # Process any pending UI events
+    #         QtWidgets.QApplication.processEvents()
+    #
+    #     # Add some debug output to console
+    #     print(f"Progress: {x}/{y} tasks completed ({percentage:.1f}%)")
 
     @staticmethod
     def cancel_button_operation(cancel_button: QtWidgets.QPushButton, *crop_buttons: QtWidgets.QPushButton) -> None:
@@ -193,8 +193,8 @@ class UiBatchCropWidget(UiCropWidget):
         self.crop_worker.started.connect(lambda: ut.disable_widget(*widget_list))
         self.crop_worker.started.connect(lambda: ut.enable_widget(self.cancelButton))
 
-        # Connect progress update
-        self.crop_worker.progress.connect(self.update_progress, QtCore.Qt.ConnectionType.QueuedConnection)
+        # # Connect progress update
+        # self.crop_worker.progress.connect(self.update_progress, QtCore.Qt.ConnectionType.QueuedConnection)
 
         # Batch end connection - re-enable controls 
         self.crop_worker.finished.connect(lambda: ut.enable_widget(*widget_list))

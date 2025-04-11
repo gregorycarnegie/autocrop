@@ -1092,9 +1092,9 @@ class UiMainWindow(QtWidgets.QMainWindow):
         except AssertionError:
             return
         if any(mask):
-            self.handle_path(file_path, FunctionType.MAPPING, self.mapping_tab_widget.inputLineEdit)
+            self.handle_path(file_path, FunctionType.MAPPING, self.secondary_input)
         else:
-            self.handle_path(file_path, FunctionType.FOLDER, self.folder_tab_widget.inputLineEdit)
+            self.handle_path(file_path, FunctionType.FOLDER, self.unified_address_bar)
 
     def handle_path(self, file_path: Path,
                     tab_index: FunctionType,
@@ -1142,7 +1142,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
             assert isinstance(self.photo_tab_widget, UiPhotoTabWidget)
         except AssertionError:
             return
-        self.handle_path(file_path, FunctionType.PHOTO, self.photo_tab_widget.inputLineEdit)
+        self.handle_path(file_path, FunctionType.PHOTO, self.unified_address_bar)
 
     def handle_video_file(self, file_path: Path) -> None:
         """
@@ -1155,7 +1155,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
             assert isinstance(self.video_tab_widget, UiVideoTabWidget)
         except AssertionError:
             return
-        self.video_tab_widget.inputLineEdit.setText(file_path.as_posix())
+        self.unified_address_bar.setText(file_path.as_posix())
         self.video_tab_widget.mediacontrolWidget_1.playButton.setEnabled(True)
         self.video_tab_widget.mediacontrolWidget_1.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PLAY))
         self.video_tab_widget.mediacontrolWidget_2.playButton.setEnabled(True)

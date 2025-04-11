@@ -125,7 +125,7 @@ def numpy_array_crop(image: cv2.Mat, bounding_box: Box) -> cv2.Mat:
         )
     else:
         # No padding was required
-        return cropped_valid
+        return cv2.Mat(cropped_valid)
 
 def correct_exposure(image: cv2.Mat, exposure: bool) -> cv2.Mat:
     """
@@ -796,9 +796,9 @@ def batch_process_with_mapping(images: list[Path],
         output_paths: List of output paths for processed images
         job: Job parameters
         face_detection_tools: Tools for face detection
-        progress_callback: Callback to update progress
         cancel_event: Event to check for cancellation requests
         progress_bars: Optional list of progress bars to update directly
+        progress_count: int
         chunk_size: Number of images to process in each chunk
         
     Returns:
@@ -810,9 +810,6 @@ def batch_process_with_mapping(images: list[Path],
     pipeline = None
     all_output_paths = []
     total_images = len(images)
-    
-    # # Initialize progress tracking
-    # progress_count = 0
     
     # Process images in chunks
     for i in range(0, total_images, chunk_size):
