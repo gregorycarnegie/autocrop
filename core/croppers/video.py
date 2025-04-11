@@ -3,6 +3,7 @@ from functools import cache
 from pathlib import Path
 from typing import Optional
 
+import autocrop_rs as rs
 import ffmpeg
 import numpy as np
 import numpy.typing as npt
@@ -31,8 +32,9 @@ def ffmpeg_input(video_line_edit: str, timestamp_seconds: float, width: int, hei
         .output('pipe:', format='rawvideo', pix_fmt='rgb24', vframes=1, s=f'{width}x{height}')
         .run(capture_stdout=True, quiet=True)
     )
+    print('out',type(out))
     # Now the output will match our specified dimensions
-    return np.frombuffer(out, np.uint8).reshape((height, width, 3))
+    return rs.reshape_buffer_to_image(out, height, width)   
 
 
 class VideoCropper(Cropper):
@@ -129,7 +131,7 @@ class VideoCropper(Cropper):
                 prc.save(image, new_file_path, job.gamma, is_tiff)
             return None
 
-        cropped_image = prc.crop_image(frame, job, self.face_detection_tools)
+        cropped_image = prc.crop_image(frame, job, self.face_detection_tools, video=True)
         if cropped_image is not None:
             prc.save(cropped_image, file_path, job.gamma, is_tiff)
 
@@ -177,7 +179,7 @@ class VideoCropper(Cropper):
             None
         """
 
-        if (cropped_image := prc.crop_image(frame, job, self.face_detection_tools)) is None:
+        if (cropped_image := prc.crop_image(frame, job, self.face_detection_tools, video=True)) is None:
             prc.frame_save(frame, file_enum, destination, job)
         else:
             prc.frame_save(cropped_image, file_enum, destination, job)
