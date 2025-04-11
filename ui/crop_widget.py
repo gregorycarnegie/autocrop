@@ -85,6 +85,8 @@ class UiCropWidget(QtWidgets.QWidget):
         self.mfaceCheckBox = self.create_checkbox("mfaceCheckBox")
         self.tiltCheckBox = self.create_checkbox("tiltCheckBox")
         self.exposureCheckBox = self.create_checkbox("exposureCheckBox")
+
+        self._setup_checkbox_relationships(self.mfaceCheckBox, self.tiltCheckBox, self.exposureCheckBox)
         
         # Common signal connections
         self.toggleCheckBox.toggled.connect(self.controlWidget.setVisible)
@@ -93,28 +95,33 @@ class UiCropWidget(QtWidgets.QWidget):
         self._input_validators: Dict[QtWidgets.QWidget, Callable[[], None]] = {}
         self._checkbox_connections: Dict[QtWidgets.QCheckBox, Callable[[], None]] = {}
         
-        # Initialize the checkbox connections
-        self._setup_checkbox_relationships()
+        # # Initialize the checkbox connections
+        # self._setup_checkbox_relationships()
 
-    def _setup_checkbox_relationships(self) -> None:
-        """Set up the standard checkbox exclusivity relationships"""
-        # Multi-face is exclusive with exposure and tilt
-        self.tab_state_manager.register_checkbox_exclusivity(
-            self.mfaceCheckBox, 
-            {self.exposureCheckBox, self.tiltCheckBox}
-        )
+    def _setup_checkbox_relationships(self, ckbx0: QtWidgets.QCheckBox, ckbx1: QtWidgets.QCheckBox, ckbx2: QtWidgets.QCheckBox) -> None:
+        self.tab_state_manager.register_checkbox_exclusivity(ckbx0, {ckbx2, ckbx1})
+        self.tab_state_manager.register_checkbox_exclusivity(ckbx2, {ckbx0})  # Exposure is exclusive with multi-face
+        self.tab_state_manager.register_checkbox_exclusivity(ckbx1, {ckbx0})  # Tilt is exclusive with multi-face 
+
+    # def _setup_checkbox_relationships(self) -> None:
+    #     """Set up the standard checkbox exclusivity relationships"""
+    #     # Multi-face is exclusive with exposure and tilt
+    #     self.tab_state_manager.register_checkbox_exclusivity(
+    #         self.mfaceCheckBox, 
+    #         {self.exposureCheckBox, self.tiltCheckBox}
+    #     )
         
-        # Exposure is exclusive with multi-face
-        self.tab_state_manager.register_checkbox_exclusivity(
-            self.exposureCheckBox, 
-            {self.mfaceCheckBox}
-        )
+    #     # Exposure is exclusive with multi-face
+    #     self.tab_state_manager.register_checkbox_exclusivity(
+    #         self.exposureCheckBox, 
+    #         {self.mfaceCheckBox}
+    #     )
         
-        # Tilt is exclusive with multi-face
-        self.tab_state_manager.register_checkbox_exclusivity(
-            self.tiltCheckBox, 
-            {self.mfaceCheckBox}
-        )
+    #     # Tilt is exclusive with multi-face
+    #     self.tab_state_manager.register_checkbox_exclusivity(
+    #         self.tiltCheckBox, 
+    #         {self.mfaceCheckBox}
+    #     )
 
     def create_image_widget(self) -> ImageWidget:
         """Create the main image display widget with consistent styling"""

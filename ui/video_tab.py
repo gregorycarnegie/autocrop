@@ -79,6 +79,8 @@ class UiVideoTabWidget(UiCropWidget):
         self.tiltCheckBox_2 = self.create_checkbox("tiltCheckBox_2")
         self.exposureCheckBox_2 = self.create_checkbox("exposureCheckBox_2")
         
+        self._setup_checkbox_relationships(self.mfaceCheckBox_2, self.tiltCheckBox_2, self.exposureCheckBox_2)
+
         # Create media control widgets
         self.mediacontrolWidget_1 = None  # Will be initialized in setup_layouts
         self.mediacontrolWidget_2 = None  # Will be initialized in setup_layouts
