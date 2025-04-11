@@ -306,9 +306,7 @@ def multi_box(image: Union[cv2.Mat, np.ndarray],
     if not results:
         return None
     # Adjust gamma and convert color space for visualization
-    adjusted_image = adjust_gamma(image.copy(), job.gamma)
-    rgb_image = convert_color_space(adjusted_image)
-
+    rgb_image = apply_pipeline(image, [partial(adjust_gamma, gam=job.gamma), convert_color_space])
     # Draw rectangle and confidence text
     for confidence, box in results:
         x0, y0, x1, y1 = box
