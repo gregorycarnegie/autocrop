@@ -1,7 +1,9 @@
+import contextlib
 from collections.abc import Callable
 from functools import lru_cache
 from typing import Optional
 
+import cv2
 from PyQt6.QtCore import pyqtSignal, QObject
 from PyQt6.QtGui import QImage
 
@@ -32,14 +34,15 @@ class DisplayCropper(Cropper):
         """Perform the crop operation with minimal overhead"""
         if function_type not in self._widget_states:
             return
-
+        
         widget_state = self._widget_states[function_type]()
         img_path_str = self._input_paths[function_type]()
 
-        if image := self._perform_crop_cached(
-            function_type, widget_state, img_path_str, self.face_detection_tools
-        ):
-            self.events.image_updated.emit(function_type, image)
+        with contextlib.suppress(cv2.error):
+            if image := self._perform_crop_cached(
+                function_type, widget_state, img_path_str, self.face_detection_tools
+            ):
+                self.events.image_updated.emit(function_type, image)
 
     @staticmethod
     @lru_cache(maxsize=32)  # Smaller cache size for memory efficiency
