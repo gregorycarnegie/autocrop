@@ -45,7 +45,8 @@ def profile_it(func: c.Callable[..., Any]) -> c.Callable[..., Any]:
 def create_image_pipeline(job: Job,
                           face_detection_tools: FaceToolPair,
                           bounding_box: Optional[Box]=None,
-                          display=False) -> list[c.Callable[[cv2.Mat], cv2.Mat]]:
+                          display=False,
+                          video=False) -> list[c.Callable[[cv2.Mat], cv2.Mat]]:
     """
     Creates a pipeline of image processing functions based on job parameters.
     """
@@ -60,7 +61,7 @@ def create_image_pipeline(job: Job,
 
     # Add exposure correction if requested
     if job.fix_exposure_job:
-        pipeline.append(partial(correct_exposure, exposure=True))
+        pipeline.append(partial(rs.correct_exposure, exposure=True, video=video))
 
     pipeline.extend(
         (
@@ -126,20 +127,6 @@ def numpy_array_crop(image: cv2.Mat, bounding_box: Box) -> cv2.Mat:
     else:
         # No padding was required
         return cv2.Mat(cropped_valid)
-
-def correct_exposure(image: cv2.Mat, exposure: bool) -> cv2.Mat:
-    """
-    Optionally corrects exposure by performing histogram-based scaling.
-    """
-
-    if not exposure:
-        return image
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if image.ndim > 2 else image
-    # Grayscale histogram
-    hist = cv2.calcHist([gray], [0], None, [256], [0, 256]).flatten()
-    # Calculate alpha and beta
-    alpha, beta = rs.calc_alpha_beta(hist)
-    return cv2.convertScaleAbs(src=image, alpha=alpha, beta=beta)
 
 def format_image(image: cv2.Mat) -> tuple[cv2.Mat, float]:
     """
@@ -632,12 +619,13 @@ def frame_save(image: cv2.Mat,
 def process_image(image: cv2.Mat,
                   job: Job,
                   bounding_box: Box,
-                  face_detection_tools: FaceToolPair) -> cv2.Mat:
+                  face_detection_tools: FaceToolPair,
+                  video: bool) -> cv2.Mat:
     """
     Crops an image according to 'bounding_box', applies processing pipeline, and resizes.
     """
     # Create and apply the processing pipeline
-    pipeline = create_image_pipeline(job, face_detection_tools, bounding_box)
+    pipeline = create_image_pipeline(job, face_detection_tools, bounding_box, video=video)
     return apply_pipeline(image, pipeline)
 
 @singledispatch
@@ -650,10 +638,11 @@ def crop_image(a0: Union[cv2.Mat, np.ndarray, Path], *args, **kwargs) -> Optiona
 @crop_image.register
 def _(image: Union[cv2.Mat, np.ndarray],
       job: Job,
-      face_detection_tools: FaceToolPair) -> Optional[cv2.Mat]:
+      face_detection_tools: FaceToolPair,
+      video: bool=False) -> Optional[cv2.Mat]:
     if (bounding_box := box_detect(image, job, face_detection_tools)) is None:
         return None
-    return process_image(image, job, bounding_box, face_detection_tools)
+    return process_image(image, job, bounding_box, face_detection_tools, video)
 
 @crop_image.register
 def _(image: Path,
@@ -674,7 +663,8 @@ def multi_crop(a0: Union[cv2.Mat, np.ndarray, Path], *args, **kwargs) -> Optiona
 @multi_crop.register
 def _(image: Union[cv2.Mat, np.ndarray],
       job: Job,
-      face_detection_tools: FaceToolPair) -> Optional[c.Iterator[cv2.Mat]]:
+      face_detection_tools: FaceToolPair,
+      video: bool) -> Optional[c.Iterator[cv2.Mat]]:
     """
     Optimized multi-face cropping function using the pipeline approach.
     Yields cropped faces above threshold, resized to `job.size`.
@@ -699,7 +689,7 @@ def _(image: Union[cv2.Mat, np.ndarray],
     def process_face_box(bounding_box: Box) -> cv2.Mat:
         # Create a pipeline specific to this face with its bounding box
         # This ensures alignment happens before cropping
-        face_pipeline = create_image_pipeline(job, face_detection_tools, bounding_box)
+        face_pipeline = create_image_pipeline(job, face_detection_tools, bounding_box, video=video)
         
         # Apply the pipeline to the original image
         return apply_pipeline(image, face_pipeline)
@@ -718,6 +708,7 @@ def batch_process_with_pipeline(images: list[Path],
                                 job: Job,
                                 face_detection_tools: FaceToolPair,
                                 cancel_event: threading.Event,
+                                video: bool,
                                 progress_bars: list[QtWidgets.QProgressBar] = None,
                                 progress_count: int = 0,
                                 chunk_size: int = 10) -> list[Path]:
@@ -731,9 +722,6 @@ def batch_process_with_pipeline(images: list[Path],
     # Check for cancellation before starting
     if cancel_event.is_set():
         return all_output_paths
-    
-    # # Initialize progress tracking
-    # progress_count = 0
     
     # Process images in smaller chunks
     for i in range(0, total_images, chunk_size):
@@ -763,7 +751,7 @@ def batch_process_with_pipeline(images: list[Path],
             # Process the image
             output_paths, pipeline = process_batch_item(
                 image_array, job, face_detection_tools, pipeline, 
-                img_path, get_output_path_fn
+                img_path, get_output_path_fn, video
             )
             
             all_output_paths.extend(output_paths)
@@ -785,6 +773,7 @@ def batch_process_with_mapping(images: list[Path],
                                job: Job,
                                face_detection_tools: FaceToolPair,
                                cancel_event: threading.Event,
+                               video: bool,
                                progress_bars: list[QtWidgets.QProgressBar] = None,
                                progress_count: int = 0,
                                chunk_size: int = 10) -> list[Path]:
@@ -847,7 +836,7 @@ def batch_process_with_mapping(images: list[Path],
             # Process the image
             output_paths_result, pipeline = process_batch_item(
                 image_array, job, face_detection_tools, pipeline, 
-                img_path, get_output_path_fn
+                img_path, get_output_path_fn, video
             )
             
             all_output_paths.extend(output_paths_result)
@@ -892,7 +881,8 @@ def process_batch_item(image_array: cv2.Mat,
                        face_detection_tools: FaceToolPair,
                        pipeline: list,
                        img_path: Path,
-                       get_output_path_fn: c.Callable) -> tuple[list[Path], list]:
+                       get_output_path_fn: c.Callable,
+                       video: bool) -> tuple[list[Path], list]:
     """
     Process a single image from a batch with the given pipeline.
     Returns a tuple of (output_paths, pipeline)
@@ -919,7 +909,7 @@ def process_batch_item(image_array: cv2.Mat,
             output_path = get_output_path_fn(img_path, i)
             
             # Create a pipeline specific to this face with its bounding box
-            face_pipeline = create_image_pipeline(job, face_detection_tools, bounding_box)
+            face_pipeline = create_image_pipeline(job, face_detection_tools, bounding_box, video=video)
             
             # Apply the pipeline to the original image
             processed = apply_pipeline(image_array, face_pipeline)
@@ -937,7 +927,7 @@ def process_batch_item(image_array: cv2.Mat,
         output_path = get_output_path_fn(img_path, None)
         
         # Create a pipeline specific to this face with its bounding box
-        face_pipeline = create_image_pipeline(job, face_detection_tools, bounding_box)
+        face_pipeline = create_image_pipeline(job, face_detection_tools, bounding_box, video=video)
         
         # Apply the pipeline to the original image
         processed = apply_pipeline(image_array, face_pipeline)
