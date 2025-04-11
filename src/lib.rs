@@ -1,12 +1,14 @@
-use ndarray::{Array1, Axis};
-use numpy::{IntoPyArray, PyReadonlyArray2};
-use pyo3::{prelude::*, types::PyTuple};
+use ndarray::{Array1, Array2, Array3, ArrayView2, ArrayView3, Axis, Ix3, s, ShapeError, Zip};
+use numpy::{IntoPyArray, PyArray3, PyReadonlyArray2, PyReadonlyArray3};
+use pyo3::{prelude::*, exceptions::PyValueError};
+use pyo3::types::{PyBytes, PyTuple};
 use std::sync::atomic::{AtomicBool, Ordering};
 
 // For x86/x86_64 specific SIMD intrinsics
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 use std::arch::x86_64::{
-    _mm256_set1_pd, _mm256_storeu_pd, _mm256_loadu_pd, 
+    // _mm256_set1_pd, _mm256_storeu_pd, _mm256_loadu_pd, 
+    _mm256_set1_pd, _mm256_storeu_pd,
     _mm256_div_pd, _mm256_set_pd,
 };
 
@@ -53,161 +55,209 @@ fn is_avx2_supported() -> bool {
     false
 }
 
-#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-/// Helper function for computing the prefix sum of 4 elements from a SIMD load.
-/// The running sum (passed in as `init`) is updated and the resulting prefix values are returned.
-unsafe fn simd_prefix_sum(values: &[f64; 4], init: &mut f64) -> [f64; 4] {
-    let mut result = [0.0; 4];
-    for i in 0..4 {
-        *init += values[i];
-        result[i] = *init;
-    }
-    result
-}
-
-/// Compute an optimized cumulative sum of a slice of f64 values.
+/// Compute the cumulative sum of a slice of f64 values. (Corrected, simple version)
 fn cumsum(vec: &[f64]) -> Vec<f64> {
     if vec.is_empty() {
         return Vec::new();
     }
-
-    let mut result = Vec::with_capacity(vec.len());
-    let mut running_sum = 0.0;
-
-    // Check if we can use AVX2 SIMD
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    let use_avx = is_avx2_supported();
-    #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
-    let use_avx = false;
-
-    // Use a chunk size that fits well in cache
-    const CHUNK_SIZE: usize = 64;
+    let mut accumulator = 0.0;
     
-    // Process chunks for better cache locality
-    for chunk in vec.chunks(CHUNK_SIZE) {
-        let mut local_sums = Vec::with_capacity(chunk.len());
-        let mut local_sum = 0.0;
-        
-        if use_avx {
-            #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-            unsafe {
-                // Process 4 elements at a time using AVX
-                const LANE_WIDTH: usize = 4;
-                let chunk_len = chunk.len();
-                let simd_iterations = chunk_len / LANE_WIDTH;
-                
-                for i in 0..simd_iterations {
-                    // Load 4 consecutive values
-                    let values = _mm256_loadu_pd(&chunk[i * LANE_WIDTH]);
-                    let mut arr = [0.0; LANE_WIDTH];
-                    _mm256_storeu_pd(arr.as_mut_ptr(), values);
-                    
-                    // Use the helper to compute the prefix sum of these 4 values
-                    let prefix = simd_prefix_sum(&arr, &mut local_sum);
-                    local_sums.extend_from_slice(&prefix);
-                }
-                
-                // Handle remaining elements
-                let remainder_start = simd_iterations * LANE_WIDTH;
-                for i in remainder_start..chunk_len {
-                    local_sum += chunk[i];
-                    local_sums.push(running_sum + local_sum);
-                }
-            }
-        } else {
-            // Scalar fallback implementation
-            for &val in chunk {
-                local_sum += val;
-                local_sums.push(running_sum + local_sum);
-            }
-        }
-        
-        running_sum += local_sum;
-        result.extend(local_sums);
-    }
-
-    result
+    vec.iter().map(|&x| {
+        accumulator += x; // Add current element to the running total
+        accumulator     // Return the updated running total for this position
+    }).collect::<Vec<f64>>() // Collect results into a new Vec
 }
 
-/// Calculate the alpha and beta values for histogram equalization.
+/// Reshapes a raw byte buffer (from Python) into a 3D NumPy array (H, W, 3).
+///
+/// Args:
+///     input_bytes: A Python bytes object containing raw pixel data (e.g., RGBRGB...).
+///     height: The desired height of the output array.
+///     width: The desired width of the output array.
+///
+/// Returns:
+///     A NumPy array with shape (height, width, 3) and dtype uint8.
+///
+/// Raises:
+///     ValueError: If the input buffer length doesn't match height * width * 3.
 #[pyfunction]
-fn calc_alpha_beta(hist: Vec<f64>) -> PyResult<(f64, f64)> {
-    if hist.is_empty() {
-        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-            "Histogram is empty - cannot calculate alpha/beta values"
-        ));
+fn reshape_buffer_to_image<'py>(
+    py: Python<'py>,
+    input_bytes: Bound<'py, PyBytes>,
+    height: usize,
+    width: usize,
+) -> PyResult<Bound<'py, PyArray3<u8>>> {
+    let bytes_slice: &[u8] = input_bytes.as_bytes();
+
+    let channels = 3;
+    let expected_len = height * width * channels;
+
+    if bytes_slice.len() != expected_len {
+        return Err(PyValueError::new_err(format!(
+            "Input buffer length ({}) does not match expected length ({}) for shape ({}, {}, {})",
+            bytes_slice.len(),
+            expected_len,
+            height,
+            width,
+            channels
+        )));
     }
 
-    for &x in &hist {
-        if x < 0.0 || !x.is_finite() {
-            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                "Histogram contains negative or invalid values"
-            ));
-        }
-    }
+    let shape = Ix3(height, width, channels);
 
-    let accumulator = cumsum(&hist);
+    let array_view: ArrayView3<'_, u8> =
+        ArrayView3::from_shape(shape, bytes_slice)
+        .map_err(|e: ShapeError| {
+            PyValueError::new_err(format!("Failed to reshape buffer: {}", e))
+        })?;
 
-    let total = match accumulator.last() {
-        Some(&v) => v,
-        None => return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-            "Failed to compute cumulative histogram"
-        )),
+    let owned_array: Array3<u8> = array_view.to_owned();
+    Ok(owned_array.into_pyarray(py))
+}
+
+/// Internal: Convert BGR image view to grayscale array.
+fn internal_bgr_to_gray(
+    image_view: ArrayView3<u8>,
+    use_rec709: bool, // True for Rec. 709, False for Rec. 601
+) -> Array2<u8> {
+    let shape = image_view.shape();
+    let height = shape[0];
+    let width = shape[1];
+    let mut gray = Array2::<u8>::zeros((height, width));
+
+    // Select coefficients
+    let (r_coeff, g_coeff, b_coeff) = if use_rec709 {
+        (0.2126, 0.7152, 0.0722) // Rec. 709
+    } else {
+        (0.299, 0.587, 0.114) // Rec. 601
     };
 
-    if total <= 0.0 {
-        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-            "Histogram sum is zero or negative - cannot perform clipping"
-        ));
+    // Manual iteration or slicing is appropriate. Using slicing from original:
+    let b_channel = image_view.slice(s![.., .., 0]);
+    let g_channel = image_view.slice(s![.., .., 1]);
+    let r_channel = image_view.slice(s![.., .., 2]);
+
+    for i in 0..height {
+        for j in 0..width {
+            let b = b_channel[[i, j]] as f32;
+            let g = g_channel[[i, j]] as f32;
+            let r = r_channel[[i, j]] as f32;
+            let gray_val = (r_coeff * r + g_coeff * g + b_coeff * b).round().clamp(0.0, 255.0) as u8; // Added clamp
+            gray[[i, j]] = gray_val;
+        }
     }
+    gray
+}
+
+/// Internal: Calculate 256-bin histogram from grayscale view.
+fn internal_calc_histogram(gray_view: ArrayView2<u8>) -> [f64; 256] {
+    // Based on calc_histogram logic from lib.txt
+    let mut hist: [f64; 256] = [0.0; 256];
+    for &pixel_value in gray_view.iter() {
+        hist[pixel_value as usize] += 1.0;
+    }
+    hist
+}
+
+/// Internal: Calculate alpha and beta values for histogram equalization.
+/// Returns Option<(f64, f64)>: Some on success, None on failure (e.g., invalid histogram).
+fn calc_alpha_beta(hist: &[f64]) -> Option<(f64, f64)> {
+    if hist.iter().all(|&x| x == 0.0) || hist.is_empty() { // Check for empty or all-zero hist early
+         return None; // Cannot proceed
+    }
+    if hist.iter().any(|&x| x < 0.0 || !x.is_finite()) { //
+        return None; // Invalid values
+    }
+
+    let accumulator = cumsum(hist); // Assumes cumsum is available as a non-py function
+    let total = match accumulator.last() {
+        Some(&v) if v > 0.0 => v,
+        _ => return None, // Failed to compute or sum is non-positive
+    };
 
     const CLIP_PERCENTAGE: f64 = 0.005;
     let clip_hist_percent = total * CLIP_PERCENTAGE;
     let max_limit = total - clip_hist_percent;
 
-    let min_gray = match accumulator.binary_search_by(|&x| {
-        if x <= clip_hist_percent {
-            std::cmp::Ordering::Less
-        } else {
-            std::cmp::Ordering::Greater
-        }
-    }) {
-        Ok(pos) => pos,
-        Err(pos) => pos,
-    };
+    // Use position instead of binary_search for clarity if accumulator is monotonic
+    let min_gray = accumulator.iter().position(|&x| x > clip_hist_percent).unwrap_or(0);
+    let mut max_gray = accumulator.iter().position(|&x| x > max_limit).unwrap_or(hist.len() -1);
 
-    let mut max_gray = match accumulator.binary_search_by(|&x| {
-        if x <= max_limit {
-            std::cmp::Ordering::Less
-        } else {
-            std::cmp::Ordering::Greater
-        }
-    }) {
-        Ok(pos) => pos,
-        Err(pos) => pos,
-    };
-
-    if max_gray == 0 {
-        max_gray = 255;
+    if max_gray == 0 && hist.len() > 1 { // Handle edge case where max_limit is very high
+        max_gray = hist.len() - 1; // Use the last bin index
     }
+     if max_gray == 0 { max_gray = 1 } // Prevent division by zero if only one bin exists
 
     if max_gray <= min_gray {
-        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-            format!("Invalid histogram range: max_gray ({}) <= min_gray ({}). This suggests the image has insufficient contrast.",
-                    max_gray, min_gray)
-        ));
+        return None; // Invalid range
     }
 
     let alpha = 255.0 / (max_gray as f64 - min_gray as f64);
     let beta = -alpha * min_gray as f64;
 
     if !alpha.is_finite() || !beta.is_finite() {
-        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-            format!("Calculated non-finite values: alpha={}, beta={}. Check input histogram.", alpha, beta)
-        ));
+        return None; // Invalid calculation result
     }
 
-    Ok((alpha, beta))
+    Some((alpha, beta))
+}
+
+/// Internal: Apply scale and shift (convertScaleAbs logic) to an image view.
+fn internal_convert_scale_abs(
+    image_view: ArrayView3<u8>,
+    alpha: f64,
+    beta: f64,
+) -> Array3<u8> {
+    // Based on convert_scale_abs logic from lib.txt
+    let mut output_array: Array3<u8> = Array3::zeros(image_view.raw_dim());
+    Zip::from(&mut output_array)
+        .and(image_view)
+        .for_each(|output_pixel: &mut u8, &input_pixel: &u8| {
+            let scaled_shifted: f64 = (input_pixel as f64) * alpha + beta;
+            let abs_result: f64 = scaled_shifted.abs();
+            let rounded_result: f64 = abs_result.round();
+            let clamped_result: f64 = rounded_result.clamp(0.0, 255.0);
+            *output_pixel = clamped_result as u8;
+        });
+    output_array
+}
+
+/// Performs exposure correction entirely within Rust by chaining internal logic.
+///
+/// Args:
+///     image: Input NumPy array (expects HxWx3 BGR u8).
+///     exposure: Bool flag indicating whether to perform correction.
+///     video: Bool flag indicating if the source is video (affects grayscale method).
+///
+/// Returns:
+///     A new NumPy array, either the original or the corrected version.
+#[pyfunction]
+fn correct_exposure<'py>(
+    py: Python<'py>,
+    image: PyReadonlyArray3<'py, u8>,
+    exposure: bool,
+    video: bool,
+) -> PyResult<Bound<'py, PyArray3<u8>>> {
+
+    let input_view: ArrayView3<'_, u8> = image.as_array();
+
+    if !exposure {
+        let owned_copy: Array3<u8> = input_view.to_owned();
+        return Ok(owned_copy.into_pyarray(py));
+    }
+
+    // Call internal functions
+    let gray_array: Array2<u8> = internal_bgr_to_gray(input_view, video);
+    let hist: [f64; 256] = internal_calc_histogram(gray_array.view()); // Pass view
+
+    // Calculate alpha/beta using internal function, defaulting on failure
+    let (alpha, beta) = calc_alpha_beta(&hist).unwrap_or((1.0, 0.0));
+
+    // Apply scaling using internal function
+    let final_result_array: Array3<u8> = internal_convert_scale_abs(input_view, alpha, beta);
+
+    // Convert final Rust ndarray back to Python NumPy array and return
+    Ok(final_result_array.into_pyarray(py))
 }
 
 /// Generates a gamma correction lookup table for intensity values from 0 to 255.
@@ -297,7 +347,6 @@ fn calculate_mean_center(arr: &PyReadonlyArray2<f64>) -> PyResult<Array1<f64>> {
             "Failed to calculate mean axis, check array validity"
         ))
 }
-
 
 #[pyfunction]
 // Change return signature back to PyObject for the first element
@@ -439,12 +488,12 @@ fn crop_positions(
 /// Module definition
 #[pymodule]
 fn autocrop_rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    // Register all functions at once
     m.add_function(wrap_pyfunction!(crop_positions, m)?)?;
-    m.add_function(wrap_pyfunction!(calc_alpha_beta, m)?)?;
     m.add_function(wrap_pyfunction!(gamma, m)?)?;
     m.add_function(wrap_pyfunction!(calculate_dimensions, m)?)?;
     m.add_function(wrap_pyfunction!(get_rotation_matrix, m)?)?;
+    m.add_function(wrap_pyfunction!(correct_exposure, m)?)?;
+    m.add_function(wrap_pyfunction!(reshape_buffer_to_image, m)?)?;
     
     Ok(())
 }
