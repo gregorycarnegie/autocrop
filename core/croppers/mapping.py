@@ -43,7 +43,7 @@ class MappingCropper(BatchCropper):
             # progress_callback = partial(self._update_progress, file_amount)
             # Use a modified version of batch_process_with_pipeline that accepts custom output paths
             prc.batch_process_with_mapping(
-                image_paths, output_paths, job, face_detection_tools, cancel_event, self.progressBars, self.progress_count
+                image_paths, output_paths, job, face_detection_tools, cancel_event, False, self.progressBars, self.progress_count
             )
         
         if self.progress_count == file_amount or self.end_task:

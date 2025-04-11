@@ -432,12 +432,6 @@ class UiVideoTabWidget(UiCropWidget):
         self.timelineSlider_1.sliderMoved.connect(self.timelineSlider_2.setSliderPosition)
         self.timelineSlider_2.sliderMoved.connect(self.timelineSlider_1.setSliderPosition)
         
-        # Button connections
-        # self.inputButton.clicked.connect(lambda: self.open_video())
-        
-        # Add preview update trigger
-        # self.inputLineEdit.textChanged.connect(lambda: QtCore.QTimer.singleShot(1000, self.display_crop_preview))
-        
         # Connect media control widgets
         for control in [self.mediacontrolWidget_1, self.mediacontrolWidget_2]:
             control.cropButton.clicked.connect(self.crop_frame)
@@ -479,8 +473,6 @@ class UiVideoTabWidget(UiCropWidget):
                 self.tab_state_manager,
                 control.cropButton,
                 {
-                    # self.inputLineEdit, 
-                    # self.destinationLineEdit, 
                     self.controlWidget.widthLineEdit,
                     self.controlWidget.heightLineEdit
                 }
@@ -490,8 +482,6 @@ class UiVideoTabWidget(UiCropWidget):
                 self.tab_state_manager,
                 control.videocropButton,
                 {
-                    # self.inputLineEdit, 
-                    # self.destinationLineEdit, 
                     self.controlWidget.widthLineEdit,
                     self.controlWidget.heightLineEdit
                 }
@@ -499,10 +489,8 @@ class UiVideoTabWidget(UiCropWidget):
         
         # Connect input widgets for validation tracking
         self.tab_state_manager.connect_widgets(
-            # self.inputLineEdit,
             self.controlWidget.widthLineEdit,
-            self.controlWidget.heightLineEdit, 
-            # self.destinationLineEdit,
+            self.controlWidget.heightLineEdit,
             self.exposureCheckBox,
             self.mfaceCheckBox,
             self.tiltCheckBox,
@@ -537,41 +525,37 @@ class UiVideoTabWidget(UiCropWidget):
 
     def display_crop_preview(self) -> None:
         """Captures the current frame and displays crop preview in the imageWidget"""
-        try:
-            # Only proceed if we have a valid video path
-            if not self.input_path:
-                return
+        if not self.input_path:
+            return
 
-            # Get current position
-            position = self.timelineSlider_1.value()
+        # Get current position
+        position = self.timelineSlider_1.value()
 
-            # Use the optimized grab_frame method for preview
-            frame = self.crop_worker.grab_frame(position, self.input_path, for_preview=True)
-            if frame is None:
-                return
+        # Use the optimized grab_frame method for preview
+        frame = self.crop_worker.grab_frame(position, self.input_path, for_preview=True)
+        if frame is None:
+            return
 
-            # Create a job with current settings
-            job = self.create_job(
-                FunctionType.FRAME,
-                video_path=Path(self.input_path),
-                destination=Path(self.destination_path or ".")
-            )
+        # Create a job with current settings
+        job = self.create_job(
+            FunctionType.FRAME,
+            video_path=Path(self.input_path),
+            destination=Path(self.destination_path or ".")
+        )
 
-            # Process the frame
-            if job.multi_face_job:
-                # If multi-face is enabled, show bounding boxes on all faces
-                processed_image = prc.multi_box(frame, job, self.crop_worker.face_detection_tools)
-                if processed_image is None:
-                    return None
-                ut.display_image_on_widget(processed_image, self.imageWidget)
-            else:
-                # For single face, show a crop preview
-                cropped_image = prc.crop_image(frame, job, self.crop_worker.face_detection_tools)
-                if cropped_image is not None:
-                    # Display the cropped image
-                    ut.display_image_on_widget(cropped_image, self.imageWidget)
-        except Exception as e:
-            ut.show_error_box(f"Error in display_crop_preview: {e}")
+        # Process the frame
+        if job.multi_face_job:
+            # If multi-face is enabled, show bounding boxes on all faces
+            processed_image = prc.multi_box(frame, job, self.crop_worker.face_detection_tools)
+            if processed_image is None:
+                return None
+            ut.display_image_on_widget(processed_image, self.imageWidget)
+        else:
+            # For single face, show a crop preview
+            cropped_image = prc.crop_image(frame, job, self.crop_worker.face_detection_tools, video=True)
+            if cropped_image is not None:
+                # Display the cropped image
+                ut.display_image_on_widget(cropped_image, self.imageWidget)
 
     # Media player methods
     def create_media_player(self) -> None:
@@ -877,16 +861,6 @@ class UiVideoTabWidget(UiCropWidget):
         self.progressBar_2.repaint()
         
         QtWidgets.QApplication.processEvents()
-
-    # Improve update_progress method:
-    # def update_progress(self, x: int, y:int) -> None:
-    #     """Update the progress bars based on crop worker progress"""
-    #     value = int(self.PROGRESSBAR_STEPS * x / y)
-    #     self.progressBar.setValue(value)
-    #     self.progressBar.repaint()  # Force immediate repaint
-    #     self.progressBar_2.setValue(value)
-    #     self.progressBar_2.repaint()  # Force immediate repaint
-    #     QtWidgets.QApplication.processEvents()  # Process events to update UI
 
     def update_progress(self, x: int, y:int) -> None:
         """Update both progress bars based on crop worker progress"""
