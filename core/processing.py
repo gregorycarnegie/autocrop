@@ -196,7 +196,7 @@ def align_head(image: cv2.Mat,
     # Get left and right eye landmarks (indices 36-41 for left eye, 42-47 for right eye in 68-point model)
     l_eye = np.ascontiguousarray(landmarks[L_EYE_START:L_EYE_END], dtype=np.float64)
     r_eye = np.ascontiguousarray(landmarks[R_EYE_START:R_EYE_END], dtype=np.float64)
-    
+
     rotation_matrix = rs.get_rotation_matrix(l_eye, r_eye, scale_factor)
     return cv2.warpAffine(
         image,
@@ -697,7 +697,7 @@ def _(image: Path,
       job: Job,
       face_detection_tools: FaceToolPair) -> Optional[c.Iterator[cv2.Mat]]:
     img = open_pic(image, face_detection_tools, job)
-    return None if img is None else multi_crop(img, job, face_detection_tools)
+    return None if img is None else multi_crop(img, job, face_detection_tools, video=False)
 
 def batch_process_with_pipeline(images: list[Path],
                                 job: Job,
