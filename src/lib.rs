@@ -1,5 +1,5 @@
-use ndarray::{Array1, Array2, Array3, ArrayView2, ArrayView3, Axis, Ix3, s, ShapeError, Zip};
-use numpy::{IntoPyArray, PyArray2, PyArray3, PyReadonlyArray2, PyReadonlyArray3};
+use ndarray::{Array1, Array2, Array3, ArrayView2, ArrayView3, Axis, Dim, Ix3, s, ShapeError, Zip};
+use numpy::{IntoPyArray, PyArray, PyArray2, PyArray3, PyReadonlyArray2, PyReadonlyArray3};
 use pyo3::{prelude::*, exceptions::PyValueError, types::PyBytes};
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -261,7 +261,7 @@ fn correct_exposure<'py>(
 
 /// Generates a gamma correction lookup table for intensity values from 0 to 255.
 #[pyfunction]
-fn gamma(gamma_value: f64, py: Python<'_>) -> PyObject {
+fn gamma<'py>(gamma_value: f64, py: Python<'py>) -> PyResult<Bound<'py, PyArray<u8, Dim<[usize; 1]>>>> {
     let mut lookup = Array1::<u8>::zeros(256);
     
     if gamma_value <= 1.0 {
@@ -319,7 +319,7 @@ fn gamma(gamma_value: f64, py: Python<'_>) -> PyObject {
         }
     }
     
-    lookup.into_pyarray(py).into()
+    Ok(lookup.into_pyarray(py))
 }
 
 /// Calculates output dimensions and scaling factor for resizing.
