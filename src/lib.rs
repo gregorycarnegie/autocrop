@@ -1,7 +1,6 @@
 use ndarray::{Array1, Array2, Array3, ArrayView2, ArrayView3, Axis, Ix3, s, ShapeError, Zip};
-use numpy::{IntoPyArray, PyArray3, PyReadonlyArray2, PyReadonlyArray3};
-use pyo3::{prelude::*, exceptions::PyValueError};
-use pyo3::types::{PyBytes, PyTuple};
+use numpy::{IntoPyArray, PyArray2, PyArray3, PyReadonlyArray2, PyReadonlyArray3};
+use pyo3::{prelude::*, exceptions::PyValueError, types::PyBytes};
 use std::sync::atomic::{AtomicBool, Ordering};
 
 // For x86/x86_64 specific SIMD intrinsics
@@ -350,12 +349,12 @@ fn calculate_mean_center(arr: &PyReadonlyArray2<f64>) -> PyResult<Array1<f64>> {
 
 #[pyfunction]
 // Change return signature back to PyObject for the first element
-fn get_rotation_matrix(
-    py: Python<'_>,
+fn get_rotation_matrix<'py>(
+    py: Python<'py>,
     left_eye_landmarks: PyReadonlyArray2<f64>,
     right_eye_landmarks: PyReadonlyArray2<f64>,
     scale_factor: f64,
-) -> PyResult<(PyObject, f64)> { // Return PyObject and f64
+) -> PyResult<Bound<'py, PyArray2<f64>>> { // Return PyObject and f64
 
     // --- Input validation ---
     let left_view = left_eye_landmarks.as_array();
@@ -366,8 +365,6 @@ fn get_rotation_matrix(
         ));
     }
     // calculate_mean_center handles N=0 check below
-
-    // --- Calculations (Corrected logic) ---
     let left_eye_center = calculate_mean_center(&left_eye_landmarks)?;
     let right_eye_center = calculate_mean_center(&right_eye_landmarks)?;
 
@@ -379,7 +376,7 @@ fn get_rotation_matrix(
     // Angle calculation
     let dy = right_eye_y - left_eye_y;
     let dx = right_eye_x - left_eye_x;
-    let angle = dy.atan2(dx).to_degrees();
+    let angle = dy.atan2(dx);
 
     // Center calculation (midpoint of eye centers)
     let center_x_unscaled = (left_eye_x + right_eye_x) / 2.0;
@@ -389,15 +386,22 @@ fn get_rotation_matrix(
     let center_x = if scale_factor > 1.0 { center_x_unscaled * scale_factor } else { center_x_unscaled };
     let center_y = if scale_factor > 1.0 { center_y_unscaled * scale_factor } else { center_y_unscaled };
 
-    // Create ndarray for center point
-    let center_point = PyTuple::new(py, [
-        center_x.round() as i32,
-        center_y.round() as i32,
-    ])?;
-    Ok((
-        center_point.into(),
-        angle
-    ))
+    //  scale of 1.0
+    let alpha = angle.cos();
+    let beta = angle.sin();
+    
+    // Calculate the matrix elements
+    let m02 = (1.0 - alpha) * center_x - beta * center_y;
+    let m12 = beta * center_x + (1.0 - alpha) * center_y;
+    
+    // Create a 2x3 matrix
+    let matrix = Array2::from_shape_vec(
+        (2, 3),
+        vec![alpha, beta, m02, -beta, alpha, m12],
+    ).map_err(|e| PyValueError::new_err(format!("Failed to create matrix: {}", e)))?;
+    
+    // Convert to numpy array and return
+    Ok(matrix.into_pyarray(py))
 }
 
 /// Computes the desired crop width/height based on detected face size and desired output.
