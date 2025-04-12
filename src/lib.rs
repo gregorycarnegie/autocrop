@@ -116,7 +116,7 @@ fn reshape_buffer_to_image<'py>(
 }
 
 /// Internal: Convert BGR image view to grayscale array.
-fn internal_bgr_to_gray(
+fn bgr_to_gray(
     image_view: ArrayView3<u8>,
     use_rec709: bool, // True for Rec. 709, False for Rec. 601
 ) -> Array2<u8> {
@@ -150,7 +150,7 @@ fn internal_bgr_to_gray(
 }
 
 /// Internal: Calculate 256-bin histogram from grayscale view.
-fn internal_calc_histogram(gray_view: ArrayView2<u8>) -> [f64; 256] {
+fn calc_histogram(gray_view: ArrayView2<u8>) -> [f64; 256] {
     // Based on calc_histogram logic from lib.txt
     let mut hist: [f64; 256] = [0.0; 256];
     for &pixel_value in gray_view.iter() {
@@ -203,7 +203,7 @@ fn calc_alpha_beta(hist: &[f64]) -> Option<(f64, f64)> {
 }
 
 /// Internal: Apply scale and shift (convertScaleAbs logic) to an image view.
-fn internal_convert_scale_abs(
+fn convert_scale_abs(
     image_view: ArrayView3<u8>,
     alpha: f64,
     beta: f64,
@@ -247,14 +247,14 @@ fn correct_exposure<'py>(
     }
 
     // Call internal functions
-    let gray_array: Array2<u8> = internal_bgr_to_gray(input_view, video);
-    let hist: [f64; 256] = internal_calc_histogram(gray_array.view()); // Pass view
+    let gray_array: Array2<u8> = bgr_to_gray(input_view, video);
+    let hist: [f64; 256] = calc_histogram(gray_array.view()); // Pass view
 
     // Calculate alpha/beta using internal function, defaulting on failure
     let (alpha, beta) = calc_alpha_beta(&hist).unwrap_or((1.0, 0.0));
 
     // Apply scaling using internal function
-    let final_result_array: Array3<u8> = internal_convert_scale_abs(input_view, alpha, beta);
+    let final_result_array: Array3<u8> = convert_scale_abs(input_view, alpha, beta);
 
     // Convert final Rust ndarray back to Python NumPy array and return
     Ok(final_result_array.into_pyarray(py))
