@@ -146,28 +146,3 @@ class TabStateManager:
         self._button_dependencies.clear()
         self._validation_handlers.clear()
         self._state_change_callback = None
-        
-    def synchronize_checkboxes(self, source: QtWidgets.QCheckBox, target: QtWidgets.QCheckBox) -> None:
-        """
-        Synchronize the state of two checkboxes.
-        
-        Args:
-            source: The checkbox whose state will be copied
-            target: The checkbox that will match source's state
-        """
-        # Connect in both directions with signal blocking to prevent infinite loops
-        source.toggled.connect(lambda checked: self._sync_checkbox(source, target))
-        target.toggled.connect(lambda checked: self._sync_checkbox(target, source))
-
-    @staticmethod
-    def _sync_checkbox(source: QtWidgets.QCheckBox, target: QtWidgets.QCheckBox) -> None:
-        """
-        Sync target checkbox with source checkbox state.
-        
-        Args:
-            source: Source checkbox
-            target: Target checkbox to sync with source
-        """
-        target.blockSignals(True)
-        target.setChecked(source.isChecked())
-        target.blockSignals(False)
