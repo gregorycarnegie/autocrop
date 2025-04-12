@@ -1,6 +1,5 @@
-from collections.abc import Callable
 from pathlib import Path
-from typing import ClassVar, Optional, Dict
+from typing import ClassVar, Optional
 
 import polars as pl
 from PyQt6 import QtCore, QtWidgets
@@ -90,38 +89,11 @@ class UiCropWidget(QtWidgets.QWidget):
         
         # Common signal connections
         self.toggleCheckBox.toggled.connect(self.controlWidget.setVisible)
-        
-        # Initialize state callback maps
-        self._input_validators: Dict[QtWidgets.QWidget, Callable[[], None]] = {}
-        self._checkbox_connections: Dict[QtWidgets.QCheckBox, Callable[[], None]] = {}
-        
-        # # Initialize the checkbox connections
-        # self._setup_checkbox_relationships()
 
     def _setup_checkbox_relationships(self, ckbx0: QtWidgets.QCheckBox, ckbx1: QtWidgets.QCheckBox, ckbx2: QtWidgets.QCheckBox) -> None:
         self.tab_state_manager.register_checkbox_exclusivity(ckbx0, {ckbx2, ckbx1})
         self.tab_state_manager.register_checkbox_exclusivity(ckbx2, {ckbx0})  # Exposure is exclusive with multi-face
-        self.tab_state_manager.register_checkbox_exclusivity(ckbx1, {ckbx0})  # Tilt is exclusive with multi-face 
-
-    # def _setup_checkbox_relationships(self) -> None:
-    #     """Set up the standard checkbox exclusivity relationships"""
-    #     # Multi-face is exclusive with exposure and tilt
-    #     self.tab_state_manager.register_checkbox_exclusivity(
-    #         self.mfaceCheckBox, 
-    #         {self.exposureCheckBox, self.tiltCheckBox}
-    #     )
-        
-    #     # Exposure is exclusive with multi-face
-    #     self.tab_state_manager.register_checkbox_exclusivity(
-    #         self.exposureCheckBox, 
-    #         {self.mfaceCheckBox}
-    #     )
-        
-    #     # Tilt is exclusive with multi-face
-    #     self.tab_state_manager.register_checkbox_exclusivity(
-    #         self.tiltCheckBox, 
-    #         {self.mfaceCheckBox}
-    #     )
+        self.tab_state_manager.register_checkbox_exclusivity(ckbx1, {ckbx0})  # Tilt is exclusive with multi-face
 
     def create_image_widget(self) -> ImageWidget:
         """Create the main image display widget with consistent styling"""
@@ -174,6 +146,9 @@ class UiCropWidget(QtWidgets.QWidget):
     def create_main_button(self, name: str, icon: GuiIcon) -> QtWidgets.QPushButton:
         """Create a main action button with consistent styling"""
         return ut.create_main_button(name, self.size_policy_expand_fixed, icon, self)
+
+    def connect_signals(self) -> None:
+        raise NotImplementedError("Subclasses must implement connect_signals method")
 
     def open_path(self, line_edit: PathLineEdit) -> None:
         """Open a file/folder dialog for selecting paths"""

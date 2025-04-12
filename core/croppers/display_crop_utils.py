@@ -35,7 +35,7 @@ def matlike_to_qimage(image: cv2.Mat) -> QImage:
     Convert a BGR NumPy array (shape = [height, width, channels])
     to a QImage using QImage.Format_BGR888.
     """
-    return QImage(image, image.shape[1], image.shape[0], image.strides[0], QImage.Format.Format_RGB888).rgbSwapped()
+    return QImage(image, image.shape[1], image.shape[0], image.strides[0], QImage.Format.Format_BGR888)
 
 def perform_crop_helper(function_type: FunctionType,
                         widget_state: WidgetState,
