@@ -1,6 +1,7 @@
 use ndarray::{Array1, Array2, Array3, ArrayView2, ArrayView3, Axis, Dim, Ix3, s, ShapeError, Zip};
 use numpy::{IntoPyArray, PyArray, PyArray2, PyArray3, PyReadonlyArray2, PyReadonlyArray3};
-use pyo3::{prelude::*, exceptions::PyValueError, types::PyBytes};
+use pyo3::{prelude::*, types::PyBytes};
+use pyo3::exceptions::{PyValueError, PyRuntimeError};
 use std::sync::atomic::{AtomicBool, Ordering};
 
 // For x86/x86_64 specific SIMD intrinsics
@@ -335,14 +336,14 @@ fn calculate_mean_center(arr: &PyReadonlyArray2<f64>) -> PyResult<Array1<f64>> {
     let arr_view = arr.as_array(); // Get ndarray view without copying
     if arr_view.shape()[0] == 0 {
         // Raise Python ValueError if input array is empty
-        return Err(pyo3::exceptions::PyValueError::new_err(
+        return Err(PyValueError::new_err(
             "Input landmark array cannot be empty",
         ));
     }
     // Calculate mean along axis 0 (columns). Returns Option<Array1<f64>>
     arr_view.mean_axis(Axis(0))
         // Convert Option to Result<_, PyErr>
-        .ok_or_else(|| pyo3::exceptions::PyRuntimeError::new_err(
+        .ok_or_else(|| PyRuntimeError::new_err(
             "Failed to calculate mean axis, check array validity"
         ))
 }
@@ -368,7 +369,7 @@ fn get_rotation_matrix<'py>(
     let left_view = left_eye_landmarks.as_array();
     let right_view = right_eye_landmarks.as_array();
     if left_view.shape().get(1) != Some(&2) || right_view.shape().get(1) != Some(&2) {
-        return Err(pyo3::exceptions::PyValueError::new_err(
+        return Err(PyValueError::new_err(
             "Landmark arrays must have shape (N, 2)",
         ));
     }
