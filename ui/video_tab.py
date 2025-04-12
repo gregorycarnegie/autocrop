@@ -73,13 +73,6 @@ class UiVideoTabWidget(UiCropWidget):
         self.timelineSlider_2 = QtWidgets.QSlider()
         self.durationLabel_1 = QtWidgets.QLabel()
         self.durationLabel_2 = QtWidgets.QLabel()
-        
-        # Create duplicate checkboxes for page 2
-        self.mfaceCheckBox_2 = self.create_checkbox("mfaceCheckBox_2")
-        self.tiltCheckBox_2 = self.create_checkbox("tiltCheckBox_2")
-        self.exposureCheckBox_2 = self.create_checkbox("exposureCheckBox_2")
-        
-        self._setup_checkbox_relationships(self.mfaceCheckBox_2, self.tiltCheckBox_2, self.exposureCheckBox_2)
 
         # Create media control widgets
         self.mediacontrolWidget_1 = None  # Will be initialized in setup_layouts
@@ -225,15 +218,6 @@ class UiVideoTabWidget(UiCropWidget):
             QtWidgets.QSizePolicy.Policy.Minimum
         )
         mediaControlLayout.addItem(horizontalSpacer_1)
-        
-        # Checkboxes
-        self.mfaceCheckBox.setParent(frame_1)
-        self.tiltCheckBox.setParent(frame_1)
-        self.exposureCheckBox.setParent(frame_1)
-        mediaControlLayout.addWidget(self.mfaceCheckBox)
-        mediaControlLayout.addWidget(self.tiltCheckBox)
-        mediaControlLayout.addWidget(self.exposureCheckBox)
-        
         mediaControlLayout.setStretch(0, 1)
         mediaControlLayout.setStretch(1, 3)
         
@@ -327,9 +311,9 @@ class UiVideoTabWidget(UiCropWidget):
         
         # Checkbox section for page 2
         self.toggleCheckBox.setParent(frame_2)
-        self.mfaceCheckBox_2.setParent(frame_2)
-        self.tiltCheckBox_2.setParent(frame_2)
-        self.exposureCheckBox_2.setParent(frame_2)
+        self.mfaceCheckBox.setParent(frame_2)
+        self.tiltCheckBox.setParent(frame_2)
+        self.exposureCheckBox.setParent(frame_2)
         
         checkboxLayout = ut.setup_hbox("horizontalLayout_4")
         checkboxLayout.addWidget(self.toggleCheckBox)
@@ -343,9 +327,9 @@ class UiVideoTabWidget(UiCropWidget):
         checkboxLayout.addItem(horizontalSpacer_2)
         
         # Add checkboxes
-        checkboxLayout.addWidget(self.mfaceCheckBox_2)
-        checkboxLayout.addWidget(self.tiltCheckBox_2)
-        checkboxLayout.addWidget(self.exposureCheckBox_2)
+        checkboxLayout.addWidget(self.mfaceCheckBox)
+        checkboxLayout.addWidget(self.tiltCheckBox)
+        checkboxLayout.addWidget(self.exposureCheckBox)
         
         # Set stretch factor for spacer
         checkboxLayout.setStretch(1, 20)
@@ -390,9 +374,9 @@ class UiVideoTabWidget(UiCropWidget):
     def connect_signals(self) -> None:
         """Connect widget signals to handlers"""
         # Set up checkbox synchronization between tabs
-        self.tab_state_manager.synchronize_checkboxes(self.exposureCheckBox, self.exposureCheckBox_2)
-        self.tab_state_manager.synchronize_checkboxes(self.tiltCheckBox, self.tiltCheckBox_2)
-        self.tab_state_manager.synchronize_checkboxes(self.mfaceCheckBox, self.mfaceCheckBox_2)
+        # self.tab_state_manager.synchronize_checkboxes(self.exposureCheckBox, self.exposureCheckBox_2)
+        # self.tab_state_manager.synchronize_checkboxes(self.tiltCheckBox, self.tiltCheckBox_2)
+        # self.tab_state_manager.synchronize_checkboxes(self.mfaceCheckBox, self.mfaceCheckBox_2)
 
         # Connect preview button
         self.previewButton.clicked.connect(self.display_crop_preview)
@@ -511,9 +495,6 @@ class UiVideoTabWidget(UiCropWidget):
     def retranslateUi(self) -> None:
         """Update UI text elements"""
         super().retranslateUi()
-        self.mfaceCheckBox_2.setText(QtCore.QCoreApplication.translate("self", "Multi-Face", None))
-        self.tiltCheckBox_2.setText(QtCore.QCoreApplication.translate("self", "Autotilt", None))
-        self.exposureCheckBox_2.setText(QtCore.QCoreApplication.translate("self", "Autocorrect", None))
         self.muteButton_1.setText("")
         self.muteButton_2.setText("")
         self.positionLabel_1.setText(QtCore.QCoreApplication.translate("self", "00:00:00", None))
