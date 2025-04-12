@@ -194,13 +194,10 @@ def align_head(image: cv2.Mat,
     landmarks = landmarks[0][0]  # First face, first set of landmarks
     
     # Get left and right eye landmarks (indices 36-41 for left eye, 42-47 for right eye in 68-point model)
-    left_eye = np.ascontiguousarray(landmarks[L_EYE_START:L_EYE_END], dtype=np.float64)
-    right_eye = np.ascontiguousarray(landmarks[R_EYE_START:R_EYE_END], dtype=np.float64)
+    l_eye = np.ascontiguousarray(landmarks[L_EYE_START:L_EYE_END], dtype=np.float64)
+    r_eye = np.ascontiguousarray(landmarks[R_EYE_START:R_EYE_END], dtype=np.float64)
     
-    center, angle = rs.get_rotation_matrix(left_eye, right_eye, scale_factor)
-    rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
-    
-    # Apply rotation to align the face
+    rotation_matrix = rs.get_rotation_matrix(l_eye, r_eye, scale_factor)
     return cv2.warpAffine(
         image,
         rotation_matrix,
