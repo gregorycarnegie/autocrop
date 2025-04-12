@@ -186,8 +186,9 @@ Column 2: {self.column2}
             print(job.size)  # (800, 600)
             ```
         """
-
-        return self.width, self.height
+        width = self.width * (100 + self.left + self.right) / 100
+        height = self.height * (100 + self.top + self.bottom) / 100
+        return int(width), int(height)
 
     @property
     def threshold(self) -> int:
