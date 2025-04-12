@@ -347,8 +347,16 @@ fn calculate_mean_center(arr: &PyReadonlyArray2<f64>) -> PyResult<Array1<f64>> {
         ))
 }
 
+/// Creates a 2D rotation matrix based on eye landmark positions.
+/// 
+/// Args:
+///   left_eye_landmarks: Array of left eye landmark coordinates with shape (N, 2)
+///   right_eye_landmarks: Array of right eye landmark coordinates with shape (N, 2)
+///   scale_factor: Scaling factor to apply to center coordinates
+///
+/// Returns:
+///   A 2x3 affine transformation matrix for rotating around the midpoint of the eyes
 #[pyfunction]
-// Change return signature back to PyObject for the first element
 fn get_rotation_matrix<'py>(
     py: Python<'py>,
     left_eye_landmarks: PyReadonlyArray2<f64>,
