@@ -192,7 +192,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
                        self.controlWidget.radioButton_webp, self.cropButton, self.exposureCheckBox, self.mfaceCheckBox,
                        self.tiltCheckBox)
 
-        self.connect_crop_worker_signals(widget_list)
+        self.connect_crop_worker_signals(*widget_list)
 
     def folder_process(self) -> None:
         """Begin the folder cropping process"""
