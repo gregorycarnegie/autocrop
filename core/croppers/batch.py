@@ -1,6 +1,5 @@
 import atexit
 import collections.abc as c
-import contextlib
 import threading
 from concurrent.futures import Future, ThreadPoolExecutor, CancelledError
 from functools import partial
@@ -10,7 +9,7 @@ from typing import Callable, Optional, Union, TypeVar, Any
 import numpy as np
 import numpy.typing as npt
 from PyQt6.QtWidgets import QApplication, QProgressBar
-from PyQt6.QtCore import QCoreApplication, QMetaObject, Qt, Q_ARG
+from PyQt6.QtCore import QMetaObject, Qt, Q_ARG
 
 from core.face_tools import FaceToolPair
 from core.job import Job
@@ -103,11 +102,11 @@ class BatchCropper(Cropper):
         self.progress_count, self.end_task, self.show_message_box = self.TASK_VALUES
         self.finished_signal_emitted = False
 
-    def emit_progress(self, amount: int):
-        """Initialize progress tracking and emit started signal"""
-        self.progress_count = 0
-        self.progress.emit(self.progress_count, amount)
-        self.started.emit()
+    # def emit_progress(self, amount: int):
+    #     """Initialize progress tracking and emit started signal"""
+    #     self.progress_count = 0
+    #     self.progress.emit(self.progress_count, amount)
+    #     self.started.emit()
 
     def set_futures(self, worker: Callable[..., None],
                     amount: int,
@@ -265,27 +264,27 @@ class BatchCropper(Cropper):
         """
         raise NotImplementedError("Child classes must implement set_futures_for_crop")
 
-    def _update_progress(self, file_amount: int) -> None:
-        """
-        Increments the progress count in a thread-safe manner
-        and emits the progress signal accordingly.
-        """
-        with self.lock:
-            self.progress_count += 1
+    # def _update_progress(self, file_amount: int) -> None:
+    #     """
+    #     Increments the progress count in a thread-safe manner
+    #     and emits the progress signal accordingly.
+    #     """
+    #     with self.lock:
+    #         self.progress_count += 1
 
-            # Calculate percentage for smoother progress updates
-            # percent_complete = min(100, int(100 * self.progress_count / file_amount))
+    #         # Calculate percentage for smoother progress updates
+    #         # percent_complete = min(100, int(100 * self.progress_count / file_amount))
 
-            # Always emit progress to keep UI updated
-            self.progress.emit(self.progress_count, file_amount)
+    #         # Always emit progress to keep UI updated
+    #         self.progress.emit(self.progress_count, file_amount)
 
-            # Use QtCore.QCoreApplication.processEvents instead of QtWidgets version
-            # for thread safety
-            with contextlib.suppress(Exception):
-                QCoreApplication.processEvents()
-            # Check if we're done
-            if self.progress_count >= file_amount:
-                self.emit_done()
+    #         # Use QtCore.QCoreApplication.processEvents instead of QtWidgets version
+    #         # for thread safety
+    #         with contextlib.suppress(Exception):
+    #             QCoreApplication.processEvents()
+    #         # Check if we're done
+    #         if self.progress_count >= file_amount:
+    #             self.emit_done()
 
     def emit_done(self) -> None:
         """
@@ -294,8 +293,9 @@ class BatchCropper(Cropper):
         """
         if not self.finished_signal_emitted:
             # Set flag to prevent multiple emissions
+
             self.finished_signal_emitted = True
-            
+            self.finished.emit()
             # Use QMetaObject.invokeMethod for cross-thread signal emission
             QMetaObject.invokeMethod(
                 self, 
