@@ -99,43 +99,25 @@ def convert_color_space(image: cv2.Mat) -> cv2.Mat:
 def numpy_array_crop(image: cv2.Mat, bounding_box: Box) -> cv2.Mat:
     x0, y0, x1, y1 = bounding_box
     h, w = image.shape[:2]
-
-    # Calculate padding needed
-    pad_left = max(0, -x0)
-    pad_top = max(0, -y0)
-    pad_right = max(0, x1 - w)
-    pad_bottom = max(0, y1 - h)
-
-    # Source region in original image
-    src_x0, src_y0 = max(0, x0), max(0, y0)
-    src_x1, src_y1 = min(w, x1), min(h, y1)
-
     # Crop the valid region first
-    cropped_valid = image[src_y0:src_y1, src_x0:src_x1]
-
-    # Apply padding if needed
-    if any((pad_top, pad_bottom, pad_left, pad_right)):
-        return cv2.copyMakeBorder(
-            cropped_valid,
-            pad_top,
-            pad_bottom,
-            pad_left,
-            pad_right,
-            cv2.BORDER_CONSTANT,
-            value=(0, 0, 0),
-        )
-    else:
-        # No padding was required
+    cropped_valid = image[max(0, y0):min(h, y1), max(0, x0):min(w, x1)]    
+    # Calculate padding needed
+    if not any(padding := (max(0, -y0), max(0, y1 - h), max(0, -x0), max(0, x1 - w))):
         return cv2.Mat(cropped_valid)
+    # Pad the image with black
+    return cv2.copyMakeBorder(
+        cropped_valid,
+        *padding,
+        cv2.BORDER_CONSTANT,
+        value=(0, 0, 0),
+    )
 
 def format_image(image: cv2.Mat) -> tuple[cv2.Mat, float]:
     """
     Resizes an image to 256px height, returns grayscale if >2 channels, plus the scaling factor.
     """
     output_height = 256
-    h, w = image.shape[:2]
-    output_width, scaling_factor = rs.calculate_dimensions(h, w, output_height)
-    
+    output_width, scaling_factor = rs.calculate_dimensions(*image.shape[:2], output_height)
     image_array = cv2.resize(image, (output_width, output_height), interpolation=cv2.INTER_AREA)
     return cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY) if len(image_array.shape) >= 3 else image_array, scaling_factor
 
@@ -210,7 +192,7 @@ def colour_expose_align(image: cv2.Mat,
                         face_detection_tools: FaceToolPair,
                         job: Job) -> cv2.Mat:
     # Convert BGR -> RGB for consistency
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) if len(image.shape) >= 3 else image
+    image = convert_color_space(image) if len(image.shape) >= 3 else image
     return align_head(image, face_detection_tools, job)
 
 def open_pic(file: Path,
