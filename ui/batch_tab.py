@@ -44,6 +44,8 @@ class UiBatchCropWidget(UiCropWidget):
         self.cropButton , self.cancelButton = self.create_main_action_buttons()
         self.cancelButton.clicked.connect(lambda: self.handle_cancel_button_click())
 
+        self.connect_crop_worker_signals(self.cropButton)
+
     def connect_signals(self) -> None:
         """Connect widget signals to handlers"""
         # NO NEED TO MANIPULATE BUTTON STATE HERE SINCE WE'RE DOING IT MANUALLY
@@ -155,26 +157,6 @@ class UiBatchCropWidget(UiCropWidget):
 
         return frame, verticalLayout
 
-    # def update_progress(self, x: int, y: int) -> None:
-    #     """Update the progress bar based on crop worker progress"""
-    #     # Calculate percentage for better granularity
-    #     if y > 0:  # Avoid division by zero
-    #         # Use floating point calculation for more precise percentage
-    #         percentage = min(100.0, (x / y) * 100.0)
-    #         value = int(self.PROGRESSBAR_STEPS * percentage / 100.0)
-    #
-    #         # Update progress bar value
-    #         self.progressBar.setValue(value)
-    #
-    #         # Force immediate visual update
-    #         self.progressBar.repaint()
-    #
-    #         # Process any pending UI events
-    #         QtWidgets.QApplication.processEvents()
-    #
-    #     # Add some debug output to console
-    #     print(f"Progress: {x}/{y} tasks completed ({percentage:.1f}%)")
-
     @staticmethod
     def cancel_button_operation(cancel_button: QtWidgets.QPushButton, *crop_buttons: QtWidgets.QPushButton) -> None:
         """Handle cancel button operations"""
@@ -182,7 +164,7 @@ class UiBatchCropWidget(UiCropWidget):
         for crop_button in crop_buttons:
             crop_button.setEnabled(True)
 
-    def connect_crop_worker_signals(self, widget_list: tuple) -> None:
+    def connect_crop_worker_signals(self, *widget_list: QtWidgets.QWidget) -> None:
         """Connect the signals from the crop worker to UI handlers"""
         with contextlib.suppress(TypeError, RuntimeError):
             # Disconnect existing connections to avoid duplicates
@@ -193,9 +175,6 @@ class UiBatchCropWidget(UiCropWidget):
         self.crop_worker.started.connect(lambda: ut.disable_widget(*widget_list))
         self.crop_worker.started.connect(lambda: ut.enable_widget(self.cancelButton))
 
-        # # Connect progress update
-        # self.crop_worker.progress.connect(self.update_progress, QtCore.Qt.ConnectionType.QueuedConnection)
-
         # Batch end connection - re-enable controls 
         self.crop_worker.finished.connect(lambda: ut.enable_widget(*widget_list))
         self.crop_worker.finished.connect(lambda: ut.disable_widget(self.cancelButton))
@@ -205,8 +184,8 @@ class UiBatchCropWidget(UiCropWidget):
         print("Worker signals connected.")
 
     def run_batch_process(self, job: Job, *,
-                        function: Callable[..., Any],
-                        reset_worker_func: Callable[..., Any]) -> None:
+                          function: Callable[..., Any],
+                          reset_worker_func: Callable[..., Any]) -> None:
         """Run a batch processing operation using threading instead of multiprocessing"""
         reset_worker_func()
         
