@@ -373,11 +373,6 @@ class UiVideoTabWidget(UiCropWidget):
 
     def connect_signals(self) -> None:
         """Connect widget signals to handlers"""
-        # Set up checkbox synchronization between tabs
-        # self.tab_state_manager.synchronize_checkboxes(self.exposureCheckBox, self.exposureCheckBox_2)
-        # self.tab_state_manager.synchronize_checkboxes(self.tiltCheckBox, self.tiltCheckBox_2)
-        # self.tab_state_manager.synchronize_checkboxes(self.mfaceCheckBox, self.mfaceCheckBox_2)
-
         # Connect preview button
         self.previewButton.clicked.connect(self.display_crop_preview)
         
@@ -406,9 +401,6 @@ class UiVideoTabWidget(UiCropWidget):
         self.mediacontrolWidget_2.endmarkerButton.clicked.connect(
             lambda: self.set_stop_position(self.mediacontrolWidget_2.selectEndMarkerButton)
         )
-        
-        # Progress handling
-        self.crop_worker.progress.connect(self.update_progress)
         
         # Media player connections
         self.volumeSlider_1.sliderMoved.connect(self.volume_slider_changed)
