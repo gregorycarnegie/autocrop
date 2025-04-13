@@ -865,6 +865,17 @@ def process_batch_item(image_array: cv2.Mat,
     Returns a tuple of (output_paths, pipeline)
     """
     output_paths = []
+
+    def batch_helper(bounding_box: Box,  face_index: Optional[int]=None) -> None:
+        # Create output path using the provided function
+        output_path = get_output_path_fn(img_path, face_index)
+        # Create a pipeline specific to this face with its bounding box
+        face_pipeline = create_image_pipeline(job, face_detection_tools, bounding_box, video=video)
+        # Apply the pipeline to the original image
+        processed = apply_pipeline(image_array, face_pipeline)
+        # Save the processed image
+        save_processed_face(processed, output_path, job.gamma)
+        output_paths.append(output_path)
     
     # Process based on multi-face setting
     if job.multi_face_job:
@@ -882,36 +893,14 @@ def process_batch_item(image_array: cv2.Mat,
 
         # Process each face
         for i, bounding_box in enumerate(valid_positions):
-            # Create output path using the provided function
-            output_path = get_output_path_fn(img_path, i)
-            
-            # Create a pipeline specific to this face with its bounding box
-            face_pipeline = create_image_pipeline(job, face_detection_tools, bounding_box, video=video)
-            
-            # Apply the pipeline to the original image
-            processed = apply_pipeline(image_array, face_pipeline)
-            
-            # Save the processed image
-            save_processed_face(processed, output_path, job.gamma)
-            output_paths.append(output_path)
+            batch_helper(bounding_box, i)
     else:
         # Single face processing
         if (bounding_box := box_detect(image_array, job, face_detection_tools)) is None:
             reject(path=img_path, destination=job.destination)
             return output_paths, pipeline
 
-        # Create output path using the provided function
-        output_path = get_output_path_fn(img_path, None)
-        
-        # Create a pipeline specific to this face with its bounding box
-        face_pipeline = create_image_pipeline(job, face_detection_tools, bounding_box, video=video)
-        
-        # Apply the pipeline to the original image
-        processed = apply_pipeline(image_array, face_pipeline)
-        
-        # Save the processed image
-        save_processed_face(processed, output_path, job.gamma)
-        output_paths.append(output_path)
+        batch_helper(bounding_box)
     
     return output_paths, pipeline
 
