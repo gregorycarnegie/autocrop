@@ -1,9 +1,9 @@
 import cProfile
-import collections.abc as c
 import pstats
 import random
 import shutil
 import threading
+from collections.abc import Callable, Iterator
 from functools import cache, wraps, singledispatch, partial
 from pathlib import Path
 from typing import Any, Union, Optional
@@ -27,7 +27,7 @@ from .operation_types import CropFunction, Box
 # Define constants
 GAMMA_THRESHOLD = .001
 
-def profile_it(func: c.Callable[..., Any]) -> c.Callable[..., Any]:
+def profile_it(func: Callable[..., Any]) -> Callable[..., Any]:
     """
     Decorator to profile a function and print cumulative statistics.
     """
@@ -46,11 +46,11 @@ def create_image_pipeline(job: Job,
                           face_detection_tools: FaceToolPair,
                           bounding_box: Optional[Box]=None,
                           display=False,
-                          video=False) -> list[c.Callable[[cv2.Mat], cv2.Mat]]:
+                          video=False) -> list[Callable[[cv2.Mat], cv2.Mat]]:
     """
     Creates a pipeline of image processing functions based on job parameters.
     """
-    pipeline: list[c.Callable[[cv2.Mat], cv2.Mat]] = []
+    pipeline: list[Callable[[cv2.Mat], cv2.Mat]] = []
     # Add alignment if requested
     if job.auto_tilt_job:
         pipeline.append(partial(align_head, face_detection_tools=face_detection_tools, job=job))
@@ -75,7 +75,7 @@ def create_image_pipeline(job: Job,
 
     return pipeline
 
-def apply_pipeline(image: cv2.Mat, pipeline: list[c.Callable[[cv2.Mat], cv2.Mat]]) -> cv2.Mat:
+def apply_pipeline(image: cv2.Mat, pipeline: list[Callable[[cv2.Mat], cv2.Mat]]) -> cv2.Mat:
     """
     Apply a sequence of image processing functions to an image.
     """
@@ -295,7 +295,7 @@ def multi_box(image: Union[cv2.Mat, np.ndarray],
 
 def multi_box_positions(image: cv2.Mat,
                         job: Job,
-                        face_detection_tools: FaceToolPair) -> Optional[c.Iterator[tuple[float, Box]]]:
+                        face_detection_tools: FaceToolPair) -> Optional[Iterator[tuple[float, Box]]]:
     """
     Returns confidences and bounding boxes for all detected faces above threshold.
     
@@ -456,7 +456,7 @@ def mask_extensions(file_list: npt.NDArray[np.str_], extensions: set[str]) -> tu
 
 def split_by_cpus(mask: npt.NDArray[np.bool_],
                   core_count: int,
-                  *file_lists: npt.NDArray[np.str_]) -> c.Iterator[list[npt.NDArray[np.str_]]]:
+                  *file_lists: npt.NDArray[np.str_]) -> Iterator[list[npt.NDArray[np.str_]]]:
     """
     Splits the file list(s) based on a mask and the number of cores.
     """
@@ -512,7 +512,7 @@ def get_frame_path(destination: Path,
     return join_path_suffix(file_str, destination)
 
 @singledispatch
-def save(a0: Union[c.Iterator, cv2.Mat, np.ndarray, Path],
+def save(a0: Union[Iterator, cv2.Mat, np.ndarray, Path],
          *args,
          **kwargs) -> None:
     raise NotImplementedError(f"Unsupported input type: {type(a0)}")
@@ -536,7 +536,7 @@ def _(image: Union[cv2.Mat, np.ndarray],
         cv2.imwrite(file_path.as_posix(), lut)
 
 @save.register
-def _(images: c.Iterator,
+def _(images: Iterator,
       file_path: Path,
       gamma_value: int,
       is_tiff: bool) -> None:
@@ -631,7 +631,7 @@ def _(image: Path,
     return crop_image(pic_array, job, face_detection_tools)
 
 @singledispatch
-def multi_crop(a0: Union[cv2.Mat, np.ndarray, Path], *args, **kwargs) -> Optional[c.Iterator[cv2.Mat]]:
+def multi_crop(a0: Union[cv2.Mat, np.ndarray, Path], *args, **kwargs) -> Optional[Iterator[cv2.Mat]]:
     """
     Multi-face cropping function. Yields cropped faces above threshold, resized to `job.size`.
     """
@@ -641,7 +641,7 @@ def multi_crop(a0: Union[cv2.Mat, np.ndarray, Path], *args, **kwargs) -> Optiona
 def _(image: Union[cv2.Mat, np.ndarray],
       job: Job,
       face_detection_tools: FaceToolPair,
-      video: bool) -> Optional[c.Iterator[cv2.Mat]]:
+      video: bool) -> Optional[Iterator[cv2.Mat]]:
     """
     Optimized multi-face cropping function using the pipeline approach.
     Yields cropped faces above threshold, resized to `job.size`.
@@ -677,7 +677,7 @@ def _(image: Union[cv2.Mat, np.ndarray],
 @multi_crop.register
 def _(image: Path,
       job: Job,
-      face_detection_tools: FaceToolPair) -> Optional[c.Iterator[cv2.Mat]]:
+      face_detection_tools: FaceToolPair) -> Optional[Iterator[cv2.Mat]]:
     img = open_pic(image, face_detection_tools, job)
     return None if img is None else multi_crop(img, job, face_detection_tools, video=False)
 
@@ -858,7 +858,7 @@ def process_batch_item(image_array: cv2.Mat,
                        face_detection_tools: FaceToolPair,
                        pipeline: list,
                        img_path: Path,
-                       get_output_path_fn: c.Callable,
+                       get_output_path_fn: Callable,
                        video: bool) -> tuple[list[Path], list]:
     """
     Process a single image from a batch with the given pipeline.
