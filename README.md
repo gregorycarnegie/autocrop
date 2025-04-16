@@ -76,9 +76,7 @@
 
 3. Install build tools and dependencies:
    ```bash
-   pip install -U pip setuptools wheel
-   pip install maturin  # For building Rust extension
-   pip install -r requirements.txt
+   uv pip install -e ".[dev]" # Install with development dependencies
    ```
 
 4. Build the Rust extension and install in editable mode:
