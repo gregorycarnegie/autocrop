@@ -69,6 +69,8 @@ class CustomLineEdit(QLineEdit):
         self.textChanged.connect(self.update_clear_button)
         self.textChanged.connect(self.validate_path)
 
+        self.setFixedHeight(36)
+
         self.update_style()
 
     def resizeEvent(self, a0: Optional[QResizeEvent]):
