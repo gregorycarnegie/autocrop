@@ -1,4 +1,3 @@
-import re
 from functools import cache
 from typing import ClassVar, Optional, Union
 
@@ -28,16 +27,23 @@ RadioButtonTuple = tuple[bool, bool, bool, bool, bool, bool]
 
 
 class UiCropControlWidget(QtWidgets.QWidget):
-    RADIO_STYLESHEET: ClassVar[str] = """QRadioButton::indicator{
-        width: 80px;
-        height: 80px;
-    }
-    QRadioButton::indicator:checked{
-        image: url(true);
-    }
-    QRadioButton::indicator:unchecked{
-        image: url(false);
-    }"""
+    RADIO_STYLESHEET: ClassVar[str] = """
+        QRadioButton {{
+            padding: 4px;
+        }}
+        QRadioButton::indicator:checked {{
+            image: url({true_icon});
+        }}
+        QRadioButton::indicator:unchecked {{
+            image: url({false_icon});
+        }}
+        QRadioButton::indicator:checked:hover {{
+            image: url({false_icon});
+        }}
+        QRadioButton::indicator:unchecked:hover {{
+            image: url({true_icon});
+        }}
+    """
 
     GAMMA_VAL: ClassVar[int] = 1000
     SENSITIVITY_VAL: ClassVar[int] = 50
@@ -46,7 +52,6 @@ class UiCropControlWidget(QtWidgets.QWidget):
     def __init__(self, parent: QtWidgets.QWidget):
         super().__init__(parent)
         self.setObjectName(u"CropControlWidget")
-        # self.resize(1254, 539)
         self.horizontalLayout = ut.setup_hbox(u"horizontalLayout", self)
         self.verticalLayout_1 = ut.setup_vbox(u"verticalLayout_1")
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
@@ -292,6 +297,12 @@ class UiCropControlWidget(QtWidgets.QWidget):
         return (self.radioButton_none.isChecked(), self.radioButton_bmp.isChecked(),
                 self.radioButton_jpg.isChecked(), self.radioButton_png.isChecked(),
                 self.radioButton_tiff.isChecked(), self.radioButton_webp.isChecked())
+    
+    def format_style_sheet(self, style_sheet: str, true_path: str, false_path: str) -> str:
+        return style_sheet.format(
+            true_icon=true_path,
+            false_icon=false_path,
+        )
 
     def create_radio_button(self, size_policy: QtWidgets.QSizePolicy, name: str,
                             icon_resource: tuple[str, str],
@@ -300,9 +311,12 @@ class UiCropControlWidget(QtWidgets.QWidget):
         radio_button.setObjectName(name)
         size_policy.setHeightForWidth(radio_button.sizePolicy().hasHeightForWidth())
         radio_button.setSizePolicy(size_policy)
+
+        radio_button.setIconSize(QtCore.QSize(30, 30))
+                                 
         icon_resource = self.resource_const(*icon_resource)
-        stylesheet = re.sub('true', icon_resource[0], self.RADIO_STYLESHEET)
-        stylesheet = re.sub('false', icon_resource[1], stylesheet)
+        stylesheet = self.format_style_sheet(self.RADIO_STYLESHEET, *icon_resource)
+
         radio_button.setStyleSheet(stylesheet)
         layout.addWidget(radio_button)
         return radio_button
