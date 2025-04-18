@@ -949,7 +949,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         
         # Enable/disable forward button
         self.forward_button.setEnabled(current_index < tab_count - 1)
-    
+
     def check_tab_selection(self) -> None:
         """
         Checks the current selection of the function tab widget and handles the tab states accordingly.
@@ -959,6 +959,12 @@ class UiMainWindow(QtWidgets.QMainWindow):
         
         # Update unified address bar context
         self.update_address_bar_context()
+        
+        # Force validation of path inputs
+        self.unified_address_bar.validate_path()
+        self.destination_input.validate_path()
+        if self.secondary_input_container.isVisible():
+            self.secondary_input.validate_path()
         
         # Process tab selection as before
         match self.function_tabWidget.currentIndex():
