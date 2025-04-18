@@ -1,6 +1,5 @@
 import collections.abc as c
 import threading
-# from functools import partial
 from itertools import batched
 from pathlib import Path
 from typing import Optional
