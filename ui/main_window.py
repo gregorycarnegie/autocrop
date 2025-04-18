@@ -870,26 +870,40 @@ class UiMainWindow(QtWidgets.QMainWindow):
     def adjust_ui(self, app: QtWidgets.QApplication):
         if (screen := app.primaryScreen()) is None:
             return
+        
+        # Get screen dimensions
         size = screen.size()
         width, height = size.width(), size.height()
-        base_font_size = 10  # Reduced from 12 for more browser-like appearance
-
-        # Adjust based on screen resolution
-        if width >= 3_840:
-            self.resize(width >> 1, height >> 1)
-        else:
-            self.resize(3 * width >> 2, 3 * height >> 2)
-
-        if height > 1_080:
-            scale_factor = height / 1_080
+        
+        # Calculate appropriate window size based on screen size
+        window_width = min(int(width * 0.85), 1600)  # Cap at 1600px for very large screens
+        window_height = min(int(height * 0.85), 900)  # Cap at 900px for very large screens
+        
+        # Ensure minimum size for smaller screens
+        window_width = max(window_width, 800)  # Minimum width of 800px
+        window_height = max(window_height, 600)  # Minimum height of 600px
+        
+        # Resize the window
+        self.resize(window_width, window_height)
+        
+        # Center the window on the screen
+        center_point = screen.geometry().center()
+        frame_geometry = self.frameGeometry()
+        frame_geometry.moveCenter(center_point)
+        self.move(frame_geometry.topLeft())
+        
+        # Adjust font size based on screen resolution
+        base_font_size = 10
+        if height > 1080:
+            scale_factor = min(height / 1080, 1.5)  # Cap scaling at 1.5x
             base_font_size = int(base_font_size * scale_factor)
-
+        
         font = app.font()
         font.setPointSize(base_font_size)
         app.setFont(font)
         
         # Set appropriate tab sizes
-        self.function_tabWidget.setTabsClosable(True)  # Add closable tabs like a browser
+        self.function_tabWidget.setTabsClosable(True)
         self.function_tabWidget.tabCloseRequested.connect(self.handle_tab_close)
         
         # Initialize navigation button states
