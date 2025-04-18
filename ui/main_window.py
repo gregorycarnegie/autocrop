@@ -282,7 +282,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         address_bar_layout.setStretch(5, 3)  # Secondary input gets more space
         address_bar_layout.setStretch(6, 4)  # Destination gets more space
         
-        # Add to main layout
+        # Add to the main layout
         self.main_layout.addWidget(self.address_bar_widget)
 
     def create_tab_widget(self):
@@ -298,7 +298,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.create_mapping_tab()
         self.create_video_tab()
         
-        # Add tab widget to main layout
+        # Add tab widget to the main layout
         self.main_layout.addWidget(self.function_tabWidget)
         
     def create_photo_tab(self):
@@ -412,12 +412,12 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 # Hide secondary input (not needed for photo tab)
                 self.secondary_input_container.setVisible(False)
                 
-                # Get current path from tab widget if it exists
+                # Get the current path from tab widget if it exists
                 self.unified_address_bar.blockSignals(True)
                 self.unified_address_bar.setText(self.photo_tab_widget.input_path)
                 self.unified_address_bar.blockSignals(False)
                 
-                # Get destination path
+                # Get a destination path
                 self.destination_input.blockSignals(True)
                 self.destination_input.setText(self.photo_tab_widget.destination_path)
                 self.destination_input.blockSignals(False)
@@ -431,12 +431,12 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 # Hide secondary input (not needed for folder tab)
                 self.secondary_input_container.setVisible(False)
                 
-                # Get current path from tab widget if it exists
+                # Get the current path from tab widget if it exists
                 self.unified_address_bar.blockSignals(True)
                 self.unified_address_bar.setText(self.folder_tab_widget.input_path)
                 self.unified_address_bar.blockSignals(False)
                 
-                # Get destination path
+                # Get a destination path
                 self.destination_input.blockSignals(True)
                 self.destination_input.setText(self.folder_tab_widget.destination_path)
                 self.destination_input.blockSignals(False)
@@ -461,7 +461,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 self.secondary_input.setText(self.mapping_tab_widget.table_path)
                 self.secondary_input.blockSignals(False)
                 
-                # Get destination path
+                # Get a destination path
                 self.destination_input.blockSignals(True)
                 self.destination_input.setText(self.mapping_tab_widget.destination_path)
                 self.destination_input.blockSignals(False)
@@ -475,12 +475,12 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 # Hide secondary input (not needed for video tab)
                 self.secondary_input_container.setVisible(False)
                 
-                # Get current path from tab widget if it exists
+                # Get the current path from tab widget if it exists
                 self.unified_address_bar.blockSignals(True)
                 self.unified_address_bar.setText(self.video_tab_widget.input_path)
                 self.unified_address_bar.blockSignals(False)
                 
-                # Get destination path
+                # Get a destination path
                 self.destination_input.blockSignals(True)
                 self.destination_input.setText(self.video_tab_widget.destination_path)
                 self.destination_input.blockSignals(False)
@@ -665,6 +665,8 @@ class UiMainWindow(QtWidgets.QMainWindow):
         # Validate the file exists and is accessible
         if f_name := ut.sanitize_path(f_name):
             target_input.setText(f_name)
+            return None
+        return None
 
     def open_folder_dialog(self, target_input: PathLineEdit):
         """Open a folder dialog and update the target input"""
@@ -717,10 +719,11 @@ class UiMainWindow(QtWidgets.QMainWindow):
             case _:
                 pass
             
-        # Update status bar with message
+        # Update status bar with a message
         self.statusbar.showMessage("View refreshed", 2000)
     
-    def show_settings(self):
+    @staticmethod
+    def show_settings():
         """Show settings dialog"""
         # For now, just show the About dialog as a placeholder
         ut.load_about_form()
@@ -897,7 +900,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         Handle tab close button clicks.
         For a browser-like experience, we don't actually close tabs but reset their state.
         """
-        # Don't actually close the tab, just reset its state
+        # Doesn't close the tab, just resets its state
         
         # Show a message in the status bar
         self.statusbar.showMessage(f"Tab {self.function_tabWidget.tabText(index)} reset", 2000)
@@ -1023,7 +1026,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
             return
         ut.check_mime_data(a0)
         
-        # Show status message
+        # Show a status message
         self.statusbar.showMessage("Drop files here to open", 2000)
 
     def dragMoveEvent(self, a0: Optional[QtGui.QDragMoveEvent]) -> None:
@@ -1060,7 +1063,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
             self.unified_address_bar.setText(file_path.as_posix())
             self.folder_tab_widget.load_data()
         elif file_path.is_file():
-            # For files, detect type and select appropriate tab
+            # For files, detect type and select the appropriate tab
             if file_manager.is_valid_type(file_path, FileCategory.PHOTO) or file_manager.is_valid_type(file_path, FileCategory.RAW) or file_manager.is_valid_type(file_path, FileCategory.TIFF):
                 self.function_tabWidget.setCurrentIndex(FunctionType.PHOTO)
                 self.unified_address_bar.setText(file_path.as_posix())
@@ -1077,7 +1080,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 
         a0.accept()
         
-        # Show status message
+        # Show a status message
         self.statusbar.showMessage(f"Opened {file_path.name}", 2000)
         
     def handle_path_main(self, file_path: Path) -> None:

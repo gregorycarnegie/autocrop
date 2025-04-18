@@ -76,7 +76,7 @@ class SignatureChecker:
             return False
 
         if signatures := cls._get_signatures(category, extension):
-            # Check file against known signatures
+            # Check a file against known signatures
             return cls._check_file_signatures(file_path, signatures)
         else:
             # No signatures defined, can't validate beyond extension
@@ -95,7 +95,7 @@ class SignatureChecker:
     def _validate_text_file(file_path: Path) -> bool:
         """
         Simple validation for text-based files like CSV.
-        Just checks that the file is readable as text.
+        Check that the file is readable as text.
         """
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
@@ -108,7 +108,7 @@ class SignatureChecker:
     
     @staticmethod
     def _check_file_signatures(file_path: Path, signatures: list[tuple[bytes, int]]) -> bool:
-        """Check if file matches any of the provided signatures."""
+        """Check if a file matches any of the provided signatures."""
         try:
             # Read enough bytes for signature checking
             max_offset = max(offset + len(sig) for sig, offset in signatures)

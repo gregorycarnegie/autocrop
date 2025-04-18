@@ -39,7 +39,14 @@ class MappingCropper(BatchCropper):
         
         if image_paths and not cancel_event.is_set():
             prc.batch_process_with_mapping(
-                image_paths, output_paths, job, face_detection_tools, cancel_event, False, self.progressBars, self.progress_count
+                image_paths,
+                output_paths,
+                job,
+                face_detection_tools,
+                cancel_event,
+                False,
+                self.progressBars,
+                self.progress_count
             )
         
         if self.progress_count == file_amount or self.end_task:

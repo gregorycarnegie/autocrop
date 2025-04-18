@@ -30,6 +30,7 @@ class DataFrameModel(QAbstractTableModel):
                     except IndexError:
                         # Handle cases where row or column indices are out of bounds
                         return None
+                return None
             case _:
                 return None
 
@@ -40,6 +41,7 @@ class DataFrameModel(QAbstractTableModel):
                     return str(self._df.columns[section])
                 case Qt.Orientation.Vertical:
                     return str(section)
+            return None
         except IndexError:
             # Handle cases where the section index is out of bounds
             return None

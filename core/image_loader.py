@@ -1,6 +1,8 @@
-import cv2
 from collections.abc import Callable
+
+import cv2
 import rawpy
+
 
 class ImageLoader:
     @staticmethod

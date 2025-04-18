@@ -14,7 +14,7 @@ class Config:
     # Default height for preview/grayscale formatting
     default_preview_height: int = 256
 
-    # Divisor used to determine scale factor for face detection
+    # Divisor used to determine a scale factor for face detection
     face_scale_divisor: int = 500
 
     # Default interpolation method for resizing (OpenCV flag)

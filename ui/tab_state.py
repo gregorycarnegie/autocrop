@@ -1,5 +1,6 @@
-from typing import Optional
 from collections.abc import Callable
+from typing import Optional
+
 from PyQt6 import QtWidgets
 
 from line_edits import NumberLineEdit, PathLineEdit, LineEditState
@@ -98,12 +99,12 @@ class TabStateManager:
             # Check widget-based dependencies
             widgets_valid = all(self._is_widget_valid(widget) for widget in dependencies)
 
-            # Get custom validation result, if any
+            # Get a custom validation result, if any
             custom_valid = True
             if button in self._validation_handlers:
                 custom_valid = self._validation_handlers[button]()
 
-            # Button is enabled only if all validations pass
+            # The Button is enabled only if all validations pass
             ut.change_widget_state(widgets_valid and custom_valid, button)
 
         if self._state_change_callback:

@@ -42,7 +42,7 @@ class UiPhotoTabWidget(UiCropWidget):
         
         # Main frame with image and controls
         frame = self.create_main_frame("frame")
-        verticalLayout = ut.setup_vbox("verticalLayout_4", frame)
+        vertical_layout = ut.setup_vbox("verticalLayout_4", frame)
         
         # Checkbox section
         self.toggleCheckBox.setParent(frame)
@@ -50,19 +50,19 @@ class UiPhotoTabWidget(UiCropWidget):
         self.tiltCheckBox.setParent(frame)
         self.exposureCheckBox.setParent(frame)
         self.setup_checkboxes_frame(self.horizontalLayout_1)
-        verticalLayout.addLayout(self.horizontalLayout_1)
+        vertical_layout.addLayout(self.horizontalLayout_1)
         
         # Image widget
         self.imageWidget.setParent(frame)
-        verticalLayout.addWidget(self.imageWidget)
+        vertical_layout.addWidget(self.imageWidget)
         
         # Crop button
         self.cropButton = self.create_main_button("cropButton", GuiIcon.CROP)
         self.cropButton.setParent(frame)
         self.cropButton.setDisabled(True)
-        verticalLayout.addWidget(self.cropButton)
+        vertical_layout.addWidget(self.cropButton)
         
-        # Add frame to main layout
+        # Add frame to the main layout
         self.verticalLayout_100.addWidget(frame)
         
         # Destination selection

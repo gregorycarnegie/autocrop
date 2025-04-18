@@ -13,15 +13,16 @@ import cv2
 import numpy as np
 import numpy.typing as npt
 import polars as pl
-from PyQt6 import QtWidgets, QtCore
 import tifffile as tiff
+from PyQt6 import QtWidgets, QtCore
 from rawpy._rawpy import NotSupportedError, LibRawError, LibRawFatalError, LibRawNonFatalError
 
+from core.colour_utils import ensure_rgb, to_grayscale, adjust_gamma, normalize_image
 from file_types import file_manager, FileCategory
 from .config import Config
 from .face_tools import L_EYE_START, L_EYE_END, R_EYE_START, R_EYE_END, FaceToolPair, YuNetFaceDetector, Rectangle
 from .image_loader import ImageLoader
-from .image_protocol import ImageOpener
+from .image_protocols import ImageOpener, ImageWriter
 from .job import Job
 from .operation_types import CropFunction, Box
 
@@ -71,7 +72,7 @@ def build_processing_pipeline(job: Job,
     )
     # Add colour space conversion if needed
     if display or job.radio_choice() in ['.jpg', '.png', '.bmp', '.webp', 'No']:
-        pipeline.append(convert_colour_space)
+        pipeline.append(ensure_rgb)
 
     return pipeline
 
@@ -84,20 +85,6 @@ def run_processing_pipeline(image: cv2.Mat, pipeline: list[Callable[[cv2.Mat], c
     for func in pipeline:
         result = func(result)
     return result
-
-
-def adjust_gamma(image: cv2.Mat, gam: int) -> cv2.Mat:
-    """
-    Adjusts image gamma using a precomputed lookup table.
-    """
-    return cv2.LUT(image, rs.gamma(gam * Config.gamma_threshold))
-
-
-def convert_colour_space(image: cv2.Mat) -> cv2.Mat:
-    """
-    Converts the colour space from BGR to RGB.
-    """
-    return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
 
 def crop_to_bounding_box(image: cv2.Mat, bounding_box: Box) -> cv2.Mat:
@@ -124,7 +111,14 @@ def prepare_visualisation_image(image: cv2.Mat) -> tuple[cv2.Mat, float]:
     output_height = Config.default_preview_height
     output_width, scaling_factor = rs.calculate_dimensions(*image.shape[:2], output_height)
     image_array = cv2.resize(image, (output_width, output_height), interpolation=Config.interpolation)
-    return cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY) if len(image_array.shape) >= 3 else image_array, scaling_factor
+    return to_grayscale(image_array) if len(image_array.shape) >= 3 else image_array, scaling_factor
+
+
+def colour_and_align_face(image: cv2.Mat,
+                          face_detection_tools: FaceToolPair,
+                          job: Job) -> cv2.Mat:
+    # Convert BGR -> RGB for consistency
+    return align_face(ensure_rgb(image), face_detection_tools, job)
 
 
 def align_face(image: cv2.Mat,
@@ -193,14 +187,6 @@ def align_face(image: cv2.Mat,
         flags=cv2.INTER_CUBIC,
         borderMode=Config.border_type
     )
-
-
-def colour_and_align_face(image: cv2.Mat,
-                          face_detection_tools: FaceToolPair,
-                          job: Job) -> cv2.Mat:
-    # Convert BGR -> RGB for consistency
-    image = convert_colour_space(image) if len(image.shape) >= 3 else image
-    return align_face(image, face_detection_tools, job)
 
 
 def _open_standard(
@@ -316,7 +302,7 @@ def annotate_faces(image: Union[cv2.Mat, np.ndarray],
     if not results:
         return None
     # Adjust gamma and convert colour space for visualization
-    rgb_image = run_processing_pipeline(image, [partial(adjust_gamma, gam=job.gamma), convert_colour_space])
+    rgb_image = run_processing_pipeline(image, [partial(adjust_gamma, gam=job.gamma), ensure_rgb])
     # Draw rectangle and confidence text
     for confidence, box in results:
         x0, y0, x1, y1 = box
@@ -554,6 +540,29 @@ def make_frame_filepath(destination: Path,
     return join_path_suffix(file_str, destination)
 
 
+def _save_standard(image: Union[cv2.Mat, np.ndarray],
+      file_path: Path,
+      user_gam: float,
+      is_tiff: bool = False) -> None:
+        lut = cv2.LUT(image, rs.gamma(user_gam * Config.gamma_threshold))
+        cv2.imwrite(file_path.as_posix(), lut)
+
+
+def _save_tiff(image: Union[cv2.Mat, np.ndarray],
+      file_path: Path,
+      user_gam: float,
+      is_tiff: bool = False) -> None:
+        if image.dtype != np.uint8:
+            image  = normalize_image(image)
+        tiff.imwrite(file_path, image)
+
+
+_WRITER_STRATEGIES: dict[FileCategory, ImageWriter] = {
+    FileCategory.PHOTO: _save_standard,
+    FileCategory.TIFF: _save_tiff,
+}
+
+
 @singledispatch
 def save(a0: Union[Iterator, cv2.Mat, np.ndarray, Path],
          *args,
@@ -564,20 +573,14 @@ def save(a0: Union[Iterator, cv2.Mat, np.ndarray, Path],
 @save.register
 def _(image: Union[cv2.Mat, np.ndarray],
       file_path: Path,
-      user_gam: Union[int, float],
+      gamma_value: float,
       is_tiff: bool = False) -> None:
     """
     Saves an image to disk. If TIFF, uses tifffile; otherwise uses OpenCV.
     """
-
-    if is_tiff:
-        # Only convert if actually needed
-        if image.dtype != np.uint8:
-            image = cv2.convertScaleAbs(image)
-        tiff.imwrite(file_path, image)
-    else:
-        lut = cv2.LUT(image, rs.gamma(user_gam * Config.gamma_threshold))
-        cv2.imwrite(file_path.as_posix(), lut)
+    image_type = FileCategory.TIFF if is_tiff else FileCategory.PHOTO
+    strategy = _WRITER_STRATEGIES.get(image_type, _save_standard)
+    strategy(image, file_path, gamma_value, is_tiff)
 
 
 @save.register
@@ -624,10 +627,10 @@ def _(image: Path,
 
 def save_cropped_face(processed_image: cv2.Mat,
                       output_path: Path,
-                      gamma: int) -> None:
+                      gamma_value: int) -> None:
     """Save a processed face to the given output path"""
     is_tiff = output_path.suffix.lower() in {'.tif', '.tiff'}
-    save(processed_image, output_path, gamma, is_tiff=is_tiff)
+    save(processed_image, output_path, gamma_value, is_tiff=is_tiff)
 
 
 def save_video_frame(image: cv2.Mat,

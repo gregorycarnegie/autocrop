@@ -197,7 +197,7 @@ class UiCropWidget(QtWidgets.QWidget):
         Returns:
             A configured Job object
         """
-        # Handle special path cases based on function type
+        # Handle special path cases based on a function type
         if function_type is not None:
             if function_type in (FunctionType.FOLDER, FunctionType.MAPPING):
                 if destination and folder_path:
@@ -242,7 +242,7 @@ class UiCropWidget(QtWidgets.QWidget):
 
     @staticmethod
     def _check_matching_files(destination: Path, filenames: set[str], extensions: tuple[str]) -> bool:
-        """Recursively check if destination contains any files with the given extensions that match the filenames."""
+        """Recursively check if the destination contains any files with the given extensions that match the filenames."""
         return any(p.is_file()
                    and p.suffix.lower() in extensions
                    and p.stem in filenames

@@ -16,7 +16,7 @@ class PathLineEdit(CustomLineEdit):
     A custom line edit widget for handling file paths.
 
     Args:
-        path_type (PathType): The type of path to be validated. Defaults to PathType.FOLDER.
+        path_type (PathType): The type of path to be validated. Default to PathType.FOLDER.
         parent (Optional[QtWidgets.QWidget]): The parent widget. Defaults to None.
 
     Methods:
@@ -100,5 +100,5 @@ class PathLineEdit(CustomLineEdit):
             path_type (PathType): The type of path to validate against.
         """
         self.path_type = path_type
-        # Re-validate with new path type
+        # Re-validate with a new path type
         self.validate_path()

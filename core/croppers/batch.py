@@ -8,8 +8,8 @@ from typing import Callable, Optional, Union, TypeVar, Any
 
 import numpy as np
 import numpy.typing as npt
-from PyQt6.QtWidgets import QApplication, QProgressBar
 from PyQt6.QtCore import QMetaObject, Qt, Q_ARG
+from PyQt6.QtWidgets import QApplication, QProgressBar
 
 from core.face_tools import FaceToolPair
 from core.job import Job
@@ -79,7 +79,7 @@ class BatchCropper(Cropper):
             
             # Force reset progress to prevent lingering jobs
             self.progress_count = 0
-            self.progress.emit(0, 1)  # Send a zero progress
+            self.progress.emit(0, 1)  # Send zero progress
             
             # Emit finished signal to reset UI
             self.emit_done()
@@ -88,7 +88,7 @@ class BatchCropper(Cropper):
             for future in self.futures:
                 if future and not future.done():
                     future.cancel()
-        # Clear the futures list
+        # Clear the list of futures
         self.futures = []
 
     def reset_task(self) -> None:
@@ -134,7 +134,7 @@ class BatchCropper(Cropper):
 
     def all_tasks_done(self) -> None:
         """
-        Checks if all futures have completed. If they have, shuts down the executor and emits done.
+        Checks if all futures have completed. If they have, shut down the executor and emits done.
         """
         if not self.end_task and all(future.done() for future in self.futures):
             self.emit_done()
@@ -158,7 +158,7 @@ class BatchCropper(Cropper):
                             self._display_error(e, "File system error. Check input and output paths."),
             ValueError: lambda e: self._display_error(e, "Invalid data format. Please check input files."),
             (TypeError, AttributeError): lambda e: self._display_error(e, "Data type error. This may indicate a corrupted image file."),
-            CancelledError: lambda _: None,  # Silently handle cancelled futures
+            CancelledError: lambda _: None,  # Silently handle canceled futures
         }
         
         try:
@@ -186,7 +186,7 @@ class BatchCropper(Cropper):
         Validate job parameters and available resources.
 
         Returns:
-            bool: True if job is valid, False if validation failed and error was reported
+            bool: True if a job is valid, False if validation failed and error was reported
         """
         if not job.destination:
             return False
@@ -196,11 +196,11 @@ class BatchCropper(Cropper):
             self.create_error('access')
             return False
 
-        # If file count provided, check disk capacity
+        # If a file count is provided, check disk capacity
         if file_count is not None:
             total_size = job.byte_size * file_count
 
-            # Check if there is enough space on disk to process the files
+            # Check if there is enough space on the disk to process the files
             if job.available_space == 0 or job.available_space < total_size:
                 self.create_error('capacity')
                 return False
@@ -224,7 +224,7 @@ class BatchCropper(Cropper):
 
     def crop(self, job: Job) -> None:
         """
-        Common implementation of the crop_from_path method. Uses template method pattern.
+        Common implementation of the crop_from_path method. Uses a template method pattern.
         """
         # Let child class prepare the operation
         file_count, chunked_data = self.prepare_crop_operation(job)

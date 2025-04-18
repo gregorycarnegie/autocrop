@@ -50,11 +50,12 @@ class VideoCropper(Cropper):
         Args:
             position_slider (int): Position value from the slider
             video_line_edit (str): Path to the video file
-            for_preview (bool): If True, uses a lower resolution for performance
+            for_preview (bool): If True, use a lower resolution for performance
             
         Returns:
             Optional[npt.NDArray[np.uint8]]: The frame as a NumPy array, or None if error
         """
+        timestamp_seconds, orig_width, orig_height = 0, 200, 200
         try:
             timestamp_seconds = frame_to_timestamp(position_slider, 1000.0)
             video_stream = get_video_stream(video_line_edit)
@@ -70,8 +71,8 @@ class VideoCropper(Cropper):
                 # Calculate scale to keep aspect ratio but limit size
                 scale = min(800 / orig_width, 600 / orig_height) if (orig_width > 800 or orig_height > 600) else 1.0
                 # Ensure dimensions are even numbers (required by some video codecs)
-                width = int(orig_width * scale) // 2 * 2
-                height = int(orig_height * scale) // 2 * 2
+                width = int(orig_width * scale) & ~1
+                height = int(orig_height * scale) & ~1
             else:
                 width, height = orig_width, orig_height
                 
@@ -121,7 +122,7 @@ class VideoCropper(Cropper):
         file_path = destination.joinpath(f'{job.video_path.stem} - ({position}){file_suffix}')
         is_tiff = file_path.suffix in {'.tif', '.tiff'}
 
-        # Handle multi-face job
+        # Handle a multi-face job
         if job.multi_face_job:
             if (images := prc.crop_all_faces(frame, job, self.face_detection_tools)) is None:
                 return None
@@ -134,6 +135,8 @@ class VideoCropper(Cropper):
         cropped_image = prc.crop_single_face(frame, job, self.face_detection_tools, video=True)
         if cropped_image is not None:
             prc.save(cropped_image, file_path, job.gamma, is_tiff)
+            return None
+        return None
 
     def process_multiface_frame_job(self, frame: npt.NDArray,
                                     job: Job,
@@ -248,7 +251,7 @@ class VideoCropper(Cropper):
         # Check for cancellation at the beginning
         if self.end_task:
             self.emit_done()
-            return
+            return None
 
         for frame_number in range(start_frame, end_frame + 1):
             # Process UI events to allow cancel signals to be processed
@@ -257,14 +260,14 @@ class VideoCropper(Cropper):
             # Check if cancellation has been requested
             if self.end_task:
                 self.emit_done()
-                return
+                return None
 
             frame = self.extract_frame_ffmpeg(job.video_path.as_posix(), frame_number, width, height, fps)
 
             # Check again after potentially long frame extraction
             if self.end_task:
                 self.emit_done()
-                return
+                return None
 
             if frame is not None:
                 file_enum = f"{job.video_path.stem}_frame_{frame_number:06d}"
@@ -279,10 +282,11 @@ class VideoCropper(Cropper):
             # Check again after progress update
             if self.end_task:
                 self.emit_done()
-                return
+                return None
 
         # Ensure we emit done signal
         self.emit_done()
+        return None
 
     def terminate(self) -> None:
         """

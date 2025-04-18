@@ -7,7 +7,7 @@ from PyQt6.QtCore import pyqtSignal, QObject, Qt, QMetaObject
 
 from ui import utils as ut
 
-TOTAL_MEMORY, MEM_THRESHOLD = psutil.virtual_memory().total, 2147483648
+TOTAL_MEMORY, MEM_THRESHOLD = psutil.virtual_memory().total, 2_147_483_648
 MEM_FACTOR = TOTAL_MEMORY // MEM_THRESHOLD
 
 class Cropper(QObject):
@@ -41,18 +41,22 @@ class Cropper(QObject):
     def __repr__(self) -> str:
         return f"<{type(self).__name__}>"
 
-    def _handle_started(self):
-        """Helper method to handle started signal in main thread"""
+    @staticmethod
+    def _handle_started():
+        """Helper method to handle started signal in the main thread"""
         # This just helps with cross-thread signal delivery
         print("Processing started.")
         
-    def _handle_finished(self):
-        """Helper method to handle finished signal in main thread"""
+    @staticmethod
+    def _handle_finished():
+        """Helper method to handle finished signal in the main thread"""
         # This just helps with cross-thread signal delivery
         print("Processing complete.")
 
     @staticmethod
-    def create_error(error_type: Literal['access', 'amount', 'capacity', 'ffmpeg', 'file', 'file_type', 'directory', 'memory', 'thread'],
+    def create_error(error_type: Literal[
+        'access', 'amount', 'capacity', 'ffmpeg', 'file', 'file_type', 'directory', 'memory', 'thread'
+    ],
                      custom_message: Optional[str] = None) -> tuple[Exception, str]:
         errors = {
             'access': (

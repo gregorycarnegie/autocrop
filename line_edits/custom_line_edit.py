@@ -109,7 +109,7 @@ class CustomLineEdit(QLineEdit):
         self.clearButton.setVisible(bool(text))
 
     def validate_path(self) -> None:
-        """Validate path based on input and set color accordingly."""
+        """Validate a path based on input and set color accordingly."""
         raise NotImplementedError('Subclasses should implement this method!')
 
     def set_valid_color(self) -> None:

@@ -1,10 +1,12 @@
 from pathlib import Path
-from PyQt6.QtWidgets import QApplication
+
 from PyQt6.QtCore import QFile, QTextStream
 from PyQt6.QtGui import QIcon
+from PyQt6.QtWidgets import QApplication
 
 from ui import UiMainWindow
 from ui.enums import GuiIcon
+
 
 def load_stylesheet(app: QApplication) -> None:
     """Load the browser-style CSS stylesheet"""
@@ -38,7 +40,7 @@ def main():
     setup_fonts(app)
     load_stylesheet(app)
     
-    # Create main window
+    # Create the main window
     window = UiMainWindow()
     window.adjust_ui(app)
     window.show()

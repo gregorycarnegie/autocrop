@@ -22,7 +22,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
         self.input_path = ""
         self.destination_path = ""
 
-        # Create file model for the tree view
+        # Create a file model for the tree view
         self.file_model = QtGui.QFileSystemModel(self)
         self.file_model.setFilter(QtCore.QDir.Filter.NoDotAndDotDot | QtCore.QDir.Filter.Files)
         p_types = file_manager.get_extensions(FileCategory.PHOTO) | file_manager.get_extensions(FileCategory.TIFF) | file_manager.get_extensions(FileCategory.RAW)
@@ -55,22 +55,22 @@ class UiFolderTabWidget(UiBatchCropWidget):
         self.verticalLayout_200.addLayout(input_layout)
 
         # Main frame with image and controls
-        frame, verticalLayout = self.setup_main_crop_frame(self.page_1)
+        frame, vertical_layout = self.setup_main_crop_frame(self.page_1)
 
         # Crop and cancel buttons
-        buttonLayout = ut.setup_hbox("horizontalLayout_2")
+        button_layout = ut.setup_hbox("horizontalLayout_2")
 
         # self.cropButton, self.cancelButton = self.create_main_action_buttons(frame)
         self.cropButton.setParent(frame)
         self.cancelButton.setParent(frame)
-        buttonLayout.addWidget(self.cropButton)
-        buttonLayout.addWidget(self.cancelButton)
+        button_layout.addWidget(self.cropButton)
+        button_layout.addWidget(self.cancelButton)
 
-        verticalLayout.addLayout(buttonLayout)
+        vertical_layout.addLayout(button_layout)
 
         # Progress bar
         self.progressBar.setParent(frame)
-        verticalLayout.addWidget(self.progressBar)
+        vertical_layout.addWidget(self.progressBar)
 
         self.verticalLayout_200.addWidget(frame)
 
@@ -87,7 +87,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
         # Add page to toolbox
         self.toolBox.addItem(self.page_2, "Folder View")
 
-        # Add toolbox to main layout
+        # Add toolbox to the main layout
         self.verticalLayout_100.addWidget(self.toolBox)
 
     def connect_signals(self) -> None:
@@ -133,7 +133,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
                                  QtCore.QCoreApplication.translate("self", "Folder View", None))
 
     def open_path(self, line_edit_type: str) -> None:
-        """Open file/folder selection dialog with updated string-based approach"""
+        """Open the file /folder selection dialog with updated string-based approach"""
         if line_edit_type == "destination":
             f_name = QtWidgets.QFileDialog.getExistingDirectory(
                 self,
@@ -199,7 +199,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
         self.crop_worker.show_message_box = False
 
         def execute_crop():
-            # Manually disable crop_from_path button right away
+            # Manually disable the crop_from_path button right away
             self.cropButton.setEnabled(False)
             self.cropButton.repaint()
             

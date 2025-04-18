@@ -1,5 +1,5 @@
-from functools import cache, partial
 import os
+from functools import cache, partial
 from pathlib import Path
 from typing import Optional, Union
 
@@ -11,12 +11,14 @@ from .dialog import UiDialog
 from .enums import GuiIcon
 from .image_widget import ImageWidget
 
+
 def register_button_dependencies(widget, button: QtWidgets.QPushButton,
                                  dependent_widgets: set[QtWidgets.QWidget]) -> None:
     """
     Register button dependencies with path validation support
 
     Args:
+        widget: TabStateManager
         button: The button whose enabled state depends on other widgets
         dependent_widgets: Set of widgets that must be valid for the button to be enabled
     """

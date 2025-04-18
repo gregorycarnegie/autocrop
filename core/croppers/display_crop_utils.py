@@ -11,7 +11,6 @@ from core.face_tools import FaceToolPair
 from core.job import Job
 from file_types import file_manager, FileCategory
 
-
 RadioButtonTuple = tuple[bool, bool, bool, bool, bool, bool]
 WidgetState = tuple[str, str, str, bool, bool, bool, int, int, int, int, int, int, int, RadioButtonTuple]
 
@@ -47,7 +46,7 @@ def perform_crop_helper(function_type: FunctionType,
     if not validate_widget_state(widget_state):
         return None
 
-    # Extract necessary paths
+    # Extract the necessary paths
     next_img_path = get_image_path(function_type, widget_state[0])
     if not next_img_path:
         return None
@@ -103,7 +102,7 @@ def handle_face_detection(pic_array: cv2.Mat, job: Job, face_detection_tools: Fa
         if not bounding_box:
             return None
 
-        # Create pipeline with bounding box
+        # Create a pipeline with bounding box
         pipeline = prc.build_processing_pipeline(job, face_detection_tools, bounding_box, True)
 
         # Apply pipeline to original image

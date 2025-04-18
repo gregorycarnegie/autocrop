@@ -69,8 +69,8 @@ class YuNetFaceDetector:
         # Set input size
         self._detector.setInputSize((width, height))
         
-        # Adjust score threshold based on sensitivity
-        score_threshold = max(0.1, sensitivity / 100.0)  # Ensure minimum threshold
+        # Adjust a score threshold based on sensitivity
+        score_threshold = max(0.1, sensitivity / 100.0)  # Ensure a minimum threshold
         self._detector.setScoreThreshold(score_threshold)
         
         # Detect faces

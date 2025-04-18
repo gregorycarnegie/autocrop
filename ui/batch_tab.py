@@ -62,7 +62,7 @@ class UiBatchCropWidget(UiCropWidget):
 
     def handle_cancel_button_click(self) -> None:
         """Handle cancel button click to properly update button states"""
-        # Call terminate to stop the job
+        # Call the terminate method to stop the job
         try:
             self.crop_worker.terminate()
         except Exception as e:
@@ -139,7 +139,7 @@ class UiBatchCropWidget(UiCropWidget):
         """Create and set up the main crop_from_path frame with checkboxes and image widget"""
         frame = self.create_main_frame("frame")
         frame.setParent(parent_widget)
-        verticalLayout = ut.setup_vbox("verticalLayout", frame)
+        vertical_layout = ut.setup_vbox("verticalLayout", frame)
 
         # Checkbox section
         self.toggleCheckBox.setParent(frame)
@@ -147,15 +147,15 @@ class UiBatchCropWidget(UiCropWidget):
         self.tiltCheckBox.setParent(frame)
         self.exposureCheckBox.setParent(frame)
 
-        checkboxLayout = ut.setup_hbox("horizontalLayout_1")
-        self.setup_checkboxes_frame(checkboxLayout)
-        verticalLayout.addLayout(checkboxLayout)
+        checkbox_layout = ut.setup_hbox("horizontalLayout_1")
+        self.setup_checkboxes_frame(checkbox_layout)
+        vertical_layout.addLayout(checkbox_layout)
 
         # Image widget
         self.imageWidget.setParent(frame)
-        verticalLayout.addWidget(self.imageWidget)
+        vertical_layout.addWidget(self.imageWidget)
 
-        return frame, verticalLayout
+        return frame, vertical_layout
 
     @staticmethod
     def cancel_button_operation(cancel_button: QtWidgets.QPushButton, *crop_buttons: QtWidgets.QPushButton) -> None:

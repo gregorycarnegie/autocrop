@@ -55,28 +55,28 @@ class UiMappingTabWidget(UiBatchCropWidget):
         """Set up the main layout structure"""
         # ---- Page 1: Crop View ----
         # Main frame with image and controls
-        frame, verticalLayout = self.setup_main_crop_frame(self.page_1)
+        frame, vertical_layout = self.setup_main_crop_frame(self.page_1)
 
-        # Comboboxes, crop_from_path and cancel buttons
-        buttonLayout = ut.setup_hbox("horizontalLayout_1")
+        # Combo boxes, crop_from_path and cancel buttons
+        button_layout = ut.setup_hbox("horizontalLayout_1")
 
-        # Setup comboboxes
-        ut.setup_combobox(self.comboBox_1, buttonLayout, self.size_policy_expand_fixed, "comboBox_1")
-        ut.setup_combobox(self.comboBox_2, buttonLayout, self.size_policy_expand_fixed, "comboBox_2")
+        # Setup combo boxes
+        ut.setup_combobox(self.comboBox_1, button_layout, self.size_policy_expand_fixed, "comboBox_1")
+        ut.setup_combobox(self.comboBox_2, button_layout, self.size_policy_expand_fixed, "comboBox_2")
 
         # Crop and cancel buttons
         # self.cropButton, self.cancelButton = self.create_main_action_buttons(frame)
         self.cropButton.setParent(frame)
         self.cancelButton.setParent(frame)
 
-        buttonLayout.addWidget(self.cropButton)
-        buttonLayout.addWidget(self.cancelButton)
+        button_layout.addWidget(self.cropButton)
+        button_layout.addWidget(self.cancelButton)
 
-        verticalLayout.addLayout(buttonLayout)
+        vertical_layout.addLayout(button_layout)
 
         # Progress bar
         self.progressBar.setParent(frame)
-        verticalLayout.addWidget(self.progressBar)
+        vertical_layout.addWidget(self.progressBar)
 
         self.verticalLayout_200.addWidget(frame)
 
@@ -89,18 +89,18 @@ class UiMappingTabWidget(UiBatchCropWidget):
         self.tableView.setParent(self.page_2)
         self.verticalLayout_300.addWidget(self.tableView)
 
-        # Comboboxes for column selection on table view
-        comboLayout = ut.setup_hbox("horizontalLayout_4")
+        # Combo boxes for column selection on table view
+        combo_layout = ut.setup_hbox("horizontalLayout_4")
 
-        ut.setup_combobox(self.comboBox_3, comboLayout, self.size_policy_expand_fixed, "comboBox_3")
-        ut.setup_combobox(self.comboBox_4, comboLayout, self.size_policy_expand_fixed, "comboBox_4")
+        ut.setup_combobox(self.comboBox_3, combo_layout, self.size_policy_expand_fixed, "comboBox_3")
+        ut.setup_combobox(self.comboBox_4, combo_layout, self.size_policy_expand_fixed, "comboBox_4")
 
-        self.verticalLayout_300.addLayout(comboLayout)
+        self.verticalLayout_300.addLayout(combo_layout)
 
         # Add page to toolbox
         self.toolBox.addItem(self.page_2, "Table View")
 
-        # Add toolbox to main layout
+        # Add toolbox to the main layout
         self.verticalLayout_100.addWidget(self.toolBox)
 
     def connect_signals(self) -> None:
