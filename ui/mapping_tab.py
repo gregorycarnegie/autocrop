@@ -14,7 +14,7 @@ from .batch_tab import UiBatchCropWidget
 
 
 class UiMappingTabWidget(UiBatchCropWidget):
-    """Mapping tab widget with enhanced inheritance from batch crop widget"""
+    """Mapping tab widget with enhanced inheritance from batch crop_from_path widget"""
 
     def __init__(self, crop_worker: MappingCropper, object_name: str, parent: QtWidgets.QWidget) -> None:
         """Initialize the mapping tab widget"""
@@ -57,7 +57,7 @@ class UiMappingTabWidget(UiBatchCropWidget):
         # Main frame with image and controls
         frame, verticalLayout = self.setup_main_crop_frame(self.page_1)
 
-        # Comboboxes, crop and cancel buttons
+        # Comboboxes, crop_from_path and cancel buttons
         buttonLayout = ut.setup_hbox("horizontalLayout_1")
 
         # Setup comboboxes
@@ -178,7 +178,7 @@ class UiMappingTabWidget(UiBatchCropWidget):
                 main_window.secondary_input.setText(f_name)
 
             # Load and process the table data
-            data = prc.open_table(Path(f_name))
+            data = prc.load_table(Path(f_name))
             self.process_data(data)
 
     def process_data(self, data: pl.DataFrame) -> None:
@@ -198,7 +198,7 @@ class UiMappingTabWidget(UiBatchCropWidget):
             print(f"Error processing data: {e}")
 
     def connect_crop_worker(self) -> None:
-        """Connect the signals from the crop worker to UI handlers"""
+        """Connect the signals from the crop_from_path worker to UI handlers"""
         widget_list = (self.controlWidget.widthLineEdit, self.controlWidget.heightLineEdit,
                        self.controlWidget.sensitivityDial, self.controlWidget.fpctDial, self.controlWidget.gammaDial,
                        self.controlWidget.topDial, self.controlWidget.bottomDial, self.controlWidget.leftDial,

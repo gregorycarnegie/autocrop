@@ -53,7 +53,7 @@ class UiCropWidget(QtWidgets.QWidget):
 
     def __init__(self, parent: QtWidgets.QWidget, name: str) -> None:
         """
-        Initialize the base crop widget with common components.
+        Initialize the base crop_from_path widget with common components.
         
         Args:
             parent: The parent widget
@@ -109,7 +109,7 @@ class UiCropWidget(QtWidgets.QWidget):
         return image_widget
 
     def create_control_widget(self) -> UiCropControlWidget:
-        """Create the crop control widget with dials and settings"""
+        """Create the crop_from_path control widget with dials and settings"""
         horizontal_layout = ut.setup_hbox("horizontalLayout", self.imageWidget)
         control_widget = UiCropControlWidget(self.imageWidget)
         control_widget.setObjectName("controlWidget")

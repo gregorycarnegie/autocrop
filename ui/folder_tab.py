@@ -12,7 +12,7 @@ from .batch_tab import UiBatchCropWidget
 
 
 class UiFolderTabWidget(UiBatchCropWidget):
-    """Folder tab widget with enhanced inheritance from the batch crop widget"""
+    """Folder tab widget with enhanced inheritance from the batch crop_from_path widget"""
 
     def __init__(self, crop_worker: FolderCropper, object_name: str, parent: QtWidgets.QWidget) -> None:
         """Initialize the folder tab widget"""
@@ -182,7 +182,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
             return
 
     def connect_crop_worker(self) -> None:
-        """Connect the signals from the crop worker to UI handlers"""
+        """Connect the signals from the crop_from_path worker to UI handlers"""
         widget_list = (self.controlWidget.widthLineEdit, self.controlWidget.heightLineEdit,
                        self.controlWidget.sensitivityDial, self.controlWidget.fpctDial, self.controlWidget.gammaDial,
                        self.controlWidget.topDial, self.controlWidget.bottomDial, self.controlWidget.leftDial,
@@ -199,7 +199,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
         self.crop_worker.show_message_box = False
 
         def execute_crop():
-            # Manually disable crop button right away
+            # Manually disable crop_from_path button right away
             self.cropButton.setEnabled(False)
             self.cropButton.repaint()
             

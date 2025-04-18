@@ -214,7 +214,7 @@ class BatchCropper(Cropper):
     def prepare_crop_operation(self, job: Job) -> tuple[Optional[int], Optional[c.Iterable]]:
         """
         Abstract method to be implemented by child classes.
-        Should prepare the crop operation by validating inputs and creating
+        Should prepare the crop_from_path operation by validating inputs and creating
         the list of items to process.
 
         Returns:
@@ -224,7 +224,7 @@ class BatchCropper(Cropper):
 
     def crop(self, job: Job) -> None:
         """
-        Common implementation of the crop method. Uses template method pattern.
+        Common implementation of the crop_from_path method. Uses template method pattern.
         """
         # Let child class prepare the operation
         file_count, chunked_data = self.prepare_crop_operation(job)
@@ -254,7 +254,7 @@ class BatchCropper(Cropper):
     def set_futures_for_crop(self, job: Job, file_count: int, chunked_data: c.Iterable) -> None:
         """
         Abstract method to be implemented by child classes.
-        Should set up the futures for the crop operation.
+        Should set up the futures for the crop_from_path operation.
         """
         raise NotImplementedError("Child classes must implement set_futures_for_crop")
 

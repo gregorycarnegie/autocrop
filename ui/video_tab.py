@@ -19,7 +19,7 @@ from .media_controls import UiMediaControlWidget
 
 
 class UiVideoTabWidget(UiCropWidget):
-    """Video tab widget with enhanced inheritance from base crop widget"""
+    """Video tab widget with enhanced inheritance from base crop_from_path widget"""
     
     PROGRESSBAR_STEPS: int = 1_000  # From UiCropBatchWidget
     
@@ -251,7 +251,7 @@ class UiVideoTabWidget(UiCropWidget):
         self.toolBox.addItem(self.page_1, "Video Player")
         
         # ---- Page 2: Crop View ----
-        # Main frame with crop preview
+        # Main frame with crop_from_path preview
         frame_2 = self.create_main_frame("frame_2")
         frame_2.setParent(self.page_2)
         verticalLayout_10 = ut.setup_vbox("verticalLayout_10", frame_2)
@@ -481,7 +481,7 @@ class UiVideoTabWidget(UiCropWidget):
             self.controlWidget.rightDial
         )
         
-        # Connect crop worker signals
+        # Connect crop_from_path worker signals
         self.connect_crop_worker()
 
     def retranslateUi(self) -> None:
@@ -499,7 +499,7 @@ class UiVideoTabWidget(UiCropWidget):
                                 QtCore.QCoreApplication.translate("self", "Crop View", None))
 
     def display_crop_preview(self) -> None:
-        """Captures the current frame and displays crop preview in the imageWidget"""
+        """Captures the current frame and displays crop_from_path preview in the imageWidget"""
         if not self.input_path:
             return
 
@@ -521,13 +521,13 @@ class UiVideoTabWidget(UiCropWidget):
         # Process the frame
         if job.multi_face_job:
             # If multi-face is enabled, show bounding boxes on all faces
-            processed_image = prc.multi_box(frame, job, self.crop_worker.face_detection_tools)
+            processed_image = prc.annotate_faces(frame, job, self.crop_worker.face_detection_tools)
             if processed_image is None:
                 return None
             ut.display_image_on_widget(processed_image, self.imageWidget)
         else:
-            # For single face, show a crop preview
-            cropped_image = prc.crop_image(frame, job, self.crop_worker.face_detection_tools, video=True)
+            # For single face, show a crop_from_path preview
+            cropped_image = prc.crop_single_face(frame, job, self.crop_worker.face_detection_tools, video=True)
             if cropped_image is not None:
                 # Display the cropped image
                 ut.display_image_on_widget(cropped_image, self.imageWidget)
@@ -743,7 +743,7 @@ class UiVideoTabWidget(UiCropWidget):
             self.player.setPosition(int(position))
 
     def connect_crop_worker(self) -> None:
-        """Connect the signals from the crop worker to UI handlers"""
+        """Connect the signals from the crop_from_path worker to UI handlers"""
         # Build list of widgets to disable during processing
         controls = []
         for control in [self.mediacontrolWidget_1, self.mediacontrolWidget_2]:
@@ -838,7 +838,7 @@ class UiVideoTabWidget(UiCropWidget):
         QtWidgets.QApplication.processEvents()
 
     def update_progress(self, x: int, y:int) -> None:
-        """Update both progress bars based on crop worker progress"""
+        """Update both progress bars based on crop_from_path worker progress"""
         if y <= 0:  # Prevent division by zero
             return
             
@@ -866,7 +866,7 @@ class UiVideoTabWidget(UiCropWidget):
         def execute_crop():
             self.player.pause()
             
-            # Disable crop buttons immediately
+            # Disable crop_from_path buttons immediately
             for control in [self.mediacontrolWidget_1, self.mediacontrolWidget_2]:
                 control.cropButton.setEnabled(False)
                 control.cropButton.repaint()
@@ -902,7 +902,7 @@ class UiVideoTabWidget(UiCropWidget):
         def execute_crop():
             self.player.pause()
             
-            # Disable crop buttons immediately
+            # Disable crop_from_path buttons immediately
             for control in [self.mediacontrolWidget_1, self.mediacontrolWidget_2]:
                 control.cropButton.setEnabled(False)
                 control.cropButton.repaint()

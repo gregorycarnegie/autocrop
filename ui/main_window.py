@@ -709,7 +709,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 # Refresh mapping preview
                 if self.secondary_input.text() and self.secondary_input.state == LineEditState.VALID_INPUT:
                     if file_path := Path(self.secondary_input.text()):
-                        data = prc.open_table(file_path)
+                        data = prc.load_table(file_path)
                         self.mapping_tab_widget.process_data(data)
             case FunctionType.VIDEO:
                 # Refresh video preview
@@ -1072,7 +1072,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
             elif file_manager.is_valid_type(file_path, FileCategory.TABLE):
                 self.function_tabWidget.setCurrentIndex(FunctionType.MAPPING)
                 self.secondary_input.setText(file_path.as_posix())
-                data = prc.open_table(file_path)
+                data = prc.load_table(file_path)
                 self.mapping_tab_widget.process_data(data)
                 
         a0.accept()
@@ -1168,7 +1168,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         """
         self.function_tabWidget.setCurrentIndex(FunctionType.MAPPING)
         self.mapping_tab_widget.table_path = file_path.as_posix()
-        data = prc.open_table(file_path)
+        data = prc.load_table(file_path)
         self.mapping_tab_widget.process_data(data)
 
     @staticmethod

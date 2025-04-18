@@ -123,7 +123,7 @@ class VideoCropper(Cropper):
 
         # Handle multi-face job
         if job.multi_face_job:
-            if (images := prc.multi_crop(frame, job, self.face_detection_tools)) is None:
+            if (images := prc.crop_all_faces(frame, job, self.face_detection_tools)) is None:
                 return None
 
             for i, image in enumerate(images):
@@ -131,7 +131,7 @@ class VideoCropper(Cropper):
                 prc.save(image, new_file_path, job.gamma, is_tiff)
             return None
 
-        cropped_image = prc.crop_image(frame, job, self.face_detection_tools, video=True)
+        cropped_image = prc.crop_single_face(frame, job, self.face_detection_tools, video=True)
         if cropped_image is not None:
             prc.save(cropped_image, file_path, job.gamma, is_tiff)
 
@@ -153,12 +153,12 @@ class VideoCropper(Cropper):
             None
         """
 
-        if (images := prc.multi_crop(frame, job, self.face_detection_tools)) is None:
-            file_path, is_tiff = prc.get_frame_path(destination, f'failed_{file_enum}', job)
+        if (images := prc.crop_all_faces(frame, job, self.face_detection_tools)) is None:
+            file_path, is_tiff = prc.make_frame_filepath(destination, f'failed_{file_enum}', job)
             prc.save(frame, file_path, job.gamma, is_tiff)
         else:
             for i, image in enumerate(images):
-                file_path, is_tiff = prc.get_frame_path(destination, f'{file_enum}_{i}', job)
+                file_path, is_tiff = prc.make_frame_filepath(destination, f'{file_enum}_{i}', job)
                 prc.save(image, file_path, job.gamma, is_tiff)
 
     def process_singleface_frame_job(self, frame: npt.NDArray,
@@ -179,10 +179,10 @@ class VideoCropper(Cropper):
             None
         """
 
-        if (cropped_image := prc.crop_image(frame, job, self.face_detection_tools, video=True)) is None:
-            prc.frame_save(frame, file_enum, destination, job)
+        if (cropped_image := prc.crop_single_face(frame, job, self.face_detection_tools, video=True)) is None:
+            prc.save_video_frame(frame, file_enum, destination, job)
         else:
-            prc.frame_save(cropped_image, file_enum, destination, job)
+            prc.save_video_frame(cropped_image, file_enum, destination, job)
 
     def extract_frame_ffmpeg(self, video_path: str, frame_number: int, width: int, height: int, fps: float) -> Optional[npt.NDArray]:
         # Validate input parameters

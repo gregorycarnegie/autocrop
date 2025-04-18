@@ -31,7 +31,7 @@ class DisplayCropper(Cropper):
         self._input_paths[function_type] = get_path_callback
     
     def crop(self, function_type: FunctionType) -> None:
-        """Perform the crop operation with minimal overhead"""
+        """Perform the crop_from_path operation with minimal overhead"""
         if function_type not in self._widget_states:
             return
         

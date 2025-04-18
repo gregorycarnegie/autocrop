@@ -21,7 +21,7 @@ class UiBatchCropWidget(UiCropWidget):
     PROGRESSBAR_STEPS: int = 1_000
 
     def __init__(self, crop_worker: BatchCropper, object_name: str, parent: QtWidgets.QWidget) -> None:
-        """Initialize the batch crop widget with common components"""
+        """Initialize the batch crop_from_path widget with common components"""
         super().__init__(parent, object_name)
         self.crop_worker = crop_worker  # List to hold progress bars for each batch operation
 
@@ -57,7 +57,7 @@ class UiBatchCropWidget(UiCropWidget):
         # Create an explicit method to handle cancel button operation
         self.cancelButton.clicked.connect(self.handle_cancel_button_click)
         
-        # Connect crop worker signals for proper state management
+        # Connect crop_from_path worker signals for proper state management
         self.connect_crop_worker()
 
     def handle_cancel_button_click(self) -> None:
@@ -122,7 +122,7 @@ class UiBatchCropWidget(UiCropWidget):
         return progress_bar
 
     def create_main_action_buttons(self, parent_frame: Optional[QtWidgets.QFrame]=None) -> tuple[QtWidgets.QPushButton, QtWidgets.QPushButton]:
-        """Create crop and cancel buttons with consistent styling"""
+        """Create crop_from_path and cancel buttons with consistent styling"""
         # Crop button
         crop_button = self.create_main_button("cropButton", GuiIcon.CROP)
         crop_button.setParent(parent_frame)
@@ -136,7 +136,7 @@ class UiBatchCropWidget(UiCropWidget):
         return crop_button, cancel_button
 
     def setup_main_crop_frame(self, parent_widget: QtWidgets.QWidget) -> tuple[QtWidgets.QFrame, QtWidgets.QVBoxLayout]:
-        """Create and set up the main crop frame with checkboxes and image widget"""
+        """Create and set up the main crop_from_path frame with checkboxes and image widget"""
         frame = self.create_main_frame("frame")
         frame.setParent(parent_widget)
         verticalLayout = ut.setup_vbox("verticalLayout", frame)
@@ -165,7 +165,7 @@ class UiBatchCropWidget(UiCropWidget):
             crop_button.setEnabled(True)
 
     def connect_crop_worker_signals(self, *widget_list: QtWidgets.QWidget) -> None:
-        """Connect the signals from the crop worker to UI handlers"""
+        """Connect the signals from the crop_from_path worker to UI handlers"""
         with contextlib.suppress(TypeError, RuntimeError):
             # Disconnect existing connections to avoid duplicates
             self.crop_worker.started.disconnect()
@@ -189,7 +189,7 @@ class UiBatchCropWidget(UiCropWidget):
         """Run a batch processing operation using threading instead of multiprocessing"""
         reset_worker_func()
         
-        # Disable crop button and enable cancel button manually
+        # Disable crop_from_path button and enable cancel button manually
         self.cropButton.setEnabled(False)
         self.cropButton.repaint()
         self.cancelButton.setEnabled(True)

@@ -47,7 +47,7 @@ class MappingCropper(BatchCropper):
 
     def prepare_crop_operation(self, job: Job) -> tuple[Optional[int], Optional[tuple[Any, Any]]]:
         """
-        Prepare the mapping crop operation by getting file lists and splitting into chunks.
+        Prepare the mapping crop_from_path operation by getting file lists and splitting into chunks.
         """
         if not (file_tuple := job.file_list_to_numpy()):
             return None, None

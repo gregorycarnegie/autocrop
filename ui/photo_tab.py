@@ -11,7 +11,7 @@ from .enums import GuiIcon
 
 
 class UiPhotoTabWidget(UiCropWidget):
-    """Photo tab widget with enhanced inheritance from the base crop widget"""
+    """Photo tab widget with enhanced inheritance from the base crop_from_path widget"""
     
     def __init__(self, crop_worker: PhotoCropper, object_name: str, parent: QtWidgets.QWidget) -> None:
         """Initialize the photo tab widget"""

@@ -44,4 +44,4 @@ class PhotoCropper(Cropper):
                 exception, message = self.create_error('memory')
                 return self._display_error(exception, message)
             
-        prc.crop(image, job, self.face_detection_tools, new)
+        prc.crop_from_path(image, job, self.face_detection_tools, new)
