@@ -21,6 +21,7 @@ from file_types import file_manager, FileCategory
 from .config import Config
 from .face_tools import L_EYE_START, L_EYE_END, R_EYE_START, R_EYE_END, FaceToolPair, YuNetFaceDetector, Rectangle
 from .image_loader import ImageLoader
+from .image_protocol import ImageOpener
 from .job import Job
 from .operation_types import CropFunction, Box
 
@@ -202,45 +203,64 @@ def colour_and_align_face(image: cv2.Mat,
     return align_face(image, face_detection_tools, job)
 
 
-def load_and_prepare_image(file: Path,
-                           face_detection_tools: FaceToolPair,
-                           job: Job) -> Optional[cv2.Mat]:
-    """
-    Opens a non-RAW image using OpenCV, corrects exposure (optional), aligns head (optional).
-    """
-
-    img_path = file.as_posix()
-    if file_manager.is_valid_type(file, FileCategory.PHOTO) or file_manager.is_valid_type(file, FileCategory.TIFF):
-        img = ImageLoader.loader('standard')(img_path)
-        if img is None:
-            return None
-
-        return colour_and_align_face(img, face_detection_tools, job)
-
-    elif file_manager.is_valid_type(file, FileCategory.RAW):
-        try:
-            with ImageLoader.loader('raw')(img_path) as raw:
-                try:
-                    # Post-processing can also raise exceptions
-                    img = raw.postprocess(use_camera_wb=True)
-
-                    return align_face(img, face_detection_tools, job)
-
-                except (MemoryError, ValueError, TypeError) as e:
-                    # Log more specific post-processing errors
-                    print(f"Error post-processing RAW image {img_path}: {str(e)}")
-                    return None
-
-        except (NotSupportedError, LibRawFatalError, LibRawError, LibRawNonFatalError) as e:
-            print(f"Error reading RAW file {img_path}: {str(e)}")
-            return None
-
-        except Exception as e:
-            # Catch any other unexpected exceptions to ensure resources are released
-            print(f"Unexpected error processing RAW file {img_path}: {str(e)}")
-            return None
-    else:
+def _open_standard(
+    file: Path,
+    face_detection_tools: FaceToolPair,
+    job: Job
+) -> Optional[cv2.Mat]:
+    img = ImageLoader.loader('standard')(file.as_posix())
+    if img is None:
         return None
+    return colour_and_align_face(img, face_detection_tools, job)
+
+
+def _open_raw(
+    file: Path,
+    face_detection_tools: FaceToolPair,
+    job: Job
+) -> Optional[cv2.Mat]:
+    try:
+        with ImageLoader.loader('raw')(file.as_posix()) as raw:
+            img = raw.postprocess(use_camera_wb=True)
+            return align_face(img, face_detection_tools, job)
+    except (
+        NotSupportedError,
+        LibRawFatalError,
+        LibRawError,
+        LibRawNonFatalError,
+        MemoryError,
+        ValueError,
+        TypeError,
+    ) as e:
+        # Use logging in real-world code; print here for brevity
+        print(f"Error processing RAW file {file}: {e}")
+        return None
+
+
+# Map each FileCategory to its opener strategy
+_OPENER_STRATEGIES: dict[FileCategory, ImageOpener] = {
+    FileCategory.PHOTO: _open_standard,
+    FileCategory.TIFF: _open_standard,
+    FileCategory.RAW: _open_raw,
+}
+
+
+def load_and_prepare_image(
+    file: Path,
+    face_detection_tools: FaceToolPair,
+    job: Job
+) -> Optional[cv2.Mat]:
+    """
+    Open an image file using the appropriate strategy based on its FileCategory.
+    """
+    return next(
+        (
+            opener(file, face_detection_tools, job)
+            for category, opener in _OPENER_STRATEGIES.items()
+            if file_manager.is_valid_type(file, category)
+        ),
+        None,
+    )
 
 
 def load_table(file: Path) -> pl.DataFrame:
