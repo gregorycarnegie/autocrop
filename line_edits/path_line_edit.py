@@ -1,3 +1,4 @@
+import contextlib
 from pathlib import Path
 from typing import Optional
 
@@ -51,21 +52,42 @@ class PathLineEdit(CustomLineEdit):
     def validate_path(self) -> None:
         """
         Validates the path entered in the text input based on the selected path type.
-
-        Args:
-            self: The PathLineEdit instance.
-
-        Returns:
-            None
+        Also triggers button state updates.
         """
-
         if not (path := self.text()):
             self.set_invalid_color()
+            self.update_style()
             return
 
         file_path = Path(path)
         self.color_logic(self.is_valid_path(file_path))
         self.update_style()
+
+        # Find the main window to trigger button state updates
+        parent = self.parent()
+        while parent and not isinstance(parent, QtWidgets.QMainWindow):
+            parent = parent.parent()
+
+        if parent:
+            # Try to find the current tab and update button states
+            with contextlib.suppress(AttributeError, IndexError):
+                tab_index = parent.function_tabWidget.currentIndex()
+                current_tab = None
+
+                # Get the current tab widget
+                if tab_index == 0 and hasattr(parent, 'photo_tab_widget'):
+                    current_tab = parent.photo_tab_widget
+                elif tab_index == 1 and hasattr(parent, 'folder_tab_widget'):
+                    current_tab = parent.folder_tab_widget
+                elif tab_index == 2 and hasattr(parent, 'mapping_tab_widget'):
+                    current_tab = parent.mapping_tab_widget
+                elif tab_index == 3 and hasattr(parent, 'video_tab_widget'):
+                    current_tab = parent.video_tab_widget
+
+                # Update button states if possible
+                if current_tab and hasattr(current_tab, 'disable_buttons'):
+                    current_tab.disable_buttons()
+
 
     def is_valid_path(self, path: Path) -> bool:
         """
