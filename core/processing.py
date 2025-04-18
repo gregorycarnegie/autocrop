@@ -717,9 +717,6 @@ def batch_process_with_pipeline(images: list[Path],
                 
             # Open the image
             image_array = open_pic(img_path, face_detection_tools, job)
-            if image_array is None:
-                progress_count = invoke_progress(progress_count, total_images, progress_bars)
-                continue
 
             # Create a function to get output paths for standard batch processing
             def get_output_path_fn(image_path: Path, face_index: Optional[int]) -> Path:
@@ -736,9 +733,13 @@ def batch_process_with_pipeline(images: list[Path],
             # Check for cancellation AFTER processing each image
             if cancel_event.is_set():
                 return all_output_paths
-            
-            # Update progress count and progress bars directly
-            progress_count = invoke_progress(progress_count, total_images, progress_bars)
+        
+        progress_count = invoke_progress_by_chunk(
+            len(chunk),  # Size of the current chunk 
+            progress_count,      # Current progress count
+            total_images,        # Total number of images
+            progress_bars        # Progress bars to update
+        )
             
         # Allow UI updates between chunks
         QtWidgets.QApplication.processEvents()
@@ -796,10 +797,6 @@ def batch_process_with_mapping(images: list[Path],
                 
             # Open the image
             image_array = open_pic(img_path, face_detection_tools, job)
-            if image_array is None:
-                # Update progress bars directly if provided
-                progress_count = invoke_progress(progress_count, total_images, progress_bars)
-                continue
 
             # Create a function to get output paths for mapping
             def get_output_path_fn(image_path: Path, face_index: Optional[int]) -> Path:
@@ -818,12 +815,16 @@ def batch_process_with_mapping(images: list[Path],
             
             all_output_paths.extend(output_paths_result)
             
-            # Update progress count and progress bars directly
-            progress_count = invoke_progress(progress_count, total_images, progress_bars)
-            
             # Check for cancellation AFTER processing each image
             if cancel_event.is_set():
                 return all_output_paths
+        
+        progress_count = invoke_progress_by_chunk(
+            len(img_chunk),  # Size of the current chunk 
+            progress_count,      # Current progress count
+            total_images,        # Total number of images
+            progress_bars        # Progress bars to update
+        )
         
         # Allow UI to update between chunks AND process cancellation events
         QtWidgets.QApplication.processEvents()
@@ -834,10 +835,28 @@ def batch_process_with_mapping(images: list[Path],
         
     return all_output_paths
 
-def invoke_progress(progress_count: int,
-                    total_images: int,
-                    progress_bars: list[QtWidgets.QProgressBar]) -> int:
-    progress_count += 1
+def invoke_progress_by_chunk(chunk_size: int, 
+                           progress_count: int,
+                           total_images: int,
+                           progress_bars: list[QtWidgets.QProgressBar]) -> int:
+    """
+    Updates progress bars based on completed chunks rather than individual files.
+    
+    Args:
+        chunk_size: Size of the current chunk
+        progress_count: Current progress count before this chunk
+        total_images: Total number of images to process
+        progress_bars: List of progress bars to update
+        
+    Returns:
+        Updated progress count
+    """
+    # Update progress count with entire chunk size
+    progress_count += chunk_size
+    
+    # Make sure we don't exceed the total
+    progress_count = min(progress_count, total_images)
+    
     if progress_bars:
         percentage = min(100.0, (progress_count / total_images) * 100.0)
         value = int(10 * percentage)
@@ -851,6 +870,10 @@ def invoke_progress(progress_count: int,
                 QtCore.Qt.ConnectionType.QueuedConnection,
                 QtCore.Q_ARG(int, value)
             )
+            
+        # Process events for more responsive UI, but only after chunk completion
+        QtWidgets.QApplication.processEvents()
+            
     return progress_count
 
 def process_batch_item(image_array: cv2.Mat,

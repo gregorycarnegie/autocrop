@@ -39,9 +39,6 @@ class MappingCropper(BatchCropper):
                 output_paths.append(new_path)
         
         if image_paths and not cancel_event.is_set():
-            # Create a progress callback that uses file_amount
-            # progress_callback = partial(self._update_progress, file_amount)
-            # Use a modified version of batch_process_with_pipeline that accepts custom output paths
             prc.batch_process_with_mapping(
                 image_paths, output_paths, job, face_detection_tools, cancel_event, False, self.progressBars, self.progress_count
             )

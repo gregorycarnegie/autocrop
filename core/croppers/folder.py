@@ -31,8 +31,6 @@ class FolderCropper(BatchCropper):
         # Convert tuple to list if needed
         image_paths = list(file_list)
         
-        # progress_callback = partial(self._update_progress, file_amount)
-        # Use batch_process_with_pipeline to handle the actual processing
         # This function creates the pipeline once and applies it to all images
         prc.batch_process_with_pipeline(
             image_paths, job, face_detection_tools, cancel_event, False, self.progressBars, self.progress_count
