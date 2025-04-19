@@ -298,7 +298,8 @@ class UiCropControlWidget(QtWidgets.QWidget):
                 self.radioButton_jpg.isChecked(), self.radioButton_png.isChecked(),
                 self.radioButton_tiff.isChecked(), self.radioButton_webp.isChecked())
     
-    def format_style_sheet(self, style_sheet: str, true_path: str, false_path: str) -> str:
+    @staticmethod
+    def format_style_sheet(style_sheet, true_path: str, false_path: str) -> str:
         return style_sheet.format(
             true_icon=true_path,
             false_icon=false_path,

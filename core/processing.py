@@ -633,7 +633,7 @@ def save_cropped_face(processed_image: cv2.Mat,
     save(processed_image, output_path, gamma_value, is_tiff=is_tiff)
 
 
-def save_video_frame(image: cv2.Mat,
+def save_video_frame(image: Union[cv2.Mat, np.ndarray],
                      file_enum_str: str,
                      destination: Path,
                      job: Job) -> None:

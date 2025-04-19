@@ -77,7 +77,9 @@ class UiVideoTabWidget(UiCropWidget):
         # Create media control widgets
         self.mediacontrolWidget_1 = None  # Will be initialized in setup_layouts
         self.mediacontrolWidget_2 = None  # Will be initialized in setup_layouts
-        
+
+        self.previewButton = QtWidgets.QPushButton("Update Preview")
+
         # Set up the main layout structure
         self.setup_layouts()
         
@@ -337,7 +339,6 @@ class UiVideoTabWidget(UiCropWidget):
         vertical_layout_10.addLayout(checkbox_layout)
         
         # Add preview button
-        self.previewButton = QtWidgets.QPushButton("Update Preview")
         self.previewButton.setObjectName("previewButton")
         self.previewButton.setMinimumSize(QtCore.QSize(0, 40))
         self.previewButton.setMaximumSize(QtCore.QSize(16_777_215, 40))

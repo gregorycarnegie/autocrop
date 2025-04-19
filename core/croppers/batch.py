@@ -154,10 +154,10 @@ class BatchCropper(Cropper):
             FileNotFoundError: lambda _: self.create_error('file', "File not found. Please check that all input files exist."),
             PermissionError: lambda _: self.create_error('access'),
             MemoryError: lambda _: self.create_error('memory'),
-            OSError: lambda e: self.create_error('capacity') if "space" in str(e).lower() else 
-                            self._display_error(e, "File system error. Check input and output paths."),
-            ValueError: lambda e: self._display_error(e, "Invalid data format. Please check input files."),
-            (TypeError, AttributeError): lambda e: self._display_error(e, "Data type error. This may indicate a corrupted image file."),
+            OSError: lambda _: self.create_error('capacity') if "space" in str(_).lower() else
+                            self._display_error(_, "File system error. Check input and output paths."),
+            ValueError: lambda _: self._display_error(_, "Invalid data format. Please check input files."),
+            (TypeError, AttributeError): lambda _: self._display_error(_, "Data type error. This may indicate a corrupted image file."),
             CancelledError: lambda _: None,  # Silently handle canceled futures
         }
         
@@ -245,7 +245,7 @@ class BatchCropper(Cropper):
         # Let child class set up the futures based on its specific worker
         self.set_futures_for_crop(job, file_count, chunked_data)
 
-        # Complete futures is common to all
+        # complete_futures is common to all
         self.complete_futures()
         
         # Make sure cancel buttons are enabled right away
@@ -275,7 +275,7 @@ class BatchCropper(Cropper):
                 Qt.ConnectionType.QueuedConnection
             )
             
-            # Also force a progress update to 100% to ensure UI is updated
+            # Also force a progress update to 100% to ensure the UI is updated
             self.progress_count = 0  # Reset progress count
             QMetaObject.invokeMethod(
                 self,

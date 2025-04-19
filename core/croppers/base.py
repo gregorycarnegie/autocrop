@@ -126,7 +126,7 @@ class Cropper(QObject):
 
     def _update_progress(self, file_amount: int) -> None:
         """
-        Increments the progress count in a thread-safe manner
+        Increments the progress counter in a thread-safe manner
         and emits the progress signal accordingly.
         """
         with self.lock:

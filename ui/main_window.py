@@ -37,14 +37,66 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
         face_detection_tools = self.get_face_detection_tools(splash)
 
-        # Single-threaded
+        # Single-threaded workers
         self.display_worker = DisplayCropper(face_detection_tools[0])
         self.photo_worker = PhotoCropper(face_detection_tools[0])
         self.video_worker = VideoCropper(face_detection_tools[0])
-        
-        # Multi-threaded
+
+        # Multithreaded workers
         self.folder_worker = FolderCropper(face_detection_tools)
         self.mapping_worker = MappingCropper(face_detection_tools)
+
+        # Create central widget
+        self.centralwidget = QtWidgets.QWidget(self)
+        self.centralwidget.setObjectName(u"centralwidget")
+        self.main_layout = QtWidgets.QVBoxLayout(self.centralwidget)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.setSpacing(0)
+
+        self.actionAbout_Face_Cropper = QtGui.QAction(self)
+        self.actionUse_Mapping = QtGui.QAction(self)
+        self.actionCrop_File = QtGui.QAction(self)
+        self.actionCrop_Folder = QtGui.QAction(self)
+        self.actionSquare = QtGui.QAction(self)
+        self.actionGolden_Ratio = QtGui.QAction(self)
+        self.action2_3_Ratio = QtGui.QAction(self)
+        self.action3_4_Ratio = QtGui.QAction(self)
+        self.action4_5_Ratio = QtGui.QAction(self)
+        self.actionCrop_Video = QtGui.QAction(self)
+
+        self.menubar = QtWidgets.QMenuBar(self)
+        self.menuFile = QtWidgets.QMenu(self.menubar)
+        self.menuTools = QtWidgets.QMenu(self.menubar)
+        self.menuInfo = QtWidgets.QMenu(self.menubar)
+
+        self.address_bar_widget = QtWidgets.QWidget()
+        self.back_button = QtWidgets.QPushButton()
+        self.forward_button = QtWidgets.QPushButton()
+        self.refresh_button = QtWidgets.QPushButton()
+        self.unified_address_bar = PathLineEdit(path_type=PathType.IMAGE)  # Default to image
+        self.context_button = QtWidgets.QPushButton()
+        self.secondary_input_container = QtWidgets.QWidget()
+        self.secondary_input = PathLineEdit(path_type=PathType.TABLE)
+        self.secondary_button = QtWidgets.QPushButton()
+        self.destination_container = QtWidgets.QWidget()
+        self.destination_label = QtWidgets.QLabel("Save to:")
+        self.destination_input = PathLineEdit(path_type=PathType.FOLDER)
+        self.destination_button = QtWidgets.QPushButton()
+        self.settings_button = QtWidgets.QPushButton()
+
+        self.function_tabWidget = QtWidgets.QTabWidget(self.centralwidget)
+        self.photo_tab = QtWidgets.QWidget()
+        self.verticalLayout_2 = ut.setup_vbox(u"verticalLayout_2", self.photo_tab)
+        self.photo_tab_widget = UiPhotoTabWidget(self.photo_worker, u"photo_tab_widget", self.photo_tab)
+        self.folder_tab = QtWidgets.QWidget()
+        self.verticalLayout_3 = ut.setup_vbox(u"verticalLayout_3", self.folder_tab)
+        self.folder_tab_widget = UiFolderTabWidget(self.folder_worker, u"folder_tab_widget", self.folder_tab)
+        self.mapping_tab = QtWidgets.QWidget()
+        self.verticalLayout_4 = ut.setup_vbox(u"verticalLayout_4", self.mapping_tab)
+        self.mapping_tab_widget = UiMappingTabWidget(self.mapping_worker, u"mapping_tab_widget", self.mapping_tab)
+        self.video_tab = QtWidgets.QWidget()
+        self.verticalLayout_5 = ut.setup_vbox(u"verticalLayout_5", self.video_tab)
+        self.video_tab_widget = UiVideoTabWidget(self.video_worker, u"video_tab_widget", self.video_tab)
 
         self.setObjectName(u"MainWindow")
         self.resize(1256, 652)
@@ -52,22 +104,15 @@ class UiMainWindow(QtWidgets.QMainWindow):
         icon.addFile(GuiIcon.LOGO, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         self.setWindowIcon(icon)
         
-        # Create main menu
+        # Create the main menu
         self.create_main_menu()
-        
-        # Create central widget
-        self.centralwidget = QtWidgets.QWidget(self)
-        self.centralwidget.setObjectName(u"centralwidget")
-        self.main_layout = QtWidgets.QVBoxLayout(self.centralwidget)
-        self.main_layout.setContentsMargins(0, 0, 0, 0)
-        self.main_layout.setSpacing(0)
         
         # Create address bar (browser-like)
         self.create_address_bar()
         
         # Create tab widget (browser-like)
-        self.create_tab_widget()
-        
+        self.create_tab_widgets()
+
         self.folder_worker.progressBars = [self.folder_tab_widget.progressBar]
         self.mapping_worker.progressBars = [self.mapping_tab_widget.progressBar]
         self.video_worker.progressBars = [self.video_tab_widget.progressBar, self.video_tab_widget.progressBar_2]
@@ -91,43 +136,29 @@ class UiMainWindow(QtWidgets.QMainWindow):
     def create_main_menu(self):
         """Create the main menu for the application"""
         # Create actions
-        self.actionAbout_Face_Cropper = QtGui.QAction(self)
         self.actionAbout_Face_Cropper.setObjectName(u"actionAbout_Face_Cropper")
-        
-        self.actionUse_Mapping = QtGui.QAction(self)
+
         self.actionUse_Mapping.setObjectName(u"actionUse_Mapping")
         icon1 = QtGui.QIcon()
         icon1.addFile(GuiIcon.EXCEL, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         self.actionUse_Mapping.setIcon(icon1)
-        
-        self.actionCrop_File = QtGui.QAction(self)
+
         self.actionCrop_File.setObjectName(u"actionCrop_File")
         icon2 = QtGui.QIcon()
         icon2.addFile(GuiIcon.PICTURE, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         self.actionCrop_File.setIcon(icon2)
-        
-        self.actionCrop_Folder = QtGui.QAction(self)
+
         self.actionCrop_Folder.setObjectName(u"actionCrop_Folder")
         icon3 = QtGui.QIcon()
         icon3.addFile(GuiIcon.FOLDER, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         self.actionCrop_Folder.setIcon(icon3)
-        
-        self.actionSquare = QtGui.QAction(self)
+
         self.actionSquare.setObjectName(u"actionSquare")
-        
-        self.actionGolden_Ratio = QtGui.QAction(self)
         self.actionGolden_Ratio.setObjectName(u"actionGolden_Ratio")
-        
-        self.action2_3_Ratio = QtGui.QAction(self)
         self.action2_3_Ratio.setObjectName(u"action2_3_Ratio")
-        
-        self.action3_4_Ratio = QtGui.QAction(self)
         self.action3_4_Ratio.setObjectName(u"action3_4_Ratio")
-        
-        self.action4_5_Ratio = QtGui.QAction(self)
         self.action4_5_Ratio.setObjectName(u"action4_5_Ratio")
-        
-        self.actionCrop_Video = QtGui.QAction(self)
+
         self.actionCrop_Video.setObjectName(u"actionCrop_Video")
         icon4 = QtGui.QIcon()
         icon4.addFile(GuiIcon.CLAPPERBOARD, QtCore.QSize(), QtGui.QIcon.Mode.Normal,
@@ -135,18 +166,12 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.actionCrop_Video.setIcon(icon4)
         
         # Create menu bar
-        self.menubar = QtWidgets.QMenuBar(self)
         self.menubar.setObjectName(u"menubar")
         self.menubar.setGeometry(QtCore.QRect(0, 0, 1256, 22))
         
         # Create menus
-        self.menuFile = QtWidgets.QMenu(self.menubar)
         self.menuFile.setObjectName(u"menuFile")
-        
-        self.menuTools = QtWidgets.QMenu(self.menubar)
         self.menuTools.setObjectName(u"menuTools")
-        
-        self.menuInfo = QtWidgets.QMenu(self.menubar)
         self.menuInfo.setObjectName(u"menuInfo")
         
         # Add menus to menu bar
@@ -172,7 +197,6 @@ class UiMainWindow(QtWidgets.QMainWindow):
     def create_address_bar(self):
         """Create a dynamic, context-aware address bar layout"""
         # Address bar container
-        self.address_bar_widget = QtWidgets.QWidget()
         self.address_bar_widget.setObjectName("addressBarWidget")
         self.address_bar_widget.setMinimumHeight(48)
         self.address_bar_widget.setMaximumHeight(48)
@@ -183,50 +207,42 @@ class UiMainWindow(QtWidgets.QMainWindow):
         address_bar_layout.setSpacing(10)
         
         # Navigation buttons
-        self.back_button = QtWidgets.QPushButton()
         self.back_button.setIcon(QtGui.QIcon.fromTheme("go-previous"))
         self.back_button.setObjectName("backButton")
         self.back_button.setToolTip("Back")
         self.back_button.setFixedSize(36, 36)
-        
-        self.forward_button = QtWidgets.QPushButton()
+
         self.forward_button.setIcon(QtGui.QIcon.fromTheme("go-next"))
         self.forward_button.setObjectName("forwardButton")
         self.forward_button.setToolTip("Forward")
         self.forward_button.setFixedSize(36, 36)
-        
-        self.refresh_button = QtWidgets.QPushButton()
+
         self.refresh_button.setIcon(QtGui.QIcon.fromTheme("view-refresh"))
         self.refresh_button.setObjectName("refreshButton")
         self.refresh_button.setToolTip("Refresh")
         self.refresh_button.setFixedSize(36, 36)
         
         # Unified address bar (dynamic path field)
-        self.unified_address_bar = PathLineEdit(path_type=PathType.IMAGE)  # Default to image
         self.unified_address_bar.setObjectName("unifiedAddressBar")
         self.unified_address_bar.setPlaceholderText("Enter path...")
         
         # Context-aware open button with changing icon
-        self.context_button = QtWidgets.QPushButton()
         self.context_button.setObjectName("contextButton")
         self.context_button.setToolTip("Open File")
         self.context_button.setIcon(QtGui.QIcon(GuiIcon.PICTURE))  # Default icon
         self.context_button.setFixedSize(36, 36)
         
         # Secondary input for mapping tab (initially hidden)
-        self.secondary_input_container = QtWidgets.QWidget()
         self.secondary_input_container.setObjectName("secondaryInputContainer")
         self.secondary_input_container.setVisible(False)  # Hidden by default
         
         secondary_layout = QtWidgets.QHBoxLayout(self.secondary_input_container)
         secondary_layout.setContentsMargins(0, 0, 0, 0)
         secondary_layout.setSpacing(5)
-        
-        self.secondary_input = PathLineEdit(path_type=PathType.TABLE)
+
         self.secondary_input.setObjectName("secondaryInput")
         self.secondary_input.setPlaceholderText("Select table file...")
-        
-        self.secondary_button = QtWidgets.QPushButton()
+
         self.secondary_button.setObjectName("secondaryButton")
         self.secondary_button.setIcon(QtGui.QIcon(GuiIcon.EXCEL))
         self.secondary_button.setFixedSize(36, 36)
@@ -236,21 +252,17 @@ class UiMainWindow(QtWidgets.QMainWindow):
         secondary_layout.addWidget(self.secondary_button)
         
         # Destination section (always visible)
-        self.destination_container = QtWidgets.QWidget()
         self.destination_container.setObjectName("destinationContainer")
         
         destination_layout = QtWidgets.QHBoxLayout(self.destination_container)
         destination_layout.setContentsMargins(0, 0, 0, 0)
         destination_layout.setSpacing(5)
-        
-        self.destination_label = QtWidgets.QLabel("Save to:")
+
         self.destination_label.setObjectName("destinationLabel")
-        
-        self.destination_input = PathLineEdit(path_type=PathType.FOLDER)
+
         self.destination_input.setObjectName("destinationInput")
         self.destination_input.setPlaceholderText("Select destination folder...")
-        
-        self.destination_button = QtWidgets.QPushButton()
+
         self.destination_button.setObjectName("destinationButton")
         self.destination_button.setIcon(QtGui.QIcon(GuiIcon.FOLDER))
         self.destination_button.setFixedSize(36, 36)
@@ -261,7 +273,6 @@ class UiMainWindow(QtWidgets.QMainWindow):
         destination_layout.addWidget(self.destination_button)
         
         # Settings button (on the right)
-        self.settings_button = QtWidgets.QPushButton()
         self.settings_button.setIcon(QtGui.QIcon.fromTheme("preferences-system"))
         self.settings_button.setObjectName("settingsButton")
         self.settings_button.setToolTip("Settings")
@@ -285,10 +296,9 @@ class UiMainWindow(QtWidgets.QMainWindow):
         # Add to the main layout
         self.main_layout.addWidget(self.address_bar_widget)
 
-    def create_tab_widget(self):
+    def create_tab_widgets(self):
         """Create browser-like tab widget layout"""
         # Create the tab widget
-        self.function_tabWidget = QtWidgets.QTabWidget(self.centralwidget)
         self.function_tabWidget.setObjectName(u"function_tabWidget")
         self.function_tabWidget.setMovable(True)
         
@@ -306,10 +316,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         icon2 = QtGui.QIcon()
         icon2.addFile(GuiIcon.PICTURE, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
-        self.photo_tab = QtWidgets.QWidget()
         self.photo_tab.setObjectName(u"photo_tab")
-        self.verticalLayout_2 = ut.setup_vbox(u"verticalLayout_2", self.photo_tab)
-        self.photo_tab_widget = UiPhotoTabWidget(self.photo_worker, u"photo_tab_widget", self.photo_tab)
 
         # Hide the redundant input fields that will be handled by unified address bar
         self.photo_tab_widget.horizontalLayout_2.setParent(None)  # Remove input layout
@@ -323,10 +330,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         icon3 = QtGui.QIcon()
         icon3.addFile(GuiIcon.FOLDER, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
-        self.folder_tab = QtWidgets.QWidget()
         self.folder_tab.setObjectName(u"folder_tab")
-        self.verticalLayout_3 = ut.setup_vbox(u"verticalLayout_3", self.folder_tab)
-        self.folder_tab_widget = UiFolderTabWidget(self.folder_worker, u"folder_tab_widget", self.folder_tab)
 
         # Modify the setup to remove redundant input fields
         # Access the verticalLayout_200 in page_1 to remove input and destination layouts
@@ -356,10 +360,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         icon1 = QtGui.QIcon()
         icon1.addFile(GuiIcon.EXCEL, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
-        self.mapping_tab = QtWidgets.QWidget()
         self.mapping_tab.setObjectName(u"mapping_tab")
-        self.verticalLayout_4 = ut.setup_vbox(u"verticalLayout_4", self.mapping_tab)
-        self.mapping_tab_widget = UiMappingTabWidget(self.mapping_worker, u"mapping_tab_widget", self.mapping_tab)
 
         self.verticalLayout_4.addWidget(self.mapping_tab_widget)
         self.function_tabWidget.addTab(self.mapping_tab, icon1, "")
@@ -369,10 +370,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         icon4 = QtGui.QIcon()
         icon4.addFile(GuiIcon.CLAPPERBOARD, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
-        self.video_tab = QtWidgets.QWidget()
         self.video_tab.setObjectName(u"video_tab")
-        self.verticalLayout_5 = ut.setup_vbox(u"verticalLayout_5", self.video_tab)
-        self.video_tab_widget = UiVideoTabWidget(self.video_worker, u"video_tab_widget", self.video_tab)
 
         # Register state retrieval functions for each widget type
         for func_type, widget in [
@@ -682,13 +680,13 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
     # Browser-style navigation methods
     def navigate_back(self):
-        """Navigate to previous tab"""
+        """Navigate to the previous tab"""
         current_index = self.function_tabWidget.currentIndex()
         if current_index > 0:
             self.function_tabWidget.setCurrentIndex(current_index - 1)
     
     def navigate_forward(self):
-        """Navigate to next tab"""
+        """Navigate to the next tab"""
         current_index = self.function_tabWidget.currentIndex()
         if current_index < self.function_tabWidget.count() - 1:
             self.function_tabWidget.setCurrentIndex(current_index + 1)
@@ -875,13 +873,9 @@ class UiMainWindow(QtWidgets.QMainWindow):
         size = screen.size()
         width, height = size.width(), size.height()
         
-        # Calculate appropriate window size based on screen size
-        window_width = min(int(width * 0.85), 1600)  # Cap at 1600px for very large screens
-        window_height = min(int(height * 0.85), 900)  # Cap at 900px for very large screens
-        
-        # Ensure minimum size for smaller screens
-        window_width = max(window_width, 800)  # Minimum width of 800px
-        window_height = max(window_height, 600)  # Minimum height of 600px
+        # Calculate the appropriate window size based on screen size
+        window_width = max(min(int(width * 0.85), 1600), 800)  # Cap at 1600 px for very large screens
+        window_height = max(min(int(height * 0.85), 900), 600)  # Cap at 900 px for very large screens
         
         # Resize the window
         self.resize(window_width, window_height)
@@ -912,7 +906,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
     def handle_tab_close(self, index: int):
         """
         Handle tab close button clicks.
-        For a browser-like experience, we don't actually close tabs but reset their state.
+        For a browser-like experience, we don't close tabs but reset their state.
         """
         # Doesn't close the tab, just resets its state
         

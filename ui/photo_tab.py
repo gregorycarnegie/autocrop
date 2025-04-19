@@ -18,7 +18,9 @@ class UiPhotoTabWidget(UiCropWidget):
         super().__init__(parent, object_name)
         self.crop_worker = crop_worker
         self.selection_state = self.SELECTED
-    
+
+        self.cropButton = self.create_main_button("cropButton", GuiIcon.CROP)
+
         # Path storage fields
         self.input_path = ""
         self.destination_path = ""
@@ -57,7 +59,7 @@ class UiPhotoTabWidget(UiCropWidget):
         vertical_layout.addWidget(self.imageWidget)
         
         # Crop button
-        self.cropButton = self.create_main_button("cropButton", GuiIcon.CROP)
+
         self.cropButton.setParent(frame)
         self.cropButton.setDisabled(True)
         vertical_layout.addWidget(self.cropButton)

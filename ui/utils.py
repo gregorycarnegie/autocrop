@@ -164,7 +164,7 @@ def display_image_on_widget(image: cvt.MatLike, image_widget: ImageWidget) -> No
         image (cvt.MatLike): The image to display.
         image_widget (ImageWidget): The image widget to display the image on.
 
-    Returns:`
+    Returns:
         None
 
     Example:
@@ -293,7 +293,7 @@ def generate_message(msg_box: QtWidgets.QMessageBox, message: str) -> None:
 
 
 def show_warning(function_type: FunctionType) -> int:
-    """Shows a warning message based on function type."""
+    """Shows a warning message based on the function type."""
     msg_box = create_warning_box()
     
     # Map function types to warning messages

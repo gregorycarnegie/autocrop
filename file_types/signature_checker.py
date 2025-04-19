@@ -88,8 +88,8 @@ class SignatureChecker:
         if category not in cls._SIGNATURES:
             return []
             
-        category_sigs = cls._SIGNATURES[category]
-        return category_sigs.get(extension, [])
+        category_signatures = cls._SIGNATURES[category]
+        return category_signatures.get(extension, [])
     
     @staticmethod
     def _validate_text_file(file_path: Path) -> bool:
@@ -120,5 +120,5 @@ class SignatureChecker:
                 and header[offset : offset + len(signature)] == signature
                 for signature, offset in signatures
             )
-        except Exception:
+        except (FileNotFoundError, PermissionError, OSError):
             return False
