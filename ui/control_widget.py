@@ -6,6 +6,7 @@ from PyQt6 import QtCore, QtWidgets
 from core import ResourcePath
 from line_edits import NumberLineEdit
 from ui import utils as ut
+from .svg_radio_button_group import SvgRadioButtonGroup, SvgRadioButton
 
 
 @cache
@@ -27,24 +28,6 @@ RadioButtonTuple = tuple[bool, bool, bool, bool, bool, bool]
 
 
 class UiCropControlWidget(QtWidgets.QWidget):
-    RADIO_STYLESHEET: ClassVar[str] = """
-        QRadioButton {{
-            padding: 4px;
-        }}
-        QRadioButton::indicator:checked {{
-            image: url({true_icon});
-        }}
-        QRadioButton::indicator:unchecked {{
-            image: url({false_icon});
-        }}
-        QRadioButton::indicator:checked:hover {{
-            image: url({false_icon});
-        }}
-        QRadioButton::indicator:unchecked:hover {{
-            image: url({true_icon});
-        }}
-    """
-
     GAMMA_VAL: ClassVar[int] = 1000
     SENSITIVITY_VAL: ClassVar[int] = 50
     FPCT_VAL: ClassVar[int] = 62
@@ -54,18 +37,16 @@ class UiCropControlWidget(QtWidgets.QWidget):
         self.setObjectName(u"CropControlWidget")
         self.horizontalLayout = ut.setup_hbox(u"horizontalLayout", self)
         self.verticalLayout_1 = ut.setup_vbox(u"verticalLayout_1")
-        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
-                                            QtWidgets.QSizePolicy.Policy.Expanding)
-        size_policy.setHorizontalStretch(1)
-        size_policy.setVerticalStretch(1)
 
-        self.radioButton_none = self.create_radio_button(size_policy, u"radioButton_none", RADIO_NONE, self.verticalLayout_1)
+        self._svg_radio_button_group = SvgRadioButtonGroup()
+
+        self.radioButton_none = self.create_radio_button(u"radioButton_none", RADIO_NONE, self.verticalLayout_1)
         self.radioButton_none.setChecked(True)
-        self.radioButton_bmp = self.create_radio_button(size_policy, u"radioButton_bmp", RADIO_BMP, self.verticalLayout_1)
-        self.radioButton_jpg = self.create_radio_button(size_policy, u"radioButton_jpg", RADIO_JPG, self.verticalLayout_1)
-        self.radioButton_png = self.create_radio_button(size_policy, u"radioButton_png", RADIO_PNG, self.verticalLayout_1)
-        self.radioButton_tiff = self.create_radio_button(size_policy, u"radioButton_tiff", RADIO_TIFF, self.verticalLayout_1)
-        self.radioButton_webp = self.create_radio_button(size_policy, u"radioButton_webp", RADIO_WEBP, self.verticalLayout_1)
+        self.radioButton_bmp = self.create_radio_button(u"radioButton_bmp", RADIO_BMP, self.verticalLayout_1)
+        self.radioButton_jpg = self.create_radio_button(u"radioButton_jpg", RADIO_JPG, self.verticalLayout_1)
+        self.radioButton_png = self.create_radio_button(u"radioButton_png", RADIO_PNG, self.verticalLayout_1)
+        self.radioButton_tiff = self.create_radio_button(u"radioButton_tiff", RADIO_TIFF, self.verticalLayout_1)
+        self.radioButton_webp = self.create_radio_button(u"radioButton_webp", RADIO_WEBP, self.verticalLayout_1)
 
         self.verticalSpacer_1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Policy.Minimum,
                                                       QtWidgets.QSizePolicy.Policy.Expanding)
@@ -305,21 +286,33 @@ class UiCropControlWidget(QtWidgets.QWidget):
             false_icon=false_path,
         )
 
-    def create_radio_button(self, size_policy: QtWidgets.QSizePolicy, name: str,
+    def create_radio_button(self,
+                            name: str,
                             icon_resource: tuple[str, str],
-                            layout: Union[QtWidgets.QHBoxLayout, QtWidgets.QVBoxLayout]) -> QtWidgets.QRadioButton:
-        radio_button = QtWidgets.QRadioButton(self)
+                            layout: Union[QtWidgets.QHBoxLayout, QtWidgets.QVBoxLayout]) -> SvgRadioButton:
+        # Get icon resources
+        icon_resource_paths = self.resource_const(*icon_resource)
+        
+        # Create the custom radio button
+        radio_button = SvgRadioButton(
+            parent=self,
+            checked_icon=icon_resource_paths[0],
+            unchecked_icon=icon_resource_paths[1]
+        )
         radio_button.setObjectName(name)
-        size_policy.setHeightForWidth(radio_button.sizePolicy().hasHeightForWidth())
-        radio_button.setSizePolicy(size_policy)
-
-        radio_button.setIconSize(QtCore.QSize(30, 30))
-                                 
-        icon_resource = self.resource_const(*icon_resource)
-        stylesheet = self.format_style_sheet(self.RADIO_STYLESHEET, *icon_resource)
-
-        radio_button.setStyleSheet(stylesheet)
+        
+        # Set expanding size policy
+        radio_button.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Expanding
+        )
+        
+        # Add to a button group
+        self._svg_radio_button_group.addButton(radio_button)
+        
+        # Add to layout
         layout.addWidget(radio_button)
+        
         return radio_button
 
     def create_dial(self, name: str,
