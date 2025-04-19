@@ -526,7 +526,6 @@ class UiVideoTabWidget(UiCropWidget):
             if processed_image is None:
                 return None
             ut.display_image_on_widget(processed_image, self.imageWidget)
-            return None
         else:
             # For single face, show a crop_from_path preview
             cropped_image = prc.crop_single_face(frame, job, self.crop_worker.face_detection_tools, video=True)
@@ -534,7 +533,8 @@ class UiVideoTabWidget(UiCropWidget):
                 # Display the cropped image
                 ut.display_image_on_widget(cropped_image, self.imageWidget)
                 return None
-            return None
+
+        return None
 
     # Media player methods
     def create_media_player(self) -> None:
