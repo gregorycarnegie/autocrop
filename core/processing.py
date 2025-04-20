@@ -106,7 +106,7 @@ def crop_to_bounding_box(image: cv2.Mat, bounding_box: Box) -> cv2.Mat:
 
 def prepare_visualisation_image(image: cv2.Mat) -> tuple[cv2.Mat, float]:
     """
-    Resizes an image to 256px height, returns grayscale if >2 channels, plus the scaling factor.
+    Resizes an image to 256 px height, returns grayscale if >2 channels, plus the scaling factor.
     """
     output_height = Config.default_preview_height
     output_width, scaling_factor = rs.calculate_dimensions(*image.shape[:2], output_height)
@@ -315,7 +315,7 @@ def get_face_boxes(image: cv2.Mat,
                    job: Job,
                    face_detection_tools: FaceToolPair) -> Optional[Iterator[tuple[float, Box]]]:
     """
-    Returns confidences and bounding boxes for all detected faces above threshold.
+    Returns confidences and bounding boxes for all detected faces above the threshold.
     
     Args:
         image: Input image
@@ -651,7 +651,7 @@ def process_image(image: cv2.Mat,
                   face_detection_tools: FaceToolPair,
                   video: bool) -> cv2.Mat:
     """
-    Crops an image according to 'bounding_box', applies processing pipeline, and resizes.
+    Crops an image according to 'bounding_box', applies the processing pipeline, and resizes.
     """
     # Create and apply the processing pipeline
     pipeline = build_processing_pipeline(job, face_detection_tools, bounding_box, video=video)
@@ -689,7 +689,7 @@ def _(image: Path,
 @singledispatch
 def crop_all_faces(a0: Union[cv2.Mat, np.ndarray, Path], *args, **kwargs) -> Optional[Iterator[cv2.Mat]]:
     """
-    Multi-face cropping function. Yields cropped faces above threshold, resized to `job.size`.
+    Multi-face cropping function. Yields cropped faces above the threshold, resized to `job.size`.
     """
     raise NotImplementedError(f"Unsupported input type: {type(a0)}")
 
@@ -701,7 +701,7 @@ def _(image: Union[cv2.Mat, np.ndarray],
       video: bool) -> Optional[Iterator[cv2.Mat]]:
     """
     Optimized multi-face cropping function using the pipeline approach.
-    Yields cropped faces above threshold, resized to `job.size`.
+    Yields cropped faces above the threshold, resized to `job.size`.
     """
     # Step 1: Detect faces and get bounding boxes
     results = get_face_boxes(image, job, face_detection_tools)
@@ -709,7 +709,7 @@ def _(image: Union[cv2.Mat, np.ndarray],
     if results is None:
         return None
     
-    # Step 2: Filter faces based on confidence threshold
+    # Step 2: Filter faces based on the confidence threshold
     valid_faces = [
         (confidence, bounding_box) for confidence, bounding_box in results
         if confidence > job.threshold
@@ -897,10 +897,10 @@ def batch_process_with_mapping(images: list[Path],
     return all_output_paths
 
 
-def invoke_progress_by_chunk(chunk_size: int, 
-                           progress_count: int,
-                           total_images: int,
-                           progress_bars: list[QtWidgets.QProgressBar]) -> int:
+def invoke_progress_by_chunk(chunk_size: int,
+                             progress_count: int,
+                             total_images: int,
+                             progress_bars: list[QtWidgets.QProgressBar]) -> int:
     """
     Updates progress bars based on completed chunks rather than individual files.
     
@@ -953,7 +953,7 @@ def process_batch_item(image_array: cv2.Mat,
     output_paths = []
 
     def batch_helper(_bounding_box: Box,  face_index: Optional[int]=None) -> None:
-        # Create output path using the provided function
+        # Create an output path using the provided function
         output_path = get_output_path_fn(img_path, face_index)
         # Create a pipeline specific to this face with its bounding box
         face_pipeline = build_processing_pipeline(job, face_detection_tools, _bounding_box, video=video)
