@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 import cv2
 import psutil
 
@@ -16,25 +18,31 @@ L_EYE_START, L_EYE_END = 36, 42
 R_EYE_START, R_EYE_END = 42, 48
 
 
+@dataclass(slots=True, frozen=True)
 class Rectangle:
-    def __init__(self, left: int, top: int, right: int, bottom: int, confidence: float):
-        self.left = left
-        self.top = top
-        self.right = right
-        self.bottom = bottom
-        self.confidence = confidence
-    
+    left: int
+    top: int
+    right: int
+    bottom: int
+    confidence: float = 1.0
+
     @property
-    def width(self):
+    def width(self) -> int:
         return self.right - self.left
-    
+
     @property
-    def height(self):
+    def height(self) -> int:
         return self.bottom - self.top
-    
+
     @property
-    def area(self):
+    def area(self) -> int:
         return self.width * self.height
+
+    def __post_init__(self) -> None:
+        if self.left >= self.right or self.top >= self.bottom:
+            raise ValueError("Invalid rectangle coordinates")
+        if not (0.0 <= self.confidence <= 1.0):
+            raise ValueError("confidence must be in [0, 1]")
     
 
 class YuNetFaceDetector:
