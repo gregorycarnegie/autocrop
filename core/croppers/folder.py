@@ -42,7 +42,7 @@ class FolderCropper(BatchCropper):
         """
         Prepare the folder crop_from_path operation by getting file list and splitting into chunks.
         """
-        if not (file_list := job.path_iter()):
+        if not (file_list := job.iter_images()):
             return None, None
 
         amount = len(file_list)

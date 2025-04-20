@@ -198,10 +198,10 @@ class BatchCropper(Cropper):
 
         # If a file count is provided, check disk capacity
         if file_count is not None:
-            total_size = job.byte_size * file_count
+            total_size = job.approx_byte_size * file_count
 
             # Check if there is enough space on the disk to process the files
-            if job.available_space == 0 or job.available_space < total_size:
+            if job.free_space == 0 or job.free_space < total_size:
                 self.create_error('capacity')
                 return False
 

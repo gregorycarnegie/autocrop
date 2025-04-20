@@ -36,7 +36,7 @@ class PhotoCropper(Cropper):
                 return self._display_error(exception, message)
             
             # Check if there is enough space on the disk to process the files.
-            if job.available_space == 0 or job.available_space < job.byte_size:
+            if job.free_space == 0 or job.free_space < job.approx_byte_size:
                 exception, message = self.create_error('capacity')
                 return self._display_error(exception, message)
         

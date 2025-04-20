@@ -231,9 +231,9 @@ class VideoCropper(Cropper):
         start_frame = int(job.start_position * fps)
         end_frame = int(job.stop_position * fps)
 
-        size = job.byte_size * (end_frame - start_frame)
+        size = job.approx_byte_size * (end_frame - start_frame)
 
-        if job.available_space == 0 or job.available_space < size:
+        if job.free_space == 0 or job.free_space < size:
             exception, message = self.create_error('capacity')
             return self._display_error(exception, message)
 
