@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Union, Optional
 
 from PyQt6 import QtCore, QtWidgets, QtGui
+from PyQt6.QtSvg import QSvgRenderer
 
 from core import face_tools as ft
 from core import processing as prc
@@ -160,6 +161,12 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.action2_3_Ratio.setObjectName(u"action2_3_Ratio")
         self.action3_4_Ratio.setObjectName(u"action3_4_Ratio")
         self.action4_5_Ratio.setObjectName(u"action4_5_Ratio")
+
+        self.decorate_action(self.actionSquare, 1, 1, "#3498db")
+        self.decorate_action(self.actionGolden_Ratio, 100, 162, "#f39c12")
+        self.decorate_action(self.action2_3_Ratio, 2, 3, "#2ecc71")
+        self.decorate_action(self.action3_4_Ratio, 3, 4, "#e74c3c")
+        self.decorate_action(self.action4_5_Ratio, 4, 5, "#9b59b6")
 
         self.actionCrop_Video.setObjectName(u"actionCrop_Video")
         icon4 = QtGui.QIcon()
@@ -396,6 +403,39 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
         self.verticalLayout_5.addWidget(self.video_tab_widget)
         self.function_tabWidget.addTab(self.video_tab, icon4, "")
+
+    def decorate_action(self,action: QtGui.QAction, width: float, height: float, color: str):
+        """Set the aspect ratio icons for the address bar and destination input"""
+        max_dim = 64
+        # Compute a uniform scale factor that fits the longer side to `max_dim`.
+        scale = max_dim / max(width, height)
+        w, h = int(width * scale), int(height * scale)
+
+        # Centre the rectangle on the square canvas.
+        x_offset, y_offset = (max_dim - w) // 2, (max_dim - h) // 2
+
+        # Create SVG data with the rectangle
+        svg_data = f"""
+        <svg width="{max_dim}" height="{max_dim}" xmlns="http://www.w3.org/2000/svg">
+            <rect x="{x_offset}" y="{y_offset}" width="{w}" height="{h}" fill="{color}" 
+                stroke="#333333" stroke-width="2" rx="2" ry="2"/>
+        </svg>
+        """
+
+        svg_bytes = QtCore.QByteArray(svg_data.encode())
+        renderer = QSvgRenderer(svg_bytes)
+
+        # Create pixmap at multiple sizes for better scaling
+        icon = QtGui.QIcon()
+        for size in [16, 24, 32, 48, 64]:
+            pixmap = QtGui.QPixmap(size, size)
+            pixmap.fill(QtCore.Qt.GlobalColor.transparent)
+            painter = QtGui.QPainter(pixmap)
+            renderer.render(painter)
+            painter.end()
+            icon.addPixmap(pixmap)
+
+        action.setIcon(icon)
 
     def initialize_clear_button_states(self):
         """Initialize clear button states for all path line edits"""
