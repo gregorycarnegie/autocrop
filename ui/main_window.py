@@ -140,6 +140,8 @@ class UiMainWindow(QtWidgets.QMainWindow):
         """Create the main menu for the application"""
         # Create actions
         self.actionAbout_Face_Cropper.setObjectName(u"actionAbout_Face_Cropper")
+        icon0 = QtGui.QIcon.fromTheme("help-browser")
+        self.actionAbout_Face_Cropper.setIcon(icon0)
 
         self.actionUse_Mapping.setObjectName(u"actionUse_Mapping")
         icon1 = QtGui.QIcon()
@@ -550,7 +552,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
     # retranslateUi
     def retranslateUi(self):
-        self.setWindowTitle(QtCore.QCoreApplication.translate("self", u"Autocrop Browser", None))
+        self.setWindowTitle(QtCore.QCoreApplication.translate("self", u"Autocrop", None))
         self.actionAbout_Face_Cropper.setText(QtCore.QCoreApplication.translate("self", u"About Autocrop", None))
         self.actionUse_Mapping.setText(QtCore.QCoreApplication.translate("self", u"Use Mapping", None))
         self.actionCrop_File.setText(QtCore.QCoreApplication.translate("self", u"Crop File", None))
