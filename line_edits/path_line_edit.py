@@ -88,6 +88,33 @@ class PathLineEdit(CustomLineEdit):
                 if current_tab and hasattr(current_tab, 'disable_buttons'):
                     current_tab.disable_buttons()
 
+    def focusInEvent(self, event) -> None:
+        """
+        Override focus in event to update clear button visibility
+        
+        Args:
+            event: The focus event
+            
+        Returns:
+            None
+        """
+        super().focusInEvent(event)
+        # Ensure clear button visibility is correct
+        self.update_clear_button(self.text())
+    
+    def focusOutEvent(self, event) -> None:
+        """
+        Override focus out event to update clear button visibility
+        
+        Args:
+            event: The focus event
+            
+        Returns:
+            None
+        """
+        super().focusOutEvent(event)
+        # Ensure clear button visibility is correct 
+        self.update_clear_button(self.text())
 
     def is_valid_path(self, path: Path) -> bool:
         """

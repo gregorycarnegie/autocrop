@@ -110,6 +110,20 @@ class CustomLineEdit(QLineEdit):
 
         self.clearButton.setVisible(bool(text))
 
+    def showEvent(self, event) -> None:
+        """
+        Override showEvent to ensure clear button visibility is properly updated when widget becomes visible.
+        
+        Args:
+            event: The show event.
+            
+        Returns:
+            None
+        """
+        super().showEvent(event)
+        # Update clear button visibility based on current text
+        self.update_clear_button(self.text())
+
     def validate_path(self) -> None:
         """Validate a path based on input and set color accordingly."""
         raise NotImplementedError('Subclasses should implement this method!')
@@ -171,3 +185,4 @@ class CustomLineEdit(QLineEdit):
         """
 
         self.setStyleSheet(f'background-color: {self.colour}; color: black;')
+        self.update_clear_button(self.text())  # Update clear button visibility after style change

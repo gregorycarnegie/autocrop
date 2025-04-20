@@ -82,7 +82,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.destination_label = QtWidgets.QLabel("Save to:")
         self.destination_input = PathLineEdit(path_type=PathType.FOLDER)
         self.destination_button = QtWidgets.QPushButton()
-        self.settings_button = QtWidgets.QPushButton()
+        self.info_button = QtWidgets.QPushButton()
 
         self.function_tabWidget = QtWidgets.QTabWidget(self.centralwidget)
         self.photo_tab = QtWidgets.QWidget()
@@ -130,6 +130,8 @@ class UiMainWindow(QtWidgets.QMainWindow):
         
         # Set initial tab
         self.function_tabWidget.setCurrentIndex(0)
+
+        self.initialize_clear_button_states()
         
         QtCore.QMetaObject.connectSlotsByName(self)
 
@@ -272,11 +274,11 @@ class UiMainWindow(QtWidgets.QMainWindow):
         destination_layout.addWidget(self.destination_input)
         destination_layout.addWidget(self.destination_button)
         
-        # Settings button (on the right)
-        self.settings_button.setIcon(QtGui.QIcon.fromTheme("preferences-system"))
-        self.settings_button.setObjectName("settingsButton")
-        self.settings_button.setToolTip("Settings")
-        self.settings_button.setFixedSize(36, 36)
+        # Info button (on the right)
+        self.info_button.setIcon(QtGui.QIcon.fromTheme("help-browser"))
+        self.info_button.setObjectName("infoButton")
+        self.info_button.setToolTip("Info")
+        self.info_button.setFixedSize(36, 36)
         
         # Add widgets to layout
         address_bar_layout.addWidget(self.back_button)
@@ -286,7 +288,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         address_bar_layout.addWidget(self.context_button)
         address_bar_layout.addWidget(self.secondary_input_container)
         address_bar_layout.addWidget(self.destination_container)
-        address_bar_layout.addWidget(self.settings_button)
+        address_bar_layout.addWidget(self.info_button)
         
         # Set stretch factors
         address_bar_layout.setStretch(3, 3)  # Unified address bar gets more space
@@ -395,6 +397,21 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_5.addWidget(self.video_tab_widget)
         self.function_tabWidget.addTab(self.video_tab, icon4, "")
 
+    def initialize_clear_button_states(self):
+        """Initialize clear button states for all path line edits"""
+        # Update clear button states for all path line edits
+        self.unified_address_bar.update_clear_button(self.unified_address_bar.text())
+        self.destination_input.update_clear_button(self.destination_input.text())
+        self.secondary_input.update_clear_button(self.secondary_input.text())
+        
+        # Make sure visibility is properly set
+        if not self.unified_address_bar.text():
+            self.unified_address_bar.clearButton.setVisible(False)
+        if not self.destination_input.text():
+            self.destination_input.clearButton.setVisible(False)
+        if not self.secondary_input.text():
+            self.secondary_input.clearButton.setVisible(False)
+
     def update_address_bar_context(self):
         """Update address bar context based on current tab"""
         current_index = self.function_tabWidget.currentIndex()
@@ -482,6 +499,14 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 self.destination_input.blockSignals(True)
                 self.destination_input.setText(self.video_tab_widget.destination_path)
                 self.destination_input.blockSignals(False)
+        
+        # Force update of clear button visibility after changing tab
+        # This is important since we block signals during setText operations
+        self.unified_address_bar.update_clear_button(self.unified_address_bar.text())
+        self.destination_input.update_clear_button(self.destination_input.text())
+        if self.secondary_input_container.isVisible():
+            self.secondary_input.update_clear_button(self.secondary_input.text())
+
 
     # retranslateUi
     def retranslateUi(self):
@@ -514,7 +539,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.back_button.setToolTip(QtCore.QCoreApplication.translate("self", u"Back", None))
         self.forward_button.setToolTip(QtCore.QCoreApplication.translate("self", u"Forward", None))
         self.refresh_button.setToolTip(QtCore.QCoreApplication.translate("self", u"Refresh Preview", None))
-        self.settings_button.setToolTip(QtCore.QCoreApplication.translate("self", u"Settings", None))
+        self.info_button.setToolTip(QtCore.QCoreApplication.translate("self", u"Settings", None))
         
     def connect_widgets(self):
         """Connect widget signals to handlers"""
@@ -539,7 +564,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.back_button.clicked.connect(self.navigate_back)
         self.forward_button.clicked.connect(self.navigate_forward)
         self.refresh_button.clicked.connect(self.refresh_current_view)
-        self.settings_button.clicked.connect(self.show_settings)
+        self.info_button.clicked.connect(self.show_settings)
         
         # Connect unified address bar signals
         self.connect_address_bar_signals()
