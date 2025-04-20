@@ -35,7 +35,7 @@ class Rectangle:
     
     @property
     def area(self):
-        return (self.right - self.left) * (self.bottom - self.top)
+        return self.width * self.height
     
 
 class YuNetFaceDetector:
