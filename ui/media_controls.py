@@ -27,7 +27,7 @@ class UiMediaControlWidget(QtWidgets.QWidget):
         self.stepfwdButton = media_button_helper(u"stepfwdButton", GuiIcon.MULTIMEDIA_RIGHT)
         self.rewindButton = media_button_helper(u"rewindButton", GuiIcon.MULTIMEDIA_REWIND)
         self.fastfwdButton = media_button_helper(u"fastfwdButton", GuiIcon.MULTIMEDIA_FASTFWD)
-        self.goto_beginingButton = media_button_helper(u"goto_beginingButton", GuiIcon.MULTIMEDIA_BEGINING)
+        self.goto_beginingButton = media_button_helper(u"goto_beginingButton", GuiIcon.MULTIMEDIA_BEGINNING)
         self.goto_endButton = media_button_helper(u"goto_endButton", GuiIcon.MULTIMEDIA_END)
         self.startmarkerButton = media_button_helper(u"startmarkerButton", GuiIcon.MULTIMEDIA_LEFTMARKER)
         self.endmarkerButton = media_button_helper(u"endmarkerButton", GuiIcon.MULTIMEDIA_RIGHTMARKER)

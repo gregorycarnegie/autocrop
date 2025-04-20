@@ -1,32 +1,22 @@
+from __future__ import annotations
+
 import sys
+from functools import cached_property
 from pathlib import Path
-from typing import Union, cast
+from typing import Self
+
+_BasePath = type(Path())  # PosixPath | WindowsPath at runtime
 
 
-class ResourcePath(Path):
-    """
-    A class that extends the Path class to support resource paths, especially useful
-    for PyInstaller packaged applications.
-    """
+class ResourcePath(_BasePath):
+    """Path‑like helper that resolves to the correct on‑disk location
+    whether the code is frozen by PyInstaller or running unpacked.
 
-    def __new__(cls, *args: Union[str, Path], **kwargs) -> 'ResourcePath':
-        """
-        Create a new instance of ResourcePath.
-        """
-        instance = super().__new__(cls, *args, **kwargs)
-        return cast(ResourcePath, instance)
+    Adapted from: https://stackoverflow.com/questions/31836104/pyinstaller-and-onefile-how-to-include-an-image-in-the-exe-file"""
 
-    @property
-    def meipass_path(self) -> str:
-        """
-        Return the correct resource path for PyInstaller packaged applications.
+    @cached_property
+    def _base_dir(self) -> Path:
+        return Path(getattr(sys, "_MEIPASS2", Path.cwd()))
 
-        PyInstaller uses a temporary folder named `_MEIPASS2` to store temporary files.
-        This method checks if the `_MEIPASS2` attribute is present in the sys module
-        and constructs the path accordingly.
-
-        Returns:
-            str: The resource path.
-        """
-        base_path = Path(getattr(sys, '_MEIPASS', str(Path().resolve())))
-        return (base_path / self).as_posix()
+    def as_resource(self) -> Self:     #  ← returns its own concrete subclass
+        return type(self)(self._base_dir / self)

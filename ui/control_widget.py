@@ -10,12 +10,20 @@ from .svg_radio_button_group import SvgRadioButtonGroup, SvgRadioButton
 
 
 @cache
-def get_icon_path_tuple(icon_name: str) -> tuple[str, str]:
-    def helper(string):
-        return ResourcePath(f'resources/icons/file_{string}checked.svg').meipass_path
+def get_icon_path_tuple(icon_name: str) -> tuple[ResourcePath, ResourcePath]:
+    """
+    Return the *checked* and *unchecked* SVG paths for a “file_*” icon.
 
-    return helper(f'{icon_name}_'), helper(f'{icon_name}_un')
-
+    Example
+    -------
+    >>> get_icon_path_tuple("folder")
+    (Path('.../file_folder_checked.svg'),
+     Path('.../file_folder_unchecked.svg'))
+    """
+    base = ResourcePath("resources/icons")
+    checked   = (base / f"file_{icon_name}_checked.svg").as_resource()
+    unchecked = (base / f"file_{icon_name}_unchecked.svg").as_resource()
+    return checked, unchecked
 
 RADIO_NONE = get_icon_path_tuple('no')
 RADIO_BMP = get_icon_path_tuple('bmp')
@@ -266,8 +274,8 @@ class UiCropControlWidget(QtWidgets.QWidget):
         self.fpctLabel.setText(QtCore.QCoreApplication.translate("self", u"Face%:", None))
 
     @staticmethod
-    def resource_const(*args: str) -> tuple[str, ...]:
-        return tuple(ResourcePath(arg).meipass_path for arg in args)
+    def resource_const(*args: ResourcePath) -> tuple[str, ...]:
+        return tuple(arg.as_posix() for arg in args)
 
     @property
     def radio_tuple(self) -> RadioButtonTuple:
@@ -284,7 +292,7 @@ class UiCropControlWidget(QtWidgets.QWidget):
 
     def create_radio_button(self,
                             name: str,
-                            icon_resource: tuple[str, str],
+                            icon_resource: tuple[ResourcePath, ResourcePath],
                             layout: Union[QtWidgets.QHBoxLayout, QtWidgets.QVBoxLayout]) -> SvgRadioButton:
         # Get icon resources
         icon_resource_paths = self.resource_const(*icon_resource)

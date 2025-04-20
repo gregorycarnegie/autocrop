@@ -9,8 +9,8 @@ from .resource_path import ResourcePath
 THREAD_NUMBER = min(psutil.cpu_count(), psutil.virtual_memory().total // (2 * 1024 ** 3), 8)
 
 # Paths to model files
-YUNET_MODEL = ResourcePath(Path('resources') / 'models' / 'face_detection_yunet_2023mar.onnx').meipass_path # MIT license
-LBFMODEL = ResourcePath(Path('resources') / 'models' / 'lbfmodel.yaml').meipass_path # MIT license
+YUNET_MODEL = ResourcePath(Path('resources') / 'models' / 'face_detection_yunet_2023mar.onnx').as_resource() # MIT license
+LBFMODEL = ResourcePath(Path('resources') / 'models' / 'lbfmodel.yaml').as_resource() # MIT license
 
 # Eye landmark indices
 L_EYE_START, L_EYE_END = 36, 42
@@ -44,7 +44,7 @@ class YuNetFaceDetector:
     def __init__(self):
         # Create YuNet detector
         self._detector = cv2.FaceDetectorYN.create(
-            YUNET_MODEL,
+            YUNET_MODEL.as_posix(),
             "",
             (320, 320),  # Input size
             0.9,         # Score threshold
@@ -81,8 +81,6 @@ class YuNetFaceDetector:
             # Create the rectangle with the top-left (x, y) and bottom-right (x+w, y+h)
             return Rectangle(x, y, x + w, y + h, face[14])
 
-        # result = list(map(create_rectangle, faces)) if faces is not None else []
-        
         return list(map(create_rectangle, faces)) if faces is not None else []
 
 
@@ -101,7 +99,7 @@ def create_tool_pair() -> FaceToolPair:
     
     # Use OpenCV's FacemarkLBF instead of dlib's shape predictor
     facemark = cv2.face.createFacemarkLBF()
-    facemark.loadModel(LBFMODEL)
+    facemark.loadModel(LBFMODEL.as_posix())
     
     # Return the detector and facemark model as a pair
     return detector, facemark
