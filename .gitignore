@@ -32,6 +32,7 @@ nav_gen.py
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
+*.iss
 
 # Installer logs
 pip-log.txt
