@@ -340,17 +340,10 @@ def get_face_boxes(image: cv2.Mat,
     boxes: list[Box] = []
     for face in faces:
         if box := rs.crop_positions(
-            face.left,
-            face.top,
-            face.width,
-            face.height,
+            (face.left, face.top, face.width, face.height),
             job.face_percent,
-            job.width,
-            job.height,
-            job.top,
-            job.bottom,
-            job.left,
-            job.right,
+            (job.width, job.height),
+            (job.top, job.bottom, job.left, job.right),
         ):
             boxes.append(box)
 
@@ -457,9 +450,10 @@ def detect_face_box(image: cv2.Mat,
         
         # Calculate crop_from_path box using Rust module
         return rs.crop_positions(
-            x0, y0, face_width, face_height, 
-            job.face_percent, job.width, job.height,
-            job.top, job.bottom, job.left, job.right
+            (x0, y0, face_width, face_height),
+            job.face_percent,
+            (job.width, job.height),
+            (job.top, job.bottom, job.left, job.right)
         )
     except (AttributeError, IndexError) as e:
         print(f"Error in box_detect: {e}")

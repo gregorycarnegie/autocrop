@@ -12,15 +12,10 @@ use std::arch::x86_64::{
     _mm256_div_pd, _mm256_set_pd,
 };
 
-/// A lightweight struct representing a rectangle
-#[derive(Debug, Clone, Copy)]
-struct Rectangle {
-    x: f64,
-    y: f64,
-    width: f64,
-    height: f64,
-}
-
+/// Alias representing a rectangle
+type Rectangle = (f64, f64, f64, f64);
+/// Alias for the four integer padding values.
+type Padding = (u32, u32, u32, u32);
 /// Alias for the four integer coordinates of a bounding box.
 type BoxCoordinates = (i32, i32, i32, i32);
 
@@ -151,7 +146,6 @@ fn bgr_to_gray(
 
 /// Internal: Calculate 256-bin histogram from grayscale view.
 fn calc_histogram(gray_view: ArrayView2<u8>) -> [f64; 256] {
-    // Based on calc_histogram logic from lib.txt
     let mut hist: [f64; 256] = [0.0; 256];
     for &pixel_value in gray_view.iter() {
         hist[pixel_value as usize] += 1.0;
@@ -160,7 +154,6 @@ fn calc_histogram(gray_view: ArrayView2<u8>) -> [f64; 256] {
 }
 
 /// Internal: Calculate alpha and beta values for histogram equalization.
-/// Returns Option<(f64, f64)>: Some on success, None on failure (e.g., invalid histogram).
 fn calc_alpha_beta(hist: &[f64]) -> Option<(f64, f64)> {
     if hist.iter().all(|&x| x == 0.0) || hist.is_empty() { // Check for empty or all-zero hist early
          return None; // Cannot proceed
@@ -416,20 +409,19 @@ fn get_rotation_matrix<'py>(
 /// Computes the desired crop width/height based on detected face size and desired output.
 #[inline]
 fn compute_cropped_lengths(
-    rect: &Rectangle,
-    output_width: u32,
-    output_height: u32,
+    face: &Rectangle,         // (x, y, width, height)
+    dimensions: (u32, u32),   // (width, height)
     percent_face: u32
 ) -> (f64, f64) {
     let inv_percentage = 100.0 / percent_face as f64;
-    let face_width = rect.width * inv_percentage;
-    let face_height = rect.height * inv_percentage;
+    let face_width = face.2 * inv_percentage;
+    let face_height = face.3 * inv_percentage;
 
-    if output_height >= output_width {
-        let scaled_width = (output_width as f64 * face_height) / output_height as f64;
+    if dimensions.1 >= dimensions.0 {
+        let scaled_width = (dimensions.0 as f64 * face_height) / dimensions.1 as f64;
         (scaled_width, face_height)
     } else {
-        let scaled_height = (output_height as f64 * face_width) / output_width as f64;
+        let scaled_height = (dimensions.1 as f64 * face_width) / dimensions.0 as f64;
         (face_width, scaled_height)
     }
 }
@@ -437,65 +429,50 @@ fn compute_cropped_lengths(
 /// Calculates the final bounding box coordinates given a face rectangle and cropping parameters.
 #[inline]
 fn compute_edges(
-    rect: &Rectangle, 
-    cropped_width: f64, 
-    cropped_height: f64, 
-    top: u32, 
-    bottom: u32, 
-    left: u32, 
-    right: u32
+    face: &Rectangle,          // (x, y, width, height)
+    cropped: (f64, f64),       // (crop_w, crop_h)
+    pad: Padding,              // % padding
 ) -> BoxCoordinates {
-    let left_offset = (left as f64) * 0.01 * cropped_width;
-    let right_offset = (right as f64) * 0.01 * cropped_width;
-    let top_offset = (top as f64) * 0.01 * cropped_height;
-    let bottom_offset = (bottom as f64) * 0.01 * cropped_height;
+    let (p1, p2) = (face.0 + face.2 * 0.5, face.1 + face.3 * 0.5);
+    let (crop_w, crop_h) = cropped;
+    let (pad_t, pad_b, pad_l, pad_r) = pad;
 
-    let half_width_diff = (rect.width - cropped_width) * 0.5;
-    let half_width_sum = (rect.width + cropped_width) * 0.5;
-    let half_height_diff = (rect.height - cropped_height) * 0.5;
-    let half_height_sum = (rect.height + cropped_height) * 0.5;
-
-    let left_edge = rect.x + half_width_diff - left_offset;
-    let top_edge = rect.y + half_height_diff - top_offset;
-    let right_edge = rect.x + half_width_sum + right_offset;
-    let bottom_edge = rect.y + half_height_sum + bottom_offset;
+    // Helper function to calculate edge with padding
+    let calc_edge = |p: f64, dim: f64, pad: u32| {
+        (p + dim * (0.5 + pad as f64)).round() as i32
+    };
 
     (
-        left_edge.round() as i32,
-        top_edge.round() as i32,
-        right_edge.round() as i32,
-        bottom_edge.round() as i32,
+        calc_edge(p1, -crop_w, pad_l),
+        calc_edge(p2, -crop_h, pad_t),
+        calc_edge(p1, crop_w, pad_r),
+        calc_edge(p2, crop_h, pad_b),
     )
 }
 
 /// Calculate the crop positions based on face detection.
 #[pyfunction]
 fn crop_positions(
-    x_loc: f64,
-    y_loc: f64,
-    width_dim: f64,
-    height_dim: f64,
-    percent_face: u32,
-    output_width: u32,
-    output_height: u32,
-    top: u32,
-    bottom: u32,
-    left: u32,
-    right: u32,
+    face: Rectangle,         // (x, y, width, height)
+    face_percent: u32,
+    dimensions: (u32, u32),  // (width, height)
+    padding: Padding         // (top, bottom, left, right)
 ) -> Option<BoxCoordinates> {
-    if percent_face == 0 || percent_face > 100 || output_width == 0 || output_height == 0 {
+    if face_percent == 0 || face_percent > 100 || dimensions.0 == 0 || dimensions.1 == 0 {
         return None;
     }
 
-    let rect = Rectangle {
-        x: x_loc,
-        y: y_loc,
-        width: width_dim,
-        height: height_dim,
-    };
-
-    let (cropped_width, cropped_height) = compute_cropped_lengths(&rect, output_width, output_height, percent_face);
-    Some(compute_edges(&rect, cropped_width, cropped_height, top, bottom, left, right))
+    let cropped_dimensions = compute_cropped_lengths(
+        &face, 
+        dimensions, 
+        face_percent
+    );
+    
+    Some(compute_edges(
+        &face, 
+        cropped_dimensions, 
+        padding
+    ))
 }
 
 /// Module definition
