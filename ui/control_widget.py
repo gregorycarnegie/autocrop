@@ -261,10 +261,6 @@ class UiCropControlWidget(QtWidgets.QWidget):
         self.rightLabel.setText(QtCore.QCoreApplication.translate("self", u"Right:", None))
         self.heightLabel.setText(QtCore.QCoreApplication.translate("self", u"Height (px)", None))
         self.widthLabel.setText(QtCore.QCoreApplication.translate("self", u"Width (px)", None))
-        self.widthLineEdit.setPlaceholderText(
-            QtCore.QCoreApplication.translate("self", u"Try typing a number e.g. 400", None))
-        self.heightLineEdit.setPlaceholderText(
-            QtCore.QCoreApplication.translate("self", u"Try typing a number e.g. 400", None))
         self.gammaLabel.setText(QtCore.QCoreApplication.translate("self", u"Gamma:", None))
         self.sensitivityLabel.setText(QtCore.QCoreApplication.translate("self", u"Sensitivity:", None))
         self.fpctLabel.setText(QtCore.QCoreApplication.translate("self", u"Face%:", None))

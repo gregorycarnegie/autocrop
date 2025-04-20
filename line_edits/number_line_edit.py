@@ -26,6 +26,7 @@ class NumberLineEdit(CustomLineEdit):
         self.setValidator(QtGui.QIntValidator(parent=self))
         self.setText('')
         self.setObjectName(name)
+        self.setPlaceholderText(QtCore.QCoreApplication.translate("self", u"Type a number", None))
 
     def validate_path(self):
         """
