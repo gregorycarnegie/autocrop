@@ -3,7 +3,6 @@ from __future__ import annotations
 import sys
 from functools import cached_property
 from pathlib import Path
-from typing import Self
 
 _BasePath = type(Path())  # PosixPath | WindowsPath at runtime
 
@@ -18,5 +17,6 @@ class ResourcePath(_BasePath):
     def _base_dir(self) -> Path:
         return Path(getattr(sys, "_MEIPASS2", Path.cwd()))
 
-    def as_resource(self) -> Self:     #  ← returns its own concrete subclass
-        return type(self)(self._base_dir / self)
+    def as_resource(self) -> str:     #  ← returns its own concrete subclass
+        return type(self)(self._base_dir / self).as_posix()
+    

@@ -10,7 +10,7 @@ from .svg_radio_button_group import SvgRadioButtonGroup, SvgRadioButton
 
 
 @cache
-def get_icon_path_tuple(icon_name: str) -> tuple[ResourcePath, ResourcePath]:
+def get_icon_path_tuple(icon_name: str) -> tuple[str, str]:
     """
     Return the *checked* and *unchecked* SVG paths for a “file_*” icon.
 
@@ -273,10 +273,6 @@ class UiCropControlWidget(QtWidgets.QWidget):
         self.sensitivityLabel.setText(QtCore.QCoreApplication.translate("self", u"Sensitivity:", None))
         self.fpctLabel.setText(QtCore.QCoreApplication.translate("self", u"Face%:", None))
 
-    @staticmethod
-    def resource_const(*args: ResourcePath) -> tuple[str, ...]:
-        return tuple(arg.as_posix() for arg in args)
-
     @property
     def radio_tuple(self) -> RadioButtonTuple:
         return (self.radioButton_none.isChecked(), self.radioButton_bmp.isChecked(),
@@ -292,16 +288,13 @@ class UiCropControlWidget(QtWidgets.QWidget):
 
     def create_radio_button(self,
                             name: str,
-                            icon_resource: tuple[ResourcePath, ResourcePath],
+                            icon_resource: tuple[str, str],
                             layout: Union[QtWidgets.QHBoxLayout, QtWidgets.QVBoxLayout]) -> SvgRadioButton:
-        # Get icon resources
-        icon_resource_paths = self.resource_const(*icon_resource)
-        
         # Create the custom radio button
         radio_button = SvgRadioButton(
             parent=self,
-            checked_icon=icon_resource_paths[0],
-            unchecked_icon=icon_resource_paths[1]
+            checked_icon=icon_resource[0],
+            unchecked_icon=icon_resource[1]
         )
         radio_button.setObjectName(name)
         

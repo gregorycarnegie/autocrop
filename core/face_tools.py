@@ -51,7 +51,7 @@ class YuNetFaceDetector:
     def __init__(self):
         # Create YuNet detector
         self._detector = cv2.FaceDetectorYN.create(
-            YUNET_MODEL.as_posix(),
+            YUNET_MODEL,
             "",
             (320, 320),  # Input size
             0.9,         # Score threshold
@@ -106,7 +106,7 @@ def create_tool_pair() -> FaceToolPair:
     
     # Use OpenCV's FacemarkLBF instead of dlib's shape predictor
     facemark = cv2.face.createFacemarkLBF()
-    facemark.loadModel(LBFMODEL.as_posix())
+    facemark.loadModel(LBFMODEL)
     
     # Return the detector and facemark model as a pair
     return detector, facemark

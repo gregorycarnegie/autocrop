@@ -26,7 +26,7 @@ def get_icon_path(
     """
     filename = f"multimedia_{name}{ext}" if mm else f"{name}{ext}"
     rel_path = RESOURCES_ROOT / folder / filename
-    return rel_path.as_resource().as_posix()
+    return rel_path.as_resource()
 
 
 class GuiIcon(StrEnum):

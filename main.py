@@ -1,9 +1,8 @@
-from pathlib import Path
-
 from PyQt6.QtCore import QFile, QTextStream
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication
 
+from core.resource_path import ResourcePath
 from ui import UiMainWindow
 from ui.enums import GuiIcon
 
@@ -11,10 +10,10 @@ from ui.enums import GuiIcon
 def load_stylesheet(app: QApplication) -> None:
     """Load the browser-style CSS stylesheet"""
     # Path to our custom stylesheet
-    style_path = Path(__file__).parent / "resources" / "browser_style.css"
+    style_path = ResourcePath("resources\\browser_style.css").as_resource()
     
     # Load the stylesheet
-    file = QFile(str(style_path))
+    file = QFile(style_path)
     if file.open(QFile.OpenModeFlag.ReadOnly | QFile.OpenModeFlag.Text):
         stream = QTextStream(file)
         app.setStyleSheet(stream.readAll())
