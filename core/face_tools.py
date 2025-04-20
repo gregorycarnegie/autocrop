@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import cv2
 import psutil
 
@@ -9,8 +7,9 @@ from .resource_path import ResourcePath
 THREAD_NUMBER = min(psutil.cpu_count(), psutil.virtual_memory().total // (2 * 1024 ** 3), 8)
 
 # Paths to model files
-YUNET_MODEL = ResourcePath(Path('resources') / 'models' / 'face_detection_yunet_2023mar.onnx').as_resource() # MIT license
-LBFMODEL = ResourcePath(Path('resources') / 'models' / 'lbfmodel.yaml').as_resource() # MIT license
+model_directory = ResourcePath('resources\\models')
+YUNET_MODEL = (model_directory  / 'face_detection_yunet_2023mar.onnx').as_resource() # MIT license
+LBFMODEL = (model_directory / 'lbfmodel.yaml').as_resource() # MIT license
 
 # Eye landmark indices
 L_EYE_START, L_EYE_END = 36, 42
