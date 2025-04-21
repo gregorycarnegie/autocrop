@@ -91,7 +91,7 @@ class UiDialog(QDialog):
         _translate = QCoreApplication.translate
         self.setWindowTitle(_translate('Dialog', 'About Face Cropper'))
         self.label.setText(_translate('Dialog', 'Version:'))
-        self.label_5.setText(_translate('Dialog', '2.0.1'))
+        self.label_5.setText(_translate('Dialog', '2.2.0'))
         self.label_2.setText(_translate('Dialog', 'Creator:'))
         self.label_6.setText(_translate("Dialog", """<a href="https://github.com/gregorycarnegie/autocrop">Gregory 
         Carnegie</a>"""))

@@ -264,7 +264,7 @@ class UiCropControlWidget(QtWidgets.QWidget):
         self.radioButton_tiff.setText("")
         self.radioButton_webp.setText("")
         self.topLabel.setText(QtCore.QCoreApplication.translate("self", u"Top:", None))
-        self.bottomLabel.setText(QtCore.QCoreApplication.translate("self", u"Boittom:", None))
+        self.bottomLabel.setText(QtCore.QCoreApplication.translate("self", u"Bottom:", None))
         self.leftLabel.setText(QtCore.QCoreApplication.translate("self", u"Left:", None))
         self.rightLabel.setText(QtCore.QCoreApplication.translate("self", u"Right:", None))
         self.heightLabel.setText(QtCore.QCoreApplication.translate("self", u"Height (px)", None))
