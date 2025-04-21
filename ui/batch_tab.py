@@ -180,9 +180,6 @@ class UiBatchCropWidget(UiCropWidget):
         self.crop_worker.finished.connect(lambda: ut.disable_widget(self.cancelButton))
         self.crop_worker.finished.connect(lambda: ut.show_message_box(self.destination))
 
-        # Print helpful debug info
-        print("Worker signals connected.")
-
     def run_batch_process(self, job: Job, *,
                           function: Callable[..., Any],
                           reset_worker_func: Callable[..., Any]) -> None:
@@ -192,9 +189,7 @@ class UiBatchCropWidget(UiCropWidget):
         # Disable crop_from_path button and enable cancel button manually
         self.cropButton.setEnabled(False)
         self.cropButton.repaint()
-        self.cancelButton.setEnabled(True)
-        self.cancelButton.repaint()
-        QtWidgets.QApplication.processEvents()
+        self.enable_cancel_button()
         
         # Use Thread instead of Process to avoid pickling issues
         thread = threading.Thread(target=function, args=(job,), daemon=True)
