@@ -34,7 +34,7 @@ class BatchCropper(Cropper):
         # Add a cancellation event for cooperative termination
         self.cancel_event = threading.Event()
 
-        # Register an atexit handler to ensure proper cleanup
+        # Register an exit handler to ensure proper clean-up
         atexit.register(self._cleanup_executor)
 
     def __repr__(self) -> str:
@@ -158,7 +158,7 @@ class BatchCropper(Cropper):
                             self._display_error(_, "File system error. Check input and output paths."),
             ValueError: lambda _: self._display_error(_, "Invalid data format. Please check input files."),
             (TypeError, AttributeError): lambda _: self._display_error(_, "Data type error. This may indicate a corrupted image file."),
-            CancelledError: lambda _: None,  # Silently handle canceled futures
+            CancelledError: lambda _: None,  # Silently handle cancelled futures
         }
         
         try:
@@ -265,7 +265,6 @@ class BatchCropper(Cropper):
         """
         if not self.finished_signal_emitted:
             # Set flag to prevent multiple emissions
-
             self.finished_signal_emitted = True
             self.finished.emit()
             # Use QMetaObject.invokeMethod for cross-thread signal emission
@@ -274,7 +273,6 @@ class BatchCropper(Cropper):
                 "finished", 
                 Qt.ConnectionType.QueuedConnection
             )
-            
             # Also force a progress update to 100% to ensure the UI is updated
             self.progress_count = 0  # Reset progress count
             QMetaObject.invokeMethod(
@@ -284,5 +282,4 @@ class BatchCropper(Cropper):
                 Q_ARG(int, 0),
                 Q_ARG(int, 1)
             )
-            
-            print("Finished signal emitted")
+            # print("Finished signal emitted")
