@@ -4,7 +4,7 @@ Simplified file type handling system using Python's standard libraries.
 
 import contextlib
 import mimetypes
-from enum import Enum
+from enum import Enum, auto
 from pathlib import Path
 from typing import Optional
 
@@ -14,12 +14,12 @@ mimetypes.init()
 
 class FileCategory(Enum):
     """Enumeration of file categories for application."""
-    PHOTO = "photo"
-    RAW = "raw"
-    TIFF = "tiff"
-    VIDEO = "video"
-    TABLE = "table"
-    UNKNOWN = "unknown"
+    PHOTO = auto()
+    RAW = auto()
+    TIFF = auto()
+    VIDEO = auto()
+    TABLE = auto()
+    UNKNOWN = auto()
 
 
 class FileTypeManager:
@@ -30,14 +30,18 @@ class FileTypeManager:
     # Extensions by category - more maintainable as a single source of truth
     _EXTENSIONS: dict[FileCategory, set[str]] = {
         FileCategory.PHOTO: {
-            '.bmp', '.dib', '.jfif', '.jpeg', '.jpg', '.jpe', '.jp2', '.png', 
-            '.webp', '.pbm', '.pgm', '.ppm', '.pxm', '.pnm', '.pfm', '.sr', 
+            '.bmp', '.dib', '.jfif', '.jpeg',
+            '.jpg', '.jpe', '.jp2', '.png', 
+            '.webp', '.pbm', '.pgm', '.ppm',
+            '.pxm', '.pnm', '.pfm', '.sr', 
             '.ras', '.exr', '.hdr', '.pic'
         },
         FileCategory.TIFF: {'.tiff', '.tif'},
         FileCategory.RAW: {
-            '.dng', '.arw', '.cr2', '.crw', '.erf', '.kdc', '.nef', '.nrw',
-            '.orf', '.pef', '.raf', '.raw', '.sr2', '.srw', '.x3f'
+            '.dng', '.arw', '.cr2', '.crw',
+            '.erf', '.kdc', '.nef', '.nrw',
+            '.orf', '.pef', '.raf', '.raw',
+            '.sr2', '.srw', '.x3f', '.exr'
         },
         FileCategory.VIDEO: {'.avi', '.m4v', '.mkv', '.mov', '.mp4'},
         FileCategory.TABLE: {'.csv', '.xlsx', '.xlsm', '.xltx', '.xltm'},
