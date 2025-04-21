@@ -26,6 +26,8 @@ var/
 .installed.cfg
 *.egg
 nav_gen.py
+checksum.py
+installer/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
