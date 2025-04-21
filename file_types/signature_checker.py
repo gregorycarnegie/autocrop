@@ -15,30 +15,81 @@ class SignatureChecker:
     # Common file signatures as (signature bytes, offset)
     _SIGNATURES: dict[FileCategory, dict[str, list[tuple[bytes, int]]]] = {
         FileCategory.PHOTO: {
+            # JPEG‑2000 JP2 signature box (12 bytes)
+            '.jp2': [(b'\x00\x00\x00\x0C\x6A\x50\x20\x20\x0D\x0A\x87\x0A', 0)],
+
+            # JPEG
             '.jpg': [(b'\xFF\xD8\xFF', 0)],
             '.jpeg': [(b'\xFF\xD8\xFF', 0)],
             '.jfif': [(b'\xFF\xD8\xFF', 0)],
             '.jpe': [(b'\xFF\xD8\xFF', 0)],
-            '.png': [(b'\x89PNG\r\n\x1A\n', 0)],
+            
+            # Netpbm family (ASCII vs. raw variants)
+            '.pbm': [(b'P4', 0), (b'P1', 0)],   # bitmap  (raw / ASCII)
+            '.pgm': [(b'P5', 0), (b'P2', 0)],   # greymap
+            '.ppm': [(b'P6', 0), (b'P3', 0)],   # pixmap
+            '.pnm': [(b'P7', 0)],               # PAM/PNM “portable any‑map”
+            '.pxm': [(b'P7', 0)],               # alias of PNM super‑set
+            
+            # Portable FloatMap (32‑bit float HDR)
+            '.pfm': [(b'PF', 0), (b'Pf', 0)],   # colour / greyscale
+            
+            # Sun Raster / SR files
+            '.sr':  [(b'\x59\xA6\x6A\x95', 0)],
+            '.ras': [(b'\x59\xA6\x6A\x95', 0)],
+
+            # Radiance HDR / PIC: ASCII “#?RADIANCE” (occasionally “#?RGBE”)
+            '.hdr': [(b'#?RADIANCE', 0), (b'#?RGBE', 0)],
+            '.pic': [(b'#?RADIANCE', 0), (b'#?RGBE', 0)],
+
+            # Other image formats
             '.bmp': [(b'BM', 0)],
             '.dib': [(b'BM', 0)],
             '.webp': [(b'RIFF', 0), (b'WEBP', 8)],
+            '.png': [(b'\x89PNG\r\n\x1A\n', 0)],
         },
         FileCategory.TIFF: {
             '.tiff': [(b'\x49\x49\x2A\x00', 0), (b'\x4D\x4D\x00\x2A', 0)],
             '.tif': [(b'\x49\x49\x2A\x00', 0), (b'\x4D\x4D\x00\x2A', 0)],
         },
         FileCategory.RAW: {
-            '.dng': [(b'\x49\x49\x2A\x00', 0)],
-            '.cr2': [(b'\x49\x49\x2A\x00\x10\x00\x00\x00\x43\x52', 0)],
+            # Generic TIFF‑EP header (little‑ or big‑endian) for most vendor RAWs
             '.arw': [(b'\x49\x49\x2A\x00', 0)],
+            '.nef': [(b'\x49\x49\x2A\x00', 0), (b'\x4D\x4D\x00\x2A', 0)],            
+            '.erf': [(b'\x49\x49\x2A\x00', 0), (b'\x4D\x4D\x00\x2A', 0)],   # Epson
+            '.kdc': [(b'\x49\x49\x2A\x00', 0), (b'\x4D\x4D\x00\x2A', 0)],   # Kodak
+            '.nrw': [(b'\x49\x49\x2A\x00', 0)],                             # Nikon compact
+            '.pef': [(b'\x49\x49\x2A\x00', 0)],                             # Pentax
+            '.raw': [(b'\x49\x49\x2A\x00', 0), (b'\x4D\x4D\x00\x2A', 0)],   # Panasonic/Leica, etc.
+            '.sr2': [(b'\x49\x49\x2A\x00', 0)],                             # Sony
+            '.srw': [(b'\x49\x49\x2A\x00', 0)],                             # Samsung
+            '.dng': [(b'\x49\x49\x2A\x00', 0), (b'\x49\x49\x00\x2A', 0)],
+            '.exr': [(b'\x76\x2F\x31\x01', 0)],
+            '.cr2': [(b'\x49\x49\x2A\x00\x10\x00\x00\x00\x43\x52', 0)],
+            '.crw': [(b'\x49\x49\x1A\x00\x00\x00\x48\x45\x41\x50\x43\x43\x44\x52\x02\x00', 0)],
+            
+            # Fujifilm RAF: ASCII “FUJIFILMCCD-RAW” at byte 0
+            '.raf': [(b'FUJIFILMCCD-RAW', 0)],
+            
+            # Sigma X3F: ASCII “FOVb” at byte 0
+            '.x3f': [(b'FOVb', 0)],
+            
+            # Olympus puts a custom four‑byte magic in place of the TIFF bytes
+            '.orf': [(b'IIRO', 0), (b'II', 0)],        # IIRO/II = little‑endian, MMOR big‑endian
         },
         FileCategory.VIDEO: {
             '.mp4': [(b'ftyp', 4)],
             '.m4v': [(b'ftyp', 4)],
-            '.mov': [(b'ftyp', 4), (b'moov', 4), (b'mdat', 4)],
+            '.mov': [(b'ftyp', 4)],
             '.avi': [(b'RIFF', 0), (b'AVI ', 8)],
             '.mkv': [(b'\x1A\x45\xDF\xA3', 0)],
+        },
+        FileCategory.TABLE: {
+            # All OOXML spreadsheets are ZIP archives
+            '.xlsx': [(b'\x50\x4B\x03\x04', 0)],
+            '.xlsm': [(b'\x50\x4B\x03\x04', 0)],
+            '.xltx': [(b'\x50\x4B\x03\x04', 0)],
+            '.xltm': [(b'\x50\x4B\x03\x04', 0)],
         },
     }
     
@@ -120,5 +171,5 @@ class SignatureChecker:
                 and header[offset : offset + len(signature)] == signature
                 for signature, offset in signatures
             )
-        except (FileNotFoundError, PermissionError, OSError):
+        except OSError:
             return False
