@@ -1,6 +1,7 @@
 """
 Utilities for file signature detection and validation.
 """
+from contextlib import suppress
 from pathlib import Path
 from typing import Optional
 
@@ -148,19 +149,18 @@ class SignatureChecker:
         Simple validation for text-based files like CSV.
         Check that the file is readable as text.
         """
-        try:
+        with suppress(UnicodeDecodeError):
             with open(file_path, 'r', encoding='utf-8') as f:
                 # Try to read a small amount to check if it's text
                 f.read(1024)
             return True
-        except UnicodeDecodeError:
-            # Not a valid text file
-            return False
+        
+        return False
     
     @staticmethod
     def _check_file_signatures(file_path: Path, signatures: list[tuple[bytes, int]]) -> bool:
         """Check if a file matches any of the provided signatures."""
-        try:
+        with suppress(OSError):
             # Read enough bytes for signature checking
             max_offset = max(offset + len(sig) for sig, offset in signatures)
             with open(file_path, 'rb') as f:
@@ -171,5 +171,5 @@ class SignatureChecker:
                 and header[offset : offset + len(signature)] == signature
                 for signature, offset in signatures
             )
-        except OSError:
-            return False
+        
+        return False
