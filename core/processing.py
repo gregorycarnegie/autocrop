@@ -4,6 +4,7 @@ import random
 import shutil
 import threading
 from collections.abc import Callable, Iterator
+from contextlib import suppress
 from functools import cache, wraps, singledispatch, partial
 from pathlib import Path
 from typing import Any, Union, Optional
@@ -15,6 +16,7 @@ import numpy.typing as npt
 import polars as pl
 import tifffile as tiff
 from PyQt6 import QtWidgets, QtCore
+from rawpy import ColorSpace
 from rawpy._rawpy import NotSupportedError, LibRawError, LibRawFatalError, LibRawNonFatalError
 
 from core.colour_utils import ensure_rgb, to_grayscale, adjust_gamma, normalize_image
@@ -205,22 +207,24 @@ def _open_raw(
     face_detection_tools: FaceToolPair,
     job: Job
 ) -> Optional[cv2.Mat]:
-    try:
-        with ImageLoader.loader('raw')(file.as_posix()) as raw:
-            img = raw.postprocess(use_camera_wb=True)
-            return align_face(img, face_detection_tools, job)
-    except (
+    with suppress(
         NotSupportedError,
         LibRawFatalError,
         LibRawError,
         LibRawNonFatalError,
         MemoryError,
         ValueError,
-        TypeError,
-    ) as e:
-        # Use logging in real-world code; print here for brevity
-        print(f"Error processing RAW file {file}: {e}")
-        return None
+        TypeError,        
+    ):
+        with ImageLoader.loader('raw')(file.as_posix()) as raw:
+            img = raw.postprocess(
+                use_camera_wb=True,
+                no_auto_bright=True,
+                output_color=ColorSpace.sRGB
+            )
+            return align_face(img, face_detection_tools, job)
+    
+    return None
 
 
 # Map each FileCategory to its opener strategy
@@ -254,10 +258,9 @@ def load_table(file: Path) -> pl.DataFrame:
     Opens a CSV or Excel file using Polars.
     """
     if file_manager.is_valid_type(file, FileCategory.TABLE):
-        try:
+        with suppress(IsADirectoryError):
             return pl.read_csv(file) if file.suffix.lower() == '.csv' else pl.read_excel(file)
-        except IsADirectoryError:
-            return pl.DataFrame()
+        return pl.DataFrame()
     return pl.DataFrame()
 
 
@@ -428,7 +431,7 @@ def detect_face_box(image: cv2.Mat,
     Returns:
         Box coordinates if a face is detected, None otherwise
     """
-    try:
+    with suppress(AttributeError, IndexError):
         height, width = image.shape[:2]
         detector, _ = face_detection_tools
         
@@ -455,9 +458,8 @@ def detect_face_box(image: cv2.Mat,
             (job.width, job.height),
             (job.top, job.bottom, job.left, job.right)
         )
-    except (AttributeError, IndexError) as e:
-        print(f"Error in box_detect: {e}")
-        return None
+    
+    return None
 
 
 def mask_extensions(file_list: npt.NDArray[np.str_], extensions: set[str]) -> tuple[npt.NDArray[np.bool_], int]:
