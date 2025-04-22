@@ -1,5 +1,5 @@
-import contextlib
 from collections.abc import Callable
+from contextlib import suppress
 from pathlib import Path
 from typing import Optional, Dict, Union
 
@@ -79,7 +79,7 @@ class DisplayCropper(Cropper):
             self.current_paths[function_type] = img_path_str
         
         # Now process the cached image with current settings
-        with contextlib.suppress(cv2.error):
+        with suppress(cv2.error):
             # Create a job with all settings
             job = self._create_job_from_widget_state(widget_state, img_path_str, function_type)
             
@@ -113,7 +113,7 @@ class DisplayCropper(Cropper):
     
     def _load_raw_image(self, file_path: Path) -> Union[tuple[cv2.Mat, FileCategory] | tuple[None, None]]:
         """Load the raw image data without any processing"""
-        try:
+        with suppress(cv2.error):
             # Determine file type
             if file_manager.is_valid_type(file_path, FileCategory.PHOTO) or \
                file_manager.is_valid_type(file_path, FileCategory.TIFF):
@@ -122,7 +122,7 @@ class DisplayCropper(Cropper):
                 
             elif file_manager.is_valid_type(file_path, FileCategory.RAW):
                 # RAW image file - use rawpy
-                with contextlib.suppress(
+                with suppress(
                     NotSupportedError,
                     LibRawFatalError,
                     LibRawError,
@@ -134,11 +134,10 @@ class DisplayCropper(Cropper):
                     with rawpy.imread(file_path.as_posix()) as raw:
                         # Process the RAW file to get a standard image
                         return raw.postprocess(use_camera_wb=True), FileCategory.RAW
+                    
             return None, None
             
-        except Exception as e:
-            print(f"Error loading image {file_path}: {str(e)}")
-            return None, None
+        return None, None
     
     def _create_job_from_widget_state(self, widget_state, img_path_str: str, function_type: FunctionType) -> Job:
         """Create a Job with all parameters from widget state"""
