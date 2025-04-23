@@ -44,7 +44,7 @@ class FileTypeManager:
             '.sr2', '.srw', '.x3f', '.exr'
         },
         FileCategory.VIDEO: {'.avi', '.m4v', '.mkv', '.mov', '.mp4'},
-        FileCategory.TABLE: {'.csv', '.xlsx', '.xlsm', '.xltx', '.xltm'},
+        FileCategory.TABLE: {'.csv', '.xlsx', '.xlsm', '.xltx', '.xltm', '.parquet'},
     }
 
     # Default directories for each category
@@ -67,17 +67,49 @@ class FileTypeManager:
     
     # Common mime types for faster lookup
     _MIME_TYPES: dict[str, FileCategory] = {
-        'image/jpeg': FileCategory.PHOTO,
-        'image/png': FileCategory.PHOTO,
-        'image/bmp': FileCategory.PHOTO,
-        'image/webp': FileCategory.PHOTO,
-        'image/tiff': FileCategory.TIFF,
-        'video/mp4': FileCategory.VIDEO,
-        'video/quicktime': FileCategory.VIDEO,
-        'video/x-msvideo': FileCategory.VIDEO,
-        'video/x-matroska': FileCategory.VIDEO,
-        'text/csv': FileCategory.TABLE,
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': FileCategory.TABLE,
+        'image/bmp'                       : FileCategory.PHOTO,     # .bmp .dib
+        'image/jpeg'                      : FileCategory.PHOTO,     # .jpg .jpeg .jfif .jpe
+        'image/jp2'                       : FileCategory.PHOTO,     # .jp2  (JPEG-2000)      • alias: image/jpeg2000
+        'image/png'                       : FileCategory.PHOTO,     # .png
+        'image/webp'                      : FileCategory.PHOTO,     # .webp
+        'image/x-portable-bitmap'         : FileCategory.PHOTO,     # .pbm
+        'image/x-portable-graymap'        : FileCategory.PHOTO,     # .pgm
+        'image/x-portable-pixmap'         : FileCategory.PHOTO,     # .ppm
+        'image/x-pam'                     : FileCategory.PHOTO,     # .pnm .pxm (P7 “any-map”)
+        'image/x-portable-floatmap'       : FileCategory.PHOTO,     # .pfm
+        'image/x-sun-raster'              : FileCategory.PHOTO,     # .sr .ras
+        'image/exr'                       : FileCategory.PHOTO,     # .exr  (OpenEXR)        • alias: image/x-exr
+        'image/vnd.radiance'              : FileCategory.PHOTO,     # .hdr .pic (Radiance)   • alias: image/x-radiance
+        'image/tiff'                      : FileCategory.TIFF,      # .tiff .tif
+        'image/x-adobe-dng'               : FileCategory.RAW,       # .dng
+        'image/x-sony-arw'                : FileCategory.RAW,       # .arw
+        'image/x-canon-cr2'               : FileCategory.RAW,       # .cr2
+        'image/x-canon-crw'               : FileCategory.RAW,       # .crw
+        'image/x-epson-erf'               : FileCategory.RAW,       # .erf
+        'image/x-kodak-kdc'               : FileCategory.RAW,       # .kdc
+        'image/x-nikon-nef'               : FileCategory.RAW,       # .nef
+        'image/x-nikon-nrw'               : FileCategory.RAW,       # .nrw
+        'image/x-olympus-orf'             : FileCategory.RAW,       # .orf
+        'image/x-pentax-pef'              : FileCategory.RAW,       # .pef
+        'image/x-fujifilm-raf'            : FileCategory.RAW,       # .raf
+        'image/x-panasonic-raw'           : FileCategory.RAW,       # .raw
+        'image/x-sony-sr2'                : FileCategory.RAW,       # .sr2
+        'image/x-samsung-srw'             : FileCategory.RAW,       # .srw
+        'image/x-sigma-x3f'               : FileCategory.RAW,       # .x3f
+        'video/x-msvideo'                 : FileCategory.VIDEO,     # .avi
+        'video/x-m4v'                     : FileCategory.VIDEO,     # .m4v
+        'video/x-matroska'                : FileCategory.VIDEO,     # .mkv
+        'video/quicktime'                 : FileCategory.VIDEO,     # .mov
+        'video/mp4'                       : FileCategory.VIDEO,     # .mp4
+        'text/csv'                                              : FileCategory.TABLE,  # .csv
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                                                                : FileCategory.TABLE, # .xlsx
+        'application/vnd.ms-excel.sheet.macroEnabled.12'        : FileCategory.TABLE, # .xlsm
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.template'
+                                                                : FileCategory.TABLE, # .xltx
+        'application/vnd.ms-excel.template.macroEnabled.12'     : FileCategory.TABLE, # .xltm
+        'application/vnd.apache.parquet'                        : FileCategory.TABLE, # .parquet  (official)
+        'application/x-parquet'                                 : FileCategory.TABLE, # legacy alias
     }
     
     @classmethod
