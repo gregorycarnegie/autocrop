@@ -1,3 +1,4 @@
+from contextlib import suppress
 from typing import Optional
 
 import polars as pl
@@ -21,29 +22,23 @@ class DataFrameModel(QAbstractTableModel):
         match role:
             case Qt.ItemDataRole.DisplayRole:
                 if index.isValid():
-                    try:
+                    with suppress(IndexError):
                         # Retrieve the entire row as a tuple
                         row = self._df.row(index.row())
                         # Access the desired column by its integer index
                         value = row[index.column()]
                         return str(value)
-                    except IndexError:
-                        # Handle cases where row or column indices are out of bounds
-                        return None
                 return None
             case _:
                 return None
 
     def load_dataframe(self, section: int, orientation: Qt.Orientation) -> Optional[str]:
-        try:
+        with suppress(IndexError):
             match orientation:
                 case Qt.Orientation.Horizontal:
                     return str(self._df.columns[section])
                 case Qt.Orientation.Vertical:
                     return str(section)
-            return None
-        except IndexError:
-            # Handle cases where the section index is out of bounds
             return None
 
     def headerData(self, section: int,
