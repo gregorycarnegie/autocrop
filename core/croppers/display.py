@@ -22,12 +22,12 @@ class EventEmitter(QObject):
     image_updated = pyqtSignal(FunctionType, object)
 
 
-@dataclass(slots=True, frozen=True, repr=True)
+@dataclass(slots=True, frozen=True)
 class Preview:
     """
     A data class representing a preview image.
     """
-    image: Optional[cv2.Mat]
+    image: cv2.Mat
     color_space: QImage.Format
 
 
@@ -76,13 +76,9 @@ class DisplayCropper(Cropper):
         current_path = self.current_paths.get(function_type)
         if current_path != img_path_str or self.preview_data.get(function_type) is None:
             # Load appropriate image data based on the function type
-            if (image := self._load_appropriate_image(function_type, img_path_str)) is None:
-                return None
-                
-            raw_image, file_category = image
+            raw_image, file_category = self._load_appropriate_image(function_type, img_path_str)
             
             if raw_image is None or file_category is None:
-                # print(f"Failed to load image for {function_type.name}: {img_path_str}")
                 return None
                 
             self.preview_data[function_type] = Preview(
