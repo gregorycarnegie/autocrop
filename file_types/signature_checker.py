@@ -91,6 +91,7 @@ class SignatureChecker:
             '.xlsm': [(b'\x50\x4B\x03\x04', 0)],
             '.xltx': [(b'\x50\x4B\x03\x04', 0)],
             '.xltm': [(b'\x50\x4B\x03\x04', 0)],
+            '.parquet': [(b'PAR1', 0), (b'PARE', 0)],
         },
     }
     
