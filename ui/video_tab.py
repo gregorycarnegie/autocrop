@@ -495,9 +495,9 @@ class UiVideoTabWidget(UiCropWidget):
         self.durationLabel_1.setText(QtCore.QCoreApplication.translate("self", "00:00:00", None))
         self.durationLabel_2.setText(QtCore.QCoreApplication.translate("self", "00:00:00", None))
         self.toolBox.setItemText(self.toolBox.indexOf(self.page_1),
-                                QtCore.QCoreApplication.translate("self", "Video Player", None))
+                                 QtCore.QCoreApplication.translate("self", "Video Player", None))
         self.toolBox.setItemText(self.toolBox.indexOf(self.page_2),
-                                QtCore.QCoreApplication.translate("self", "Crop View", None))
+                                 QtCore.QCoreApplication.translate("self", "Crop View", None))
 
     def display_crop_preview(self) -> None:
         """Captures the current frame and displays crop_from_path preview in the imageWidget"""
