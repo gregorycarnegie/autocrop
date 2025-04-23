@@ -295,18 +295,15 @@ def generate_message(msg_box: QtWidgets.QMessageBox, message: str) -> None:
 def show_warning(function_type: FunctionType) -> int:
     """Shows a warning message based on the function type."""
     msg_box = create_warning_box()
-    
-    # Map function types to warning messages
-    warnings = {
-        FunctionType.PHOTO: 'This will overwrite the original.',
-        FunctionType.FOLDER: 'If potential overwrites are detected, the images will save to a new folder.',
-        FunctionType.MAPPING: 'If potential overwrites are detected, the images will save to a new folder.',
-        FunctionType.VIDEO: 'If potential overwrites are detected, the images will save to a new folder.',
-        FunctionType.FRAME: 'This will overwrite any cropped frames with the same name.'
-    }
-    
-    # Get the appropriate message or use a default
-    message = warnings.get(function_type, 'This operation may overwrite existing files.')
+
+    match function_type:
+        case FunctionType.PHOTO:
+            message = 'This will overwrite the original.'
+        case FunctionType.FOLDER | FunctionType.MAPPING | FunctionType.VIDEO:
+            message = 'If potential overwrites are detected, the images will save to a new folder.'
+        case FunctionType.FRAME:
+            message = 'This will overwrite any cropped frames with the same name.'
+
     generate_message(msg_box, message)
     
     return msg_box.exec()
