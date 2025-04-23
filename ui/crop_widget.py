@@ -199,15 +199,15 @@ class UiCropWidget(QtWidgets.QWidget):
         """
         # Handle special path cases based on a function type
         if function_type is not None:
-            if function_type in (FunctionType.FOLDER, FunctionType.MAPPING):
-                if destination and folder_path:
-                    destination = self._handle_folder_path(destination, folder_path, file_manager.get_save_formats(FileCategory.PHOTO))
-            elif function_type == FunctionType.VIDEO:
-                if destination and video_path:
-                    destination = self._handle_video_path(destination, video_path, file_manager.get_save_formats(FileCategory.PHOTO))
-
-        # Update the destination
-        self.destination = destination if destination is not None else self.destination
+            match function_type:
+                case FunctionType.FOLDER | FunctionType.MAPPING:
+                    if destination and folder_path:
+                        self.destination = self._handle_folder_path(destination, folder_path, file_manager.get_save_formats(FileCategory.PHOTO))
+                case FunctionType.VIDEO:
+                    if destination and video_path:
+                        self.destination = self._handle_video_path(destination, video_path, file_manager.get_save_formats(FileCategory.PHOTO))
+                case FunctionType.FRAME | FunctionType.PHOTO:
+                    self.destination = destination if destination is not None else self.destination
 
         # Create the job with all parameters
         return Job(

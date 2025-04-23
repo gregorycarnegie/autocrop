@@ -461,7 +461,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         match current_index:
             case FunctionType.PHOTO:
                 # Update primary address bar
-                self.unified_address_bar.setPathType(PathType.IMAGE)
+                self.unified_address_bar.set_path_type(PathType.IMAGE)
                 self.unified_address_bar.setPlaceholderText("Enter image file path...")
                 self.context_button.setIcon(QtGui.QIcon(GuiIcon.PICTURE))
                 self.context_button.setToolTip("Open Image")
@@ -480,7 +480,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 self.destination_input.blockSignals(False)
             
             case FunctionType.FOLDER:
-                self.unified_address_bar.setPathType(PathType.FOLDER)
+                self.unified_address_bar.set_path_type(PathType.FOLDER)
                 self.unified_address_bar.setPlaceholderText("Enter folder path...")
                 self.context_button.setIcon(QtGui.QIcon(GuiIcon.FOLDER))
                 self.context_button.setToolTip("Select Folder")
@@ -499,14 +499,14 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 self.destination_input.blockSignals(False)
             
             case FunctionType.MAPPING:
-                self.unified_address_bar.setPathType(PathType.FOLDER)
+                self.unified_address_bar.set_path_type(PathType.FOLDER)
                 self.unified_address_bar.setPlaceholderText("Enter source folder path...")
                 self.context_button.setIcon(QtGui.QIcon(GuiIcon.FOLDER))
                 self.context_button.setToolTip("Select Source Folder")
                 
                 # Show and configure secondary input for mapping tab
                 self.secondary_input_container.setVisible(True)
-                self.secondary_input.setPathType(PathType.TABLE)
+                self.secondary_input.set_path_type(PathType.TABLE)
                 self.secondary_input.setPlaceholderText("Enter table file path...")
                 
                 # Get current paths from tab widget if they exist
@@ -524,7 +524,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 self.destination_input.blockSignals(False)
             
             case FunctionType.VIDEO:
-                self.unified_address_bar.setPathType(PathType.VIDEO)
+                self.unified_address_bar.set_path_type(PathType.VIDEO)
                 self.unified_address_bar.setPlaceholderText("Enter video file path...")
                 self.context_button.setIcon(QtGui.QIcon(GuiIcon.CLAPPERBOARD))
                 self.context_button.setToolTip("Open Video")
@@ -642,10 +642,9 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
     def unified_address_changed(self, text):
         """Handle changes to the unified address bar"""
-        current_index = self.function_tabWidget.currentIndex()
         
         # Update the appropriate input field in the current tab
-        match current_index:
+        match self.function_tabWidget.currentIndex():
             case FunctionType.PHOTO:
                 self.photo_tab_widget.input_path = text
             case FunctionType.FOLDER:
@@ -657,15 +656,15 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
     def secondary_input_changed(self, text):
         """Handle changes to the secondary input (only for mapping tab)"""
-        current_index = self.function_tabWidget.currentIndex()
-        
-        if current_index == FunctionType.MAPPING:
-            self.mapping_tab_widget.table_path = text
+        match self.function_tabWidget.currentIndex():
+            case FunctionType.MAPPING:
+                self.mapping_tab_widget.table_path = text
+            case _:
+                pass
 
     def destination_input_changed(self, text):
         """Handle changes to the destination input"""
-        current_index = self.function_tabWidget.currentIndex()
-        match current_index:
+        match self.function_tabWidget.currentIndex():
             case FunctionType.PHOTO:
                 self.photo_tab_widget.destination_path = text
             case FunctionType.FOLDER:
@@ -677,8 +676,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
     def handle_context_button(self):
         """Handle clicks on the context-aware button"""
-        current_index = self.function_tabWidget.currentIndex()
-        match current_index:
+        match self.function_tabWidget.currentIndex():
             case FunctionType.PHOTO:
                 self.open_file_dialog(PathType.IMAGE, self.unified_address_bar)
             case FunctionType.FOLDER:
@@ -690,8 +688,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
     def handle_secondary_button(self):
         """Handle clicks on the secondary button (only for mapping tab)"""
-        current_index = self.function_tabWidget.currentIndex()
-        match current_index:
+        match self.function_tabWidget.currentIndex():
             case FunctionType.MAPPING:
                 self.open_file_dialog(PathType.TABLE, self.secondary_input)
             case _:
@@ -703,34 +700,30 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
     def open_file_dialog(self, path_type: PathType, target_input: PathLineEdit):
         """Open a file dialog for the specified path type and update the target input"""
+        def dialog_helper(hint: str, category: FileCategory) -> str:
+            name, _ =  QtWidgets.QFileDialog.getOpenFileName(
+                self, hint,
+                file_manager.get_default_directory(category).as_posix(),
+                file_manager.get_filter_string(category)
+            )
+            return name
+
         match path_type:
             case PathType.IMAGE:
-                f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
-                    self, 'Open Image',
-                    file_manager.get_default_directory(FileCategory.PHOTO).as_posix(),
-                    file_manager.get_filter_string(FileCategory.PHOTO)
-                )
+                f_name = dialog_helper('Open Image', FileCategory.PHOTO)
                 target_input.setText(f_name)
             case PathType.VIDEO:
-                f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
-                    self, 'Open Video',
-                    file_manager.get_default_directory(FileCategory.VIDEO).as_posix(),
-                    file_manager.get_filter_string(FileCategory.VIDEO)
-                )
+                f_name = dialog_helper('Open Video', FileCategory.VIDEO)
                 target_input.setText(f_name)
             case PathType.TABLE:
-                f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
-                    self, 'Open Table',
-                    file_manager.get_default_directory(FileCategory.TABLE).as_posix(),
-                    file_manager.get_filter_string(FileCategory.TABLE)
-                )
+                f_name = dialog_helper('Open Table', FileCategory.TABLE)
             case _:
                 return None
             
         # Validate the file exists and is accessible
         if f_name := ut.sanitize_path(f_name):
             target_input.setText(f_name)
-            return None
+
         return None
 
     def open_folder_dialog(self, target_input: PathLineEdit):
@@ -760,11 +753,8 @@ class UiMainWindow(QtWidgets.QMainWindow):
     
     def refresh_current_view(self):
         """Refresh the current tab's view"""
-        # Get the current tab index
-        current_index = self.function_tabWidget.currentIndex()
-        
         # Handle refresh based on current tab
-        match current_index:
+        match self.function_tabWidget.currentIndex():
             case FunctionType.PHOTO:
                 # Refresh photo preview
                 if self.unified_address_bar.text() and self.unified_address_bar.state == LineEditState.VALID_INPUT:
@@ -795,11 +785,9 @@ class UiMainWindow(QtWidgets.QMainWindow):
     
     def update_address_bar(self):
         """Update address bar with current tab's path"""
-        current_index = self.function_tabWidget.currentIndex()
-        path = ""
-        
+
         # Get the appropriate path based on the current tab
-        match current_index:
+        match self.function_tabWidget.currentIndex():
             case FunctionType.PHOTO:
                 path = self.photo_tab_widget.input_path
             case FunctionType.FOLDER:
@@ -809,20 +797,20 @@ class UiMainWindow(QtWidgets.QMainWindow):
             case FunctionType.VIDEO:
                 path = self.video_tab_widget.input_path
             case _:
-                pass
+                return None
             
         # Update address bar without triggering text changed event
         self.unified_address_bar.blockSignals(True)
         self.unified_address_bar.setText(path)
         self.unified_address_bar.blockSignals(False)
-    
+        return None
+
     def update_current_tab_path(self):
         """Update current tab's path with address bar text"""
-        current_index = self.function_tabWidget.currentIndex()
         path = self.unified_address_bar.text()
         
         # Update the appropriate input field based on the current tab
-        match current_index:
+        match self.function_tabWidget.currentIndex():
             case FunctionType.PHOTO:
                 self.photo_tab_widget.input_path = path
             case FunctionType.FOLDER:
@@ -915,7 +903,6 @@ class UiMainWindow(QtWidgets.QMainWindow):
     def connect_widget_signals(widget: TabWidget, crop_method: Callable) -> None:
         """Connect signals with minimal overhead"""
         signals = (
-            # widget.inputLineEdit.textChanged,
             widget.controlWidget.widthLineEdit.textChanged,
             widget.controlWidget.heightLineEdit.textChanged,
             widget.exposureCheckBox.stateChanged,
@@ -1087,13 +1074,13 @@ class UiMainWindow(QtWidgets.QMainWindow):
                         control.widthLineEdit.setText(str(int(control.heightLineEdit.value() / phi.value)))
 
         match self.function_tabWidget.currentIndex():
-            case 0:
+            case FunctionType.PHOTO:
                 callback(self.photo_tab_widget.controlWidget)
-            case 1:
+            case FunctionType.FOLDER:
                 callback(self.folder_tab_widget.controlWidget)
-            case 2:
+            case FunctionType.MAPPING:
                 callback(self.mapping_tab_widget.controlWidget)
-            case 3:
+            case FunctionType.VIDEO:
                 callback(self.video_tab_widget.controlWidget)
             case _:
                 pass
@@ -1145,7 +1132,11 @@ class UiMainWindow(QtWidgets.QMainWindow):
             self.folder_tab_widget.load_data()
         elif file_path.is_file():
             # For files, detect type and select the appropriate tab
-            if file_manager.is_valid_type(file_path, FileCategory.PHOTO) or file_manager.is_valid_type(file_path, FileCategory.RAW) or file_manager.is_valid_type(file_path, FileCategory.TIFF):
+            if (
+                file_manager.is_valid_type(file_path, FileCategory.PHOTO) or
+                file_manager.is_valid_type(file_path, FileCategory.RAW) or
+                file_manager.is_valid_type(file_path, FileCategory.TIFF)
+            ):
                 self.function_tabWidget.setCurrentIndex(FunctionType.PHOTO)
                 self.unified_address_bar.setText(file_path.as_posix())
                 self.display_worker.crop(FunctionType.PHOTO)
@@ -1197,21 +1188,25 @@ class UiMainWindow(QtWidgets.QMainWindow):
             return
 
         if self.photo_tab_widget.selection_state == self.photo_tab_widget.SELECTED:
-            self.handle_function_tab_state(self.photo_tab_widget, self.folder_tab_widget, self.mapping_tab_widget,
-                                          self.video_tab_widget)
+            self.handle_function_tab_state(self.photo_tab_widget, self.folder_tab_widget,
+                                           self.mapping_tab_widget, self.video_tab_widget)
         elif self.folder_tab_widget.selection_state == self.folder_tab_widget.SELECTED:
-            self.handle_function_tab_state(self.folder_tab_widget, self.photo_tab_widget, self.mapping_tab_widget,
-                                          self.video_tab_widget)
+            self.handle_function_tab_state(self.folder_tab_widget, self.photo_tab_widget,
+                                           self.mapping_tab_widget, self.video_tab_widget)
             self.folder_tab_widget.load_data()
         elif self.mapping_tab_widget.selection_state == self.mapping_tab_widget.SELECTED:
-            self.handle_function_tab_state(self.mapping_tab_widget, self.photo_tab_widget, self.folder_tab_widget,
-                                          self.video_tab_widget)
+            self.handle_function_tab_state(self.mapping_tab_widget, self.photo_tab_widget,
+                                           self.folder_tab_widget, self.video_tab_widget)
 
     def handle_file(self, file_path: Path) -> None:
         """
         Handles a file based on its file extension by calling the appropriate handler method.
         """
-        if file_manager.is_valid_type(file_path, FileCategory.PHOTO) or file_manager.is_valid_type(file_path, FileCategory.TIFF) or file_manager.is_valid_type(file_path, FileCategory.RAW):
+        if (
+            file_manager.is_valid_type(file_path, FileCategory.PHOTO) or
+            file_manager.is_valid_type(file_path, FileCategory.TIFF) or
+            file_manager.is_valid_type(file_path, FileCategory.RAW)
+        ):
             self.handle_image_file(file_path)
         elif file_manager.is_valid_type(file_path, FileCategory.VIDEO):
             self.handle_video_file(file_path)

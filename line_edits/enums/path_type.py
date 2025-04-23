@@ -1,8 +1,8 @@
-from enum import auto, Enum, unique
+from enum import auto, Flag, unique
 
 
 @unique
-class PathType(Enum):
+class PathType(Flag):
     """
     Enumeration class for path types.
 

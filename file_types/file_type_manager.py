@@ -4,7 +4,7 @@ Simplified file type handling system using Python's standard libraries.
 
 import contextlib
 import mimetypes
-from enum import Enum, auto
+from enum import auto, Flag
 from pathlib import Path
 from typing import Optional
 
@@ -12,7 +12,7 @@ from typing import Optional
 mimetypes.init()
 
 
-class FileCategory(Enum):
+class FileCategory(Flag):
     """Enumeration of file categories for application."""
     PHOTO = auto()
     RAW = auto()
@@ -156,9 +156,19 @@ class FileTypeManager:
             if not extensions:
                 return "All Files (*)"
 
+            match category:
+                case FileCategory.PHOTO | FileCategory.RAW | FileCategory.TIFF:
+                    category_txt = "Image"
+                case FileCategory.VIDEO:
+                    category_txt = "Video"
+                case FileCategory.TABLE:
+                    category_txt = "Table"
+                case _:
+                    return "All Files (*)"
+
             filters = [f'*{ext}' for ext in extensions]
-            filter_text = f"{category.value.title()} Files ({' '.join(filters)})"
-            return f"All Files (*);;{filter_text}"
+            return f"{category_txt} Files ({' '.join(filters)});;All Files (*)"
+            # return f"All Files (*);;{filter_text}"
 
         # Generate all categories filter
         all_filters = ["All Files (*)"]

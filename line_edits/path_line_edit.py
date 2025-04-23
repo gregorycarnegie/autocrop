@@ -141,7 +141,7 @@ class PathLineEdit(CustomLineEdit):
             case _:
                 return False
 
-    def setPathType(self, path_type: PathType) -> None:
+    def set_path_type(self, path_type: PathType) -> None:
         """
         Sets the path type for the line edit and updates validation accordingly.
         

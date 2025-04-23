@@ -67,9 +67,11 @@ def validate_widget_state(widget_state: WidgetState) -> bool:
 
 def get_image_path(function_type: FunctionType, input_line_edit_text: str) -> Optional[Path]:
     img_path = Path(input_line_edit_text)
-    if function_type == FunctionType.PHOTO:
-        return img_path if img_path.is_file() else None
-    return path_iterator(img_path)
+    match function_type:
+        case FunctionType.PHOTO:
+            return img_path if img_path.is_file() else None
+        case _:
+            return path_iterator(img_path)
 
 
 def create_job(widget_state: WidgetState, img_path_str: str, function_type: FunctionType) -> Job:
