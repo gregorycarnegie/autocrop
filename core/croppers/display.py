@@ -40,7 +40,7 @@ class DisplayCropper(Cropper):
         self._input_paths = {}
         
         # Simple cache for the currently loaded raw image - keyed by function type
-        self.preview_data: Dict[FunctionType, Preview] = {}
+        self.preview_data: Dict[FunctionType, Optional[Preview]] = {}
         self.current_paths: Dict[FunctionType, Optional[str]] = {}
 
     def register_widget_state(self, function_type: FunctionType, get_state_callback: Callable[[], tuple], get_path_callback: Callable[[], str]):
