@@ -259,8 +259,22 @@ def load_table(file: Path) -> pl.DataFrame:
     """
     if file_manager.is_valid_type(file, FileCategory.TABLE):
         with suppress(IsADirectoryError):
-            return pl.read_csv(file) if file.suffix.lower() == '.csv' else pl.read_excel(file)
-        return pl.DataFrame()
+            match  file.suffix.lower():
+                case '.csv':
+                    return pl.read_csv(file)
+                case '.xlsx':
+                    return pl.read_excel(file)
+                case '.xlsm':
+                    return pl.read_excel(file)
+                case '.xltx':
+                    return pl.read_excel(file)
+                case '.xltm':
+                    return pl.read_excel(file)
+                case '.parquet':
+                    return pl.read_parquet(file)
+                case _:
+                    return pl.DataFrame()
+        
     return pl.DataFrame()
 
 
