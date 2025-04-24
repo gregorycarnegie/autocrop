@@ -5,3 +5,14 @@ from .mapping_tab import UiMappingTabWidget
 from .video_tab import UiVideoTabWidget
 from .main_window import UiMainWindow
 from .crop_widget import UiCropWidget
+
+
+__all__ = [
+    'UiClickableSplashScreen',
+    'UiPhotoTabWidget',
+    'UiFolderTabWidget',
+    'UiMappingTabWidget',
+    'UiVideoTabWidget',
+    'UiMainWindow',
+    'UiCropWidget',
+]
