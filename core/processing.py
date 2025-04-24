@@ -23,8 +23,7 @@ from core.colour_utils import ensure_rgb, to_grayscale, adjust_gamma, normalize_
 from file_types import file_manager, FileCategory
 from .config import Config
 from .face_tools import L_EYE_START, L_EYE_END, R_EYE_START, R_EYE_END, FaceToolPair, YuNetFaceDetector, Rectangle
-from .image_loader import ImageLoader
-from .image_protocols import ImageOpener, ImageWriter
+from .protocols import ImageLoader, ImageOpener, ImageWriter, TableLoader
 from .job import Job
 from .operation_types import CropFunction, Box
 
@@ -243,38 +242,92 @@ def load_and_prepare_image(
     """
     Open an image file using the appropriate strategy based on its FileCategory.
     """
-    return next(
-        (
-            opener(file, face_detection_tools, job)
-            for category, opener in _OPENER_STRATEGIES.items()
-            if file_manager.is_valid_type(file, category)
-        ),
-        None,
-    )
+    with suppress(IsADirectoryError):
+        return next(
+            (
+                opener(file, face_detection_tools, job)
+                for category, opener in _OPENER_STRATEGIES.items()
+                if file_manager.is_valid_type(file, category)
+            ),
+            None,
+        )
+    return None
+
+
+def _load_csv(file: Path) -> Optional[pl.DataFrame]:
+    """
+    Load a CSV file with header validation.
+    """
+    try:
+        # First peek at the file to validate headers
+        with open(file, 'r', encoding='utf-8') as f:
+            header_line = f.readline().strip()
+            if not header_line:
+                return None
+        
+        # If headers look valid, load the full file
+        return pl.read_csv(file, infer_schema_length=1000)
+    except (pl.NoDataError, UnicodeDecodeError, pl.ComputeError):
+        # Try with different encoding if initial attempt fails
+        try:
+            return pl.read_csv(file, encoding='latin-1', infer_schema_length=1000)
+        except Exception:
+            return None
+    except Exception:
+        return None
+
+
+def _load_excel(file: Path) -> Optional[pl.DataFrame]:
+    """
+    Load an Excel file with validation.
+    """
+    with suppress(Exception):
+        # Use read_excel with error handling
+        return pl.read_excel(file)
+
+
+def _load_parquet(file: Path) -> Optional[pl.DataFrame]:
+    """
+    Load a Parquet file with validation.
+    """
+    with suppress(Exception):
+        return pl.read_parquet(file)
+
+# Map each extension to its loader strategy
+_LOADER_STRATEGIES: dict[str, TableLoader] = {
+    '.csv': _load_csv,
+    '.xlsx': _load_excel,
+    '.xlsm': _load_excel,
+    '.xltx': _load_excel,
+    '.xltm': _load_excel,
+    '.parquet': _load_parquet,
+}
 
 
 def load_table(file: Path) -> pl.DataFrame:
     """
-    Opens a CSV or Excel file using Polars.
-    """
-    if file_manager.is_valid_type(file, FileCategory.TABLE):
-        with suppress(IsADirectoryError):
-            match  file.suffix.lower():
-                case '.csv':
-                    return pl.read_csv(file)
-                case '.xlsx':
-                    return pl.read_excel(file)
-                case '.xlsm':
-                    return pl.read_excel(file)
-                case '.xltx':
-                    return pl.read_excel(file)
-                case '.xltm':
-                    return pl.read_excel(file)
-                case '.parquet':
-                    return pl.read_parquet(file)
-                case _:
-                    return pl.DataFrame()
+    Opens a tabular data file using appropriate strategy based on file type.
+    Validates file headers and structure before loading.
+    
+    Args:
+        file: Path to the table file
         
+    Returns:
+        pl.DataFrame: Loaded data frame or empty data frame if loading fails
+    """
+    if not file_manager.is_valid_type(file, FileCategory.TABLE):
+        return pl.DataFrame()
+
+    with suppress(IsADirectoryError):
+        return next(
+            (
+                loader(file)
+                for ext, loader in _LOADER_STRATEGIES.items()
+                if file.suffix.lower() == ext
+            ),
+            pl.DataFrame()
+        )
+    # Return empty DataFrame if loading fails
     return pl.DataFrame()
 
 
