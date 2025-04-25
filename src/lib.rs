@@ -1,4 +1,4 @@
-use ndarray::{Array1, Array2, Array3, ArrayView2, ArrayView3, Axis, Dim, Ix3, s, ShapeError, Zip};
+use ndarray::{Array1, Array2, Array3, ArrayView2, ArrayView3, Axis, Dim, Ix3, par_azip, s, ShapeError};
 use numpy::{IntoPyArray, PyArray, PyArray2, PyArray3, PyReadonlyArray2, PyReadonlyArray3};
 use pyo3::{prelude::*, types::PyBytes};
 use pyo3::exceptions::{PyValueError, PyRuntimeError};
@@ -110,39 +110,48 @@ fn reshape_buffer_to_image<'py>(
     Ok(owned_array.into_pyarray(py))
 }
 
-/// Internal: Convert BGR image view to grayscale array.
+/// Internal: Convert BGR image view to grayscale array (Parallelized with Rayon).
 fn bgr_to_gray(
     image_view: ArrayView3<u8>,
-    use_rec709: bool, // True for Rec. 709, False for Rec. 601
+    use_rec709: bool,
 ) -> Array2<u8> {
     let shape = image_view.shape();
     let height = shape[0];
     let width = shape[1];
-    let mut gray = Array2::<u8>::zeros((height, width));
+    let mut gray = Array2::<u8>::zeros((height, width)); // Output array (H x W)
 
     // Select coefficients
     let (r_coeff, g_coeff, b_coeff) = if use_rec709 {
-        (0.2126, 0.7152, 0.0722) // Rec. 709
+        (0.2126_f32, 0.7152_f32, 0.0722_f32)
     } else {
-        (0.299, 0.587, 0.114) // Rec. 601
+        (0.299_f32, 0.587_f32, 0.114_f32)
     };
 
-    // Manual iteration or slicing is appropriate. Using slicing from original:
-    let b_channel = image_view.slice(s![.., .., 0]);
-    let g_channel = image_view.slice(s![.., .., 1]);
-    let r_channel = image_view.slice(s![.., .., 2]);
+    // --- Create 2D views for each channel ---
+    // Assuming BGR order: Axis 2, Index 0=B, 1=G, 2=R
+    let b_channel = image_view.slice(s![.., .., 0]); // Shape (H x W)
+    let g_channel = image_view.slice(s![.., .., 1]); // Shape (H x W)
+    let r_channel = image_view.slice(s![.., .., 2]); // Shape (H x W)
+    // ---------------------------------------
 
-    for i in 0..height {
-        for j in 0..width {
-            let b = b_channel[[i, j]] as f32;
-            let g = g_channel[[i, j]] as f32;
-            let r = r_channel[[i, j]] as f32;
-            let gray_val = (r_coeff * r + g_coeff * g + b_coeff * b).round().clamp(0.0, 255.0) as u8; // Added clamp
-            gray[[i, j]] = gray_val;
-        }
-    }
+    // Now zip the 2D output array with the 2D channel views
+    par_azip!((
+        gray_pixel in &mut gray,
+        &b in &b_channel,
+        &g in &g_channel,
+        &r in &r_channel
+    ) {
+        // These are now individual u8 values from the corresponding HxW positions
+        let b = b as f32;
+        let g = g as f32;
+        let r = r as f32;
+        let gray_val = (r_coeff * r + g_coeff * g + b_coeff * b).round().clamp(0.0, 255.0) as u8;
+        *gray_pixel = gray_val;
+    });
+
     gray
 }
+
 
 /// Internal: Calculate 256-bin histogram from grayscale view.
 fn calc_histogram(gray_view: ArrayView2<u8>) -> [f64; 256] {
@@ -195,23 +204,23 @@ fn calc_alpha_beta(hist: &[f64]) -> Option<(f64, f64)> {
     Some((alpha, beta))
 }
 
-/// Internal: Apply scale and shift (convertScaleAbs logic) to an image view.
+/// Internal: Apply scale and shift (convertScaleAbs logic) to an image view (Parallelized with Rayon).
 fn convert_scale_abs(
     image_view: ArrayView3<u8>,
     alpha: f64,
     beta: f64,
 ) -> Array3<u8> {
-    // Based on convert_scale_abs logic from lib.txt
     let mut output_array: Array3<u8> = Array3::zeros(image_view.raw_dim());
-    Zip::from(&mut output_array)
-        .and(image_view)
-        .for_each(|output_pixel: &mut u8, &input_pixel: &u8| {
-            let scaled_shifted: f64 = (input_pixel as f64) * alpha + beta;
-            let abs_result: f64 = scaled_shifted.abs();
-            let rounded_result: f64 = abs_result.round();
-            let clamped_result: f64 = rounded_result.clamp(0.0, 255.0);
-            *output_pixel = clamped_result as u8;
-        });
+
+    // Use par_azip for parallel element-wise operations
+    par_azip!((output_pixel in &mut output_array, &input_pixel in &image_view) {
+        let scaled_shifted: f64 = (input_pixel as f64) * alpha + beta;
+        // No need for abs() if input is u8 and alpha/beta produce results clamped to positive range
+        let rounded_result: f64 = scaled_shifted.round();
+        let clamped_result: f64 = rounded_result.clamp(0.0, 255.0);
+        *output_pixel = clamped_result as u8;
+    });
+
     output_array
 }
 
