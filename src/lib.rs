@@ -1,15 +1,17 @@
-use ndarray::{Array1, Array2, Array3, ArrayView2, ArrayView3, Axis, Dim, Ix3, par_azip, s, ShapeError};
+use ndarray::{Array1, Array2, Array3, ArrayView2, ArrayView3, Axis, Dim, Ix3, par_azip, s};
 use numpy::{IntoPyArray, PyArray, PyArray2, PyArray3, PyReadonlyArray2, PyReadonlyArray3};
 use pyo3::{prelude::*, types::PyBytes};
 use pyo3::exceptions::{PyValueError, PyRuntimeError};
 use std::sync::atomic::{AtomicBool, Ordering};
+use rayon::prelude::*;
+use rayon::current_num_threads;
 
 // For x86/x86_64 specific SIMD intrinsics
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 use std::arch::x86_64::{
-    // _mm256_set1_pd, _mm256_storeu_pd, _mm256_loadu_pd, 
     _mm256_set1_pd, _mm256_storeu_pd,
     _mm256_div_pd, _mm256_set_pd,
+    _mm256_mul_pd, _mm256_add_pd
 };
 
 /// Alias representing a rectangle
@@ -55,12 +57,59 @@ fn cumsum(vec: &[f64]) -> Vec<f64> {
     if vec.is_empty() {
         return Vec::new();
     }
-    let mut accumulator = 0.0;
     
-    vec.iter().map(|&x| {
-        accumulator += x; // Add current element to the running total
-        accumulator     // Return the updated running total for this position
-    }).collect::<Vec<f64>>() // Collect results into a new Vec
+    // For small arrays, use the sequential approach
+    if vec.len() < 1000 {
+        let mut result = Vec::with_capacity(vec.len());
+        let mut accumulator = 0.0;
+        
+        for &x in vec {
+            accumulator += x;
+            result.push(accumulator);
+        }
+        return result;
+    }
+    
+    // For larger arrays, use a parallel approach
+    let chunk_size = 1000;
+    let num_chunks = (vec.len() + chunk_size - 1) / chunk_size; // Ceiling division
+    
+    // Step 1: Compute local sums for each chunk in parallel
+    let local_results: Vec<(Vec<f64>, f64)> = vec.par_chunks(chunk_size)
+        .map(|chunk| {
+            let mut local_result = Vec::with_capacity(chunk.len());
+            let mut sum = 0.0;
+            
+            for &val in chunk {
+                sum += val;
+                local_result.push(sum);
+            }
+            
+            (local_result, sum)
+        })
+        .collect();
+    
+    // Step 2: Calculate prefix sums of chunk totals
+    let mut chunk_prefixes = Vec::with_capacity(num_chunks);
+    let mut prefix_sum = 0.0;
+    
+    for (_, chunk_sum) in &local_results {
+        chunk_prefixes.push(prefix_sum);
+        prefix_sum += chunk_sum;
+    }
+    
+    // Step 3: Combine results
+    let mut final_result = Vec::with_capacity(vec.len());
+    
+    for (chunk_idx, (local_chunk, _)) in local_results.iter().enumerate() {
+        let chunk_prefix = chunk_prefixes[chunk_idx];
+        
+        for &local_val in local_chunk {
+            final_result.push(local_val + chunk_prefix);
+        }
+    }
+    
+    final_result
 }
 
 /// Reshapes a raw byte buffer (from Python) into a 3D NumPy array (H, W, 3).
@@ -98,16 +147,102 @@ fn reshape_buffer_to_image<'py>(
         )));
     }
 
+    // Create rows in parallel
+    let rows: Vec<Vec<u8>> = (0..height).into_par_iter()
+        .map(|i| {
+            let row_start = i * width * channels;
+            let row_end = row_start + (width * channels);
+            bytes_slice[row_start..row_end].to_vec()
+        })
+        .collect();
+    
+    // Flatten and convert to ndarray
+    let flattened: Vec<u8> = rows.into_iter().flatten().collect();
     let shape = Ix3(height, width, channels);
-
-    let array_view: ArrayView3<'_, u8> =
-        ArrayView3::from_shape(shape, bytes_slice)
-        .map_err(|e: ShapeError| {
-            PyValueError::new_err(format!("Failed to reshape buffer: {}", e))
-        })?;
-
-    let owned_array: Array3<u8> = array_view.to_owned();
+    
+    let owned_array = Array3::from_shape_vec(shape, flattened)
+        .map_err(|e| PyValueError::new_err(format!("Failed to reshape array: {}", e)))?;
+    
     Ok(owned_array.into_pyarray(py))
+}
+
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+unsafe fn bgr_to_gray_avx2(
+    image_view: ArrayView3<u8>,
+    use_rec709: bool,
+) -> Array2<u8> {
+    let shape = image_view.shape();
+    let height = shape[0];
+    let width = shape[1];
+    let mut gray = Array2::<u8>::zeros((height, width));
+
+    // Select coefficients
+    let (r_coeff, g_coeff, b_coeff) = if use_rec709 {
+        (0.2126_f32, 0.7152_f32, 0.0722_f32)
+    } else {
+        (0.299_f32, 0.587_f32, 0.114_f32)
+    };
+
+    // Create AVX2 vectors for coefficients (4 doubles per vector)
+    let r_vector = _mm256_set1_pd(r_coeff as f64);
+    let g_vector = _mm256_set1_pd(g_coeff as f64);
+    let b_vector = _mm256_set1_pd(b_coeff as f64);
+
+    // Process rows in parallel
+    par_azip!((mut gray_row in gray.axis_iter_mut(Axis(0)),
+               image_row in image_view.axis_iter(Axis(0))) {
+        
+        let mut i = 0;
+        // Process 4 pixels at a time with AVX2
+        while i + 3 < width {
+            // Load 4 pixels from each channel
+            let mut r_vals = [0.0; 4];
+            let mut g_vals = [0.0; 4];
+            let mut b_vals = [0.0; 4];
+            
+            for j in 0..4 {
+                b_vals[j] = image_row[[i + j, 0]] as f64;
+                g_vals[j] = image_row[[i + j, 1]] as f64;
+                r_vals[j] = image_row[[i + j, 2]] as f64;
+            }
+            
+            // Create AVX vectors
+            let r_pixels = _mm256_set_pd(r_vals[3], r_vals[2], r_vals[1], r_vals[0]);
+            let g_pixels = _mm256_set_pd(g_vals[3], g_vals[2], g_vals[1], g_vals[0]);
+            let b_pixels = _mm256_set_pd(b_vals[3], b_vals[2], b_vals[1], b_vals[0]);
+            
+            // Multiply by coefficients
+            let r_contrib = _mm256_mul_pd(r_pixels, r_vector);
+            let g_contrib = _mm256_mul_pd(g_pixels, g_vector);
+            let b_contrib = _mm256_mul_pd(b_pixels, b_vector);
+            
+            // Sum contributions
+            let sum1 = _mm256_add_pd(r_contrib, g_contrib);
+            let gray_values = _mm256_add_pd(sum1, b_contrib);
+            
+            // Store results
+            let mut result_array = [0.0; 4];
+            _mm256_storeu_pd(result_array.as_mut_ptr(), gray_values);
+            
+            // Convert to u8 and store in output
+            for j in 0..4 {
+                gray_row[i + j] = result_array[j].round().clamp(0.0, 255.0) as u8;
+            }
+            
+            i += 4;
+        }
+        
+        // Handle remaining pixels with scalar code
+        for j in i..width {
+            let b = image_row[[j, 0]] as f32;
+            let g = image_row[[j, 1]] as f32;
+            let r = image_row[[j, 2]] as f32;
+            let gray_val = (r_coeff * r + g_coeff * g + b_coeff * b).round().clamp(0.0, 255.0) as u8;
+            gray_row[j] = gray_val;
+        }
+    });
+
+    gray
 }
 
 /// Internal: Convert BGR image view to grayscale array (Parallelized with Rayon).
@@ -115,6 +250,15 @@ fn bgr_to_gray(
     image_view: ArrayView3<u8>,
     use_rec709: bool,
 ) -> Array2<u8> {
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    {
+        if is_avx2_supported() {
+            unsafe {
+                return bgr_to_gray_avx2(image_view, use_rec709);
+            }
+        }
+    }
+
     let shape = image_view.shape();
     let height = shape[0];
     let width = shape[1];
@@ -156,9 +300,26 @@ fn bgr_to_gray(
 /// Internal: Calculate 256-bin histogram from grayscale view.
 fn calc_histogram(gray_view: ArrayView2<u8>) -> [f64; 256] {
     let mut hist: [f64; 256] = [0.0; 256];
-    for &pixel_value in gray_view.iter() {
-        hist[pixel_value as usize] += 1.0;
+    
+    // Create thread-local histograms
+    let local_hists = gray_view.axis_chunks_iter(Axis(0), gray_view.shape()[0] / current_num_threads().max(1))
+        .into_par_iter()
+        .map(|chunk| {
+            let mut local_hist = [0.0; 256];
+            for &pixel_value in chunk.iter() {
+                local_hist[pixel_value as usize] += 1.0;
+            }
+            local_hist
+        })
+        .collect::<Vec<[f64; 256]>>();
+    
+    // Combine thread-local histograms
+    for local_hist in local_hists {
+        for i in 0..256 {
+            hist[i] += local_hist[i];
+        }
     }
+    
     hist
 }
 
@@ -204,12 +365,81 @@ fn calc_alpha_beta(hist: &[f64]) -> Option<(f64, f64)> {
     Some((alpha, beta))
 }
 
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+unsafe fn convert_scale_abs_avx2(
+    image_view: ArrayView3<u8>,
+    alpha: f64, 
+    beta: f64,
+) -> Array3<u8> {
+    let shape = image_view.raw_dim();
+    let mut output_array: Array3<u8> = Array3::zeros(shape.clone());
+    
+    let alpha_vector = _mm256_set1_pd(alpha);
+    let beta_vector = _mm256_set1_pd(beta);
+    
+    // Process each channel of each row in parallel
+    par_azip!((
+        mut output_slice in output_array.axis_iter_mut(Axis(0)),
+        input_slice in image_view.axis_iter(Axis(0))
+    ) {
+        // For each row, process each channel
+        for c in 0..shape[2] {
+            let mut j = 0;
+            // Process 4 pixels at a time within this row and channel
+            while j + 3 < shape[1] {
+                // Load 4 input values
+                let mut input_vals = [0.0; 4];
+                for k in 0..4 {
+                    input_vals[k] = input_slice[[j + k, c]] as f64;
+                }
+                
+                // Create AVX vector
+                let input_vector = _mm256_set_pd(
+                    input_vals[3], input_vals[2], input_vals[1], input_vals[0]
+                );
+                
+                // Apply scale and shift
+                let scaled = _mm256_mul_pd(input_vector, alpha_vector);
+                let result = _mm256_add_pd(scaled, beta_vector);
+                
+                // Store results
+                let mut result_array = [0.0; 4];
+                _mm256_storeu_pd(result_array.as_mut_ptr(), result);
+                
+                // Convert to u8 and store
+                for k in 0..4 {
+                    output_slice[[j + k, c]] = result_array[k].round().clamp(0.0, 255.0) as u8;
+                }
+                
+                j += 4;
+            }
+            
+            // Handle remaining values
+            while j < shape[1] {
+                let scaled_shifted = (input_slice[[j, c]] as f64) * alpha + beta;
+                output_slice[[j, c]] = scaled_shifted.round().clamp(0.0, 255.0) as u8;
+                j += 1;
+            }
+        }
+    });
+    
+    output_array
+}
+
 /// Internal: Apply scale and shift (convertScaleAbs logic) to an image view (Parallelized with Rayon).
 fn convert_scale_abs(
     image_view: ArrayView3<u8>,
     alpha: f64,
     beta: f64,
 ) -> Array3<u8> {
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    {
+        if is_avx2_supported() {
+            unsafe {
+                return convert_scale_abs_avx2(image_view, alpha, beta);
+            }
+        }
+    }
     let mut output_array: Array3<u8> = Array3::zeros(image_view.raw_dim());
 
     // Use par_azip for parallel element-wise operations
@@ -262,67 +492,87 @@ fn correct_exposure<'py>(
     Ok(final_result_array.into_pyarray(py))
 }
 
-/// Generates a gamma correction lookup table for intensity values from 0 to 255.
-#[pyfunction]
-fn gamma<'py>(gamma_value: f64, py: Python<'py>) -> PyResult<Bound<'py, PyArray<u8, Dim<[usize; 1]>>>> {
-    let mut lookup = Array1::<u8>::zeros(256);
-    
+/// AVX2-accelerated gamma correction lookup table generation
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+unsafe fn gamma_avx2(gamma_value: f64) -> Vec<u8> {
     if gamma_value <= 1.0 {
-        for i in 0..256 {
-            lookup[i] = i as u8;
-        }
-    } else {
-        #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-        let use_avx = is_avx2_supported();
-        #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
-        let use_avx = false;
-        
-        let inv_gamma = 1.0 / gamma_value;
-        let scale = 255.0;
-        
-        if use_avx {
-            #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-            unsafe {
-                const LANE_WIDTH: usize = 4;
-                let scale_vector = _mm256_set1_pd(scale);
-                
-                for i in (0..256).step_by(LANE_WIDTH) {
-                    if i + LANE_WIDTH <= 256 {
-                        let indices = _mm256_set_pd(
-                            (i + 3) as f64,
-                            (i + 2) as f64,
-                            (i + 1) as f64,
-                            i as f64,
-                        );
-                        
-                        let normalized = _mm256_div_pd(indices, scale_vector);
-                        
-                        let mut result = [0.0; LANE_WIDTH];
-                        _mm256_storeu_pd(result.as_mut_ptr(), normalized);
-                        
-                        for j in 0..LANE_WIDTH {
-                            let val = (result[j].powf(inv_gamma) * scale) as u8;
-                            lookup[i + j] = val;
-                        }
-                    } else {
-                        for j in i..256 {
-                            let normalized = (j as f64) / scale;
-                            let val = (normalized.powf(inv_gamma) * scale) as u8;
-                            lookup[j] = val;
-                        }
-                    }
+        // For gamma ≤ 1.0, just return array with values 0-255
+        return (0..=255).collect();
+    }
+    
+    let inv_gamma = 1.0 / gamma_value;
+    let scale = 255.0;
+    let scale_vec = _mm256_set1_pd(scale);
+    let mut lookup = vec![0u8; 256];
+    
+    for i in (0..256).step_by(4) {
+        // Create vector of 4 consecutive indices
+        let indices = if i + 3 < 256 {
+            _mm256_set_pd((i + 3) as f64, (i + 2) as f64, (i + 1) as f64, i as f64)
+        } else {
+            // Handle edge case for last iteration
+            let mut vals = [0.0; 4];
+            for j in 0..4 {
+                if i + j < 256 {
+                    vals[j] = (i + j) as f64;
                 }
             }
-        } else {
-            for i in 0..256 {
-                let normalized = (i as f64) / scale;
-                let val = (normalized.powf(inv_gamma) * scale) as u8;
-                lookup[i] = val;
+            _mm256_set_pd(vals[3], vals[2], vals[1], vals[0])
+        };
+        
+        // Normalize by dividing by scale
+        let normalized = _mm256_div_pd(indices, scale_vec);
+        
+        // Apply power function (no AVX2 intrinsic for pow, need to store and process)
+        let mut temp_values = [0.0; 4];
+        _mm256_storeu_pd(temp_values.as_mut_ptr(), normalized);
+        
+        for j in 0..4 {
+            if i + j < 256 {
+                let powered = temp_values[j].powf(inv_gamma);
+                lookup[i + j] = (powered * scale).round().clamp(0.0, 255.0) as u8;
             }
         }
     }
     
-    Ok(lookup.into_pyarray(py))
+    lookup
+}
+
+/// Python-facing gamma correction function that uses AVX2 if available
+#[pyfunction]
+fn gamma<'py>(gamma_value: f64, py: Python<'py>) -> PyResult<Bound<'py, PyArray<u8, Dim<[usize; 1]>>>> {
+    let lookup: Vec<u8>;
+    
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    {
+        if is_avx2_supported() {
+            unsafe {
+                lookup = gamma_avx2(gamma_value);
+                let array = Array1::from_vec(lookup);
+                return Ok(array.into_pyarray(py));
+            }
+        }
+    }
+    
+    // Standard implementation (fallback)
+    if gamma_value <= 1.0 {
+        // For gamma ≤ 1.0, just return array with values 0-255
+        lookup = (0..=255).collect();
+    } else {
+        // For gamma > 1.0, calculate values in parallel
+        let inv_gamma = 1.0 / gamma_value;
+        let scale = 255.0;
+        
+        lookup = (0..256).into_par_iter()
+            .map(|i| {
+                let normalized = (i as f64) / scale;
+                (normalized.powf(inv_gamma) * scale).round().clamp(0.0, 255.0) as u8
+            })
+            .collect();
+    }
+    
+    let array = Array1::from_vec(lookup);
+    Ok(array.into_pyarray(py))
 }
 
 /// Calculates output dimensions and scaling factor for resizing.
@@ -331,23 +581,6 @@ fn calculate_dimensions(height: i32, width: i32, target_height: i32) -> (i32, f6
     let scaling_factor = target_height as f64 / height as f64;
     let new_width = (width as f64 * scaling_factor) as i32;
     (new_width, scaling_factor)
-}
-
-// Helper function calculate_mean_center (remains the same) ---
-fn calculate_mean_center(arr: &PyReadonlyArray2<f64>) -> PyResult<Array1<f64>> {
-    let arr_view = arr.as_array(); // Get ndarray view without copying
-    if arr_view.shape()[0] == 0 {
-        // Raise Python ValueError if input array is empty
-        return Err(PyValueError::new_err(
-            "Input landmark array cannot be empty",
-        ));
-    }
-    // Calculate mean along axis 0 (columns). Returns Option<Array1<f64>>
-    arr_view.mean_axis(Axis(0))
-        // Convert Option to Result<_, PyErr>
-        .ok_or_else(|| PyRuntimeError::new_err(
-            "Failed to calculate mean axis, check array validity"
-        ))
 }
 
 /// Creates a 2D rotation matrix based on eye landmark positions.
@@ -365,8 +598,7 @@ fn get_rotation_matrix<'py>(
     left_eye_landmarks: PyReadonlyArray2<f64>,
     right_eye_landmarks: PyReadonlyArray2<f64>,
     scale_factor: f64,
-) -> PyResult<Bound<'py, PyArray2<f64>>> { // Return PyObject and f64
-
+) -> PyResult<Bound<'py, PyArray2<f64>>> {
     // --- Input validation ---
     let left_view = left_eye_landmarks.as_array();
     let right_view = right_eye_landmarks.as_array();
@@ -375,10 +607,41 @@ fn get_rotation_matrix<'py>(
             "Landmark arrays must have shape (N, 2)",
         ));
     }
-    // calculate_mean_center handles N=0 check below
-    let left_eye_center = calculate_mean_center(&left_eye_landmarks)?;
-    let right_eye_center = calculate_mean_center(&right_eye_landmarks)?;
+    
+    // Convert PyReadonlyArray to owned ndarray.Array first
+    let left_eye_ndarray = left_view.to_owned();
+    let right_eye_ndarray = right_view.to_owned();
+    
+    // Now we can use Rayon's parallel computations on the owned arrays
+    let (left_mean, right_mean) = rayon::join(
+        || {
+            if left_eye_ndarray.shape()[0] == 0 {
+                return Err(PyValueError::new_err(
+                    "Left eye landmark array cannot be empty",
+                ));
+            }
+            left_eye_ndarray.mean_axis(Axis(0))
+                .ok_or_else(|| PyRuntimeError::new_err(
+                    "Failed to calculate mean axis for left eye"
+                ))
+        },
+        || {
+            if right_eye_ndarray.shape()[0] == 0 {
+                return Err(PyValueError::new_err(
+                    "Right eye landmark array cannot be empty",
+                ));
+            }
+            right_eye_ndarray.mean_axis(Axis(0))
+                .ok_or_else(|| PyRuntimeError::new_err(
+                    "Failed to calculate mean axis for right eye"
+                ))
+        }
+    );
+    
+    let left_eye_center = left_mean?;
+    let right_eye_center = right_mean?;
 
+    // Rest of the function remains the same
     let left_eye_x = left_eye_center[0];
     let left_eye_y = left_eye_center[1];
     let right_eye_x = right_eye_center[0];
