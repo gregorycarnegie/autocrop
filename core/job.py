@@ -1,3 +1,4 @@
+import os
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -148,7 +149,6 @@ class Job:
         Checks if the `destination` path is accessible (writable).
         Returns False if `destination` is None.
         """
-        import os
         return os.access(self.destination, os.W_OK) if self.destination else False
 
     @property
@@ -163,4 +163,4 @@ class Job:
         """
         Approximate size in bytes for an image of shape (height, width, 3).
         """
-        return self.size * 3
+        return np.prod(self.size) * 3

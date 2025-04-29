@@ -211,14 +211,13 @@ class DisplayCropper(Cropper):
             pipeline = prc.build_processing_pipeline(job, self.face_detection_tools, bounding_box, True)
             processed_image = prc.run_processing_pipeline(image_copy, pipeline)
 
-        return self._convert_to_qimage(processed_image, file_category, cached_image.color_space)
+        return self._convert_to_qimage(processed_image, cached_image.color_space)
     
     @staticmethod
-    def _convert_to_qimage(cv_image: cv2.Mat, file_category: FileCategory, color_space: QImage.Format) -> QImage:
+    def _convert_to_qimage(cv_image: cv2.Mat, color_space: QImage.Format) -> QImage:
         """Convert OpenCV image to QImage"""
         height, width, channels = cv_image.shape
         bytes_per_line = channels * width
-
         return QImage(cv_image.data, width, height, bytes_per_line, color_space)
     
     def clear_cache(self, function_type: Optional[FunctionType] = None):

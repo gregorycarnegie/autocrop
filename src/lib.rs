@@ -734,7 +734,7 @@ fn compute_edges(
 
     // Helper function to calculate edge with padding
     let calc_edge = |p: f64, dim: f64, pad: u32| {
-        (p + dim * (0.5 + pad as f64)).round() as i32
+        (p + dim * (0.5 + (pad as f64) / 100.0)).round() as i32
     };
 
     (
