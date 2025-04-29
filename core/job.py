@@ -163,4 +163,4 @@ class Job:
         """
         Approximate size in bytes for an image of shape (height, width, 3).
         """
-        return self.width * self.height * 3
+        return self.size * 3

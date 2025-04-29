@@ -3,6 +3,7 @@ use numpy::{IntoPyArray, PyArray, PyArray2, PyArray3, PyReadonlyArray2, PyReadon
 use pyo3::{prelude::*, types::PyBytes};
 use pyo3::exceptions::{PyValueError, PyRuntimeError};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::convert::Into;
 use rayon::prelude::*;
 use rayon::current_num_threads;
 
@@ -50,6 +51,23 @@ fn is_avx2_supported() -> bool {
 #[inline]
 fn is_avx2_supported() -> bool {
     false
+}
+
+/// Generic function to dispatch between SIMD-accelerated and fallback implementations
+#[inline]
+fn dispatch_simd<F, G, Args, Ret>(args: Args, avx2_fn: F, fallback_fn: G) -> Ret
+where
+    F: FnOnce(Args) -> Ret,
+    G: FnOnce(Args) -> Ret,
+{
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    {
+        if is_avx2_supported() {
+            return avx2_fn(args);
+        }
+    }
+    
+    fallback_fn(args)
 }
 
 /// Compute the cumulative sum of a slice of f64 values. (Corrected, simple version)
@@ -166,8 +184,26 @@ fn reshape_buffer_to_image<'py>(
     Ok(owned_array.into_pyarray(py))
 }
 
+/// Generic function to round, clamp, and convert any float type to u8
+#[inline]
+fn round_clamp_to_u8<T>(value: T) -> u8 
+where
+    T: Into<f64>,
+{
+    value.into().round().max(0.0).min(255.0) as u8
+}
+
+/// Convert BGR image view to grayscale array (Parallelized with Rayon).
+fn bgr_to_gray(image_view: ArrayView3<u8>, use_rec709: bool) -> Array2<u8> {
+    dispatch_simd(
+        (image_view, use_rec709),
+        |(view, rec709)| unsafe {bgr_to_gray_avx2_impl(view, rec709)},
+        |(view, rec709)| bgr_to_gray_standard_impl(view, rec709)
+    )
+}
+
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-unsafe fn bgr_to_gray_avx2(
+unsafe fn bgr_to_gray_avx2_impl(
     image_view: ArrayView3<u8>,
     use_rec709: bool,
 ) -> Array2<u8> {
@@ -177,11 +213,7 @@ unsafe fn bgr_to_gray_avx2(
     let mut gray = Array2::<u8>::zeros((height, width));
 
     // Select coefficients
-    let (r_coeff, g_coeff, b_coeff) = if use_rec709 {
-        (0.2126_f32, 0.7152_f32, 0.0722_f32)
-    } else {
-        (0.299_f32, 0.587_f32, 0.114_f32)
-    };
+    let (r_coeff, g_coeff, b_coeff) = get_rgb_coefficients(use_rec709);
 
     // Create AVX2 vectors for coefficients (4 doubles per vector)
     let r_vector = _mm256_set1_pd(r_coeff as f64);
@@ -226,7 +258,7 @@ unsafe fn bgr_to_gray_avx2(
             
             // Convert to u8 and store in output
             for j in 0..4 {
-                gray_row[i + j] = result_array[j].round().clamp(0.0, 255.0) as u8;
+                gray_row[i + j] = round_clamp_to_u8(result_array[j]);
             }
             
             i += 4;
@@ -237,7 +269,7 @@ unsafe fn bgr_to_gray_avx2(
             let b = image_row[[j, 0]] as f32;
             let g = image_row[[j, 1]] as f32;
             let r = image_row[[j, 2]] as f32;
-            let gray_val = (r_coeff * r + g_coeff * g + b_coeff * b).round().clamp(0.0, 255.0) as u8;
+            let gray_val = round_clamp_to_u8(r_coeff * r + g_coeff * g + b_coeff * b);
             gray_row[j] = gray_val;
         }
     });
@@ -246,30 +278,17 @@ unsafe fn bgr_to_gray_avx2(
 }
 
 /// Internal: Convert BGR image view to grayscale array (Parallelized with Rayon).
-fn bgr_to_gray(
+fn bgr_to_gray_standard_impl(
     image_view: ArrayView3<u8>,
     use_rec709: bool,
 ) -> Array2<u8> {
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    {
-        if is_avx2_supported() {
-            unsafe {
-                return bgr_to_gray_avx2(image_view, use_rec709);
-            }
-        }
-    }
-
     let shape = image_view.shape();
     let height = shape[0];
     let width = shape[1];
     let mut gray = Array2::<u8>::zeros((height, width)); // Output array (H x W)
 
     // Select coefficients
-    let (r_coeff, g_coeff, b_coeff) = if use_rec709 {
-        (0.2126_f32, 0.7152_f32, 0.0722_f32)
-    } else {
-        (0.299_f32, 0.587_f32, 0.114_f32)
-    };
+    let (r_coeff, g_coeff, b_coeff) = get_rgb_coefficients(use_rec709);
 
     // --- Create 2D views for each channel ---
     // Assuming BGR order: Axis 2, Index 0=B, 1=G, 2=R
@@ -289,13 +308,20 @@ fn bgr_to_gray(
         let b = b as f32;
         let g = g as f32;
         let r = r as f32;
-        let gray_val = (r_coeff * r + g_coeff * g + b_coeff * b).round().clamp(0.0, 255.0) as u8;
+        let gray_val = round_clamp_to_u8(r_coeff * r + g_coeff * g + b_coeff * b);
         *gray_pixel = gray_val;
     });
 
     gray
 }
 
+fn get_rgb_coefficients(use_rec709: bool) -> (f32, f32, f32) {
+    if use_rec709 {
+        (0.2126_f32, 0.7152_f32, 0.0722_f32)
+    } else {
+        (0.299_f32, 0.587_f32, 0.114_f32)
+    }
+}
 
 /// Internal: Calculate 256-bin histogram from grayscale view.
 fn calc_histogram(gray_view: ArrayView2<u8>) -> [f64; 256] {
@@ -365,8 +391,18 @@ fn calc_alpha_beta(hist: &[f64]) -> Option<(f64, f64)> {
     Some((alpha, beta))
 }
 
+/// Apply scale and shift (convertScaleAbs logic) to an image view
+fn convert_scale_abs(image_view: ArrayView3<u8>, alpha: f64, beta: f64) -> Array3<u8> {
+    dispatch_simd(
+        (image_view, alpha, beta),
+        |(view, a, b)| unsafe {convert_scale_abs_avx2_impl(view, a, b)},
+        |(view, a, b)| convert_scale_abs_standard_impl(view, a, b)
+    )
+}
+
+
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-unsafe fn convert_scale_abs_avx2(
+unsafe fn convert_scale_abs_avx2_impl(
     image_view: ArrayView3<u8>,
     alpha: f64, 
     beta: f64,
@@ -408,7 +444,7 @@ unsafe fn convert_scale_abs_avx2(
                 
                 // Convert to u8 and store
                 for k in 0..4 {
-                    output_slice[[j + k, c]] = result_array[k].round().clamp(0.0, 255.0) as u8;
+                    output_slice[[j + k, c]] = round_clamp_to_u8(result_array[k]);
                 }
                 
                 j += 4;
@@ -416,8 +452,7 @@ unsafe fn convert_scale_abs_avx2(
             
             // Handle remaining values
             while j < shape[1] {
-                let scaled_shifted = (input_slice[[j, c]] as f64) * alpha + beta;
-                output_slice[[j, c]] = scaled_shifted.round().clamp(0.0, 255.0) as u8;
+                output_slice[[j, c]] = round_clamp_to_u8((input_slice[[j, c]] as f64) * alpha + beta);
                 j += 1;
             }
         }
@@ -427,28 +462,17 @@ unsafe fn convert_scale_abs_avx2(
 }
 
 /// Internal: Apply scale and shift (convertScaleAbs logic) to an image view (Parallelized with Rayon).
-fn convert_scale_abs(
+fn convert_scale_abs_standard_impl(
     image_view: ArrayView3<u8>,
     alpha: f64,
     beta: f64,
 ) -> Array3<u8> {
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    {
-        if is_avx2_supported() {
-            unsafe {
-                return convert_scale_abs_avx2(image_view, alpha, beta);
-            }
-        }
-    }
     let mut output_array: Array3<u8> = Array3::zeros(image_view.raw_dim());
 
     // Use par_azip for parallel element-wise operations
     par_azip!((output_pixel in &mut output_array, &input_pixel in &image_view) {
-        let scaled_shifted: f64 = (input_pixel as f64) * alpha + beta;
         // No need for abs() if input is u8 and alpha/beta produce results clamped to positive range
-        let rounded_result: f64 = scaled_shifted.round();
-        let clamped_result: f64 = rounded_result.clamp(0.0, 255.0);
-        *output_pixel = clamped_result as u8;
+        *output_pixel = round_clamp_to_u8((input_pixel as f64) * alpha + beta);
     });
 
     output_array
@@ -492,9 +516,22 @@ fn correct_exposure<'py>(
     Ok(final_result_array.into_pyarray(py))
 }
 
+/// Python-facing gamma correction function
+#[pyfunction]
+fn gamma<'py>(gamma_value: f64, py: Python<'py>) -> PyResult<Bound<'py, PyArray<u8, Dim<[usize; 1]>>>> {
+    let lookup = dispatch_simd(
+        gamma_value,
+        |g| unsafe {gamma_avx2_impl(g)},
+        |g| gamma_standard_impl(g)
+    );
+    
+    let array = Array1::from_vec(lookup);
+    Ok(array.into_pyarray(py))
+}
+
 /// AVX2-accelerated gamma correction lookup table generation
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-unsafe fn gamma_avx2(gamma_value: f64) -> Vec<u8> {
+unsafe fn gamma_avx2_impl(gamma_value: f64) -> Vec<u8> {
     if gamma_value <= 1.0 {
         // For gamma ≤ 1.0, just return array with values 0-255
         return (0..=255).collect();
@@ -530,7 +567,7 @@ unsafe fn gamma_avx2(gamma_value: f64) -> Vec<u8> {
         for j in 0..4 {
             if i + j < 256 {
                 let powered = temp_values[j].powf(inv_gamma);
-                lookup[i + j] = (powered * scale).round().clamp(0.0, 255.0) as u8;
+                lookup[i + j] = round_clamp_to_u8(powered * scale);
             }
         }
     }
@@ -539,21 +576,8 @@ unsafe fn gamma_avx2(gamma_value: f64) -> Vec<u8> {
 }
 
 /// Python-facing gamma correction function that uses AVX2 if available
-#[pyfunction]
-fn gamma<'py>(gamma_value: f64, py: Python<'py>) -> PyResult<Bound<'py, PyArray<u8, Dim<[usize; 1]>>>> {
+fn gamma_standard_impl(gamma_value: f64) -> Vec<u8> {
     let lookup: Vec<u8>;
-    
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    {
-        if is_avx2_supported() {
-            unsafe {
-                lookup = gamma_avx2(gamma_value);
-                let array = Array1::from_vec(lookup);
-                return Ok(array.into_pyarray(py));
-            }
-        }
-    }
-    
     // Standard implementation (fallback)
     if gamma_value <= 1.0 {
         // For gamma ≤ 1.0, just return array with values 0-255
@@ -566,13 +590,12 @@ fn gamma<'py>(gamma_value: f64, py: Python<'py>) -> PyResult<Bound<'py, PyArray<
         lookup = (0..256).into_par_iter()
             .map(|i| {
                 let normalized = (i as f64) / scale;
-                (normalized.powf(inv_gamma) * scale).round().clamp(0.0, 255.0) as u8
+                round_clamp_to_u8(normalized.powf(inv_gamma) * scale)
             })
             .collect();
     }
     
-    let array = Array1::from_vec(lookup);
-    Ok(array.into_pyarray(py))
+    lookup
 }
 
 /// Calculates output dimensions and scaling factor for resizing.
