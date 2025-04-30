@@ -10,9 +10,10 @@ use rayon::current_num_threads;
 // For x86/x86_64 specific SIMD intrinsics
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 use std::arch::x86_64::{
-    _mm256_set1_pd, _mm256_storeu_pd,
-    _mm256_div_pd, _mm256_set_pd,
-    _mm256_mul_pd, _mm256_add_pd
+    _mm256_setzero_pd, _mm256_set1_pd, _mm256_set_pd, _mm256_storeu_pd,
+    _mm256_div_pd, _mm256_mul_pd, _mm256_fmadd_pd,
+    _mm256_round_pd, _mm256_max_pd, _mm256_min_pd, _mm_prefetch,
+    _MM_FROUND_TO_NEAREST_INT, _MM_HINT_T0
 };
 
 /// Alias representing a rectangle
@@ -78,12 +79,12 @@ fn cumsum(vec: &[f64]) -> Vec<f64> {
     
     // For small arrays, use the sequential approach
     if vec.len() < 1000 {
-        let mut result = Vec::with_capacity(vec.len());
+        let mut result = vec![0.0; vec.len()]; // Pre-allocate with zeros
         let mut accumulator = 0.0;
         
-        for &x in vec {
+        for (i, &x) in vec.iter().enumerate() {
             accumulator += x;
-            result.push(accumulator);
+            result[i] = accumulator; // Replace value at index i
         }
         return result;
     }
@@ -95,12 +96,12 @@ fn cumsum(vec: &[f64]) -> Vec<f64> {
     // Step 1: Compute local sums for each chunk in parallel
     let local_results: Vec<(Vec<f64>, f64)> = vec.par_chunks(chunk_size)
         .map(|chunk| {
-            let mut local_result = Vec::with_capacity(chunk.len());
+            let mut local_result = vec![0.0; chunk.len()]; // Pre-allocate
             let mut sum = 0.0;
             
-            for &val in chunk {
+            for (i, &val) in chunk.iter().enumerate() {
                 sum += val;
-                local_result.push(sum);
+                local_result[i] = sum; // Replace at index i
             }
             
             (local_result, sum)
@@ -108,22 +109,24 @@ fn cumsum(vec: &[f64]) -> Vec<f64> {
         .collect();
     
     // Step 2: Calculate prefix sums of chunk totals
-    let mut chunk_prefixes = Vec::with_capacity(num_chunks);
+    let mut chunk_prefixes = vec![0.0; num_chunks];
     let mut prefix_sum = 0.0;
     
-    for (_, chunk_sum) in &local_results {
-        chunk_prefixes.push(prefix_sum);
+    for (i, (_, chunk_sum)) in local_results.iter().enumerate() {
+        chunk_prefixes[i] = prefix_sum;
         prefix_sum += chunk_sum;
     }
     
     // Step 3: Combine results
-    let mut final_result = Vec::with_capacity(vec.len());
+    let mut final_result = vec![0.0; vec.len()];
     
+    let mut result_index = 0;
     for (chunk_idx, (local_chunk, _)) in local_results.iter().enumerate() {
         let chunk_prefix = chunk_prefixes[chunk_idx];
         
         for &local_val in local_chunk {
-            final_result.push(local_val + chunk_prefix);
+            final_result[result_index] = local_val + chunk_prefix;
+            result_index += 1;
         }
     }
     
@@ -220,57 +223,80 @@ unsafe fn bgr_to_gray_avx2_impl(
     let g_vector = _mm256_set1_pd(g_coeff as f64);
     let b_vector = _mm256_set1_pd(b_coeff as f64);
 
+    // Constants for vectorized clamping
+    let zero_vector = _mm256_setzero_pd();
+    let max_vector = _mm256_set1_pd(255.0);
+
+    // Cache line optimization: process in chunks that fit well in cache
+    const CACHE_CHUNK_SIZE: usize = 64 / 4; // 64 bytes cache line / 4 bytes per u32 = 16 pixels
+    
     // Process rows in parallel
     par_azip!((mut gray_row in gray.axis_iter_mut(Axis(0)),
                image_row in image_view.axis_iter(Axis(0))) {
         
-        let mut i = 0;
-        // Process 4 pixels at a time with AVX2
-        while i + 3 < width {
-            // Load 4 pixels from each channel
-            let mut r_vals = [0.0; 4];
-            let mut g_vals = [0.0; 4];
-            let mut b_vals = [0.0; 4];
-            
-            for j in 0..4 {
-                b_vals[j] = image_row[[i + j, 0]] as f64;
-                g_vals[j] = image_row[[i + j, 1]] as f64;
-                r_vals[j] = image_row[[i + j, 2]] as f64;
-            }
-            
-            // Create AVX vectors
-            let r_pixels = _mm256_set_pd(r_vals[3], r_vals[2], r_vals[1], r_vals[0]);
-            let g_pixels = _mm256_set_pd(g_vals[3], g_vals[2], g_vals[1], g_vals[0]);
-            let b_pixels = _mm256_set_pd(b_vals[3], b_vals[2], b_vals[1], b_vals[0]);
-            
-            // Multiply by coefficients
-            let r_contrib = _mm256_mul_pd(r_pixels, r_vector);
-            let g_contrib = _mm256_mul_pd(g_pixels, g_vector);
-            let b_contrib = _mm256_mul_pd(b_pixels, b_vector);
-            
-            // Sum contributions
-            let sum1 = _mm256_add_pd(r_contrib, g_contrib);
-            let gray_values = _mm256_add_pd(sum1, b_contrib);
-            
-            // Store results
-            let mut result_array = [0.0; 4];
-            _mm256_storeu_pd(result_array.as_mut_ptr(), gray_values);
-            
-            // Convert to u8 and store in output
-            for j in 0..4 {
-                gray_row[i + j] = round_clamp_to_u8(result_array[j]);
-            }
-            
-            i += 4;
-        }
+        // Get raw pointers for faster access
+        let image_ptr = image_row.as_ptr();
+        let gray_ptr = gray_row.as_mut_ptr();
         
-        // Handle remaining pixels with scalar code
-        for j in i..width {
-            let b = image_row[[j, 0]] as f32;
-            let g = image_row[[j, 1]] as f32;
-            let r = image_row[[j, 2]] as f32;
-            let gray_val = round_clamp_to_u8(r_coeff * r + g_coeff * g + b_coeff * b);
-            gray_row[j] = gray_val;
+        // Process in cache-friendly chunks
+        for chunk_start in (0..width).step_by(CACHE_CHUNK_SIZE) {
+            let chunk_end = (chunk_start + CACHE_CHUNK_SIZE).min(width);
+            
+            let mut i = chunk_start;
+            
+            // Process 4 pixels at a time for simplicity and reliability
+            while i + 3 < chunk_end {
+                // Prefetch next chunk of data
+                if i + 16 < width {
+                    _mm_prefetch(image_ptr.add((i + 16) * 3) as *const i8, _MM_HINT_T0);
+                }
+                
+                // Load 4 pixels
+                let mut b_vals = [0.0; 4];
+                let mut g_vals = [0.0; 4];
+                let mut r_vals = [0.0; 4];
+                
+                for j in 0..4 {
+                    b_vals[j] = *image_ptr.add((i + j) * 3 + 0) as f64;
+                    g_vals[j] = *image_ptr.add((i + j) * 3 + 1) as f64;
+                    r_vals[j] = *image_ptr.add((i + j) * 3 + 2) as f64;
+                }
+                
+                // Create AVX vectors
+                let r_pixels = _mm256_set_pd(r_vals[3], r_vals[2], r_vals[1], r_vals[0]);
+                let g_pixels = _mm256_set_pd(g_vals[3], g_vals[2], g_vals[1], g_vals[0]);
+                let b_pixels = _mm256_set_pd(b_vals[3], b_vals[2], b_vals[1], b_vals[0]);
+                
+                // Use FMA for better performance
+                let mut gray_values = _mm256_mul_pd(r_pixels, r_vector);
+                gray_values = _mm256_fmadd_pd(g_pixels, g_vector, gray_values);
+                gray_values = _mm256_fmadd_pd(b_pixels, b_vector, gray_values);
+                
+                // Vectorized rounding and clamping
+                gray_values = _mm256_round_pd(gray_values, _MM_FROUND_TO_NEAREST_INT);
+                gray_values = _mm256_min_pd(_mm256_max_pd(gray_values, zero_vector), max_vector);
+                
+                // Convert to integers and store to a temporary array
+                // We'll use a direct approach here to avoid complex SIMD packing
+                let mut result_array = [0.0; 4];
+                _mm256_storeu_pd(result_array.as_mut_ptr(), gray_values);
+                
+                // Store results with direct conversion
+                for j in 0..4 {
+                    *gray_ptr.add(i + j) = round_clamp_to_u8(result_array[j]);
+                }
+                
+                i += 4;
+            }
+            
+            // Handle remaining pixels with scalar code
+            while i < chunk_end {
+                let b = *image_ptr.add(i * 3 + 0) as f32;
+                let g = *image_ptr.add(i * 3 + 1) as f32;
+                let r = *image_ptr.add(i * 3 + 2) as f32;
+                *gray_ptr.add(i) = round_clamp_to_u8(r_coeff * r + g_coeff * g + b_coeff * b);
+                i += 1;
+            }
         }
     });
 
@@ -400,7 +426,6 @@ fn convert_scale_abs(image_view: ArrayView3<u8>, alpha: f64, beta: f64) -> Array
     )
 }
 
-
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 unsafe fn convert_scale_abs_avx2_impl(
     image_view: ArrayView3<u8>,
@@ -412,51 +437,106 @@ unsafe fn convert_scale_abs_avx2_impl(
     
     let alpha_vector = _mm256_set1_pd(alpha);
     let beta_vector = _mm256_set1_pd(beta);
+    let channels = shape[2];
     
-    // Process each channel of each row in parallel
-    par_azip!((
-        mut output_slice in output_array.axis_iter_mut(Axis(0)),
-        input_slice in image_view.axis_iter(Axis(0))
-    ) {
-        // For each row, process each channel
-        for c in 0..shape[2] {
+    // Check if channels is 3 (typical for RGB/BGR images)
+    // This allows us to optimize the common case specifically
+    if channels == 3 {
+        // Process each row in parallel
+        par_azip!((
+            mut output_slice in output_array.axis_iter_mut(Axis(0)),
+            input_slice in image_view.axis_iter(Axis(0))
+        ) {
+            let width = shape[1];
+            
+            // 1. Process chunks of 4 pixels for all 3 channels together
             let mut j = 0;
-            // Process 4 pixels at a time within this row and channel
-            while j + 3 < shape[1] {
-                // Load 4 input values
-                let mut input_vals = [0.0; 4];
-                for k in 0..4 {
-                    input_vals[k] = input_slice[[j + k, c]] as f64;
+            while j + 3 < width {
+                // Process all 3 channels in one go
+                for c in 0..3 {
+                    // Use pointers for faster access without bounds checking
+                    let input_ptr = input_slice.as_ptr();
+                    let output_ptr = output_slice.as_mut_ptr();
+                    
+                    // Load 4 input values directly without intermediate array
+                    let input_vector = _mm256_set_pd(
+                        *input_ptr.add((j + 3) * channels + c) as f64,
+                        *input_ptr.add((j + 2) * channels + c) as f64,
+                        *input_ptr.add((j + 1) * channels + c) as f64,
+                        *input_ptr.add(j * channels + c) as f64
+                    );
+                    
+                    // Apply scale and shift
+                    let result = _mm256_fmadd_pd(input_vector, alpha_vector, beta_vector);
+                    
+                    // Directly convert and store to output
+                    let mut result_array = [0.0; 4];
+                    _mm256_storeu_pd(result_array.as_mut_ptr(), result);
+                    
+                    // Store results with direct pointer manipulation
+                    for k in 0..4 {
+                        *output_ptr.add((j + k) * channels + c) = 
+                            round_clamp_to_u8(result_array[k]);
+                    }
                 }
-                
-                // Create AVX vector
-                let input_vector = _mm256_set_pd(
-                    input_vals[3], input_vals[2], input_vals[1], input_vals[0]
-                );
-                
-                // Apply scale and shift
-                let scaled = _mm256_mul_pd(input_vector, alpha_vector);
-                let result = _mm256_add_pd(scaled, beta_vector);
-                
-                // Store results
-                let mut result_array = [0.0; 4];
-                _mm256_storeu_pd(result_array.as_mut_ptr(), result);
-                
-                // Convert to u8 and store
-                for k in 0..4 {
-                    output_slice[[j + k, c]] = round_clamp_to_u8(result_array[k]);
-                }
-                
                 j += 4;
             }
             
-            // Handle remaining values
-            while j < shape[1] {
-                output_slice[[j, c]] = round_clamp_to_u8((input_slice[[j, c]] as f64) * alpha + beta);
+            // 2. Handle remaining pixels (all channels together)
+            while j < width {
+                for c in 0..3 {
+                    let input_val = input_slice[[j, c]] as f64;
+                    output_slice[[j, c]] = round_clamp_to_u8(input_val * alpha + beta);
+                }
                 j += 1;
             }
-        }
-    });
+        });
+    } else {
+        // Generic case for any number of channels
+        par_azip!((
+            mut output_slice in output_array.axis_iter_mut(Axis(0)),
+            input_slice in image_view.axis_iter(Axis(0))
+        ) {
+            let width = shape[1];
+            
+            // Process all channels for each pixel block
+            // This keeps related channels together for better cache utilization
+            let mut j = 0;
+            while j + 3 < width {
+                for c in 0..channels {
+                    // Process 4 pixels at once for this channel
+                    let input_vector = _mm256_set_pd(
+                        input_slice[[j + 3, c]] as f64,
+                        input_slice[[j + 2, c]] as f64,
+                        input_slice[[j + 1, c]] as f64,
+                        input_slice[[j + 0, c]] as f64
+                    );
+                    
+                    // Apply scale and shift
+                    let result = _mm256_fmadd_pd(input_vector, alpha_vector, beta_vector);
+                    
+                    // Store results
+                    let mut result_array = [0.0; 4];
+                    _mm256_storeu_pd(result_array.as_mut_ptr(), result);
+                    
+                    // Store with unchecked access for speed
+                    for k in 0..4 {
+                        *output_slice.uget_mut((j + k, c)) = round_clamp_to_u8(result_array[k]);
+                    }
+                }
+                j += 4;
+            }
+            
+            // Handle remaining pixels
+            while j < width {
+                for c in 0..channels {
+                    *output_slice.uget_mut((j, c)) = 
+                        round_clamp_to_u8((*input_slice.uget((j, c)) as f64) * alpha + beta);
+                }
+                j += 1;
+            }
+        });
+    }
     
     output_array
 }
@@ -498,8 +578,7 @@ fn correct_exposure<'py>(
     let input_view: ArrayView3<'_, u8> = image.as_array();
 
     if !exposure {
-        let owned_copy: Array3<u8> = input_view.to_owned();
-        return Ok(owned_copy.into_pyarray(py));
+        return Ok(input_view.to_owned().into_pyarray(py));
     }
 
     // Call internal functions
