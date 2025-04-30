@@ -8,11 +8,11 @@ version = "0.4.0"
 requires-python = ">=3.10"
 dependencies = [
     "cachetools>=5.5.2",
-    "fastexcel>=0.13.0",
+    "fastexcel>=0.14.0",
     "ffmpeg-python>=0.2.0",
     "numpy>=2.2.5",
     "opencv-contrib-python>=4.11.0.86",
-    "polars>=1.27.1",
+    "polars>=1.28.1",
     "psutil>=7.0.0",
     "PyQt6>=6.9.0",
     "rawpy>=0.24.0",
