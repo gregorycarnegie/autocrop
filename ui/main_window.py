@@ -1128,8 +1128,23 @@ class UiMainWindow(QtWidgets.QMainWindow):
         if file_path.is_dir():
             # For directories, always select the folder tab
             self.function_tabWidget.setCurrentIndex(FunctionType.FOLDER)
-            self.unified_address_bar.setText(file_path.as_posix())
+            
+            # KEY CHANGE: Set the folder_tab_widget input path before updating address bar
+            old_path = self.folder_tab_widget.input_path
+            self.folder_tab_widget.input_path = file_path.as_posix()
+            
+            # Only update address if needed - this avoids redundant events
+            if old_path != file_path.as_posix():
+                self.unified_address_bar.setText(file_path.as_posix())
+            
+            # temporarily setting current_paths to None for FOLDER type
+            self.display_worker.current_paths[FunctionType.FOLDER] = None
+            
+            # Load data into tree view
             self.folder_tab_widget.load_data()
+            
+            # KEY CHANGE: Explicitly trigger display update after load_data
+            self.display_worker.crop(FunctionType.FOLDER)
         elif file_path.is_file():
             # For files, detect type and select the appropriate tab
             if (
