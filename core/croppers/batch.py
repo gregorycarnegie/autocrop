@@ -1,5 +1,6 @@
 import atexit
 import collections.abc as c
+import os
 import threading
 from concurrent.futures import Future, ThreadPoolExecutor, CancelledError
 from functools import partial
@@ -108,23 +109,154 @@ class BatchCropper(Cropper):
                     list_1: c.Iterable[T],
                     list_2: Optional[c.Iterable] = None):
         """
-        Configure worker futures for parallel execution.
+        Configure worker futures for parallel execution with enhanced security.
         """
         # Recreate executor if it was shut down
         if self.executor is None or self.executor._shutdown:
             self.executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)
 
-        worker_with_params = partial(worker, file_amount=amount, job=job, cancel_event=self.cancel_event)
+        # Validate inputs before processing
+        if not self._validate_inputs(worker, amount, job, list_1, list_2):
+            # Log error and return early if validation fails
+            return
+
+        # Use partial with validated inputs only
+        worker_with_params = partial(self._secure_worker_wrapper, 
+                                    original_worker=worker, 
+                                    file_amount=amount, 
+                                    job=job, 
+                                    cancel_event=self.cancel_event)
+
+        self.futures = []
+        # Create futures with additional security checks
         if list_2:
-            self.futures = [
-                self.executor.submit(worker_with_params, face_detection_tools=tool_pair, old=old_chunk, new=new_chunk)
-                for old_chunk, new_chunk, tool_pair in zip(list_1, list_2, self.face_detection_tools)
-            ]
+            for old_chunk, new_chunk, tool_pair in zip(list_1, list_2, self.face_detection_tools):
+                # Validate each chunk before submitting
+                if self._validate_chunk(old_chunk) and self._validate_chunk(new_chunk):
+                    self.futures.append(
+                        self.executor.submit(worker_with_params, 
+                                            face_detection_tools=tool_pair, 
+                                            old=old_chunk, 
+                                            new=new_chunk)
+                    )
         else:
-            self.futures = [
-                self.executor.submit(worker_with_params, face_detection_tools=tool_pair, file_list=chunk)
-                for chunk, tool_pair in zip(list_1, self.face_detection_tools)
-                ]
+            for chunk, tool_pair in zip(list_1, self.face_detection_tools):
+                # Validate each chunk before submitting
+                if self._validate_chunk(chunk):
+                    self.futures.append(
+                        self.executor.submit(worker_with_params, 
+                                            face_detection_tools=tool_pair, 
+                                            file_list=chunk)
+                    )
+
+    def _secure_worker_wrapper(self, **kwargs):
+        """
+        Secure wrapper around worker functions that provides additional validation.
+        """
+        try:
+            # Extract the original worker function
+            original_worker = kwargs.pop('original_worker', None)
+            if not original_worker or not callable(original_worker):
+                print("Invalid worker function")
+                return
+                
+            # Re-validate input parameters before execution
+            if not self._validate_worker_params(kwargs):
+                print("Worker parameter validation failed")
+                return
+                
+            # Call the original worker with validated parameters
+            original_worker(**kwargs)
+        except Exception as e:
+            # Log the error but don't expose details that could help attackers
+            print(f"Error in secure worker wrapper: {type(e).__name__}")
+
+    def _validate_inputs(self, worker: Callable[..., None],
+                        amount: int,
+                        job: Job,
+                        list_1: c.Iterable[T],
+                        list_2: Optional[c.Iterable]) -> bool:
+        """
+        Validate all inputs to set_futures before processing.
+        """
+        # Validate worker function
+        if not worker or not callable(worker):
+            return False
+
+        # Validate basic parameters
+        if amount <= 0 or not isinstance(job, Job):
+            return False
+
+        # Validate list_1
+        if not list_1 or not isinstance(list_1, c.Iterable):
+            return False
+
+        # Validate list_2 if provided
+        return list_2 is None or isinstance(list_2, c.Iterable)
+
+    def _validate_chunk(self, chunk) -> bool:
+        """
+        Validate an individual chunk of data before processing.
+        """
+        # Basic validation
+        if chunk is None:
+            return False
+            
+        # For Path objects, ensure they're valid
+        if isinstance(chunk, (list, tuple)):
+            # Check if chunk contains Path objects
+            if all(isinstance(item, Path) for item in chunk):
+                # Validate each path
+                return all(self._validate_path(item) for item in chunk)
+                
+        # For numpy arrays, check shape and type
+        elif hasattr(chunk, 'shape') and hasattr(chunk, 'dtype'):
+            # Reject arrays with object dtype (could contain serialized code)
+            if 'object' in str(chunk.dtype):
+                return False
+                
+        return True
+
+    def _validate_path(self, path: Path) -> bool:
+        """
+        Validate a Path object to ensure it's safe to use.
+        """
+        try:
+            # Resolve to absolute path
+            resolved = path.resolve()
+
+            # Check existence and access
+            return bool(os.access(resolved, os.R_OK)) if resolved.exists() else False
+        except Exception:
+            return False
+
+    def _validate_worker_params(self, params: dict) -> bool:
+        """
+        Validate parameters before passing to worker function.
+        """
+        # Verify essential parameters are present
+        required_keys = {'file_amount', 'job', 'cancel_event', 'face_detection_tools'}
+        if any(key not in params for key in required_keys):
+            return False
+
+        # Check parameter types
+        if not isinstance(params.get('file_amount'), int):
+            return False
+
+        if not isinstance(params.get('job'), Job):
+            return False
+
+        if not isinstance(params.get('cancel_event'), threading.Event):
+            return False
+
+        # Check optional parameters
+        if 'file_list' in params and not self._validate_chunk(params['file_list']):
+            return False
+
+        if 'old' in params and not self._validate_chunk(params['old']):
+            return False
+
+        return bool('new' not in params or self._validate_chunk(params['new']))
 
     def complete_futures(self):
         """Attach a done callback to all futures"""
