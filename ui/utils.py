@@ -11,6 +11,9 @@ from .dialog import UiDialog
 from .enums import GuiIcon
 from .image_widget import ImageWidget
 
+import platform
+import subprocess
+
 
 def register_button_dependencies(widget, button: QtWidgets.QPushButton,
                                  dependent_widgets: set[QtWidgets.QWidget]) -> None:
@@ -260,7 +263,36 @@ def show_message_box(destination: Path) -> None:
     msg_box = create_question_box()
     msg_box.setText('Open destination folder?')
     if msg_box.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
-        os.startfile(destination)
+        # Replace the insecure os.startfile with a safer alternative
+        try:
+            # Use platform-specific methods to open file explorer
+            # Make sure destination path is absolute and normalized
+            abs_path = str(destination.resolve())
+            
+            # Use different commands based on operating system
+            if platform.system() == "Windows":
+                # On Windows, use subprocess.run with explorer.exe
+                subprocess.run(['explorer', abs_path], check=False, shell=False)
+            elif platform.system() == "Darwin":  # macOS
+                # On macOS, use 'open' command
+                subprocess.run(['open', abs_path], check=False, shell=False)
+            else:  # Linux and other Unix-like
+                # On Linux, try xdg-open, if it fails fall back to other options
+                try:
+                    subprocess.run(['xdg-open', abs_path], check=False, shell=False)
+                except FileNotFoundError:
+                    # Try other common file managers
+                    for cmd in ['gnome-open', 'kde-open', 'exo-open']:
+                        try:
+                            subprocess.run([cmd, abs_path], check=False, shell=False)
+                            break
+                        except FileNotFoundError:
+                            continue
+        except Exception as e:
+            # Show a simple error message
+            error_box = create_error_box()
+            error_box.setText(f"Could not open the destination folder.\nError opening folder: {e}")
+            error_box.exec()
 
 def show_error_box(*messages: str) -> None:
     """Shows an error message box with the given messages."""
