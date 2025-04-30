@@ -188,7 +188,7 @@ class BatchCropper(Cropper):
         Returns:
             bool: True if a job is valid, False if validation failed and error was reported
         """
-        if not job.destination:
+        if not job.safe_destination:
             return False
 
         # Check if the destination directory is writable

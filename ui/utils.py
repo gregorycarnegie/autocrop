@@ -67,23 +67,72 @@ def check_paths_valid(tab_widget) -> bool:
     return input_valid and dest_valid
 
 def sanitize_path(path_str: str) -> Optional[str]:
-    """Sanitize path input to prevent path traversal attacks."""
-    # Remove control characters and normalize
-    path_str = ''.join(c for c in path_str if c.isprintable())
-    
-    # Normalize path separators
-    path_str = path_str.replace('\\', '/').replace('//', '/')
-    
-    # Remove any attempts at directory traversal
-    while '..' in path_str:
-        path_str = path_str.replace('..', '')
-    
-    path = Path(path_str)
-    if not path.exists() or not os.access(path, os.R_OK):
-        show_error_box("Selected path is not accessible")
+    """
+    Sanitize path input to prevent path traversal attacks.
+    Returns None if the path is invalid or inaccessible.
+    """
+    if not path_str:
         return None
 
-    return path_str
+    try:
+        # Remove control characters
+        path_str = ''.join(c for c in path_str if c.isprintable())
+
+        # Create a Path object and resolve it to get absolute normalized path
+        path = Path(path_str).resolve()
+
+        # Check that the path exists and is accessible
+        if not path.exists():
+            show_error_box("Path does not exist")
+            return None
+
+        if not os.access(path, os.R_OK):
+            show_error_box("Path is not accessible")
+            return None
+
+        # For extra security, you can add base directory restrictions
+        # For example, ensure path is within allowed directories:
+        allowed_base_dirs = [
+            Path.home(),
+            Path("/mnt"),  # Common mount point on Linux
+            Path("/media"),  # Common media mount point on Linux
+            # Add other allowed base directories
+        ]
+
+        # Add Windows drives if on Windows
+        if os.name == 'nt':
+            import string
+            allowed_base_dirs.extend(
+                Path(f"{letter}:") for letter in string.ascii_uppercase
+            )
+        # Check if path is within allowed directories
+        if not any(is_subpath(path, base_dir) for base_dir in allowed_base_dirs):
+            show_error_box("Path is outside of allowed directories")
+            return None
+
+        return str(path)
+    except Exception as e:
+        # Log the error internally but don't expose details to user
+        print(f"Error sanitizing path: {e}")
+        show_error_box("Invalid path")
+        return None
+
+def is_subpath(path: Path, base_path: Path) -> bool:
+    """
+    Check if path is a subpath of base_path.
+    Both paths must be absolute and normalized.
+    """
+    # Convert to strings for comparison, ensuring consistent path separators
+    path_str = str(path).replace('\\', '/')
+    base_str = str(base_path).replace('\\', '/')
+
+    # Special case for Windows root drives
+    if os.name == 'nt' and len(base_str) <= 3 and base_str.endswith(':'):
+        # For Windows drives like "C:", check if path starts with "C:/"
+        return path_str.startswith(f'{base_str}/')
+
+    # Check if path starts with base_path followed by a path separator
+    return path_str == base_str or path_str.startswith(f'{base_str}/')
 
 def setup_combobox(combobox: QtWidgets.QComboBox,
                    layout: Union[QtWidgets.QHBoxLayout, QtWidgets.QHBoxLayout],

@@ -1,5 +1,6 @@
 import os
 import shutil
+from contextlib import suppress
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
@@ -68,26 +69,76 @@ class Job:
     column1: Optional[QComboBox] = None
     column2: Optional[QComboBox] = None
 
+    def _validate_path(self, path: Optional[Path]) -> Optional[Path]:
+        """
+        Validate a path to ensure it's safe and accessible.
+        Returns None if the path is invalid or inaccessible.
+        """
+        if path is None:
+            return None
+
+        with suppress(Exception):
+            # Resolve to get absolute normalized path
+            resolved_path = path.resolve()
+
+            # Check that the path exists
+            if not resolved_path.exists():
+                return None
+
+            # Check that the path is accessible
+            return resolved_path if os.access(resolved_path, os.R_OK) else None
+    
+    @property
+    def safe_photo_path(self) -> Optional[Path]:
+        """Returns a validated photo path or None if invalid."""
+        return self._validate_path(self.photo_path)
+    
+    @property
+    def safe_folder_path(self) -> Optional[Path]:
+        """Returns a validated folder path or None if invalid."""
+        return self._validate_path(self.folder_path)
+    
+    @property
+    def safe_destination(self) -> Optional[Path]:
+        """Returns a validated destination path or None if invalid."""
+        return self._validate_path(self.destination)
+    
+    @property
+    def safe_video_path(self) -> Optional[Path]:
+        """Returns a validated video path or None if invalid."""
+        return self._validate_path(self.video_path)
+
     def iter_images(self) -> Optional[list[Path]]:
         """
         Retrieves a list of files from `folder_path` whose suffix is in supported file types.
+        Includes path validation for security.
 
         Returns:
-            A list of files, or None if `folder_path` is None.
+            A list of validated file paths, or None if `folder_path` is None or invalid.
         """
-        if self.folder_path is None:
+        # Validate folder path first
+        safe_folder = self.safe_folder_path
+        if safe_folder is None:
             return None
 
-        return list(
-            filter(
-                lambda f: f.is_file() and (
-                        file_manager.is_valid_type(f, FileCategory.PHOTO) or
-                        file_manager.is_valid_type(f, FileCategory.RAW) or
-                        file_manager.is_valid_type(f, FileCategory.TIFF)
-                ),
-                self.folder_path.iterdir()
-            )
-        )
+        # Only include files that:
+        # 1. Are actually files (not directories)
+        # 2. Have supported file types
+        # 3. Are accessible
+        valid_files = []
+        for f in safe_folder.iterdir():
+            try:
+                if (f.is_file() and
+                    (file_manager.is_valid_type(f, FileCategory.PHOTO) or
+                     file_manager.is_valid_type(f, FileCategory.RAW) or
+                     file_manager.is_valid_type(f, FileCategory.TIFF)) and
+                     os.access(f, os.R_OK)):
+                    valid_files.append(f)
+            except OSError:
+                # Skip files that cause errors
+                continue
+
+        return valid_files
 
     def radio_tuple(self) -> tuple[str, ...]:
         """
@@ -121,42 +172,99 @@ class Job:
     def get_destination(self) -> Optional[Path]:
         """
         Creates and returns the `destination` directory if specified.
-        Returns None if not set.
+        Returns None if not set or invalid.
         """
-        if self.destination is None:
+        # Validate the destination path
+        safe_dest = self.safe_destination
+        if safe_dest is None:
             return None
-        self.destination.mkdir(exist_ok=True)
-        return self.destination
+            
+        # Try to create the directory
+        with suppress(Exception):
+            safe_dest.mkdir(exist_ok=True)
+            return safe_dest
 
     def file_list_to_numpy(self) -> Optional[tuple[np.ndarray, np.ndarray]]:
         """
         Converts two columns of the `table` (specified by `column1` and `column2`) into
         NumPy string arrays, filtering by actual file existence in `folder_path`.
+        Includes path validation for security.
         """
-        if any(_ is None for _ in (self.table, self.column1, self.column2, self.folder_path)):
+        # Check for None values or empty table
+        if any(_ is None for _ in (self.table, self.column1, self.column2)):
             return None
+
+        # Validate folder path
+        safe_folder = self.safe_folder_path
+        if safe_folder is None:
+            return None
+
         if self.table.is_empty():
             return None
-        old_arr = self.table[self.column1.currentText()].to_numpy().astype(np.str_)
-        new_arr = self.table[self.column2.currentText()].to_numpy().astype(np.str_)
-        existing = {p.name for p in self.folder_path.iterdir()}
-        mask = np.isin(old_arr, list(existing))
-        return old_arr[mask], new_arr[mask]
+
+        with suppress(Exception):
+            # Extract column data safely
+            col1_name = self.column1.currentText()
+            col2_name = self.column2.currentText()
+
+            # Validate column names
+            if not col1_name or not col2_name:
+                return None
+            if col1_name not in self.table.columns or col2_name not in self.table.columns:
+                return None
+
+            # Convert to NumPy arrays
+            old_arr = self.table[col1_name].to_numpy().astype(np.str_)
+            new_arr = self.table[col2_name].to_numpy().astype(np.str_)
+
+            # Build a set of existing filenames with proper validation
+            existing = set()
+            for p in safe_folder.iterdir():
+                try:
+                    if p.is_file() and os.access(p, os.R_OK):
+                        existing.add(p.name)
+                except OSError:
+                    continue
+
+            # Create a mask for existing files
+            mask = np.isin(old_arr, list(existing))
+
+            # Apply the mask
+            return old_arr[mask], new_arr[mask]
 
     @property
     def destination_accessible(self) -> bool:
         """
         Checks if the `destination` path is accessible (writable).
-        Returns False if `destination` is None.
+        Returns False if `destination` is None or inaccessible.
         """
-        return os.access(self.destination, os.W_OK) if self.destination else False
+        # Validate the destination path
+        safe_dest = self.safe_destination
+        if safe_dest is None:
+            return False
+            
+        # Check if the directory can be written to
+        try:
+            return os.access(safe_dest, os.W_OK)
+        except Exception:
+            return False
 
     @property
     def free_space(self) -> int:
         """
         Returns the free disk space at `destination`.
+        Returns 0 if destination is invalid or inaccessible.
         """
-        return shutil.disk_usage(self.destination).free
+        # Validate the destination path
+        safe_dest = self.safe_destination
+        if safe_dest is None:
+            return 0
+            
+        # Check free space with error handling
+        try:
+            return shutil.disk_usage(safe_dest).free
+        except Exception:
+            return 0
 
     @property
     def approx_byte_size(self) -> int:

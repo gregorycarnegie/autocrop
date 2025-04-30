@@ -104,13 +104,13 @@ class VideoCropper(Cropper):
         """
 
         # Early exits for conditions where no processing is required
-        if not job.video_path or not job.destination:
+        if not job.safe_video_path or not job.safe_destination:
             return None
 
-        if (frame := self.grab_frame(timeline_slider.value(), job.video_path.as_posix())) is None:
+        if (frame := self.grab_frame(timeline_slider.value(), job.safe_video_path.as_posix())) is None:
             return None
 
-        destination = job.destination
+        destination = job.safe_destination
         destination.mkdir(exist_ok=True)
 
         # Swap ':' to '_' in position text
@@ -119,7 +119,7 @@ class VideoCropper(Cropper):
         # Determine file suffix based on radio choice
         file_suffix = job.radio_options[2] if job.radio_choice() == job.radio_options[0] else job.radio_choice()
 
-        file_path = destination.joinpath(f'{job.video_path.stem} - ({position}){file_suffix}')
+        file_path = destination.joinpath(f'{job.safe_video_path.stem} - ({position}){file_suffix}')
         is_tiff = file_path.suffix in {'.tif', '.tiff'}
 
         # Handle a multi-face job
@@ -211,14 +211,14 @@ class VideoCropper(Cropper):
         This method periodically checks self.end_task flag and yields to the event loop
         to allow cancellation to take effect.
         """
-        if not job.video_path or not job.start_position or not job.stop_position or not job.destination:
+        if not job.safe_video_path or not job.start_position or not job.stop_position or not job.safe_destination:
             return None
         if not job.destination_accessible:
             exception, message = self.create_error('access')
             return self._display_error(exception, message)
 
         try:
-            video_stream = get_video_stream(job.video_path.as_posix())
+            video_stream = get_video_stream(job.safe_video_path.as_posix())
             if not video_stream:
                 exception, message = self.create_error('file', "Video Stream not found")
                 return self._display_error(exception, message)
@@ -262,7 +262,7 @@ class VideoCropper(Cropper):
                 self.emit_done()
                 return None
 
-            frame = self.extract_frame_ffmpeg(job.video_path.as_posix(), frame_number, width, height, fps)
+            frame = self.extract_frame_ffmpeg(job.safe_video_path.as_posix(), frame_number, width, height, fps)
 
             # Check again after potentially long frame extraction
             if self.end_task:
@@ -270,12 +270,12 @@ class VideoCropper(Cropper):
                 return None
 
             if frame is not None:
-                file_enum = f"{job.video_path.stem}_frame_{frame_number:06d}"
+                file_enum = f"{job.safe_video_path.stem}_frame_{frame_number:06d}"
 
                 if job.multi_face_job:
-                    self.process_multiface_frame_job(frame, job, file_enum, job.destination)
+                    self.process_multiface_frame_job(frame, job, file_enum, job.safe_destination)
                 else:
-                    self.process_singleface_frame_job(frame, job, file_enum, job.destination)
+                    self.process_singleface_frame_job(frame, job, file_enum, job.safe_destination)
 
             self._update_progress(total_frames)
 

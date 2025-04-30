@@ -30,9 +30,9 @@ class MappingCropper(BatchCropper):
         output_paths:  list[Path] = []
         
         for old_name, new_name in zip(old, new):
-            old_path: Path = job.folder_path / old_name
+            old_path: Path = job.safe_folder_path / old_name
             if old_path.is_file():
-                new_path: Path = job.destination / (new_name + old_path.suffix if job.radio_choice() == 'No' 
+                new_path: Path = job.safe_destination / (new_name + old_path.suffix if job.radio_choice() == 'No' 
                                             else new_name + job.radio_choice())
                 image_paths.append(old_path)
                 output_paths.append(new_path)

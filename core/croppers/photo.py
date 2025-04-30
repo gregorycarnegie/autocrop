@@ -29,7 +29,7 @@ class PhotoCropper(Cropper):
         if not image.is_file():
             return None
 
-        if job.destination:
+        if job.safe_destination:
             # Check if the destination directory is writable.
             if not job.destination_accessible:
                 exception, message = self.create_error('access')

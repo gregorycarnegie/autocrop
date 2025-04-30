@@ -1,3 +1,5 @@
+import os
+
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
@@ -698,45 +700,108 @@ class UiMainWindow(QtWidgets.QMainWindow):
         """Handle clicks on the destination button"""
         self.open_folder_dialog(self.destination_input)
 
-    def open_file_dialog(self, path_type: PathType, target_input: PathLineEdit):
-        """Open a file dialog for the specified path type and update the target input"""
-        def dialog_helper(hint: str, category: FileCategory) -> str:
-            name, _ =  QtWidgets.QFileDialog.getOpenFileName(
-                self, hint,
-                file_manager.get_default_directory(category).as_posix(),
-                file_manager.get_filter_string(category)
-            )
-            return name
-
-        match path_type:
-            case PathType.IMAGE:
-                f_name = dialog_helper('Open Image', FileCategory.PHOTO)
-                target_input.setText(f_name)
-            case PathType.VIDEO:
-                f_name = dialog_helper('Open Video', FileCategory.VIDEO)
-                target_input.setText(f_name)
-            case PathType.TABLE:
-                f_name = dialog_helper('Open Table', FileCategory.TABLE)
-            case _:
-                return None
+    def open_file_dialog(self, path_type: PathType) -> None:
+        """Securely open a file dialog and validate the selected path"""
+        try:
+            # Use QFileDialog with security considerations
+            options = QtWidgets.QFileDialog.Option.ReadOnly  # Prevents modification during selection
             
-        # Validate the file exists and is accessible
-        if f_name := ut.sanitize_path(f_name):
-            target_input.setText(f_name)
-
-        return None
-
-    def open_folder_dialog(self, target_input: PathLineEdit):
-        """Open a folder dialog and update the target input"""
-        f_name = QtWidgets.QFileDialog.getExistingDirectory(
-            self, 
-            'Select Directory', 
-            file_manager.get_default_directory(FileCategory.PHOTO).as_posix()
-        )
+            # Get the appropriate default directory and filter based on path type
+            default_dir = file_manager.get_default_directory(
+                FileCategory.PHOTO if path_type == PathType.IMAGE else
+                FileCategory.VIDEO if path_type == PathType.VIDEO else
+                FileCategory.TABLE
+            ).as_posix()
+            
+            filter_string = file_manager.get_filter_string(
+                FileCategory.PHOTO if path_type == PathType.IMAGE else
+                FileCategory.VIDEO if path_type == PathType.VIDEO else
+                FileCategory.TABLE
+            )
+            
+            # Open the dialog with appropriate title
+            title = f"Open {'Image' if path_type == PathType.IMAGE else 'Video' if path_type == PathType.VIDEO else 'Table'}"
+            
+            # Use QFileDialog.getOpenFileName which is more secure than the older methods
+            f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
+                self, title, default_dir, filter_string, options=options
+            )
+            
+            # Validate the selected path
+            if f_name := ut.sanitize_path(f_name):
+                # Create a Path object for additional validation
+                path_obj = Path(f_name).resolve()
+                
+                # Verify file exists and is of the expected type
+                if not path_obj.is_file():
+                    ut.show_error_box("Selected path is not a valid file")
+                    return
+                    
+                # Verify file is of expected type
+                expected_category = (FileCategory.PHOTO if path_type == PathType.IMAGE else
+                                FileCategory.VIDEO if path_type == PathType.VIDEO else
+                                FileCategory.TABLE)
+                
+                if not file_manager.is_valid_type(path_obj, expected_category):
+                    ut.show_error_box(f"Selected file is not a valid {expected_category.name.lower()}")
+                    return
+                
+                # Update the appropriate input path based on the file type
+                if path_type == PathType.IMAGE:
+                    self.input_path = f_name
+                    # Update unified address bar if this is the active tab
+                    main_window = self.parent().parent().parent()
+                    if main_window.function_tabWidget.currentIndex() == FunctionType.PHOTO:
+                        main_window.unified_address_bar.setText(f_name)
+                elif path_type == PathType.VIDEO:
+                    self.input_path = f_name
+                    # Update relevant UI for video
+                    self.player.setSource(QtCore.QUrl.fromLocalFile(f_name))
+                    self.reset_video_widgets()
+                elif path_type == PathType.TABLE:
+                    self.table_path = f_name
+                    # Process table data
+                    data = prc.load_table(path_obj)
+                    self.process_data(data)
         
-        # Validate the folder exists and is accessible
-        if f_name := ut.sanitize_path(f_name):
-            target_input.setText(f_name)
+        except Exception as e:
+            # Log error internally without exposing details
+            ut.show_error_box(f"An error occurred opening the file\n{e}")
+
+    def open_folder_dialog(self, target_input: PathLineEdit) -> None:
+        """Securely open a folder dialog and validate the selected path"""
+        try:
+            # Use QFileDialog with options that improve security
+            options = QtWidgets.QFileDialog.Option.ShowDirsOnly | QtWidgets.QFileDialog.Option.DontResolveSymlinks
+            
+            # Get appropriate default directory
+            default_dir = file_manager.get_default_directory(FileCategory.PHOTO).as_posix()
+            
+            # Open the dialog with appropriate title
+            f_name = QtWidgets.QFileDialog.getExistingDirectory(
+                self, 'Select Directory', default_dir, options=options
+            )
+            
+            # Validate the selected path
+            if f_name := ut.sanitize_path(f_name):
+                # Create a Path object for additional validation
+                path_obj = Path(f_name).resolve()
+                
+                # Verify directory exists and is accessible
+                if not path_obj.is_dir():
+                    ut.show_error_box("Selected path is not a valid directory")
+                    return
+                
+                # Update the input with safe path
+                target_input.setText(str(path_obj))
+                
+                # If this is a source directory, refresh any view that depends on it
+                if target_input == self.unified_address_bar and self.function_tabWidget.currentIndex() == FunctionType.FOLDER:
+                    self.folder_tab_widget.load_data()
+        
+        except Exception as e:
+            # Log error internally without exposing details
+            ut.show_error_box("An error occurred opening the directory")
 
     # Browser-style navigation methods
     def navigate_back(self):
@@ -1107,81 +1172,145 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
     def dropEvent(self, a0: Optional[QtGui.QDropEvent]) -> None:
         """
-        Handle drop events with browser-like behavior
+        Handle drop events with enhanced security.
         """
         try:
             assert isinstance(a0, QtGui.QDropEvent)
         except AssertionError:
             return
 
-        if (x := a0.mimeData()) is None:
+        if (mime_data := a0.mimeData()) is None:
             return
 
-        if not x.hasUrls():
+        if not mime_data.hasUrls():
             a0.ignore()
             return
 
         a0.setDropAction(QtCore.Qt.DropAction.CopyAction)
-        file_path = Path(x.urls()[0].toLocalFile())
+        
+        # Get the dropped URL and convert to a local file path
+        url = mime_data.urls()[0]
+        if not url.isLocalFile():
+            ut.show_error_box("Only local files can be dropped")
+            a0.ignore()
+            return
+            
+        file_path_str = url.toLocalFile()
+        
+        # Validate the path with our improved sanitize_path function
+        if not (safe_path_str := ut.sanitize_path(file_path_str)):
+            a0.ignore()
+            return
+            
+        # Create a Path object from the sanitized path
+        file_path = Path(safe_path_str).resolve()
+        
+        # Handle the file based on its type with proper error handling
+        try:
+            if file_path.is_dir():
+                self._handle_dropped_directory(file_path)
+            elif file_path.is_file():
+                self._handle_dropped_file(file_path)
+            else:
+                ut.show_error_box("Dropped item is neither a file nor a directory")
+                a0.ignore()
+                return
+                
+            a0.accept()
+            self.statusbar.showMessage(f"Opened {file_path.name}", 2000)
+            
+        except Exception as e:
+            # Log error internally without exposing details
+            print(f"Error processing dropped file: {e}")
+            ut.show_error_box("An error occurred processing the dropped item")
+            a0.ignore()
 
-        # Update the unified address bar with the dropped path
-        if file_path.is_dir():
-            # For directories, always select the folder tab
-            types = {x.suffix.lower() for x in file_path.iterdir()}
-            xl_types = file_manager.get_extensions(FileCategory.TABLE)
-            if types & xl_types:
+    def _handle_dropped_directory(self, dir_path: Path) -> None:
+        """
+        Securely handle a dropped directory.
+        """
+        # Verify it's a valid directory
+        if not dir_path.is_dir() or not os.access(dir_path, os.R_OK):
+            ut.show_error_box("Directory is not accessible")
+            return
+            
+        # Check directory contents to determine appropriate tab
+        try:
+            # Look for table files to determine if this is a mapping operation
+            has_table_files = any(
+                file_manager.is_valid_type(f, FileCategory.TABLE) 
+                for f in dir_path.iterdir() 
+                if f.is_file() and os.access(f, os.R_OK)
+            )
+            
+            if has_table_files:
+                # Handle as mapping tab
                 self.function_tabWidget.setCurrentIndex(FunctionType.MAPPING)
-                old_path = self.mapping_tab_widget.input_path
-                self.mapping_tab_widget.input_path = file_path.as_posix()
-                if old_path != file_path.as_posix():
-                    self.unified_address_bar.setText(file_path.as_posix())
-
+                self.mapping_tab_widget.input_path = str(dir_path)
+                self.unified_address_bar.setText(str(dir_path))
+                
+                # Update display
                 self.display_worker.current_paths[FunctionType.MAPPING] = None
-
                 self.display_worker.crop(FunctionType.MAPPING)
             else:
+                # Handle as folder tab
                 self.function_tabWidget.setCurrentIndex(FunctionType.FOLDER)
-
-                # KEY CHANGE: Set the folder_tab_widget input path before updating address bar
-                old_path = self.folder_tab_widget.input_path
-                self.folder_tab_widget.input_path = file_path.as_posix()
-
-                # Only update address if needed - this avoids redundant events
-                if old_path != file_path.as_posix():
-                    self.unified_address_bar.setText(file_path.as_posix())
-
-                # temporarily setting current_paths to None for FOLDER type
+                self.folder_tab_widget.input_path = str(dir_path)
+                self.unified_address_bar.setText(str(dir_path))
+                
+                # Update display
                 self.display_worker.current_paths[FunctionType.FOLDER] = None
-
-                # Load data into tree view
                 self.folder_tab_widget.load_data()
-
-                # KEY CHANGE: Explicitly trigger display update after load_data
                 self.display_worker.crop(FunctionType.FOLDER)
-        elif file_path.is_file():
-            # For files, detect type and select the appropriate tab
-            if (
-                file_manager.is_valid_type(file_path, FileCategory.PHOTO) or
+        except Exception as e:
+            # Log error internally without exposing details
+            print(f"Error handling dropped directory: {e}")
+            ut.show_error_box("An error occurred processing the directory")
+
+    def _handle_dropped_file(self, file_path: Path) -> None:
+        """
+        Securely handle a dropped file.
+        """
+        # Verify it's a valid file
+        if not file_path.is_file() or not os.access(file_path, os.R_OK):
+            ut.show_error_box("File is not accessible")
+            return
+            
+        try:
+            # Determine file type and handle accordingly
+            if (file_manager.is_valid_type(file_path, FileCategory.PHOTO) or
                 file_manager.is_valid_type(file_path, FileCategory.RAW) or
-                file_manager.is_valid_type(file_path, FileCategory.TIFF)
-            ):
+                file_manager.is_valid_type(file_path, FileCategory.TIFF)):
+                
+                # Handle as photo tab
                 self.function_tabWidget.setCurrentIndex(FunctionType.PHOTO)
-                self.unified_address_bar.setText(file_path.as_posix())
+                self.photo_tab_widget.input_path = str(file_path)
+                self.unified_address_bar.setText(str(file_path))
                 self.display_worker.crop(FunctionType.PHOTO)
+                
             elif file_manager.is_valid_type(file_path, FileCategory.VIDEO):
+                # Handle as video tab
                 self.function_tabWidget.setCurrentIndex(FunctionType.VIDEO)
-                self.unified_address_bar.setText(file_path.as_posix())
+                self.video_tab_widget.input_path = str(file_path)
+                self.unified_address_bar.setText(str(file_path))
                 self.video_tab_widget.open_dropped_video()
+                
             elif file_manager.is_valid_type(file_path, FileCategory.TABLE):
+                # Handle as mapping tab
                 self.function_tabWidget.setCurrentIndex(FunctionType.MAPPING)
-                self.secondary_input.setText(file_path.as_posix())
+                self.mapping_tab_widget.table_path = str(file_path)
+                self.secondary_input.setText(str(file_path))
+                
+                # Process the table data
                 data = prc.load_table(file_path)
                 self.mapping_tab_widget.process_data(data)
-
-        a0.accept()
-
-        # Show a status message
-        self.statusbar.showMessage(f"Opened {file_path.name}", 2000)
+                
+            else:
+                ut.show_error_box(f"Unsupported file type: {file_path.suffix}")
+        except Exception as e:
+            # Log error internally without exposing details
+            print(f"Error handling dropped file: {e}")
+            ut.show_error_box("An error occurred processing the file")
         
     def handle_path_main(self, file_path: Path) -> None:
         """

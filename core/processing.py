@@ -842,7 +842,7 @@ def batch_process_with_pipeline(images: list[Path],
 
             # Create a function to get output paths for standard batch processing
             def get_output_path_fn(image_path: Path, face_index: Optional[int]) -> Path:
-                return get_output_path(image_path, job.destination, face_index, job.radio_choice())
+                return get_output_path(image_path, job.safe_destination, face_index, job.radio_choice())
 
             # Process the image
             output_paths, pipeline = process_batch_item(
@@ -1032,7 +1032,7 @@ def process_batch_item(image_array: cv2.Mat,
         results = get_face_boxes(image_array, job, face_detection_tools)
 
         if not results:
-            reject(path=img_path, destination=job.destination)
+            reject(path=img_path, destination=job.safe_destination)
             return output_paths, pipeline
 
         valid_positions = [pos for confidence, pos in results if confidence > job.threshold]
@@ -1046,7 +1046,7 @@ def process_batch_item(image_array: cv2.Mat,
     else:
         # Single face processing
         if (bounding_box := detect_face_box(image_array, job, face_detection_tools)) is None:
-            reject(path=img_path, destination=job.destination)
+            reject(path=img_path, destination=job.safe_destination)
             return output_paths, pipeline
 
         batch_helper(bounding_box)
@@ -1082,9 +1082,9 @@ def _(image: Path,
       face_detection_tools: FaceToolPair,
       new: Optional[Union[Path, str]] = None) -> None:
     crop_fn = crop_all_faces if job.multi_face_job else crop_single_face
-    if all(x is not None for x in [job.table, job.folder_path, new]):
+    if all(x is not None for x in [job.table, job.safe_folder_path, new]):
         save(image, job, face_detection_tools, crop_fn, new)
-    elif job.folder_path is not None:
+    elif job.safe_folder_path is not None:
         save(image, job, face_detection_tools, crop_fn)
     else:
         save(image, job, face_detection_tools, crop_fn)
