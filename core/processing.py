@@ -20,12 +20,12 @@ from rawpy import ColorSpace
 from rawpy._rawpy import NotSupportedError, LibRawError, LibRawFatalError, LibRawNonFatalError
 
 from core.colour_utils import ensure_rgb, to_grayscale, adjust_gamma, normalize_image
-from file_types import file_manager, FileCategory
+from file_types import file_manager, FileCategory, SignatureChecker
 from .config import Config
 from .face_tools import L_EYE_START, L_EYE_END, R_EYE_START, R_EYE_END, FaceToolPair, YuNetFaceDetector, Rectangle
-from .protocols import ImageLoader, ImageOpener, ImageWriter, TableLoader
 from .job import Job
 from .operation_types import CropFunction, Box
+from .protocols import ImageLoader, ImageOpener, ImageWriter, TableLoader
 
 
 def profile_it(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -171,12 +171,12 @@ def align_face(image: cv2.Mat,
     success, landmarks = facemark.fit(small_img, faces_rect)
     
     if not success or len(landmarks) == 0:
-        return image  # Return original image if landmark detection fails
+        return image  # Return the original image if landmark detection fails
     
     # Extract eye landmarks
     landmarks = landmarks[0][0]  # First face, first set of landmarks
     
-    # Get left and right eye landmarks (indices 36-41 for left eye, 42-47 for right eye in 68-point model)
+    # Get left and right eye landmarks (indices 36-41 for left eye, 42-47 for right eye in the 68-point model)
     l_eye = np.ascontiguousarray(landmarks[L_EYE_START:L_EYE_END], dtype=np.float64)
     r_eye = np.ascontiguousarray(landmarks[R_EYE_START:R_EYE_END], dtype=np.float64)
 
@@ -241,8 +241,27 @@ def load_and_prepare_image(
 ) -> Optional[cv2.Mat]:
     """
     Open an image file using the appropriate strategy based on its FileCategory.
+    Includes content verification for security.
     """
     with suppress(IsADirectoryError):
+        category = next(
+            (
+                cat
+                for cat in [
+                    FileCategory.PHOTO,
+                    FileCategory.TIFF,
+                    FileCategory.RAW,
+                ]
+                if file_manager.is_valid_type(file, cat)
+            ),
+            None,
+        )
+        # Verify file content before opening
+        if category and not SignatureChecker.verify_file_type(file, category):
+            print(f"File content verification failed for: {file}")
+            return None
+
+        # Proceed with opening the file using the appropriate strategy
         return next(
             (
                 opener(file, face_detection_tools, job)
@@ -267,21 +286,19 @@ def _load_csv(file: Path) -> Optional[pl.DataFrame]:
         
         # If headers look valid, load the full file
         return pl.read_csv(file, infer_schema_length=1000)
-    except (pl.NoDataError, UnicodeDecodeError, pl.ComputeError):
-        # Try with different encoding if initial attempt fails
+    except (pl.exceptions.PolarsError, UnicodeDecodeError, OSError):
+        # Try with different encoding if the initial attempt fails
         try:
             return pl.read_csv(file, encoding='latin-1', infer_schema_length=1000)
-        except Exception:
+        except pl.exceptions.PolarsError:
             return None
-    except Exception:
-        return None
 
 
 def _load_excel(file: Path) -> Optional[pl.DataFrame]:
     """
     Load an Excel file with validation.
     """
-    with suppress(Exception):
+    with suppress(pl.exceptions.PolarsError):
         # Use read_excel with error handling
         return pl.read_excel(file)
 
@@ -290,7 +307,7 @@ def _load_parquet(file: Path) -> Optional[pl.DataFrame]:
     """
     Load a Parquet file with validation.
     """
-    with suppress(Exception):
+    with suppress(pl.exceptions.PolarsError):
         return pl.read_parquet(file)
 
 # Map each extension to its loader strategy
@@ -306,7 +323,7 @@ _LOADER_STRATEGIES: dict[str, TableLoader] = {
 
 def load_table(file: Path) -> pl.DataFrame:
     """
-    Opens a tabular data file using appropriate strategy based on file type.
+    Opens a tabular data file using the appropriate strategy based on the file type.
     Validates file headers and structure before loading.
     
     Args:
@@ -327,7 +344,7 @@ def load_table(file: Path) -> pl.DataFrame:
             ),
             pl.DataFrame()
         )
-    # Return empty DataFrame if loading fails
+    # Return an empty DataFrame if loading fails
     return pl.DataFrame()
 
 
@@ -996,7 +1013,7 @@ def invoke_progress_by_chunk(chunk_size: int,
                 QtCore.Q_ARG(int, value)
             )
             
-        # Process events for more responsive UI, but only after chunk completion
+        # Process events for a more responsive UI, but only after chunk completion
         QtWidgets.QApplication.processEvents()
             
     return progress_count

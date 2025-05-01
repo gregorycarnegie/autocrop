@@ -4,22 +4,13 @@ Simplified file type handling system using Python's standard libraries.
 
 import contextlib
 import mimetypes
-from enum import auto, Flag
 from pathlib import Path
 from typing import Optional
 
+from .file_category import FileCategory
+
 # Initialize mimetypes database
 mimetypes.init()
-
-
-class FileCategory(Flag):
-    """Enumeration of file categories for application."""
-    PHOTO = auto()
-    RAW = auto()
-    TIFF = auto()
-    VIDEO = auto()
-    TABLE = auto()
-    UNKNOWN = auto()
 
 
 class FileTypeManager:

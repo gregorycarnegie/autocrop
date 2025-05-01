@@ -3,6 +3,7 @@ import collections.abc as c
 import os
 import threading
 from concurrent.futures import Future, ThreadPoolExecutor, CancelledError
+from contextlib import suppress
 from functools import partial
 from pathlib import Path
 from typing import Callable, Optional, Union, TypeVar, Any
@@ -14,6 +15,7 @@ from PyQt6.QtWidgets import QApplication, QProgressBar
 
 from core.face_tools import FaceToolPair
 from core.job import Job
+from file_types import SignatureChecker, FileCategory, file_manager
 from .base import Cropper
 
 T = TypeVar('T')
@@ -50,7 +52,7 @@ class BatchCropper(Cropper):
     def cleanup(self) -> None:
         """
         Properly clean up resources before application exit.
-        This method should be called during application shutdown.
+        This method should be called during the application shutdown.
         """
         if self.executor and not self.executor._shutdown:
             # Cancel any pending futures
@@ -121,11 +123,11 @@ class BatchCropper(Cropper):
             return
 
         # Use partial with validated inputs only
-        worker_with_params = partial(self._secure_worker_wrapper, 
-                                    original_worker=worker, 
-                                    file_amount=amount, 
-                                    job=job, 
-                                    cancel_event=self.cancel_event)
+        worker_with_params = partial(self._secure_worker_wrapper,
+                                     original_worker=worker,
+                                     file_amount=amount,
+                                     job=job,
+                                     cancel_event=self.cancel_event)
 
         self.futures = []
         # Create futures with additional security checks
@@ -134,48 +136,67 @@ class BatchCropper(Cropper):
                 # Validate each chunk before submitting
                 if self._validate_chunk(old_chunk) and self._validate_chunk(new_chunk):
                     self.futures.append(
-                        self.executor.submit(worker_with_params, 
-                                            face_detection_tools=tool_pair, 
-                                            old=old_chunk, 
-                                            new=new_chunk)
+                        self.executor.submit(worker_with_params,
+                                             face_detection_tools=tool_pair,
+                                             old=old_chunk,
+                                             new=new_chunk)
                     )
         else:
             for chunk, tool_pair in zip(list_1, self.face_detection_tools):
                 # Validate each chunk before submitting
                 if self._validate_chunk(chunk):
                     self.futures.append(
-                        self.executor.submit(worker_with_params, 
-                                            face_detection_tools=tool_pair, 
-                                            file_list=chunk)
+                        self.executor.submit(worker_with_params,
+                                             face_detection_tools=tool_pair,
+                                             file_list=chunk)
                     )
 
-    def _secure_worker_wrapper(self, **kwargs):
+    def _secure_worker_wrapper(self, **kwargs) -> None:
         """
         Secure wrapper around worker functions that provides additional validation.
+        Enhanced with content verification for file lists.
         """
-        try:
+        with suppress(Exception):
             # Extract the original worker function
             original_worker = kwargs.pop('original_worker', None)
             if not original_worker or not callable(original_worker):
-                print("Invalid worker function")
-                return
-                
+                # print("Invalid worker function")
+                return None
+
             # Re-validate input parameters before execution
             if not self._validate_worker_params(kwargs):
-                print("Worker parameter validation failed")
-                return
-                
+                # print("Worker parameter validation failed")
+                return None
+
+            # Perform additional content verification on file lists
+            if 'file_list' in kwargs:
+                # Make a copy of the file list to avoid modifying the original
+                file_list = list(kwargs['file_list'])
+                verified_files = []
+
+                for file_path in file_list:
+                    if not isinstance(file_path, Path):
+                        continue
+
+                    # Skip files that aren't valid images
+                    if not self._validate_path(file_path):
+                        continue
+
+                    verified_files.append(file_path)
+
+                # Replace file_list with the verified list
+                kwargs['file_list'] = verified_files
+
             # Call the original worker with validated parameters
             original_worker(**kwargs)
-        except Exception as e:
-            # Log the error but don't expose details that could help attackers
-            print(f"Error in secure worker wrapper: {type(e).__name__}")
+        return None
 
-    def _validate_inputs(self, worker: Callable[..., None],
-                        amount: int,
-                        job: Job,
-                        list_1: c.Iterable[T],
-                        list_2: Optional[c.Iterable]) -> bool:
+    @staticmethod
+    def _validate_inputs(worker: Callable[..., None],
+                         amount: int,
+                         job: Job,
+                         list_1: c.Iterable[T],
+                         list_2: Optional[c.Iterable]) -> bool:
         """
         Validate all inputs to set_futures before processing.
         """
@@ -204,7 +225,7 @@ class BatchCropper(Cropper):
             
         # For Path objects, ensure they're valid
         if isinstance(chunk, (list, tuple)):
-            # Check if chunk contains Path objects
+            # Check if the chunk contains Path objects
             if all(isinstance(item, Path) for item in chunk):
                 # Validate each path
                 return all(self._validate_path(item) for item in chunk)
@@ -217,22 +238,44 @@ class BatchCropper(Cropper):
                 
         return True
 
-    def _validate_path(self, path: Path) -> bool:
+    @staticmethod
+    def _validate_path(path: Path) -> bool:
         """
         Validate a Path object to ensure it's safe to use.
+        Enhanced with content verification for security.
         """
         try:
-            # Resolve to absolute path
+            # Resolve to the absolute path
             resolved = path.resolve()
-
+            
             # Check existence and access
-            return bool(os.access(resolved, os.R_OK)) if resolved.exists() else False
-        except Exception:
+            if not resolved.exists():
+                return False
+                
+            if not resolved.is_file() or not os.access(resolved, os.R_OK):
+                return False
+
+            # For image files, verify content matches claimed type
+            # Import only when needed to avoid circular imports
+            if any(file_manager.is_valid_type(resolved, category) for category in 
+                [FileCategory.PHOTO, FileCategory.RAW, FileCategory.TIFF]):
+                # Determine which category this file claims to be
+                for category in [FileCategory.PHOTO, FileCategory.RAW, FileCategory.TIFF]:
+                    if file_manager.is_valid_type(resolved, category):
+                        # Verify content matches extension
+                        if not SignatureChecker.verify_file_type(resolved, category):
+                            print(f"Content verification failed for: {resolved}")
+                            return False
+                        break
+            
+            return True
+        except Exception as e:
+            print(f"Path validation error: {type(e).__name__}")
             return False
 
     def _validate_worker_params(self, params: dict) -> bool:
         """
-        Validate parameters before passing to worker function.
+        Validate parameters before passing to the worker function.
         """
         # Verify essential parameters are present
         required_keys = {'file_amount', 'job', 'cancel_event', 'face_detection_tools'}
@@ -300,7 +343,7 @@ class BatchCropper(Cropper):
             if isinstance(e, CancelledError):
                 return
                 
-            # Find matching exception handler or use default
+            # Find the matching exception handler or use default
             for exc_type, handler in error_handlers.items():
                 if isinstance(e, exc_type if isinstance(exc_type, tuple) else exc_type):
                     handler(e)
@@ -309,7 +352,7 @@ class BatchCropper(Cropper):
                 # Default handler for unspecified exceptions
                 self._display_error(e, f"An unexpected error occurred: {type(e).__name__}")
         finally:
-            # Check if all futures are done, then emit finished signal
+            # Check if all futures are done, then emit the finished signal
             if self.end_task or all(f.done() for f in self.futures):
                 self.all_tasks_done()
 
@@ -318,7 +361,7 @@ class BatchCropper(Cropper):
         Validate job parameters and available resources.
 
         Returns:
-            bool: True if a job is valid, False if validation failed and error was reported
+            bool: True if a job is valid, False if validation failed and the error was reported
         """
         if not job.safe_destination:
             return False

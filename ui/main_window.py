@@ -1,5 +1,4 @@
 import os
-
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
@@ -13,7 +12,7 @@ from core import face_tools as ft
 from core import processing as prc
 from core.croppers import FolderCropper, PhotoCropper, MappingCropper, VideoCropper, DisplayCropper
 from core.enums import FunctionType, Preset
-from file_types import file_manager, FileCategory
+from file_types import file_manager, FileCategory, SignatureChecker
 from line_edits import NumberLineEdit, PathLineEdit, LineEditState, PathType
 from ui import utils as ut
 from .control_widget import UiCropControlWidget
@@ -49,7 +48,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.folder_worker = FolderCropper(face_detection_tools)
         self.mapping_worker = MappingCropper(face_detection_tools)
 
-        # Create central widget
+        # Create the central widget
         self.centralwidget = QtWidgets.QWidget(self)
         self.centralwidget.setObjectName(u"centralwidget")
         self.main_layout = QtWidgets.QVBoxLayout(self.centralwidget)
@@ -110,7 +109,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         # Create the main menu
         self.create_main_menu()
         
-        # Create address bar (browser-like)
+        # Create an address bar (browser-like)
         self.create_address_bar()
         
         # Create tab widget (browser-like)
@@ -120,7 +119,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.mapping_worker.progressBars = [self.mapping_tab_widget.progressBar]
         self.video_worker.progressBars = [self.video_tab_widget.progressBar, self.video_tab_widget.progressBar_2]
         
-        # Create status bar
+        # Create a status bar
         self.statusbar = QtWidgets.QStatusBar(self)
         self.statusbar.setObjectName(u"statusbar")
         self.setStatusBar(self.statusbar)
@@ -131,7 +130,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(self.centralwidget)
         self.retranslateUi()
         
-        # Set initial tab
+        # Set the initial tab
         self.function_tabWidget.setCurrentIndex(0)
 
         self.initialize_clear_button_states()
@@ -628,7 +627,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         # Connect tab change to update address bar context
         self.function_tabWidget.currentChanged.connect(self.update_address_bar_context)
         
-        # Connect unified address bar to update the current tab's input field
+        # Connect the unified address bar to update the current tab's input field
         self.unified_address_bar.textChanged.connect(self.unified_address_changed)
         
         # Connect secondary input for mapping tab
@@ -706,20 +705,17 @@ class UiMainWindow(QtWidgets.QMainWindow):
             # Use QFileDialog with security considerations
             options = QtWidgets.QFileDialog.Option.ReadOnly  # Prevents modification during selection
             
-            # Get the appropriate default directory and filter based on path type
-            default_dir = file_manager.get_default_directory(
-                FileCategory.PHOTO if path_type == PathType.IMAGE else
-                FileCategory.VIDEO if path_type == PathType.VIDEO else
-                FileCategory.TABLE
-            ).as_posix()
-            
-            filter_string = file_manager.get_filter_string(
+            category = (
                 FileCategory.PHOTO if path_type == PathType.IMAGE else
                 FileCategory.VIDEO if path_type == PathType.VIDEO else
                 FileCategory.TABLE
             )
+            # Get the appropriate default directory and filter based on the path type
+            default_dir = file_manager.get_default_directory(category).as_posix()
             
-            # Open the dialog with appropriate title
+            filter_string = file_manager.get_filter_string(category)
+            
+            # Open the dialogue with the appropriate title
             title = f"Open {'Image' if path_type == PathType.IMAGE else 'Video' if path_type == PathType.VIDEO else 'Table'}"
             
             # Use QFileDialog.getOpenFileName which is more secure than the older methods
@@ -732,7 +728,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 # Create a Path object for additional validation
                 path_obj = Path(f_name).resolve()
                 
-                # Verify file exists and is of the expected type
+                # Verify the file exists and is of the expected type
                 if not path_obj.is_file():
                     ut.show_error_box("Selected path is not a valid file")
                     return
@@ -746,10 +742,15 @@ class UiMainWindow(QtWidgets.QMainWindow):
                     ut.show_error_box(f"Selected file is not a valid {expected_category.name.lower()}")
                     return
                 
+        # Verify content matches the expected type
+                if not SignatureChecker.verify_file_type(path_obj, category):
+                    ut.show_error_box("File content doesn't match its extension. The file may be corrupted or modified.")
+                    return
+                
                 # Update the appropriate input path based on the file type
                 if path_type == PathType.IMAGE:
                     self.input_path = f_name
-                    # Update unified address bar if this is the active tab
+                    # Update the unified address bar if this is the active tab
                     main_window = self.parent().parent().parent()
                     if main_window.function_tabWidget.currentIndex() == FunctionType.PHOTO:
                         main_window.unified_address_bar.setText(f_name)
@@ -769,7 +770,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
             ut.show_error_box(f"An error occurred opening the file\n{e}")
 
     def open_folder_dialog(self, target_input: PathLineEdit) -> None:
-        """Securely open a folder dialog and validate the selected path"""
+        """Securely open a folder dialogue and validate the selected path"""
         try:
             # Use QFileDialog with options that improve security
             options = QtWidgets.QFileDialog.Option.ShowDirsOnly | QtWidgets.QFileDialog.Option.DontResolveSymlinks
@@ -777,7 +778,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
             # Get appropriate default directory
             default_dir = file_manager.get_default_directory(FileCategory.PHOTO).as_posix()
             
-            # Open the dialog with appropriate title
+            # Open the dialogue with the appropriate title
             f_name = QtWidgets.QFileDialog.getExistingDirectory(
                 self, 'Select Directory', default_dir, options=options
             )
@@ -792,7 +793,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
                     ut.show_error_box("Selected path is not a valid directory")
                     return
                 
-                # Update the input with safe path
+                # Update the input with a safe path
                 target_input.setText(str(path_obj))
                 
                 # If this is a source directory, refresh any view that depends on it
@@ -801,7 +802,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         
         except Exception as e:
             # Log error internally without exposing details
-            ut.show_error_box("An error occurred opening the directory")
+            ut.show_error_box(f"An error occurred opening the directory\n{e}")
 
     # Browser-style navigation methods
     def navigate_back(self):
@@ -818,7 +819,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
     
     def refresh_current_view(self):
         """Refresh the current tab's view"""
-        # Handle refresh based on current tab
+        # Handle refresh based on the current tab
         match self.function_tabWidget.currentIndex():
             case FunctionType.PHOTO:
                 # Refresh photo preview
@@ -839,13 +840,13 @@ class UiMainWindow(QtWidgets.QMainWindow):
             case _:
                 pass
             
-        # Update status bar with a message
+        # Update the status bar with a message
         self.statusbar.showMessage("View refreshed", 2000)
     
     @staticmethod
     def show_settings():
-        """Show settings dialog"""
-        # For now, just show the About dialog as a placeholder
+        """Show settings dialogue"""
+        # For now, show the About dialogue as a placeholder
         ut.load_about_form()
     
     def update_address_bar(self):
@@ -864,14 +865,14 @@ class UiMainWindow(QtWidgets.QMainWindow):
             case _:
                 return None
             
-        # Update address bar without triggering text changed event
+        # Update the address bar without triggering the text_changed event
         self.unified_address_bar.blockSignals(True)
         self.unified_address_bar.setText(path)
         self.unified_address_bar.blockSignals(False)
         return None
 
     def update_current_tab_path(self):
-        """Update current tab's path with address bar text"""
+        """Update the current tab's path with address bar text"""
         path = self.unified_address_bar.text()
         
         # Update the appropriate input field based on the current tab
@@ -889,7 +890,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
     
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """
-        Handle window close event by performing proper cleanup.
+        Handle window close event by performing proper clean-up.
         This is called automatically when the window is closed.
         """
         # Clean up all worker thread pools
@@ -1277,26 +1278,29 @@ class UiMainWindow(QtWidgets.QMainWindow):
             return
             
         try:
-            # Determine file type and handle accordingly
-            if (file_manager.is_valid_type(file_path, FileCategory.PHOTO) or
+            # Determine the file type and handle accordingly
+            if ((file_manager.is_valid_type(file_path, FileCategory.PHOTO) or
                 file_manager.is_valid_type(file_path, FileCategory.RAW) or
-                file_manager.is_valid_type(file_path, FileCategory.TIFF)):
+                file_manager.is_valid_type(file_path, FileCategory.TIFF)) and
+                SignatureChecker.verify_file_type(file_path, FileCategory.PHOTO)):
                 
-                # Handle as photo tab
+                # Handle with the photo tab
                 self.function_tabWidget.setCurrentIndex(FunctionType.PHOTO)
                 self.photo_tab_widget.input_path = str(file_path)
                 self.unified_address_bar.setText(str(file_path))
                 self.display_worker.crop(FunctionType.PHOTO)
                 
-            elif file_manager.is_valid_type(file_path, FileCategory.VIDEO):
-                # Handle as video tab
+            elif (file_manager.is_valid_type(file_path, FileCategory.VIDEO) and
+                  SignatureChecker.verify_file_type(file_path, FileCategory.VIDEO)):
+                # Handle with the video tab
                 self.function_tabWidget.setCurrentIndex(FunctionType.VIDEO)
                 self.video_tab_widget.input_path = str(file_path)
                 self.unified_address_bar.setText(str(file_path))
                 self.video_tab_widget.open_dropped_video()
                 
-            elif file_manager.is_valid_type(file_path, FileCategory.TABLE):
-                # Handle as mapping tab
+            elif (file_manager.is_valid_type(file_path, FileCategory.TABLE) and
+                  SignatureChecker.verify_file_type(file_path, FileCategory.TABLE)):
+                # Handle with the mapping tab
                 self.function_tabWidget.setCurrentIndex(FunctionType.MAPPING)
                 self.mapping_tab_widget.table_path = str(file_path)
                 self.secondary_input.setText(str(file_path))
