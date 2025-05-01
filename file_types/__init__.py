@@ -2,7 +2,8 @@
 File type handling package for the application.
 Provides utilities for file type detection, validation, and filtering.
 """
-from .file_type_manager import FileCategory, FileTypeManager, file_manager
+from .file_category import FileCategory
+from .file_type_manager import FileTypeManager, file_manager
 from .signature_checker import SignatureChecker
 
 
