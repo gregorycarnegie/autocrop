@@ -1,13 +1,11 @@
-import cProfile
-import pstats
 import random
 import shutil
 import threading
 from collections.abc import Callable, Iterator
 from contextlib import suppress
-from functools import cache, wraps, singledispatch, partial
+from functools import cache, singledispatch, partial
 from pathlib import Path
-from typing import Any, Union, Optional
+from typing import Union, Optional
 
 import autocrop_rs as rs
 import cv2
@@ -26,22 +24,6 @@ from .face_tools import L_EYE_START, L_EYE_END, R_EYE_START, R_EYE_END, FaceTool
 from .job import Job
 from .operation_types import CropFunction, Box
 from .protocols import ImageLoader, ImageOpener, ImageWriter, TableLoader
-
-
-def profile_it(func: Callable[..., Any]) -> Callable[..., Any]:
-    """
-    Decorator to profile a function and print cumulative statistics.
-    """
-
-    @wraps(func)
-    def wrapper(*args: Any, **kwargs: Any):
-        with cProfile.Profile() as profile:
-            func(*args, **kwargs)
-        result = pstats.Stats(profile)
-        result.sort_stats(pstats.SortKey.CUMULATIVE)
-        result.print_stats()
-
-    return wrapper
 
 
 def build_processing_pipeline(job: Job,

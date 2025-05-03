@@ -88,7 +88,7 @@ class DisplayCropper(Cropper):
             self.current_paths[function_type] = img_path_str
         
         # Now process the cached image with current settings
-        with suppress(cv2.error):
+        with suppress(cv2.error, ValueError, TypeError):
             # Create a job with all settings
             job = self._create_job_from_widget_state(widget_state, img_path_str, function_type)
 

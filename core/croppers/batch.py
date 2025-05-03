@@ -156,7 +156,7 @@ class BatchCropper(Cropper):
         Secure wrapper around worker functions that provides additional validation.
         Enhanced with content verification for file lists.
         """
-        with suppress(Exception):
+        with suppress(ValueError, KeyError, TypeError, FileNotFoundError, PermissionError):
             # Extract the original worker function
             original_worker = kwargs.pop('original_worker', None)
             if not original_worker or not callable(original_worker):
@@ -441,7 +441,7 @@ class BatchCropper(Cropper):
         if not self.finished_signal_emitted:
             # Set flag to prevent multiple emissions
             self.finished_signal_emitted = True
-            self.finished.emit()
+            # self.finished.emit()
             # Use QMetaObject.invokeMethod for cross-thread signal emission
             QMetaObject.invokeMethod(
                 self, 

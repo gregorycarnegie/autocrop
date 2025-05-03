@@ -1234,7 +1234,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         if not dir_path.is_dir() or not os.access(dir_path, os.R_OK):
             ut.show_error_box("Directory is not accessible")
             return
-            
+
         # Check directory contents to determine appropriate tab
         try:
             # Look for table files to determine if this is a mapping operation
@@ -1243,13 +1243,13 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 for f in dir_path.iterdir() 
                 if f.is_file() and os.access(f, os.R_OK)
             )
-            
+
             if has_table_files:
                 # Handle as mapping tab
                 self.function_tabWidget.setCurrentIndex(FunctionType.MAPPING)
                 self.mapping_tab_widget.input_path = str(dir_path)
                 self.unified_address_bar.setText(str(dir_path))
-                
+
                 # Update display
                 self.display_worker.current_paths[FunctionType.MAPPING] = None
                 self.display_worker.crop(FunctionType.MAPPING)
@@ -1258,12 +1258,12 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 self.function_tabWidget.setCurrentIndex(FunctionType.FOLDER)
                 self.folder_tab_widget.input_path = str(dir_path)
                 self.unified_address_bar.setText(str(dir_path))
-                
+
                 # Update display
                 self.display_worker.current_paths[FunctionType.FOLDER] = None
                 self.folder_tab_widget.load_data()
                 self.display_worker.crop(FunctionType.FOLDER)
-        except Exception as e:
+        except (IOError, OSError) as e:
             # Log error internally without exposing details
             print(f"Error handling dropped directory: {e}")
             ut.show_error_box("An error occurred processing the directory")
@@ -1311,7 +1311,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 
             else:
                 ut.show_error_box(f"Unsupported file type: {file_path.suffix}")
-        except Exception as e:
+        except (IOError, OSError, ValueError, TypeError) as e:
             # Log error internally without exposing details
             print(f"Error handling dropped file: {e}")
             ut.show_error_box("An error occurred processing the file")

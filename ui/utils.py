@@ -111,9 +111,8 @@ def sanitize_path(path_str: str) -> Optional[str]:
             return None
 
         return str(path)
-    except Exception as e:
+    except (ValueError, OSError):
         # Log the error internally but don't expose details to user
-        print(f"Error sanitizing path: {e}")
         show_error_box("Invalid path")
         return None
 
@@ -340,7 +339,7 @@ def show_message_box(destination: Path) -> None:
         except Exception as e:
             # Show a simple error message
             error_box = create_error_box()
-            error_box.setText(f"Could not open the destination folder.\nError opening folder: {e}")
+            error_box.setText(f"Error opening destination folder: {e}")
             error_box.exec()
 
 def show_error_box(*messages: str) -> None:

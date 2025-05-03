@@ -273,7 +273,7 @@ class SignatureChecker:
             # Try OpenCV
             img = cv2.imread(str(file_path), cv2.IMREAD_UNCHANGED)
             return img is not None and img.size > 0
-        except Exception:
+        except cv2.error:
             return False
     
     @classmethod
@@ -287,7 +287,7 @@ class SignatureChecker:
         Returns:
             bool: True if the file has a valid TIFF structure
         """
-        with suppress(Exception):
+        with suppress(cv2.error):
             # Check if OpenCV can load it as a TIFF
             img = cv2.imread(str(file_path), cv2.IMREAD_UNCHANGED)
             if img is not None and img.size > 0:
@@ -335,7 +335,7 @@ class SignatureChecker:
             cap.release()
             
             return ret and frame is not None
-        except Exception:
+        except cv2.error:
             return False
     
     @classmethod
@@ -457,5 +457,5 @@ class SignatureChecker:
             # No signatures matched
             return False
             
-        except Exception:
+        except (IOError, OSError, IndexError):
             return False

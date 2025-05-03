@@ -33,7 +33,7 @@ class DataFrameModel(QAbstractTableModel):
                 return None
 
     def load_dataframe(self, section: int, orientation: Qt.Orientation) -> Optional[str]:
-        with suppress(IndexError):
+        with suppress(IndexError, AttributeError):
             match orientation:
                 case Qt.Orientation.Horizontal:
                     return str(self._df.columns[section])
