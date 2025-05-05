@@ -639,7 +639,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.secondary_button.clicked.connect(self.handle_secondary_button)
         self.destination_button.clicked.connect(self.handle_destination_button)
 
-    def unified_address_changed(self, text):
+    def unified_address_changed(self, text: str):
         """Handle changes to the unified address bar"""
         
         # Clean quotation marks if they exist
@@ -673,6 +673,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
                         self.display_worker.crop(FunctionType.PHOTO)
                 case FunctionType.FOLDER:
                     if self.folder_tab_widget.input_path:
+                        self.folder_tab_widget.load_data()
                         self.display_worker.crop(FunctionType.FOLDER)
                 case FunctionType.MAPPING:
                     if self.mapping_tab_widget.input_path:

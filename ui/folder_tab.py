@@ -29,9 +29,11 @@ class UiFolderTabWidget(UiBatchCropWidget):
         file_filter = np.array([f'*{file}' for file in p_types])
         self.file_model.setNameFilters(file_filter)
 
+        self.treeView = QtWidgets.QTreeView(self.page_2)
+
         # Set up the main layout structure
         self.setup_layouts()
-        self.treeView: Optional[QtWidgets.QTreeView] = None
+        
 
         # Connect signals
         self.connect_signals()
@@ -69,7 +71,6 @@ class UiFolderTabWidget(UiBatchCropWidget):
         self.toolBox.addItem(self.page_1, "Crop View")
 
         # ---- Page 2: Folder View ----
-        self.treeView = QtWidgets.QTreeView(self.page_2)
         self.treeView.setObjectName("treeView")
         self.treeView.setModel(self.file_model)
 
@@ -166,9 +167,18 @@ class UiFolderTabWidget(UiBatchCropWidget):
             # Use the stored input_path instead of inputLineEdit.text()
             if not self.input_path:
                 return
+            
+            # Verify the path exists and is a directory
+            path = Path(self.input_path)
+            if not path.exists():
+                return
+                
+            if not path.is_dir():
+                return
 
             self.file_model.setRootPath(self.input_path)
             self.treeView.setRootIndex(self.file_model.index(self.input_path))
+            
         except (IndexError, FileNotFoundError, ValueError, AttributeError):
             return
 
