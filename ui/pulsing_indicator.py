@@ -12,7 +12,6 @@ class PulsingProgressIndicator(QtWidgets.QWidget):
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        
         # State management
         self.is_processing = False
         self.is_complete = False
@@ -75,25 +74,19 @@ class PulsingProgressIndicator(QtWidgets.QWidget):
         """Paint the indicator rectangle"""
         painter = QtGui.QPainter(self)
         painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
-        
+
         if self.is_processing:
             # Pulsing blue
             color = QtGui.QColor(66, 133, 244)  # Google blue
             color.setAlphaF(self.opacity)
-            painter.setBrush(QtGui.QBrush(color))
-            painter.setPen(QtCore.Qt.PenStyle.NoPen)
-            painter.drawRect(self.rect())
-            
+
         elif self.is_complete:
             # Solid green
             color = QtGui.QColor(52, 168, 83)  # Google green
-            painter.setBrush(QtGui.QBrush(color))
-            painter.setPen(QtCore.Qt.PenStyle.NoPen)
-            painter.drawRect(self.rect())
-            
-        else:
-            # Transparent/idle
-            pass
+        
+        painter.setBrush(QtGui.QBrush(color))
+        painter.setPen(QtCore.Qt.PenStyle.NoPen)
+        painter.drawRect(self.rect())
             
     def sizeHint(self):
         """Provide size hint for layout"""

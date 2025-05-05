@@ -4,7 +4,7 @@ import threading
 from pathlib import Path
 from typing import Optional, Callable, Any
 
-from PyQt6 import QtCore, QtWidgets
+from PyQt6 import QtWidgets
 
 from core import Job
 from core.croppers import BatchCropper
@@ -27,7 +27,7 @@ class UiBatchCropWidget(UiCropWidget):
         super().__init__(parent, object_name)
         self.crop_worker = crop_worker
         
-        # Create pulsing progress indicator instead of progress bar
+        # Create pulsing progress indicator
         self.pulsing_indicator = PulsingProgressIndicator(self)
         self.pulsing_indicator.setObjectName("pulsingIndicator")
         

@@ -11,7 +11,7 @@ from typing import Callable, Optional, Union, TypeVar, Any
 import numpy as np
 import numpy.typing as npt
 from PyQt6.QtCore import QMetaObject, Qt, Q_ARG
-from PyQt6.QtWidgets import QApplication, QProgressBar
+from PyQt6.QtWidgets import QApplication
 
 from core.face_tools import FaceToolPair
 from core.job import Job
@@ -32,7 +32,6 @@ class BatchCropper(Cropper):
         self.futures: list[Future] = []
         self.executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)
         self.face_detection_tools = face_detection_tools
-        # Remove progressBars attribute - no longer needed
         
         # Add a cancellation event for cooperative termination
         self.cancel_event = threading.Event()

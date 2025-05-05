@@ -59,7 +59,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
 
         vertical_layout.addLayout(button_layout)
 
-        # Pulsing indicator (replaces progress bar)
+        # Pulsing indicator
         self.pulsing_indicator.setParent(frame)
         vertical_layout.addWidget(self.pulsing_indicator)
 
