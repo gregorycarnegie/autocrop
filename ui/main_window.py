@@ -702,75 +702,100 @@ class UiMainWindow(QtWidgets.QMainWindow):
         """Handle clicks on the destination button"""
         self.open_folder_dialog(self.destination_input)
 
-    def open_file_dialog(self, path_type: PathType) -> None:
+    def open_file_dialog(self, path_type: PathType, target_input: PathLineEdit) -> None:
         """Securely open a file dialog and validate the selected path"""
         try:
-            # Use QFileDialog with security considerations
-            options = QtWidgets.QFileDialog.Option.ReadOnly  # Prevents modification during selection
-            
-            category = (
-                FileCategory.PHOTO if path_type == PathType.IMAGE else
-                FileCategory.VIDEO if path_type == PathType.VIDEO else
-                FileCategory.TABLE
-            )
-            # Get the appropriate default directory and filter based on the path type
+            # Configure file dialog options
+            options = QtWidgets.QFileDialog.Option.ReadOnly
+            category = self._get_file_category_for_path_type(path_type)
             default_dir = file_manager.get_default_directory(category).as_posix()
-            
             filter_string = file_manager.get_filter_string(category)
+            title = self._get_dialog_title(path_type)
             
-            # Open the dialogue with the appropriate title
-            title = f"Open {'Image' if path_type == PathType.IMAGE else 'Video' if path_type == PathType.VIDEO else 'Table'}"
-            
-            # Use QFileDialog.getOpenFileName which is more secure than the older methods
+            # Open the dialog
             f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
                 self, title, default_dir, filter_string, options=options
             )
             
-            # Validate the selected path
+            # Validate and process the selected file
             if f_name := ut.sanitize_path(f_name):
-                # Create a Path object for additional validation
-                path_obj = Path(f_name).resolve()
+                self._process_and_update_path(f_name, category, path_type, target_input)
                 
-                # Verify the file exists and is of the expected type
-                if not path_obj.is_file():
-                    ut.show_error_box("Selected path is not a valid file")
-                    return
-                    
-                # Verify file is of expected type
-                expected_category = (FileCategory.PHOTO if path_type == PathType.IMAGE else
-                                FileCategory.VIDEO if path_type == PathType.VIDEO else
-                                FileCategory.TABLE)
-                
-                if not file_manager.is_valid_type(path_obj, expected_category):
-                    ut.show_error_box(f"Selected file is not a valid {expected_category.name.lower()}")
-                    return
-                
-        # Verify content matches the expected type
-                if not SignatureChecker.verify_file_type(path_obj, category):
-                    ut.show_error_box("File content doesn't match its extension. The file may be corrupted or modified.")
-                    return
-                
-                # Update the appropriate input path based on the file type
-                if path_type == PathType.IMAGE:
-                    self.input_path = f_name
-                    # Update the unified address bar if this is the active tab
-                    main_window = self.parent().parent().parent()
-                    if main_window.function_tabWidget.currentIndex() == FunctionType.PHOTO:
-                        main_window.unified_address_bar.setText(f_name)
-                elif path_type == PathType.VIDEO:
-                    self.input_path = f_name
-                    # Update relevant UI for video
-                    self.player.setSource(QtCore.QUrl.fromLocalFile(f_name))
-                    self.reset_video_widgets()
-                elif path_type == PathType.TABLE:
-                    self.table_path = f_name
-                    # Process table data
-                    data = prc.load_table(path_obj)
-                    self.process_data(data)
-        
         except Exception as e:
-            # Log error internally without exposing details
             ut.show_error_box(f"An error occurred opening the file\n{e}")
+
+    def _get_file_category_for_path_type(self, path_type: PathType) -> FileCategory:
+        """Map path types to file categories"""
+        category_map = {
+            PathType.IMAGE: FileCategory.PHOTO,
+            PathType.VIDEO: FileCategory.VIDEO,
+            PathType.TABLE: FileCategory.TABLE
+        }
+        return category_map.get(path_type, FileCategory.PHOTO)
+
+    def _get_dialog_title(self, path_type: PathType) -> str:
+        """Get appropriate dialog title based on path type"""
+        title_map = {
+            PathType.IMAGE: "Open Image",
+            PathType.VIDEO: "Open Video",
+            PathType.TABLE: "Open Table"
+        }
+        return title_map.get(path_type, "Open File")
+
+    def _process_and_update_path(self, file_path: str, category: FileCategory, 
+                                path_type: PathType, target_input: PathLineEdit) -> None:
+        """Process and validate the selected file path"""
+        path_obj = Path(file_path).resolve()
+        
+        # Validate file exists
+        if not path_obj.is_file():
+            ut.show_error_box("Selected path is not a valid file")
+            return
+        
+        # Validate file type
+        if not file_manager.is_valid_type(path_obj, category):
+            ut.show_error_box(f"Selected file is not a valid {category.name.lower()}")
+            return
+        
+        # Verify file content matches extension
+        if not SignatureChecker.verify_file_type(path_obj, category):
+            ut.show_error_box("File content doesn't match its extension. The file may be corrupted or modified.")
+            return
+        
+        # Update the appropriate input path and UI
+        self._update_path_and_ui(file_path, path_type, target_input)
+
+    def _update_path_and_ui(self, file_path: str, path_type: PathType, 
+                        target_input: PathLineEdit) -> None:
+        """Update the path storage and UI elements"""
+        current_index = self.function_tabWidget.currentIndex()
+
+        if tab_widget := self._get_current_tab_widget():
+            if path_type == PathType.IMAGE:
+                tab_widget.input_path = file_path
+                if current_index == FunctionType.PHOTO:
+                    self.unified_address_bar.setText(file_path)
+            elif path_type == PathType.VIDEO:
+                tab_widget.input_path = file_path
+                self.video_tab_widget.player.setSource(QtCore.QUrl.fromLocalFile(file_path))
+                self.video_tab_widget.reset_video_widgets()
+            elif path_type == PathType.TABLE:
+                tab_widget.table_path = file_path
+                data = prc.load_table(Path(file_path))
+                self.mapping_tab_widget.process_data(data)
+
+    def _get_current_tab_widget(self) -> Optional[TabWidget]:
+        """Get the currently active tab widget"""
+        current_index = self.function_tabWidget.currentIndex()
+        
+        widget_map = {
+            FunctionType.PHOTO: self.photo_tab_widget,
+            FunctionType.FOLDER: self.folder_tab_widget,
+            FunctionType.MAPPING: self.mapping_tab_widget,
+            FunctionType.VIDEO: self.video_tab_widget
+        }
+        
+        return widget_map.get(current_index)
 
     def open_folder_dialog(self, target_input: PathLineEdit) -> None:
         """Securely open a folder dialogue and validate the selected path"""
