@@ -115,8 +115,8 @@ class UiMainWindow(QtWidgets.QMainWindow):
         # Create tab widget (browser-like)
         self.create_tab_widgets()
 
-        self.folder_worker.progressBars = [self.folder_tab_widget.progressBar]
-        self.mapping_worker.progressBars = [self.mapping_tab_widget.progressBar]
+        # self.folder_worker.progressBars = [self.folder_tab_widget.progressBar]
+        # self.mapping_worker.progressBars = [self.mapping_tab_widget.progressBar]
         self.video_worker.progressBars = [self.video_tab_widget.progressBar, self.video_tab_widget.progressBar_2]
         
         # Create a status bar

@@ -23,11 +23,11 @@ class MappingCropper(BatchCropper):
             new: npt.NDArray[np.str_],
             cancel_event: threading.Event) -> None:
         """
-        Performs cropping for a mapping job using batch_process_with_pipeline.
+        Performs cropping for a mapping job using batch_process_with_mapping.
         """
         # Convert mapping arrays to list of image paths and their targets
-        image_paths:  list[Path] = []
-        output_paths:  list[Path] = []
+        image_paths: list[Path] = []
+        output_paths: list[Path] = []
         
         for old_name, new_name in zip(old, new):
             old_path: Path = job.safe_folder_path / old_name
@@ -44,10 +44,11 @@ class MappingCropper(BatchCropper):
                 job,
                 face_detection_tools,
                 cancel_event,
-                False,
-                self.progressBars,
-                self.progress_count
+                False
             )
+        
+        # Update completion status
+        self._check_completion(file_amount)
         
         if self.progress_count == file_amount or self.end_task:
             self.show_message_box = False

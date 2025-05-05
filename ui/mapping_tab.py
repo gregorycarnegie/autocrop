@@ -52,12 +52,12 @@ class UiMappingTabWidget(UiBatchCropWidget):
         QtCore.QMetaObject.connectSlotsByName(self)
 
     def setup_layouts(self) -> None:
-        """Set up the main layout structure"""
+        """Set up the main layout structure with pulsing indicator"""
         # ---- Page 1: Crop View ----
         # Main frame with image and controls
         frame, vertical_layout = self.setup_main_crop_frame(self.page_1)
 
-        # Combo boxes, crop_from_path and cancel buttons
+        # Combo boxes, crop and cancel buttons
         button_layout = ut.setup_hbox("horizontalLayout_1")
 
         # Setup combo boxes
@@ -65,18 +65,16 @@ class UiMappingTabWidget(UiBatchCropWidget):
         ut.setup_combobox(self.comboBox_2, button_layout, self.size_policy_expand_fixed, "comboBox_2")
 
         # Crop and cancel buttons
-        # self.cropButton, self.cancelButton = self.create_main_action_buttons(frame)
         self.cropButton.setParent(frame)
         self.cancelButton.setParent(frame)
-
         button_layout.addWidget(self.cropButton)
         button_layout.addWidget(self.cancelButton)
 
         vertical_layout.addLayout(button_layout)
 
-        # Progress bar
-        self.progressBar.setParent(frame)
-        vertical_layout.addWidget(self.progressBar)
+        # Pulsing indicator (replaces progress bar)
+        self.pulsing_indicator.setParent(frame)
+        vertical_layout.addWidget(self.pulsing_indicator)
 
         self.verticalLayout_200.addWidget(frame)
 
@@ -198,16 +196,16 @@ class UiMappingTabWidget(UiBatchCropWidget):
             print(f"Error processing data: {e}")
 
     def connect_crop_worker(self) -> None:
-        """Connect the signals from the crop_from_path worker to UI handlers"""
+        """Connect the signals from the crop worker to UI handlers"""
         widget_list = (self.controlWidget.widthLineEdit, self.controlWidget.heightLineEdit,
-                       self.controlWidget.sensitivityDial, self.controlWidget.fpctDial, self.controlWidget.gammaDial,
-                       self.controlWidget.topDial, self.controlWidget.bottomDial, self.controlWidget.leftDial,
-                       self.controlWidget.rightDial, self.tableButton, self.comboBox_1, self.comboBox_2,
-                       self.controlWidget.radioButton_none,
-                       self.controlWidget.radioButton_bmp, self.controlWidget.radioButton_jpg,
-                       self.controlWidget.radioButton_png, self.controlWidget.radioButton_tiff,
-                       self.controlWidget.radioButton_webp, self.cropButton, self.exposureCheckBox,
-                       self.mfaceCheckBox, self.tiltCheckBox)
+                    self.controlWidget.sensitivityDial, self.controlWidget.fpctDial, self.controlWidget.gammaDial,
+                    self.controlWidget.topDial, self.controlWidget.bottomDial, self.controlWidget.leftDial,
+                    self.controlWidget.rightDial, self.tableButton, self.comboBox_1, self.comboBox_2,
+                    self.controlWidget.radioButton_none,
+                    self.controlWidget.radioButton_bmp, self.controlWidget.radioButton_jpg,
+                    self.controlWidget.radioButton_png, self.controlWidget.radioButton_tiff,
+                    self.controlWidget.radioButton_webp, self.cropButton, self.exposureCheckBox,
+                    self.mfaceCheckBox, self.tiltCheckBox)
 
         self.connect_crop_worker_signals(*widget_list)
 

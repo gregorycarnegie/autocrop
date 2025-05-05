@@ -23,17 +23,16 @@ class FolderCropper(BatchCropper):
         Performs cropping for a folder job by iterating over the file list.
         Uses batch_process_with_pipeline for efficiency.
         """
-        # Emit started signal at the beginning of processing
-        if not self.finished_signal_emitted:
-            self.started.emit()
-        
         # Convert tuple to list if needed
         image_paths = list(file_list)
         
-        # This function creates the pipeline once and applies it to all images
+        # Process the images
         prc.batch_process_with_pipeline(
-            image_paths, job, face_detection_tools, cancel_event, False, self.progressBars, self.progress_count
+            image_paths, job, face_detection_tools, cancel_event, False
         )
+        
+        # Update completion status
+        self._check_completion(file_amount)
         
         if self.progress_count == file_amount or self.end_task:
             self.show_message_box = False

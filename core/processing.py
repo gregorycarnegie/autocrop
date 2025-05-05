@@ -807,8 +807,6 @@ def batch_process_with_pipeline(images: list[Path],
                                 face_detection_tools: FaceToolPair,
                                 cancel_event: threading.Event,
                                 video: bool,
-                                progress_bars: list[QtWidgets.QProgressBar] = None,
-                                progress_count: int = 0,
                                 chunk_size: int = 10) -> list[Path]:
     """
     Process a batch of images with the same pipeline for efficiency with cancellation support.
@@ -855,13 +853,6 @@ def batch_process_with_pipeline(images: list[Path],
             if cancel_event.is_set():
                 return all_output_paths
         
-        progress_count = invoke_progress_by_chunk(
-            len(chunk),  # Size of the current chunk 
-            progress_count,      # Current progress count
-            total_images,        # Total number of images
-            progress_bars        # Progress bars to update
-        )
-            
         # Allow UI updates between chunks
         QtWidgets.QApplication.processEvents()
     
@@ -874,25 +865,9 @@ def batch_process_with_mapping(images: list[Path],
                                face_detection_tools: FaceToolPair,
                                cancel_event: threading.Event,
                                video: bool,
-                               progress_bars: list[QtWidgets.QProgressBar] = None,
-                               progress_count: int = 0,
                                chunk_size: int = 10) -> list[Path]:
     """
     Process a batch of images with custom output paths using the same pipeline with cancellation support.
-    
-    Args:
-        images: List of image paths to process
-        output_paths: List of output paths for processed images
-        job: Job parameters
-        face_detection_tools: Tools for face detection
-        cancel_event: Event to check for cancellation requests
-        video: bool
-        progress_bars: Optional list of progress bars to update directly
-        progress_count: int
-        chunk_size: Number of images to process in each chunk
-        
-    Returns:
-        List of output image paths that were successfully processed
     """
     if len(images) != len(output_paths):
         raise ValueError("Input and output path lists must have same length")
@@ -942,14 +917,7 @@ def batch_process_with_mapping(images: list[Path],
             if cancel_event.is_set():
                 return all_output_paths
         
-        progress_count = invoke_progress_by_chunk(
-            len(img_chunk),  # Size of the current chunk 
-            progress_count,      # Current progress count
-            total_images,        # Total number of images
-            progress_bars        # Progress bars to update
-        )
-        
-        # Allow UI to update between chunks AND process cancellation events
+        # Allow UI to update between chunks
         QtWidgets.QApplication.processEvents()
         
         # Final cancellation check after UI updates
@@ -957,48 +925,6 @@ def batch_process_with_mapping(images: list[Path],
             return all_output_paths
         
     return all_output_paths
-
-
-def invoke_progress_by_chunk(chunk_size: int,
-                             progress_count: int,
-                             total_images: int,
-                             progress_bars: list[QtWidgets.QProgressBar]) -> int:
-    """
-    Updates progress bars based on completed chunks rather than individual files.
-    
-    Args:
-        chunk_size: Size of the current chunk
-        progress_count: Current progress count before this chunk
-        total_images: Total number of images to process
-        progress_bars: List of progress bars to update
-        
-    Returns:
-        Updated progress count
-    """
-    # Update progress count with entire chunk size
-    progress_count += chunk_size
-    
-    # Make sure we don't exceed the total
-    progress_count = min(progress_count, total_images)
-    
-    if progress_bars:
-        percentage = min(100.0, (progress_count / total_images) * 100.0)
-        value = int(10 * percentage)
-        
-        # Use safe thread approach to update UI
-        for bar in progress_bars:
-            # Use invokeMethod to update progress bars on the main thread
-            QtCore.QMetaObject.invokeMethod(
-                bar, 
-                "setValue", 
-                QtCore.Qt.ConnectionType.QueuedConnection,
-                QtCore.Q_ARG(int, value)
-            )
-            
-        # Process events for a more responsive UI, but only after chunk completion
-        QtWidgets.QApplication.processEvents()
-            
-    return progress_count
 
 
 def process_batch_item(image_array: cv2.Mat,

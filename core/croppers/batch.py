@@ -32,7 +32,7 @@ class BatchCropper(Cropper):
         self.futures: list[Future] = []
         self.executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)
         self.face_detection_tools = face_detection_tools
-        self.progressBars: list[QProgressBar] = []
+        # Remove progressBars attribute - no longer needed
         
         # Add a cancellation event for cooperative termination
         self.cancel_event = threading.Event()
@@ -48,6 +48,16 @@ class BatchCropper(Cropper):
             f"end_task={self.end_task}, "
             f"show_message_box={self.show_message_box})>"
         )
+
+    def _check_completion(self, file_amount: int) -> None:
+        """
+        Check if processing is complete.
+        """
+        with self.lock:
+            self.progress_count += 1
+
+            if self.progress_count >= file_amount:
+                self.emit_done()
 
     def cleanup(self) -> None:
         """
