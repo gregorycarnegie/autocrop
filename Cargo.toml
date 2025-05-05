@@ -20,4 +20,4 @@ codegen-units = 1
 opt-level = 3
 
 [build-dependencies]
-cc = "1.2.20"
+cc = "1.2.21"

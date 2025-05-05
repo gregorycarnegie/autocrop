@@ -70,10 +70,7 @@ class MappingCropper(BatchCropper):
         # Get the extensions of the file names and create a mask for supported extensions
         mask, amount = prc.mask_extensions(old, extensions)
 
-        if amount == 0:
-            return None, None
-
-        return amount, (old[mask], new[mask])
+        return (None, None) if amount == 0 else (amount, (old[mask], new[mask]))
 
     def set_futures_for_crop(self, job: Job, file_count: int, file_lists: tuple[Any, Any]) -> None:
         """

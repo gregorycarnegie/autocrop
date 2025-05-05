@@ -193,9 +193,9 @@ fn round_clamp_to_u8<T>(value: T) -> u8
 where
     T: Into<f64>,
 {
-    value.into().round().max(0.0).min(255.0) as u8
+    let float_val: f64 = value.into();
+    float_val.round().clamp(0.0, 255.0) as u8
 }
-
 /// Convert BGR image view to grayscale array (Parallelized with Rayon).
 fn bgr_to_gray(image_view: ArrayView3<u8>, use_rec709: bool) -> Array2<u8> {
     dispatch_simd(
