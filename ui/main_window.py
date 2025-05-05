@@ -642,16 +642,21 @@ class UiMainWindow(QtWidgets.QMainWindow):
     def unified_address_changed(self, text):
         """Handle changes to the unified address bar"""
         
+        # Clean quotation marks if they exist
+        x, y = text.startswith("'") & text.endswith("'"), text.startswith('"') & text.endswith('"')
+        cleaned_text = text[1:][:-1] if x ^ y else text
+        cleaned_text = cleaned_text.replace('\\', '/')
+
         # Update the appropriate input field in the current tab
         match self.function_tabWidget.currentIndex():
             case FunctionType.PHOTO:
-                self.photo_tab_widget.input_path = text
+                self.photo_tab_widget.input_path = cleaned_text
             case FunctionType.FOLDER:
-                self.folder_tab_widget.input_path = text
+                self.folder_tab_widget.input_path = cleaned_text
             case FunctionType.MAPPING:
-                self.mapping_tab_widget.input_path = text
+                self.mapping_tab_widget.input_path = cleaned_text
             case FunctionType.VIDEO:
-                self.video_tab_widget.input_path = text
+                self.video_tab_widget.input_path = cleaned_text
 
     def secondary_input_changed(self, text):
         """Handle changes to the secondary input (only for mapping tab)"""

@@ -44,10 +44,9 @@ class PathLineEdit(CustomLineEdit):
         """
         text = self.text()
         x, y = text.startswith("'") & text.endswith("'"), text.startswith('"') & text.endswith('"')
-        if x ^ y:
-            text = text[1:][:-1]
-        text = text.replace('\\', '/')
-        self.setText(text)
+        cleaned_text = text[1:][:-1] if x ^ y else text
+        cleaned_text = cleaned_text.replace('\\', '/')
+        self.setText(cleaned_text)
 
     def validate_path(self) -> None:
         """

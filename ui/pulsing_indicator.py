@@ -76,13 +76,14 @@ class PulsingProgressIndicator(QtWidgets.QWidget):
         if self.is_processing:
             # Pulsing blue
             color = QtGui.QColor(66, 133, 244)  # Google blue
+            painter.setBrush(QtGui.QBrush(color))
             color.setAlphaF(self.opacity)
 
         elif self.is_complete:
             # Solid green
             color = QtGui.QColor(52, 168, 83)  # Google green
+            painter.setBrush(QtGui.QBrush(color))
         
-        painter.setBrush(QtGui.QBrush(color))
         painter.setPen(QtCore.Qt.PenStyle.NoPen)
         painter.drawRect(self.rect())
             
