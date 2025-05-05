@@ -1,4 +1,3 @@
-# ui/pulsing_indicator.py
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 
@@ -37,18 +36,17 @@ class PulsingProgressIndicator(QtWidgets.QWidget):
         
     def finish_processing(self):
         """Stop pulsing and show complete state"""
-        self.timer.stop()
-        self.is_processing = False
-        self.is_complete = True
-        self.opacity = 1.0
-        self.update()
+        self._update_from_environment(True, 1.0)
         
     def reset(self):
         """Reset to idle state"""
+        self._update_from_environment(False, 0.0)
+
+    def _update_from_environment(self, arg0, arg1):
         self.timer.stop()
         self.is_processing = False
-        self.is_complete = False
-        self.opacity = 0.0
+        self.is_complete = arg0
+        self.opacity = arg1
         self.update()
         
     def update_animation(self):
