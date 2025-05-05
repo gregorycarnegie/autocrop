@@ -1,6 +1,4 @@
-import collections.abc as c
 import threading
-from itertools import batched
 from pathlib import Path
 from typing import Optional
 
@@ -37,7 +35,7 @@ class FolderCropper(BatchCropper):
         if self.progress_count == file_amount or self.end_task:
             self.show_message_box = False
 
-    def prepare_crop_operation(self, job: Job) -> tuple[Optional[int], Optional[c.Iterable]]:
+    def prepare_crop_operation(self, job: Job) -> tuple[Optional[int], Optional[list[Path]]]:
         """
         Prepare the folder crop_from_path operation by getting file list and splitting into chunks.
         """
@@ -50,11 +48,10 @@ class FolderCropper(BatchCropper):
             return self._display_error(exception, message), None
 
         # Split the file list into chunks
-        split_array = batched(file_list, amount // self.THREAD_NUMBER + 1)
-        return amount, split_array
+        return amount, file_list
 
-    def set_futures_for_crop(self, job: Job, file_count: int, chunked_data: c.Iterable) -> None:
+    def set_futures_for_crop(self, job: Job, file_count: int, file_list: list[Path]) -> None:
         """
-        Set up futures specifically for folder cropping.
+        Set up futures specifically for folder cropping with adaptive threading.
         """
-        self.set_futures(self.worker, file_count, job, chunked_data)
+        self.set_futures(self.worker, file_count, job, file_list)

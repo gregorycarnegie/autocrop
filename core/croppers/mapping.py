@@ -53,7 +53,7 @@ class MappingCropper(BatchCropper):
         if self.progress_count == file_amount or self.end_task:
             self.show_message_box = False
 
-    def prepare_crop_operation(self, job: Job) -> tuple[Optional[int], Optional[tuple[Any, Any]]]:
+    def prepare_crop_operation(self, job: Job) -> tuple[Optional[int], Optional[tuple[npt.NDArray, npt.NDArray]]]:
         """
         Prepare the mapping crop_from_path operation by getting file lists and splitting into chunks.
         """
@@ -68,14 +68,14 @@ class MappingCropper(BatchCropper):
         # Get the extensions of the file names and create a mask for supported extensions
         mask, amount = prc.mask_extensions(file_tuple[0], extensions)
 
-        # Split the file lists and the mapping data into chunks
-        old_file_list, new_file_list = prc.split_by_cpus(mask, self.THREAD_NUMBER, file_tuple[0], file_tuple[1])
+        if amount == 0:
+            return None, None
 
-        return amount, (old_file_list, new_file_list)
+        return amount, (file_tuple[0][mask], file_tuple[1][mask])
 
-    def set_futures_for_crop(self, job: Job, file_count: int, chunked_data: tuple[Any, Any]) -> None:
+    def set_futures_for_crop(self, job: Job, file_count: int, file_lists: tuple[Any, Any]) -> None:
         """
         Set up futures specifically for mapping cropping.
         """
-        old_list, new_list = chunked_data
+        old_list, new_list = file_lists
         self.set_futures(self.worker, file_count, job, old_list, new_list)

@@ -1,5 +1,6 @@
 import atexit
 import collections.abc as c
+from itertools import batched
 import os
 import threading
 from concurrent.futures import Future, ThreadPoolExecutor, CancelledError
@@ -27,13 +28,14 @@ class BatchCropper(Cropper):
     A class that manages image-cropping tasks using a thread pool.
     """
 
+    MIN_FILES_FOR_MULTITHREAD = 20  # Minimum files before using multiple threads
+    MIN_RATIO_FOR_MULTITHREAD = 0.5  # Minimum files/thread ratio to enable multithreading
+
     def __init__(self, face_detection_tools: list[FaceToolPair]):
         super().__init__()
         self.futures: list[Future] = []
         self.executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)
         self.face_detection_tools = face_detection_tools
-        
-        # Add a cancellation event for cooperative termination
         self.cancel_event = threading.Event()
 
         # Register an exit handler to ensure proper clean-up
@@ -46,6 +48,46 @@ class BatchCropper(Cropper):
             f"progress_count={self.progress_count}, "
             f"end_task={self.end_task}, "
             f"show_message_box={self.show_message_box})>"
+        )
+
+    def _should_use_multithreading(self, file_count: int) -> bool:
+        """
+        Determine whether to use multithreading based on the number of files.
+        
+        Args:
+            file_count: Number of files to process
+            
+        Returns:
+            bool: True if multithreading should be used
+        """
+        # Check if we have enough files for multithreading
+        if file_count < self.MIN_FILES_FOR_MULTITHREAD:
+            return False
+
+        # Check if we have a reasonable files/thread ratio
+        files_per_thread = file_count / self.THREAD_NUMBER
+        return files_per_thread >= self.MIN_RATIO_FOR_MULTITHREAD
+    
+    def _process_single_threaded(self, 
+                               file_list: list[Path], 
+                               job: Job) -> None:
+        """
+        Process files using single thread.
+        
+        Args:
+            file_list: List of files to process
+            job: Job configuration
+        """
+        # Use the first face detection tool for single-threaded processing
+        face_detection_tools = self.face_detection_tools[0]
+        
+        # Process the files directly
+        self.worker(
+            file_amount=len(file_list),
+            job=job,
+            face_detection_tools=face_detection_tools,
+            file_list=tuple(file_list),
+            cancel_event=self.cancel_event
         )
 
     def _check_completion(self, file_amount: int) -> None:
@@ -118,10 +160,32 @@ class BatchCropper(Cropper):
                     amount: int,
                     job: Job,
                     list_1: c.Iterable[T],
-                    list_2: Optional[c.Iterable] = None):
+                    list_2: Optional[c.Iterable[T]] = None):
         """
         Configure worker futures for parallel execution with enhanced security.
         """
+
+        # Check if we should use multithreading
+        if not self._should_use_multithreading(amount):
+            # Single-threaded processing
+            print(f"Processing {amount} files using single thread")
+            if list_2 is None:
+                self._process_single_threaded(list_1, job)
+            else:
+                # For mapping operations, process directly
+                self.worker(
+                    file_amount=amount,
+                    job=job,
+                    face_detection_tools=self.face_detection_tools[0],
+                    old=list_1,
+                    new=list_2,
+                    cancel_event=self.cancel_event
+                )
+            
+            # Immediately signal completion
+            self.emit_done()
+            return
+
         # Recreate executor if it was shut down
         if self.executor is None or self.executor._shutdown:
             self.executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)
@@ -140,8 +204,21 @@ class BatchCropper(Cropper):
 
         self.futures = []
         # Create futures with additional security checks
-        if list_2:
-            for old_chunk, new_chunk, tool_pair in zip(list_1, list_2, self.face_detection_tools):
+        chunk_size = max(amount // self.THREAD_NUMBER, 1)
+
+        if list_2 is None:
+            batch = batched(list_1, chunk_size)
+            for chunk, tool_pair in zip(batch, self.face_detection_tools):
+                # Validate each chunk before submitting
+                if self._validate_chunk(chunk):
+                    self.futures.append(
+                        self.executor.submit(worker_with_params,
+                                             face_detection_tools=tool_pair,
+                                             file_list=chunk)
+                    )            
+        else:
+            old_batch, new_batch = batched(list_1, chunk_size), batched(list_2, chunk_size)
+            for old_chunk, new_chunk, tool_pair in zip(old_batch, new_batch, self.face_detection_tools):
                 # Validate each chunk before submitting
                 if self._validate_chunk(old_chunk) and self._validate_chunk(new_chunk):
                     self.futures.append(
@@ -150,15 +227,8 @@ class BatchCropper(Cropper):
                                              old=old_chunk,
                                              new=new_chunk)
                     )
-        else:
-            for chunk, tool_pair in zip(list_1, self.face_detection_tools):
-                # Validate each chunk before submitting
-                if self._validate_chunk(chunk):
-                    self.futures.append(
-                        self.executor.submit(worker_with_params,
-                                             face_detection_tools=tool_pair,
-                                             file_list=chunk)
-                    )
+        
+
 
     def _secure_worker_wrapper(self, **kwargs) -> None:
         """
@@ -218,7 +288,7 @@ class BatchCropper(Cropper):
             return False
 
         # Validate list_1
-        if not list_1 or not isinstance(list_1, c.Iterable):
+        if not isinstance(list_1, c.Iterable):
             return False
 
         # Validate list_2 if provided
@@ -450,7 +520,6 @@ class BatchCropper(Cropper):
         if not self.finished_signal_emitted:
             # Set flag to prevent multiple emissions
             self.finished_signal_emitted = True
-            # self.finished.emit()
             # Use QMetaObject.invokeMethod for cross-thread signal emission
             QMetaObject.invokeMethod(
                 self, 
@@ -466,4 +535,3 @@ class BatchCropper(Cropper):
                 Q_ARG(int, 0),
                 Q_ARG(int, 1)
             )
-            # print("Finished signal emitted")
