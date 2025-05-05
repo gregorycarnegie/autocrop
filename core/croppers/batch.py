@@ -1,5 +1,4 @@
 import atexit
-import collections.abc as c
 import os
 import threading
 from concurrent.futures import Future, ThreadPoolExecutor, CancelledError
