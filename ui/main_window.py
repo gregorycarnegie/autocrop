@@ -658,6 +658,29 @@ class UiMainWindow(QtWidgets.QMainWindow):
             case FunctionType.VIDEO:
                 self.video_tab_widget.input_path = cleaned_text
 
+        # Trigger preview update for the current tab
+        self.trigger_preview_update()
+
+    def trigger_preview_update(self):
+        """Trigger preview update for the current tab when path is valid"""
+        current_index = self.function_tabWidget.currentIndex()
+        
+        # Check if the path is valid before updating
+        if self.unified_address_bar.state == LineEditState.VALID_INPUT:
+            match current_index:
+                case FunctionType.PHOTO:
+                    if self.photo_tab_widget.input_path:
+                        self.display_worker.crop(FunctionType.PHOTO)
+                case FunctionType.FOLDER:
+                    if self.folder_tab_widget.input_path:
+                        self.display_worker.crop(FunctionType.FOLDER)
+                case FunctionType.MAPPING:
+                    if self.mapping_tab_widget.input_path:
+                        self.display_worker.crop(FunctionType.MAPPING)
+                case FunctionType.VIDEO:
+                    if self.video_tab_widget.input_path:
+                        self.display_worker.crop(FunctionType.VIDEO)
+
     def secondary_input_changed(self, text):
         """Handle changes to the secondary input (only for mapping tab)"""
         match self.function_tabWidget.currentIndex():
