@@ -6,7 +6,7 @@ import cv2
 @dataclass(frozen=True)
 class Config:
     """
-    Centralised configuration for processing defaults and magic numbers.
+    Centralized configuration for processing defaults and magic numbers.
     """
     # Threshold for converting user gamma to lookup scale
     gamma_threshold: float = 0.001
@@ -20,7 +20,7 @@ class Config:
     # Default interpolation method for resizing (OpenCV flag)
     interpolation: int = cv2.INTER_AREA
 
-    # Default border color for padding when cropping outside bounds
+    # Default border colour for padding when cropping outside bounds
     border_colour: tuple[int, int, int] = (0, 0, 0)
 
     border_type: int = cv2.BORDER_CONSTANT

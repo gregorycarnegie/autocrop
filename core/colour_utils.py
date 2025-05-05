@@ -1,7 +1,7 @@
 """
-Centralized color space handling utilities for the autocrop application.
+Centralized colour space handling utilities for the autocrop application.
 
-This module provides common functions for color space conversions and manipulations,
+This module provides common functions for colour space conversions and manipulations,
 eliminating code duplication across the application.
 """
 import cv2
@@ -21,7 +21,7 @@ def ensure_rgb(image: cv2.Mat) -> cv2.Mat:
     Returns:
         Image in RGB format
     """
-    # Only convert if the image has 3 channels (color image)
+    # Only convert if the image has 3 channels (colour image)
     if len(image.shape) >= 3 and image.shape[2] >= 3:
         return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     return image
@@ -37,7 +37,7 @@ def ensure_bgr(image: cv2.Mat) -> cv2.Mat:
     Returns:
         Image in BGR format for OpenCV operations
     """
-    # Only convert if the image has 3 channels (color image)
+    # Only convert if the image has 3 channels (colour image)
     if len(image.shape) >= 3 and image.shape[2] >= 3:
         return cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
     return image

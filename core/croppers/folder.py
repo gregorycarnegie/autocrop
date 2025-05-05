@@ -37,7 +37,7 @@ class FolderCropper(BatchCropper):
 
     def prepare_crop_operation(self, job: Job) -> tuple[Optional[int], Optional[list[Path]]]:
         """
-        Prepare the folder crop_from_path operation by getting file list and splitting into chunks.
+        Prepare the folder crop_from_path operation by getting the file list and splitting into chunks.
         """
         if not (file_list := job.iter_images()):
             return None, None

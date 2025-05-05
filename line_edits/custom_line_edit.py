@@ -15,16 +15,16 @@ class CustomLineEdit(QLineEdit):
     The CustomLineEdit class provides a customized line edit widget with a clear button and validation functionality. It overrides the `resizeEvent` method to handle the positioning of the clear button. The class also defines methods for updating the clear button visibility, validating the input path, setting the valid and invalid colors, and updating the style.
 
     Attributes:
-        VALID_COLOR (ClassVar[str]): The color code for valid input.
-        INVALID_COLOR (ClassVar[str]): The color code for invalid input.
+        VALID_COLOR (ClassVar[str]): The colour code for valid input.
+        INVALID_COLOR (ClassVar[str]): The colour code for invalid input.
 
     Methods:
         resizeEvent(a0: Optional[QResizeEvent]): Overrides the resize event to handle the positioning of the clear button.
         update_clear_button(text: str) -> None: Updates the visibility of the clear button based on the text input.
-        validate_path() -> None: Validates the input path and sets the color accordingly.
-        set_valid_color() -> None: Sets the color to the valid color.
-        set_invalid_color() -> None: Sets the color to the invalid color.
-        color_logic(boolean: bool) -> None: Sets the color and state based on a boolean value.
+        validate_path() -> None: Validates the input path and sets the colour accordingly.
+        set_valid_color() -> None: Sets the colour to the valid colour.
+        set_invalid_color() -> None: Sets the colour to the invalid colour.
+        color_logic(boolean: bool) -> None: Sets the colour and state based on a boolean value.
         update_style() -> None: Updates the style of the line edit.
 
     Example:
@@ -41,10 +41,10 @@ class CustomLineEdit(QLineEdit):
         # Validating the input path
         line_edit.validate_path()
 
-        # Setting the valid color
+        # Setting the valid colour
         line_edit.set_valid_color()
 
-        # Setting the invalid color
+        # Setting the invalid colour
         line_edit.set_invalid_color()
 
         # Updating the style
@@ -121,16 +121,16 @@ class CustomLineEdit(QLineEdit):
             None
         """
         super().showEvent(event)
-        # Update clear button visibility based on current text
+        # Update clear button visibility based on the current text
         self.update_clear_button(self.text())
 
     def validate_path(self) -> None:
-        """Validate a path based on input and set color accordingly."""
+        """Validate a path based on input and set colour accordingly."""
         raise NotImplementedError('Subclasses should implement this method!')
 
     def set_valid_color(self) -> None:
         """
-        Sets the color of the CustomLineEdit to the valid color.
+        Sets the colour of the CustomLineEdit to the valid colour.
 
         Args:
             self: The CustomLineEdit instance.
@@ -143,7 +143,7 @@ class CustomLineEdit(QLineEdit):
 
     def set_invalid_color(self) -> None:
         """
-        Sets the color of the CustomLineEdit to the invalid color.
+        Sets the colour of the CustomLineEdit to the invalid colour.
 
         Args:
             self: The CustomLineEdit instance.
@@ -156,7 +156,7 @@ class CustomLineEdit(QLineEdit):
 
     def color_logic(self, boolean: bool) -> None:
         """
-        Sets the color and state of the CustomLineEdit based on a boolean value.
+        Sets the colour and state of the CustomLineEdit based on a boolean value.
 
         Args:
             self: The CustomLineEdit instance.
@@ -175,7 +175,7 @@ class CustomLineEdit(QLineEdit):
 
     def update_style(self) -> None:
         """
-        Updates the style of the CustomLineEdit by setting the background color and text color based on the current color value.
+        Updates the style of the CustomLineEdit by setting the background colour and text colour based on the current colour value.
 
         Args:
             self: The CustomLineEdit instance.
@@ -185,4 +185,4 @@ class CustomLineEdit(QLineEdit):
         """
 
         self.setStyleSheet(f'background-color: {self.colour}; color: black;')
-        self.update_clear_button(self.text())  # Update clear button visibility after style change
+        self.update_clear_button(self.text())  # Update clear button visibility after the style change

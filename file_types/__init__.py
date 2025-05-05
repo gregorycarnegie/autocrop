@@ -6,7 +6,6 @@ from .file_category import FileCategory
 from .file_type_manager import FileTypeManager, file_manager
 from .signature_checker import SignatureChecker
 
-
 __all__ = [
     'FileCategory',
     'FileTypeManager',

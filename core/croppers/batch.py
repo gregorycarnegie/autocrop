@@ -1,13 +1,13 @@
 import atexit
 import collections.abc as c
-from itertools import batched
 import os
 import threading
 from concurrent.futures import Future, ThreadPoolExecutor, CancelledError
 from contextlib import suppress
 from functools import partial
+from itertools import batched
 from pathlib import Path
-from typing import Callable, Optional, Union, TypeVar, Any
+from typing import Callable, Optional, Union, Any
 
 import numpy as np
 import numpy.typing as npt
@@ -19,7 +19,6 @@ from core.job import Job
 from file_types import SignatureChecker, FileCategory, file_manager
 from .base import Cropper
 
-T = TypeVar('T')
 FileList = Union[list[Path], npt.NDArray[np.str_]]
 
 
@@ -72,7 +71,7 @@ class BatchCropper(Cropper):
                                file_list: list[Path], 
                                job: Job) -> None:
         """
-        Process files using single thread.
+        Process files using a single thread.
         
         Args:
             file_list: List of files to process
@@ -159,8 +158,8 @@ class BatchCropper(Cropper):
     def set_futures(self, worker: Callable[..., None],
                     amount: int,
                     job: Job,
-                    list_1: c.Iterable[T],
-                    list_2: Optional[c.Iterable[T]] = None):
+                    list_1: Union[list[Path], npt.NDArray[np.str_]],
+                    list_2: Optional[Union[list[Path], npt.NDArray[np.str_]]] = None):
         """
         Configure worker futures for parallel execution with enhanced security.
         """
@@ -274,8 +273,8 @@ class BatchCropper(Cropper):
     def _validate_inputs(worker: Callable[..., None],
                          amount: int,
                          job: Job,
-                         list_1: c.Iterable[T],
-                         list_2: Optional[c.Iterable]) -> bool:
+                         list_1: FileList,
+                         list_2: Optional[FileList]) -> bool:
         """
         Validate all inputs to set_futures before processing.
         """
@@ -288,11 +287,9 @@ class BatchCropper(Cropper):
             return False
 
         # Validate list_1
-        if not isinstance(list_1, c.Iterable):
-            return False
-
-        # Validate list_2 if provided
-        return list_2 is None or isinstance(list_2, c.Iterable)
+        return (
+            list_2 is None or isinstance(list_2, (list, npt.NDArray)) if isinstance(list_1, (list, npt.NDArray)) else False
+        )
 
     def _validate_chunk(self, chunk) -> bool:
         """
@@ -465,7 +462,7 @@ class BatchCropper(Cropper):
 
         return True
 
-    def prepare_crop_operation(self, job: Job) -> tuple[Optional[int], Optional[c.Iterable]]:
+    def prepare_crop_operation(self, job: Job) -> tuple[Optional[int], FileList]:
         """
         Abstract method to be implemented by child classes.
         Should prepare the crop_from_path operation by validating inputs and creating
@@ -481,9 +478,9 @@ class BatchCropper(Cropper):
         Common implementation of the crop_from_path method. Uses a template method pattern.
         """
         # Let child class prepare the operation
-        file_count, chunked_data = self.prepare_crop_operation(job)
+        file_count, file_paths = self.prepare_crop_operation(job)
 
-        if file_count is None or chunked_data is None:
+        if file_count is None or file_paths is None:
             return
 
         # Validate common job parameters
@@ -497,7 +494,7 @@ class BatchCropper(Cropper):
         self.started.emit()  # Emit started signal immediately
 
         # Let child class set up the futures based on its specific worker
-        self.set_futures_for_crop(job, file_count, chunked_data)
+        self.set_futures_for_crop(job, file_count, file_paths)
 
         # complete_futures is common to all
         self.complete_futures()
@@ -505,7 +502,7 @@ class BatchCropper(Cropper):
         # Make sure cancel buttons are enabled right away
         QApplication.processEvents()
 
-    def set_futures_for_crop(self, job: Job, file_count: int, chunked_data: c.Iterable) -> None:
+    def set_futures_for_crop(self, job: Job, file_count: int, file_paths: FileList) -> None:
         """
         Abstract method to be implemented by child classes.
         Should set up the futures for the crop_from_path operation.

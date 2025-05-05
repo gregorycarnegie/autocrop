@@ -40,6 +40,7 @@ class DataFrameModel(QAbstractTableModel):
                 case Qt.Orientation.Vertical:
                     return str(section)
             return None
+        return None
 
     def headerData(self, section: int,
                    orientation: Qt.Orientation,

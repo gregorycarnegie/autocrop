@@ -31,7 +31,7 @@ class Job:
         left: The left offset for cropping.
         right: The right offset for cropping.
         radio_buttons: A tuple of booleans representing radio button states.
-        radio_options: The array of format options (e.g., ['No', '.bmp']).
+        radio_options: The array of format options (e.g. ['No', '.bmp']).
         destination: The optional destination path.
         photo_path: The optional photo path.
         folder_path: The optional folder path (for batch processing).
@@ -69,7 +69,8 @@ class Job:
     column1: Optional[QComboBox] = None
     column2: Optional[QComboBox] = None
 
-    def _validate_path(self, path: Optional[Path]) -> Optional[Path]:
+    @staticmethod
+    def _validate_path(path: Optional[Path]) -> Optional[Path]:
         """
         Validate a path to ensure it's safe and accessible.
         Returns None if the path is invalid or inaccessible.
@@ -78,7 +79,7 @@ class Job:
             return None
 
         with suppress(Exception):
-            # Resolve to get absolute normalized path
+            # Resolve to get an absolute normalized path
             resolved_path = path.resolve()
 
             # Check that the path exists
@@ -87,6 +88,7 @@ class Job:
 
             # Check that the path is accessible
             return resolved_path if os.access(resolved_path, os.R_OK) else None
+        return None
     
     @property
     def safe_photo_path(self) -> Optional[Path]:
@@ -116,7 +118,7 @@ class Job:
         Returns:
             A list of validated file paths, or None if `folder_path` is None or invalid.
         """
-        # Validate folder path first
+        # Validate the folder path first
         safe_folder = self.safe_folder_path
         if safe_folder is None:
             return None
@@ -183,6 +185,7 @@ class Job:
         with suppress(Exception):
             safe_dest.mkdir(exist_ok=True)
             return safe_dest
+        return None
 
     def file_list_to_numpy(self) -> Optional[tuple[np.ndarray, np.ndarray]]:
         """
@@ -194,7 +197,7 @@ class Job:
         if any(_ is None for _ in (self.table, self.column1, self.column2)):
             return None
 
-        # Validate folder path
+        # Validate the folder path
         safe_folder = self.safe_folder_path
         if safe_folder is None:
             return None
@@ -231,6 +234,7 @@ class Job:
 
             # Apply the mask
             return old_arr[mask], new_arr[mask]
+        return None
 
     @property
     def destination_accessible(self) -> bool:
@@ -246,14 +250,14 @@ class Job:
         # Check if the directory can be written to
         try:
             return os.access(safe_dest, os.W_OK)
-        except Exception:
+        except OSError:
             return False
 
     @property
     def free_space(self) -> int:
         """
         Returns the free disk space at `destination`.
-        Returns 0 if destination is invalid or inaccessible.
+        Returns 0 if the destination is invalid or inaccessible.
         """
         # Validate the destination path
         safe_dest = self.safe_destination
@@ -263,7 +267,7 @@ class Job:
         # Check free space with error handling
         try:
             return shutil.disk_usage(safe_dest).free
-        except Exception:
+        except OSError:
             return 0
 
     @property

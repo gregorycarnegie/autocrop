@@ -1,10 +1,9 @@
 from .batch import BatchCropper
-from .folder import FolderCropper
-from .photo import PhotoCropper
-from .mapping import MappingCropper
-from .video import VideoCropper
 from .display import DisplayCropper
-
+from .folder import FolderCropper
+from .mapping import MappingCropper
+from .photo import PhotoCropper
+from .video import VideoCropper
 
 __all__ = [
     'BatchCropper',

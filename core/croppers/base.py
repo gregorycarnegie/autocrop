@@ -49,7 +49,7 @@ class Cropper(QObject):
         
     @staticmethod
     def _handle_finished():
-        """Helper method to handle finished signal in the main thread"""
+        """Helper method to handle the finished signal in the main thread"""
         # This just helps with cross-thread signal delivery
         print("Processing complete.")
 

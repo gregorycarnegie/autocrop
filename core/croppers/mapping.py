@@ -25,7 +25,7 @@ class MappingCropper(BatchCropper):
         """
         Performs cropping for a mapping job using batch_process_with_mapping.
         """
-        # Convert mapping arrays to list of image paths and their targets
+        # Convert mapping arrays to lists of image paths and their targets
         image_paths: list[Path] = []
         output_paths: list[Path] = []
         
@@ -53,12 +53,14 @@ class MappingCropper(BatchCropper):
         if self.progress_count == file_amount or self.end_task:
             self.show_message_box = False
 
-    def prepare_crop_operation(self, job: Job) -> tuple[Optional[int], Optional[tuple[npt.NDArray, npt.NDArray]]]:
+    def prepare_crop_operation(self, job: Job) -> tuple[Optional[int], Optional[tuple[npt.NDArray[np.str_], npt.NDArray[np.str_]]]]:
         """
         Prepare the mapping crop_from_path operation by getting file lists and splitting into chunks.
         """
         if not (file_tuple := job.file_list_to_numpy()):
             return None, None
+
+        old, new = file_tuple
 
         extensions = (
                 file_manager.get_extensions(FileCategory.PHOTO) |
@@ -66,12 +68,12 @@ class MappingCropper(BatchCropper):
                 file_manager.get_extensions(FileCategory.TIFF)
         )
         # Get the extensions of the file names and create a mask for supported extensions
-        mask, amount = prc.mask_extensions(file_tuple[0], extensions)
+        mask, amount = prc.mask_extensions(old, extensions)
 
         if amount == 0:
             return None, None
 
-        return amount, (file_tuple[0][mask], file_tuple[1][mask])
+        return amount, (old[mask], new[mask])
 
     def set_futures_for_crop(self, job: Job, file_count: int, file_lists: tuple[Any, Any]) -> None:
         """

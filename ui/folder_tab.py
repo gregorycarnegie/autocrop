@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 from PyQt6 import QtCore, QtGui, QtWidgets
@@ -9,6 +8,7 @@ from core.enums import FunctionType
 from file_types import file_manager, FileCategory
 from ui import utils as ut
 from .batch_tab import UiBatchCropWidget
+from .image_hover_preview import ImageHoverPreview
 
 
 class UiFolderTabWidget(UiBatchCropWidget):
@@ -30,6 +30,16 @@ class UiFolderTabWidget(UiBatchCropWidget):
         self.file_model.setNameFilters(file_filter)
 
         self.treeView = QtWidgets.QTreeView(self.page_2)
+        
+        # Create image preview widget
+        self.image_preview = ImageHoverPreview(parent=None)
+        self.image_preview.hide()
+        
+        # Track mouse position for preview
+        self._last_mouse_pos = None
+        self._hover_timer = QtCore.QTimer()
+        self._hover_timer.setSingleShot(True)
+        self._hover_timer.timeout.connect(self._show_preview)
 
         # Set up the main layout structure
         self.setup_layouts()
@@ -48,7 +58,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
 
     def setup_layouts(self) -> None:
         """Set up the main layout structure with pulsing indicator"""
-        # ---- Page 1: Crop View ----
+        # ---- Page 1: Crop View ---- (unchanged)
         # Main frame with image and controls
         frame, vertical_layout = self.setup_main_crop_frame(self.page_1)
 
@@ -73,6 +83,13 @@ class UiFolderTabWidget(UiBatchCropWidget):
         # ---- Page 2: Folder View ----
         self.treeView.setObjectName("treeView")
         self.treeView.setModel(self.file_model)
+        
+        # Enable mouse tracking for hover detection
+        self.treeView.setMouseTracking(True)
+        
+        # Connect tree view hover events
+        self.treeView.entered.connect(self._on_item_entered)
+        self.treeView.viewport().installEventFilter(self)
 
         self.verticalLayout_300.addWidget(self.treeView)
 
@@ -81,6 +98,98 @@ class UiFolderTabWidget(UiBatchCropWidget):
 
         # Add toolbox to the main layout
         self.verticalLayout_100.addWidget(self.toolBox)
+
+    def eventFilter(self, obj, event):
+        """Filter events to handle mouse movement and leaving the tree view"""
+        if obj == self.treeView.viewport():
+            if event.type() == QtCore.QEvent.Type.MouseMove:
+                self._on_mouse_move(event)
+            elif event.type() == QtCore.QEvent.Type.Leave:
+                self._on_mouse_leave()
+        return super().eventFilter(obj, event)
+
+    def _on_item_entered(self, index):
+        """Handle when mouse enters a tree view item"""
+        # Get file path from model index
+        file_path = self.file_model.filePath(index)
+        
+        # Check if it's an image file
+        if file_path and self._is_image_file(file_path):
+            self._last_mouse_pos = QtGui.QCursor.pos()
+            self._hover_timer.start(200)  # Delay before showing preview
+
+    def _on_mouse_move(self, event: QtGui.QMouseEvent) -> None:
+        """Handle mouse movement in tree view"""
+        index = self.treeView.indexAt(event.position().toPoint())
+        
+        if index.isValid():
+            file_path = self.file_model.filePath(index)
+            if file_path and self._is_image_file(file_path):
+                # Use globalPosition() for PyQt6 instead of globalPos()
+                global_pos = event.globalPosition().toPoint()
+                self._last_mouse_pos = global_pos
+                if not self._hover_timer.isActive():
+                    self._hover_timer.start(200)
+            else:
+                self._hide_preview()
+        else:
+            self._hide_preview()
+
+    def _on_mouse_leave(self):
+        """Handle mouse leaving the tree view"""
+        self._hide_preview()
+
+    def _show_preview(self):
+        """Show the image preview"""
+        if self._last_mouse_pos is None:
+            return
+            
+        # Get current index under mouse
+        pos = self.treeView.mapFromGlobal(self._last_mouse_pos)
+        index = self.treeView.indexAt(pos)
+        
+        if index.isValid():
+            file_path = self.file_model.filePath(index)
+            if file_path and self._is_image_file(file_path):
+                # Create job for preview
+                job = self.create_job(
+                    FunctionType.FOLDER,
+                    folder_path=Path(self.input_path) if self.input_path else None,
+                    destination=Path(self.destination_path) if self.destination_path else None
+                )
+                
+                # Show preview
+                self.image_preview.preview_file(
+                    file_path, 
+                    self._last_mouse_pos,
+                    self.crop_worker.face_detection_tools[0],
+                    job
+                )
+
+    def _hide_preview(self):
+        """Hide the image preview"""
+        self._hover_timer.stop()
+        self.image_preview.hide_preview()
+
+    def _is_image_file(self, file_path: str) -> bool:
+        """Check if a file is an image"""
+        path = Path(file_path)
+        return (file_manager.is_valid_type(path, FileCategory.PHOTO) or
+                file_manager.is_valid_type(path, FileCategory.TIFF) or
+                file_manager.is_valid_type(path, FileCategory.RAW))
+
+    # Clean up when tab is hidden or destroyed
+    def hideEvent(self, event):
+        """Hide preview when tab is hidden"""
+        self._hide_preview()
+        super().hideEvent(event)
+    
+    def closeEvent(self, event):
+        """Clean up when widget is closed"""
+        self._hide_preview()
+        self.image_preview.clear_cache()
+        self.image_preview.close()
+        super().closeEvent(event)
 
     def connect_signals(self) -> None:
         """Connect widget signals to handlers"""
@@ -112,7 +221,6 @@ class UiFolderTabWidget(UiBatchCropWidget):
             self.controlWidget.leftDial,
             self.controlWidget.rightDial
         )
-
 
     def retranslateUi(self) -> None:
         """Update UI text elements"""

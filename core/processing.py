@@ -13,7 +13,7 @@ import numpy as np
 import numpy.typing as npt
 import polars as pl
 import tifffile as tiff
-from PyQt6 import QtWidgets, QtCore
+from PyQt6 import QtWidgets
 from rawpy import ColorSpace
 from rawpy._rawpy import NotSupportedError, LibRawError, LibRawFatalError, LibRawNonFatalError
 
