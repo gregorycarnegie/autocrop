@@ -296,7 +296,7 @@ class BatchCropper(Cropper):
 
         # Validate list_1
         return (
-            list_2 is None or isinstance(list_2, (list, npt.NDArray)) if isinstance(list_1, (list, npt.NDArray)) else False
+            list_2 is None or isinstance(list_2, (list, np.ndarray)) if isinstance(list_1, (list, np.ndarray)) else False
         )
 
     def _validate_chunk(self, chunk) -> bool:

@@ -3,7 +3,7 @@ import shutil
 import threading
 from collections.abc import Callable, Iterator
 from contextlib import suppress
-from functools import cache, singledispatch, partial
+from functools import cache, singledispatch, partial, lru_cache
 from pathlib import Path
 from typing import Union, Optional
 
@@ -239,19 +239,16 @@ def load_and_prepare_image(
             None,
         )
         # Verify file content before opening
-        if category and not SignatureChecker.verify_file_type(file, category):
-            print(f"File content verification failed for: {file}")
+        if not category:
             return None
 
-        # Proceed with opening the file using the appropriate strategy
-        return next(
-            (
-                opener(file, face_detection_tools, job)
-                for category, opener in _OPENER_STRATEGIES.items()
-                if file_manager.is_valid_type(file, category)
-            ),
-            None,
-        )
+        # Use the optimized file verification
+        if not SignatureChecker.verify_file_type(file, category):
+            return None
+
+        if opener := _OPENER_STRATEGIES.get(category):
+            return opener(file, face_detection_tools, job)
+
     return None
 
 
@@ -419,6 +416,7 @@ def get_face_boxes(image: cv2.Mat,
     return zip(confidences, boxes)
 
 
+@lru_cache(maxsize=32)
 def determine_scale_factor(width: int, height: int) -> int:
     """
     Determine the scale factor for face detection based on image dimensions.
