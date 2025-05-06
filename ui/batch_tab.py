@@ -158,9 +158,13 @@ class UiBatchCropWidget(UiCropWidget):
         self.pulsing_indicator.reset()
         
         # Disable crop button and enable cancel button manually
+        self.pulsing_indicator.start_processing()
         self.cropButton.setEnabled(False)
         self.cropButton.repaint()
         self.enable_cancel_button()
+    
+        # Process UI events to ensure indicator is shown
+        QtWidgets.QApplication.processEvents()
         
         # Use Thread instead of Process to avoid pickling issues
         thread = threading.Thread(target=function, args=(job,), daemon=True)

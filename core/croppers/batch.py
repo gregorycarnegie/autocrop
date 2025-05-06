@@ -166,7 +166,6 @@ class BatchCropper(Cropper):
         # Check if we should use multithreading
         if not self._should_use_multithreading(amount):
             # Single-threaded processing
-            print(f"Processing {amount} files using single thread")
             if list_2 is None:
                 self._process_single_threaded(list_1, job)
             else:
@@ -179,7 +178,7 @@ class BatchCropper(Cropper):
                     new=list_2,
                     cancel_event=self.cancel_event
                 )
-            
+
             # Immediately signal completion
             self.emit_done()
             return
@@ -201,31 +200,41 @@ class BatchCropper(Cropper):
                                      cancel_event=self.cancel_event)
 
         self.futures = []
+
+        # Prevent submitting to a shutdown executor
+        if self.executor is None or self.executor._shutdown:
+            self.end_task = True
+            return
+
         # Create futures with additional security checks
         chunk_size = max(amount // self.THREAD_NUMBER, 1)
 
-        if list_2 is None:
-            batch = batched(list_1, chunk_size)
-            for chunk, tool_pair in zip(batch, self.face_detection_tools):
-                # Validate each chunk before submitting
-                if self._validate_chunk(chunk):
-                    self.futures.append(
-                        self.executor.submit(worker_with_params,
-                                             face_detection_tools=tool_pair,
-                                             file_list=chunk)
-                    )            
-        else:
-            old_batch, new_batch = batched(list_1, chunk_size), batched(list_2, chunk_size)
-            for old_chunk, new_chunk, tool_pair in zip(old_batch, new_batch, self.face_detection_tools):
-                # Validate each chunk before submitting
-                if self._validate_chunk(old_chunk) and self._validate_chunk(new_chunk):
-                    self.futures.append(
-                        self.executor.submit(worker_with_params,
-                                             face_detection_tools=tool_pair,
-                                             old=old_chunk,
-                                             new=new_chunk)
-                    )
-        
+        try:
+            if list_2 is None:
+                batch = batched(list_1, chunk_size)
+                for chunk, tool_pair in zip(batch, self.face_detection_tools):
+                    # Validate each chunk before submitting
+                    if self._validate_chunk(chunk):
+                        self.futures.append(
+                            self.executor.submit(worker_with_params,
+                                                face_detection_tools=tool_pair,
+                                                file_list=chunk)
+                        )            
+            else:
+                old_batch, new_batch = batched(list_1, chunk_size), batched(list_2, chunk_size)
+                for old_chunk, new_chunk, tool_pair in zip(old_batch, new_batch, self.face_detection_tools):
+                    # Validate each chunk before submitting
+                    if self._validate_chunk(old_chunk) and self._validate_chunk(new_chunk):
+                        self.futures.append(
+                            self.executor.submit(worker_with_params,
+                                                face_detection_tools=tool_pair,
+                                                old=old_chunk,
+                                                new=new_chunk)
+                        )
+        except RuntimeError as e:
+            if "cannot schedule new futures after shutdown" not in str(e):
+                raise
+            self.end_task = True
 
 
     def _secure_worker_wrapper(self, **kwargs) -> None:
