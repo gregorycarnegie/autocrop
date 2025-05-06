@@ -66,9 +66,9 @@ class BatchCropper(Cropper):
         files_per_thread = file_count / self.THREAD_NUMBER
         return files_per_thread >= self.MIN_RATIO_FOR_MULTITHREAD
     
-    def _process_single_threaded(self, 
-                               file_list: list[Path], 
-                               job: Job) -> None:
+    def _process_single_threaded(self,
+                                 file_list: list[Path],
+                                 job: Job) -> None:
         """
         Process files using a single thread.
         
@@ -217,8 +217,8 @@ class BatchCropper(Cropper):
                     if self._validate_chunk(chunk):
                         self.futures.append(
                             self.executor.submit(worker_with_params,
-                                                face_detection_tools=tool_pair,
-                                                file_list=chunk)
+                                                 face_detection_tools=tool_pair,
+                                                 file_list=chunk)
                         )            
             else:
                 old_batch, new_batch = batched(list_1, chunk_size), batched(list_2, chunk_size)
@@ -227,9 +227,9 @@ class BatchCropper(Cropper):
                     if self._validate_chunk(old_chunk) and self._validate_chunk(new_chunk):
                         self.futures.append(
                             self.executor.submit(worker_with_params,
-                                                face_detection_tools=tool_pair,
-                                                old=old_chunk,
-                                                new=new_chunk)
+                                                 face_detection_tools=tool_pair,
+                                                 old=old_chunk,
+                                                 new=new_chunk)
                         )
         except RuntimeError as e:
             if "cannot schedule new futures after shutdown" not in str(e):
