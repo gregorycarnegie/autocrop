@@ -3,8 +3,6 @@ import os
 import threading
 from concurrent.futures import Future, ThreadPoolExecutor, CancelledError
 from contextlib import suppress
-from functools import partial
-from itertools import batched
 from pathlib import Path
 from typing import Callable, Optional, Union, Any
 
@@ -158,83 +156,12 @@ class BatchCropper(Cropper):
                     amount: int,
                     job: Job,
                     list_1: Union[list[Path], npt.NDArray[np.str_]],
-                    list_2: Optional[Union[list[Path], npt.NDArray[np.str_]]] = None):
+                    list_2: Optional[npt.NDArray[np.str_]] = None):
         """
         Configure worker futures for parallel execution with enhanced security.
         """
 
-        # Check if we should use multithreading
-        if not self._should_use_multithreading(amount):
-            # Single-threaded processing
-            if list_2 is None:
-                self._process_single_threaded(list_1, job)
-            else:
-                # For mapping operations, process directly
-                self.worker(
-                    file_amount=amount,
-                    job=job,
-                    face_detection_tools=self.face_detection_tools[0],
-                    old=list_1,
-                    new=list_2,
-                    cancel_event=self.cancel_event
-                )
-
-            # Immediately signal completion
-            self.emit_done()
-            return
-
-        # Recreate executor if it was shut down
-        if self.executor is None or self.executor._shutdown:
-            self.executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)
-
-        # Validate inputs before processing
-        if not self._validate_inputs(worker, amount, job, list_1, list_2):
-            # Log error and return early if validation fails
-            return
-
-        # Use partial with validated inputs only
-        worker_with_params = partial(self._secure_worker_wrapper,
-                                     original_worker=worker,
-                                     file_amount=amount,
-                                     job=job,
-                                     cancel_event=self.cancel_event)
-
-        self.futures = []
-
-        # Prevent submitting to a shutdown executor
-        if self.executor is None or self.executor._shutdown:
-            self.end_task = True
-            return
-
-        # Create futures with additional security checks
-        chunk_size = max(amount // self.THREAD_NUMBER, 1)
-
-        try:
-            if list_2 is None:
-                batch = batched(list_1, chunk_size)
-                for chunk, tool_pair in zip(batch, self.face_detection_tools):
-                    # Validate each chunk before submitting
-                    if self._validate_chunk(chunk):
-                        self.futures.append(
-                            self.executor.submit(worker_with_params,
-                                                 face_detection_tools=tool_pair,
-                                                 file_list=chunk)
-                        )            
-            else:
-                old_batch, new_batch = batched(list_1, chunk_size), batched(list_2, chunk_size)
-                for old_chunk, new_chunk, tool_pair in zip(old_batch, new_batch, self.face_detection_tools):
-                    # Validate each chunk before submitting
-                    if self._validate_chunk(old_chunk):
-                        self.futures.append(
-                            self.executor.submit(worker_with_params,
-                                                 face_detection_tools=tool_pair,
-                                                 old=old_chunk,
-                                                 new=new_chunk)
-                        )
-        except RuntimeError as e:
-            if "cannot schedule new futures after shutdown" not in str(e):
-                raise
-            self.end_task = True
+        raise NotImplementedError("set_futures must be implemented in subclasses")
 
 
     def _secure_worker_wrapper(self, **kwargs) -> None:

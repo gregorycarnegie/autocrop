@@ -7,6 +7,8 @@ use std::convert::Into;
 use rayon::prelude::*;
 use rayon::current_num_threads;
 
+mod file_types;
+
 // For x86/x86_64 specific SIMD intrinsics
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 use std::arch::x86_64::{
@@ -858,6 +860,8 @@ fn autocrop_rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(get_rotation_matrix, m)?)?;
     m.add_function(wrap_pyfunction!(correct_exposure, m)?)?;
     m.add_function(wrap_pyfunction!(reshape_buffer_to_image, m)?)?;
+    m.add_function(wrap_pyfunction!(file_types::validate_files, m)?)?;
+    m.add_function(wrap_pyfunction!(file_types::verify_file_type, m)?)?;
     
     Ok(())
 }
