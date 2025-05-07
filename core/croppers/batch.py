@@ -224,7 +224,7 @@ class BatchCropper(Cropper):
                 old_batch, new_batch = batched(list_1, chunk_size), batched(list_2, chunk_size)
                 for old_chunk, new_chunk, tool_pair in zip(old_batch, new_batch, self.face_detection_tools):
                     # Validate each chunk before submitting
-                    if self._validate_chunk(old_chunk) and self._validate_chunk(new_chunk):
+                    if self._validate_chunk(old_chunk):
                         self.futures.append(
                             self.executor.submit(worker_with_params,
                                                  face_detection_tools=tool_pair,
