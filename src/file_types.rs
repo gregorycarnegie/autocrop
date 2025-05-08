@@ -1,13 +1,12 @@
 // File validation additions to lib.rs
 use ndarray::Array1;
 use numpy::{IntoPyArray, PyArray1};
+use phf::{phf_map, Map};
 use pyo3::prelude::*;
 use rayon::prelude::*;
 use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::io::{Read, BufRead, BufReader};
-use std::collections::HashMap;
-use std::sync::LazyLock;
 
 // File category enum matching Python's FileCategory
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -22,16 +21,6 @@ pub enum FileCategory {
 
 // Type aliases for better code readability
 type Signature = (&'static [u8], usize);
-type SignatureList = &'static [Signature];
-type ExtensionMap = HashMap<&'static str, SignatureList>;
-
-// Global registry initialized once for efficiency
-static SIGNATURE_REGISTRY: LazyLock<SignatureRegistry> = LazyLock::new(|| SignatureRegistry::new());
-
-// File signature registry
-struct SignatureRegistry {
-    signatures: HashMap<FileCategory, ExtensionMap>,
-}
 
 // Helper constants for common signature checks
 const JPEG_SIG: &[u8] = &[0xFF, 0xD8, 0xFF];
@@ -116,179 +105,94 @@ static AVI_SIGNATURES: &[Signature] = &[
 static MKV_SIGNATURE: &[Signature] = &[(&[0x1A, 0x45, 0xDF, 0xA3], 0)]; // Matroska signature
 static MP4_SIGNATURES: &[Signature] = &[(&[b'f', b't', b'y', b'p'], 4)]; // "ftyp"
 
-impl SignatureRegistry {
-    fn new() -> Self {
-        let mut registry = SignatureRegistry {
-            signatures: HashMap::with_capacity(5),
-        };
-        
-        // Initialize maps for each category
-        let mut photo_signatures = ExtensionMap::new();
-        let mut raw_signatures = ExtensionMap::new();
-        let mut tiff_signatures = ExtensionMap::new();
-        let mut video_signatures = ExtensionMap::new();
-        let mut table_signatures = ExtensionMap::new();
-        
-        // Initialize photo signatures
-        photo_signatures.insert("jpg", JPG_SIGNATURES);
-        photo_signatures.insert("jpeg", JPG_SIGNATURES);
-        photo_signatures.insert("jfif", JPG_SIGNATURES);
-        photo_signatures.insert("jpe", JPG_SIGNATURES);
-        photo_signatures.insert("png", PNG_SIGNATURES);
-        photo_signatures.insert("bmp", BMP_SIGNATURES);
-        photo_signatures.insert("dib", BMP_SIGNATURES);
-        photo_signatures.insert("webp", WEBP_SIGNATURES);
-        photo_signatures.insert("jp2", JP2_SIGNATURES);
-        
-        // Netpbm family (ASCII vs. raw variants)
-        photo_signatures.insert("pbm", PBM_SIGNATURES);
-        photo_signatures.insert("pgm", PGM_SIGNATURES);
-        photo_signatures.insert("ppm", PPM_SIGNATURES);
-        photo_signatures.insert("pnm", PNM_SIGNATURES);
-        photo_signatures.insert("pxm", PNM_SIGNATURES);
-        
-        // Portable FloatMap (32‑bit float HDR)
-        photo_signatures.insert("pfm", PFM_SIGNATURES);
-        
-        // Sun Raster / SR files
-        photo_signatures.insert("sr",  SUN_RASTER_SIGNATURE);
-        photo_signatures.insert("ras", SUN_RASTER_SIGNATURE);
+// Define a static PHF map for photo signatures
+static PHOTO_SIGNATURES_MAP: Map<&'static str, &'static [Signature]> = phf_map! {
+    "jpg" => JPG_SIGNATURES,
+    "jpeg" => JPG_SIGNATURES,
+    "jfif" => JPG_SIGNATURES,
+    "jpe" => JPG_SIGNATURES,
+    "png" => PNG_SIGNATURES,
+    "bmp" => BMP_SIGNATURES,
+    "dib" => BMP_SIGNATURES,
+    "webp" => WEBP_SIGNATURES,
+    "jp2" => JP2_SIGNATURES,
+    "pbm" => PBM_SIGNATURES,
+    "pgm" => PGM_SIGNATURES,
+    "ppm" => PPM_SIGNATURES,
+    "pnm" => PNM_SIGNATURES,
+    "pxm" => PNM_SIGNATURES,
+    "pfm" => PFM_SIGNATURES,
+    "sr" => SUN_RASTER_SIGNATURE,
+    "ras" => SUN_RASTER_SIGNATURE,
+    "hdr" => RADIANCE_SIGNATURES,
+    "pic" => RADIANCE_SIGNATURES,
+};
 
-        // Radiance HDR / PIC: ASCII "#?RADIANCE" (occasionally "#?RGBE")
-        photo_signatures.insert("hdr", RADIANCE_SIGNATURES);
-        photo_signatures.insert("pic", RADIANCE_SIGNATURES);
+// Similar maps for other categories
+static RAW_SIGNATURES_MAP: Map<&'static str, &'static [Signature]> = phf_map! {
+    "dng" => DNG_SIGNATURES,
+    "arw" => TIFF_LE_SIGNATURE,
+    "nef" => TIFF_SIGNATURES,
+    "cr2" => CR2_SIGNATURE,
+    "crw" => CRW_SIGNATURE,
+    "raf" => FUJI_RAF_SIGNATURE,
+    "x3f" => X3F_SIGNATURE,
+    "orf" => ORF_SIGNATURES,
+    "erf" => TIFF_SIGNATURES,
+    "kdc" => TIFF_SIGNATURES,
+    "nrw" => TIFF_LE_SIGNATURE,
+    "pef" => TIFF_LE_SIGNATURE,
+    "raw" => TIFF_SIGNATURES,
+    "sr2" => TIFF_LE_SIGNATURE,
+    "srw" => TIFF_LE_SIGNATURE,
+    "exr" => EXR_SIGNATURE,
+};
 
-        // Initialize raw signatures
-        raw_signatures.insert("dng", DNG_SIGNATURES);
-        raw_signatures.insert("arw", TIFF_LE_SIGNATURE);
-        raw_signatures.insert("nef", TIFF_SIGNATURES);
-        raw_signatures.insert("cr2", CR2_SIGNATURE);
-        raw_signatures.insert("crw", CRW_SIGNATURE);
-        raw_signatures.insert("raf", FUJI_RAF_SIGNATURE);
-        raw_signatures.insert("x3f", X3F_SIGNATURE);
-        raw_signatures.insert("orf", ORF_SIGNATURES);
-        raw_signatures.insert("erf", TIFF_SIGNATURES);
-        raw_signatures.insert("kdc", TIFF_SIGNATURES);
-        raw_signatures.insert("nrw", TIFF_LE_SIGNATURE);
-        raw_signatures.insert("pef", TIFF_LE_SIGNATURE);
-        raw_signatures.insert("raw", TIFF_SIGNATURES);
-        raw_signatures.insert("sr2", TIFF_LE_SIGNATURE);
-        raw_signatures.insert("srw", TIFF_LE_SIGNATURE);
-        raw_signatures.insert("exr", EXR_SIGNATURE);
-        
-        // Initialize tiff signatures
-        tiff_signatures.insert("tiff", TIFF_SIGNATURES);
-        tiff_signatures.insert("tif", TIFF_SIGNATURES);
+static TIFF_SIGNATURES_MAP: Map<&'static str, &'static [Signature]> = phf_map! {
+    "tiff" => TIFF_SIGNATURES,
+    "tif" => TIFF_SIGNATURES,
+};
 
-        // Initialize video signatures
-        video_signatures.insert("mp4", MP4_SIGNATURES);
-        video_signatures.insert("m4v", MP4_SIGNATURES);
-        video_signatures.insert("mov", MP4_SIGNATURES);
-        video_signatures.insert("avi", AVI_SIGNATURES);
-        video_signatures.insert("mkv", MKV_SIGNATURE);
-        
-        // Initialize table signatures
-        table_signatures.insert("xlsx", ZIP_SIGNATURE);
-        table_signatures.insert("xlsm", ZIP_SIGNATURE);
-        table_signatures.insert("xltx", ZIP_SIGNATURE);
-        table_signatures.insert("xltm", ZIP_SIGNATURE);
-        table_signatures.insert("parquet", PARQUET_SIGNATURES);
-        
-        // Store all signature maps in the registry
-        registry.signatures.insert(FileCategory::Photo, photo_signatures);
-        registry.signatures.insert(FileCategory::Raw, raw_signatures);
-        registry.signatures.insert(FileCategory::Tiff, tiff_signatures);
-        registry.signatures.insert(FileCategory::Video, video_signatures);
-        registry.signatures.insert(FileCategory::Table, table_signatures);
-        
-        registry
+static VIDEO_SIGNATURES_MAP: Map<&'static str, &'static [Signature]> = phf_map! {
+    "mp4" => MP4_SIGNATURES,
+    "m4v" => MP4_SIGNATURES,
+    "mov" => MP4_SIGNATURES,
+    "avi" => AVI_SIGNATURES,
+    "mkv" => MKV_SIGNATURE,
+};
+
+static TABLE_SIGNATURES_MAP: Map<&'static str, &'static [Signature]> = phf_map! {
+    "xlsx" => ZIP_SIGNATURE,
+    "xlsm" => ZIP_SIGNATURE,
+    "xltx" => ZIP_SIGNATURE,
+    "xltm" => ZIP_SIGNATURE,
+    "parquet" => PARQUET_SIGNATURES,
+};
+
+fn get_signatures(path: &Path, category: FileCategory) -> Option<&'static [Signature]> {
+    // Skip unknown category early
+    if category == FileCategory::Unknown {
+        return None;
     }
     
-    fn get_signatures(&self, path: &Path, category: FileCategory) -> Option<&SignatureList> {
-        // Skip unknown category early
-        if category == FileCategory::Unknown {
-            return None;
-        }
-        
-        // Get the extension in lowercase with a period
-        let extension = path.extension()
-            .and_then(|e| e.to_str())
-            .map(|s| s.to_ascii_lowercase())
-            .unwrap_or_default();
-            
-        // Look up signatures for this category and extension
-        self.signatures.get(&category).and_then(|map| map.get(extension.as_str()))
-    }
-
-    /// Analyze file header bytes to determine possible file categories
-    fn analyze_file_header(&self, buffer: &[u8], extension: &str) -> Option<Vec<FileCategory>> {
-        if buffer.len() < 4 {
-            return None; // Not enough data
-        }
-        
-        let mut possible_categories = Vec::with_capacity(2);
-        
-        // JPEG detection
-        if buffer.starts_with(JPEG_SIG) {
-            possible_categories.push(FileCategory::Photo);
-        }
-        // PNG detection
-        else if buffer.len() >= 8 && buffer.starts_with(PNG_SIG) {
-            possible_categories.push(FileCategory::Photo);
-        }
-        // TIFF or RAW detection
-        else if buffer.starts_with(TIFF_LE_SIG) || buffer.starts_with(TIFF_BE_SIG) {
-            // Check extension to disambiguate
-            if extension == "tif" || extension == "tiff" {
-                possible_categories.push(FileCategory::Tiff);
-            } else if extension == "dng" || extension == "arw" || extension == "nef" || extension == "cr2" {
-                possible_categories.push(FileCategory::Raw);
-            } else {
-                // Could be either
-                possible_categories.push(FileCategory::Tiff);
-                possible_categories.push(FileCategory::Raw);
-            }
-        }
-        // WEBP detection
-        else if buffer.len() >= 12 && 
-            buffer.starts_with(RIFF_SIG) && 
-            &buffer[8..12] == WEBP_SIG {
-            possible_categories.push(FileCategory::Photo);
-        }
-        // BMP detection
-        else if buffer.starts_with(BMP_SIG) {
-            possible_categories.push(FileCategory::Photo);
-        }
-        // MP4/QuickTime container detection
-        else if buffer.len() >= 8 && &buffer[4..8] == FTYP_SIG {
-            possible_categories.push(FileCategory::Video);
-        }
-        // AVI detection
-        else if buffer.len() >= 12 && 
-            buffer.starts_with(RIFF_SIG) && 
-            &buffer[8..12] == AVI_SIG {
-            possible_categories.push(FileCategory::Video);
-        }
-        // Matroska (MKV) detection
-        else if buffer.starts_with(MKV_SIG) {
-            possible_categories.push(FileCategory::Video);
-        }
-        // ZIP-based formats (could be XLSX, etc.)
-        else if buffer.starts_with(ZIP_SIG) {
-            possible_categories.push(FileCategory::Table);
-        }
-        // Parquet format detection
-        else if buffer.starts_with(PARQUET_SIG1) || 
-                buffer.starts_with(PARQUET_SIG2) {
-            possible_categories.push(FileCategory::Table);
-        }
-        
-        if possible_categories.is_empty() {
-            None
-        } else {
-            Some(possible_categories)
-        }
-    }
+    // Get the extension in lowercase without leading dot
+    let extension = path.extension()
+        .and_then(|e| e.to_str())
+        .map(|s| s.to_ascii_lowercase())
+        .unwrap_or_default();
+    
+    // Select the appropriate map based on category
+    let map = match category {
+        FileCategory::Photo => &PHOTO_SIGNATURES_MAP,
+        FileCategory::Raw => &RAW_SIGNATURES_MAP,
+        FileCategory::Tiff => &TIFF_SIGNATURES_MAP,
+        FileCategory::Video => &VIDEO_SIGNATURES_MAP,
+        FileCategory::Table => &TABLE_SIGNATURES_MAP,
+        FileCategory::Unknown => return None,
+    };
+    
+    // Look up signatures in the selected map
+    map.get(extension.as_str()).copied()
 }
 
 // Helper function to validate a CSV file
@@ -347,7 +251,7 @@ fn validate_csv(path: &Path) -> bool {
     }
 }
 
-// Validate a single file with improved memory usage and error handling
+/// Validates a single file with improved memory usage and error handling
 fn validate_file(path: &Path, category: FileCategory) -> bool {
     // Check if file exists and is readable
     if !path.exists() || !path.is_file() {
@@ -366,7 +270,7 @@ fn validate_file(path: &Path, category: FileCategory) -> bool {
         }
     }
     
-    // Get extension for prefiltering
+    // Get extension for analysis
     let extension = path.extension()
         .and_then(|e| e.to_str())
         .map(|s| s.to_ascii_lowercase())
@@ -383,8 +287,7 @@ fn validate_file(path: &Path, category: FileCategory) -> bool {
     
     if let Ok(bytes_read) = reader.read(&mut header) {
         if bytes_read >= 4 {
-            // Use the combined function
-            if let Some(possible_categories) = SIGNATURE_REGISTRY.analyze_file_header(
+            if let Some(possible_categories) = analyze_file_header(
                 &header[..bytes_read], 
                 &extension
             ) {
@@ -404,11 +307,81 @@ fn validate_file(path: &Path, category: FileCategory) -> bool {
     }
     
     // Get signatures for the file category and extension
-    if let Some(signatures) = SIGNATURE_REGISTRY.get_signatures(path, category) {
+    if let Some(signatures) = get_signatures(path, category) {
         return check_file_signatures(path, signatures);
     }
     
     false
+}
+
+/// Analyze file header bytes to determine possible file categories
+fn analyze_file_header(buffer: &[u8], extension: &str) -> Option<Vec<FileCategory>> {
+    if buffer.len() < 4 {
+        return None; // Not enough data
+    }
+    
+    let mut possible_categories = Vec::with_capacity(2);
+    
+    // JPEG detection
+    if buffer.starts_with(JPEG_SIG) {
+        possible_categories.push(FileCategory::Photo);
+    }
+    // PNG detection
+    else if buffer.len() >= 8 && buffer.starts_with(PNG_SIG) {
+        possible_categories.push(FileCategory::Photo);
+    }
+    // TIFF or RAW detection
+    else if buffer.starts_with(TIFF_LE_SIG) || buffer.starts_with(TIFF_BE_SIG) {
+        // Check extension to disambiguate
+        if extension == "tif" || extension == "tiff" {
+            possible_categories.push(FileCategory::Tiff);
+        } else if extension == "dng" || extension == "arw" || extension == "nef" || extension == "cr2" {
+            possible_categories.push(FileCategory::Raw);
+        } else {
+            // Could be either
+            possible_categories.push(FileCategory::Tiff);
+            possible_categories.push(FileCategory::Raw);
+        }
+    }
+    // WEBP detection
+    else if buffer.len() >= 12 && 
+        buffer.starts_with(RIFF_SIG) && 
+        &buffer[8..12] == WEBP_SIG {
+        possible_categories.push(FileCategory::Photo);
+    }
+    // BMP detection
+    else if buffer.starts_with(BMP_SIG) {
+        possible_categories.push(FileCategory::Photo);
+    }
+    // MP4/QuickTime container detection
+    else if buffer.len() >= 8 && &buffer[4..8] == FTYP_SIG {
+        possible_categories.push(FileCategory::Video);
+    }
+    // AVI detection
+    else if buffer.len() >= 12 && 
+        buffer.starts_with(RIFF_SIG) && 
+        &buffer[8..12] == AVI_SIG {
+        possible_categories.push(FileCategory::Video);
+    }
+    // Matroska (MKV) detection
+    else if buffer.starts_with(MKV_SIG) {
+        possible_categories.push(FileCategory::Video);
+    }
+    // ZIP-based formats (could be XLSX, etc.)
+    else if buffer.starts_with(ZIP_SIG) {
+        possible_categories.push(FileCategory::Table);
+    }
+    // Parquet format detection
+    else if buffer.starts_with(PARQUET_SIG1) || 
+            buffer.starts_with(PARQUET_SIG2) {
+        possible_categories.push(FileCategory::Table);
+    }
+    
+    if possible_categories.is_empty() {
+        None
+    } else {
+        Some(possible_categories)
+    }
 }
 
 // Optimized helper function to check file signatures with static byte arrays

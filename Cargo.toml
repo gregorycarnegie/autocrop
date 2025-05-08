@@ -13,6 +13,7 @@ pyo3 = { version = "0.24.2", features = ["extension-module"] }
 ndarray = { version = "0.16.1", features = ["rayon"] }
 numpy = "0.24.0"
 rayon = "1.10.0"
+phf = { version = "0.11.3", features = ["macros"] }
 
 [profile.release]
 lto = true
