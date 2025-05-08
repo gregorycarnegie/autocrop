@@ -8,7 +8,6 @@ use std::fs::File;
 use std::io::{Read, BufReader};
 use std::collections::HashMap;
 use std::sync::LazyLock;
-use std::borrow::Cow;
 
 // File category enum matching Python's FileCategory
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -24,7 +23,7 @@ pub enum FileCategory {
 // Type aliases for better code readability
 type Signature = (&'static [u8], usize);
 type SignatureList = Vec<Signature>;
-type ExtensionMap = HashMap<Cow<'static, str>, SignatureList>;
+type ExtensionMap = HashMap<&'static str, SignatureList>;
 
 // Global registry initialized once for efficiency
 static SIGNATURE_REGISTRY: LazyLock<SignatureRegistry> = LazyLock::new(|| SignatureRegistry::new());
@@ -108,75 +107,75 @@ impl SignatureRegistry {
         let mut table_signatures = ExtensionMap::new();
         
         // Initialize photo signatures
-        photo_signatures.insert(".jpg".into(), vec![(JPG_SIG, 0)]);
-        photo_signatures.insert(".jpeg".into(), vec![(JPG_SIG, 0)]);
-        photo_signatures.insert(".jfif".into(), vec![(JPG_SIG, 0)]);
-        photo_signatures.insert(".jpe".into(), vec![(JPG_SIG, 0)]);
-        photo_signatures.insert(".png".into(), vec![(PNG_SIG, 0)]);
-        photo_signatures.insert(".bmp".into(), vec![(BMP_SIG, 0)]);
-        photo_signatures.insert(".dib".into(), vec![(BMP_SIG, 0)]);
-        photo_signatures.insert(".webp".into(), vec![(WEBP_SIG1, 0), (WEBP_SIG2, 8)]);
-        photo_signatures.insert(".jp2".into(), vec![(JP2_SIG, 0)]);
+        photo_signatures.insert(".jpg", vec![(JPG_SIG, 0)]);
+        photo_signatures.insert(".jpeg", vec![(JPG_SIG, 0)]);
+        photo_signatures.insert(".jfif", vec![(JPG_SIG, 0)]);
+        photo_signatures.insert(".jpe", vec![(JPG_SIG, 0)]);
+        photo_signatures.insert(".png", vec![(PNG_SIG, 0)]);
+        photo_signatures.insert(".bmp", vec![(BMP_SIG, 0)]);
+        photo_signatures.insert(".dib", vec![(BMP_SIG, 0)]);
+        photo_signatures.insert(".webp", vec![(WEBP_SIG1, 0), (WEBP_SIG2, 8)]);
+        photo_signatures.insert(".jp2", vec![(JP2_SIG, 0)]);
         
         // Netpbm family (ASCII vs. raw variants)
-        photo_signatures.insert(".pbm".into(), vec![(PBM_RAW_SIG, 0), (PBM_ASCII_SIG, 0)]);
-        photo_signatures.insert(".pgm".into(), vec![(PGM_RAW_SIG, 0), (PGM_ASCII_SIG, 0)]);
-        photo_signatures.insert(".ppm".into(), vec![(PPM_RAW_SIG, 0), (PPM_ASCII_SIG, 0)]);
-        photo_signatures.insert(".pnm".into(), vec![(PNM_PXM_SIG, 0)]);
-        photo_signatures.insert(".pxm".into(), vec![(PNM_PXM_SIG, 0)]);
+        photo_signatures.insert(".pbm", vec![(PBM_RAW_SIG, 0), (PBM_ASCII_SIG, 0)]);
+        photo_signatures.insert(".pgm", vec![(PGM_RAW_SIG, 0), (PGM_ASCII_SIG, 0)]);
+        photo_signatures.insert(".ppm", vec![(PPM_RAW_SIG, 0), (PPM_ASCII_SIG, 0)]);
+        photo_signatures.insert(".pnm", vec![(PNM_PXM_SIG, 0)]);
+        photo_signatures.insert(".pxm", vec![(PNM_PXM_SIG, 0)]);
         
         // Portable FloatMap (32‑bit float HDR)
-        photo_signatures.insert(".pfm".into(), vec![(PFM_SIG1, 0), (PFM_SIG2, 0)]);   // colour / greyscale
+        photo_signatures.insert(".pfm", vec![(PFM_SIG1, 0), (PFM_SIG2, 0)]);   // colour / greyscale
         
         // Sun Raster / SR files
-        photo_signatures.insert(".sr".into(),  vec![(SUN_RASTER_SIG, 0)]);
-        photo_signatures.insert(".ras".into(), vec![(SUN_RASTER_SIG, 0)]);
+        photo_signatures.insert(".sr",  vec![(SUN_RASTER_SIG, 0)]);
+        photo_signatures.insert(".ras", vec![(SUN_RASTER_SIG, 0)]);
 
         // Radiance HDR / PIC: ASCII "#?RADIANCE" (occasionally "#?RGBE")
-        photo_signatures.insert(".hdr".into(), vec![(RADIANCE_HDR_SIG, 0), (RADIANCE_PIC_SIG, 0)]);
-        photo_signatures.insert(".pic".into(), vec![(RADIANCE_HDR_SIG, 0), (RADIANCE_PIC_SIG, 0)]);
+        photo_signatures.insert(".hdr", vec![(RADIANCE_HDR_SIG, 0), (RADIANCE_PIC_SIG, 0)]);
+        photo_signatures.insert(".pic", vec![(RADIANCE_HDR_SIG, 0), (RADIANCE_PIC_SIG, 0)]);
 
         // Initialize raw signatures
-        raw_signatures.insert(".dng".into(), vec![(TIFF_LE_SIG, 0), (DNG_SIG, 0)]);
-        raw_signatures.insert(".arw".into(), vec![(TIFF_LE_SIG, 0)]);
-        raw_signatures.insert(".nef".into(), vec![(TIFF_LE_SIG, 0), (TIFF_BE_SIG, 0)]);
-        raw_signatures.insert(".cr2".into(), vec![(CR2_SIG, 0)]);
-        raw_signatures.insert(".crw".into(), vec![(CRW_SIG, 0)]);
-        raw_signatures.insert(".raf".into(), vec![(FUJI_RAF_SIG, 0)]);
-        raw_signatures.insert(".x3f".into(), vec![(X3F_SIG, 0)]);
-        raw_signatures.insert(".orf".into(), vec![(ORF_SIG1, 0), (ORF_SIG2, 0)]);
-        raw_signatures.insert(".erf".into(), vec![(TIFF_LE_SIG, 0), (TIFF_BE_SIG, 0)]);
-        raw_signatures.insert(".kdc".into(), vec![(TIFF_LE_SIG, 0), (TIFF_BE_SIG, 0)]);
-        raw_signatures.insert(".nrw".into(), vec![(TIFF_LE_SIG, 0)]);
-        raw_signatures.insert(".pef".into(), vec![(TIFF_LE_SIG, 0)]);
-        raw_signatures.insert(".raw".into(), vec![(TIFF_LE_SIG, 0), (TIFF_BE_SIG, 0)]);
-        raw_signatures.insert(".sr2".into(), vec![(TIFF_LE_SIG, 0)]);
-        raw_signatures.insert(".srw".into(), vec![(TIFF_LE_SIG, 0)]);
-        raw_signatures.insert(".exr".into(), vec![(EXR_SIG, 0)]);
+        raw_signatures.insert(".dng", vec![(TIFF_LE_SIG, 0), (DNG_SIG, 0)]);
+        raw_signatures.insert(".arw", vec![(TIFF_LE_SIG, 0)]);
+        raw_signatures.insert(".nef", vec![(TIFF_LE_SIG, 0), (TIFF_BE_SIG, 0)]);
+        raw_signatures.insert(".cr2", vec![(CR2_SIG, 0)]);
+        raw_signatures.insert(".crw", vec![(CRW_SIG, 0)]);
+        raw_signatures.insert(".raf", vec![(FUJI_RAF_SIG, 0)]);
+        raw_signatures.insert(".x3f", vec![(X3F_SIG, 0)]);
+        raw_signatures.insert(".orf", vec![(ORF_SIG1, 0), (ORF_SIG2, 0)]);
+        raw_signatures.insert(".erf", vec![(TIFF_LE_SIG, 0), (TIFF_BE_SIG, 0)]);
+        raw_signatures.insert(".kdc", vec![(TIFF_LE_SIG, 0), (TIFF_BE_SIG, 0)]);
+        raw_signatures.insert(".nrw", vec![(TIFF_LE_SIG, 0)]);
+        raw_signatures.insert(".pef", vec![(TIFF_LE_SIG, 0)]);
+        raw_signatures.insert(".raw", vec![(TIFF_LE_SIG, 0), (TIFF_BE_SIG, 0)]);
+        raw_signatures.insert(".sr2", vec![(TIFF_LE_SIG, 0)]);
+        raw_signatures.insert(".srw", vec![(TIFF_LE_SIG, 0)]);
+        raw_signatures.insert(".exr", vec![(EXR_SIG, 0)]);
         
         // Initialize tiff signatures
-        tiff_signatures.insert(".tiff".into(), vec![
+        tiff_signatures.insert(".tiff", vec![
             (TIFF_LE_SIG, 0),  // Little-endian TIFF
             (TIFF_BE_SIG, 0),  // Big-endian TIFF
         ]);
-        tiff_signatures.insert(".tif".into(), vec![
+        tiff_signatures.insert(".tif", vec![
             (TIFF_LE_SIG, 0),  // Little-endian TIFF
             (TIFF_BE_SIG, 0),  // Big-endian TIFF
         ]);
 
         // Initialize video signatures
-        video_signatures.insert(".mp4".into(), vec![(MP4_SIG, 4)]);
-        video_signatures.insert(".m4v".into(), vec![(MP4_SIG, 4)]);
-        video_signatures.insert(".mov".into(), vec![(MP4_SIG, 4)]);
-        video_signatures.insert(".avi".into(), vec![(AVI_SIG1, 0), (AVI_SIG2, 8)]);
-        video_signatures.insert(".mkv".into(), vec![(MKV_SIG, 0)]);
+        video_signatures.insert(".mp4", vec![(MP4_SIG, 4)]);
+        video_signatures.insert(".m4v", vec![(MP4_SIG, 4)]);
+        video_signatures.insert(".mov", vec![(MP4_SIG, 4)]);
+        video_signatures.insert(".avi", vec![(AVI_SIG1, 0), (AVI_SIG2, 8)]);
+        video_signatures.insert(".mkv", vec![(MKV_SIG, 0)]);
         
         // Initialize table signatures
-        table_signatures.insert(".xlsx".into(), vec![(ZIP_SIG, 0)]);
-        table_signatures.insert(".xlsm".into(), vec![(ZIP_SIG, 0)]);
-        table_signatures.insert(".xltx".into(), vec![(ZIP_SIG, 0)]);
-        table_signatures.insert(".xltm".into(), vec![(ZIP_SIG, 0)]);
-        table_signatures.insert(".parquet".into(), vec![(PARQUET_SIG1, 0), (PARQUET_SIG2, 0)]);
+        table_signatures.insert(".xlsx", vec![(ZIP_SIG, 0)]);
+        table_signatures.insert(".xlsm", vec![(ZIP_SIG, 0)]);
+        table_signatures.insert(".xltx", vec![(ZIP_SIG, 0)]);
+        table_signatures.insert(".xltm", vec![(ZIP_SIG, 0)]);
+        table_signatures.insert(".parquet", vec![(PARQUET_SIG1, 0), (PARQUET_SIG2, 0)]);
         
         // Store all signature maps in the registry
         registry.signatures.insert(FileCategory::Photo, photo_signatures);
@@ -201,7 +200,56 @@ impl SignatureRegistry {
             .unwrap_or_default();
             
         // Look up signatures for this category and extension
-        self.signatures.get(&category).and_then(|map| map.get(&extension as &str))
+        self.signatures.get(&category).and_then(|map| map.get(extension.as_str()))
+    }
+
+    fn prefilter_file_category(&self, first_bytes: &[u8], extension: &str) -> Option<Vec<FileCategory>> {
+        if first_bytes.len() < 4 {
+            return None;
+        }
+        
+        let mut possible_categories = Vec::with_capacity(2);
+        
+        // JPEG detection
+        if first_bytes.starts_with(JPG_SIG) {
+            possible_categories.push(FileCategory::Photo);
+        }
+        // PNG detection
+        else if first_bytes.len() >= 8 && first_bytes.starts_with(PNG_SIG) {
+            possible_categories.push(FileCategory::Photo);
+        }
+        // TIFF or RAW detection
+        else if first_bytes.starts_with(TIFF_LE_SIG) || first_bytes.starts_with(TIFF_BE_SIG) {
+            // Check extension to narrow down
+            let ext = extension.to_lowercase();
+            if ext == ".tif" || ext == ".tiff" {
+                possible_categories.push(FileCategory::Tiff);
+            } else if ext == ".dng" || ext == ".arw" || ext == ".nef" || ext == ".cr2" {
+                possible_categories.push(FileCategory::Raw);
+            } else {
+                // Could be either
+                possible_categories.push(FileCategory::Tiff);
+                possible_categories.push(FileCategory::Raw);
+            }
+        }
+        // Video detection
+        else if first_bytes.starts_with(AVI_SIG1) || 
+                (first_bytes.len() >= 8 && first_bytes[4..8].eq(MP4_SIG)) ||  // Fixed comparison
+                first_bytes.starts_with(MKV_SIG) {
+            possible_categories.push(FileCategory::Video);
+        }
+        // Table detection
+        else if first_bytes.starts_with(ZIP_SIG) || 
+                first_bytes.starts_with(PARQUET_SIG1) ||
+                first_bytes.starts_with(PARQUET_SIG2) {
+            possible_categories.push(FileCategory::Table);
+        }
+        
+        if possible_categories.is_empty() {
+            None
+        } else {
+            Some(possible_categories)
+        }
     }
 }
 
@@ -209,25 +257,19 @@ impl SignatureRegistry {
 fn validate_csv(path: &Path) -> bool {
     match File::open(path) {
         Ok(file) => {
-            let mut reader = BufReader::new(file);
-            let mut buffer = [0u8; 1024]; // Reduced buffer size for efficiency
+            let mut reader = BufReader::with_capacity(512, file); // Smaller capacity
+            let mut buffer = [0u8; 256]; // Even smaller read buffer
             
             match reader.read(&mut buffer) {
                 Ok(0) => false, // Empty file
                 Ok(bytes_read) => {
-                    // Try to interpret as UTF-8 first
-                    if let Ok(text) = std::str::from_utf8(&buffer[..bytes_read]) {
-                        let first_line = text.lines().next().unwrap_or("");
-                        first_line.contains(',') || first_line.contains('\t')
-                    } else {
-                        // Fallback to Latin-1 interpretation for non-UTF8 text
-                        let first_line: String = buffer[..bytes_read.min(256)]
-                            .iter()
-                            .take_while(|&&b| b != b'\n' && b != b'\r')
-                            .map(|&b| b as char)
-                            .collect();
-                        first_line.contains(',') || first_line.contains('\t')
-                    }
+                    // Count delimiter characters directly
+                    let comma_count = buffer[..bytes_read].iter().filter(|&&b| b == b',').count();
+                    let tab_count = buffer[..bytes_read].iter().filter(|&&b| b == b'\t').count();
+                    let newline_count = buffer[..bytes_read].iter().filter(|&&b| b == b'\n' || b == b'\r').count();
+                    
+                    // More specific CSV heuristic - need delimiters and at least one newline
+                    (comma_count > 0 || tab_count > 0) && newline_count > 0
                 },
                 Err(_) => false,
             }
@@ -255,6 +297,51 @@ fn validate_file(path: &Path, category: FileCategory) -> bool {
         }
     }
     
+    // Get extension for prefiltering
+    let extension = path.extension()
+        .and_then(|e| e.to_str())
+        .map(|s| format!(".{}", s.to_lowercase()))
+        .unwrap_or_default();
+    
+    // Read first 16 bytes for detection
+    let file = match File::open(path) {
+        Ok(f) => f,
+        Err(_) => return false,
+    };
+    
+    let mut reader = BufReader::new(file);
+    let mut header = [0u8; 16];
+    
+    if let Ok(bytes_read) = reader.read(&mut header) {
+        if bytes_read >= 4 {
+            // First try direct MIME type detection
+            if let Some(detected_category) = detect_mime_type(&header[..bytes_read]) {
+                // If detected category matches requested category, we can be confident
+                if detected_category == category {
+                    return true;
+                }
+            }
+            
+            // If direct detection didn't provide a match, try prefiltering
+            if let Some(possible_categories) = SIGNATURE_REGISTRY.prefilter_file_category(
+                &header[..bytes_read], 
+                &extension
+            ) {
+                // If our category isn't in the possible list, we can return false immediately
+                if !possible_categories.contains(&category) {
+                    return false;
+                }
+                
+                // If our category is the only possibility, we can return true
+                if possible_categories.len() == 1 && possible_categories[0] == category {
+                    return true;
+                }
+                
+                // If our category is one of multiple possibilities, continue to detailed checking
+            }
+        }
+    }
+    
     // Get signatures for the file category and extension
     if let Some(signatures) = SIGNATURE_REGISTRY.get_signatures(path, category) {
         return check_file_signatures(path, signatures);
@@ -263,37 +350,118 @@ fn validate_file(path: &Path, category: FileCategory) -> bool {
     false
 }
 
+/// Detect file type based on the first few bytes (magic numbers)
+fn detect_mime_type(buffer: &[u8]) -> Option<FileCategory> {
+    if buffer.len() < 4 {
+        return None; // Not enough data
+    }
+    
+    // JPEG signature
+    if buffer.starts_with(JPG_SIG) {
+        return Some(FileCategory::Photo);
+    }
+    
+    // PNG signature 
+    if buffer.len() >= 8 && buffer.starts_with(PNG_SIG) {
+        return Some(FileCategory::Photo);
+    }
+    
+    // TIFF signatures (could be TIFF or RAW)
+    if buffer.starts_with(TIFF_LE_SIG) || buffer.starts_with(TIFF_BE_SIG) {
+        return Some(FileCategory::Tiff); // Default to TIFF, would need to check specific RAW signatures
+    }
+    
+    // WEBP detection
+    if buffer.len() >= 12 && 
+       buffer.starts_with(WEBP_SIG1) && 
+       &buffer[8..12] == WEBP_SIG2 {
+        return Some(FileCategory::Photo);
+    }
+    
+    // BMP detection
+    if buffer.starts_with(BMP_SIG) {
+        return Some(FileCategory::Photo);
+    }
+    
+    // MP4/QuickTime container detection
+    if buffer.len() >= 8 && 
+       buffer[4..8].eq(MP4_SIG) {  // Changed to use .eq() method
+        return Some(FileCategory::Video);
+    }
+    
+    // AVI detection
+    if buffer.len() >= 12 && 
+       buffer.starts_with(AVI_SIG1) && 
+       &buffer[8..12] == AVI_SIG2 {
+        return Some(FileCategory::Video);
+    }
+    
+    // Matroska (MKV) detection
+    if buffer.len() >= 4 && buffer.starts_with(MKV_SIG) {
+        return Some(FileCategory::Video);
+    }
+    
+    // ZIP-based formats (could be XLSX, etc.)
+    if buffer.starts_with(ZIP_SIG) {
+        return Some(FileCategory::Table);
+    }
+    
+    // Parquet format detection
+    if buffer.starts_with(PARQUET_SIG1) || buffer.starts_with(PARQUET_SIG2) {
+        return Some(FileCategory::Table);
+    }
+    
+    None // Unknown format
+}
+
 // Optimized helper function to check file signatures with static byte arrays
 fn check_file_signatures(path: &Path, signatures: &[Signature]) -> bool {
-    // If there are no signatures to check, return false early
+    // Early return for empty signatures
     if signatures.is_empty() {
         return false;
     }
     
-    // Find the maximum read size needed
+    // Calculate minimum read size needed
     let max_offset_plus_len = signatures.iter()
         .map(|(sig, offset)| offset + sig.len())
         .max()
         .unwrap_or(0);
     
-    // Try to open the file
-    match File::open(path) {
-        Ok(mut file) => {
-            // Read only as many bytes as we need
+    // Small buffer for stack allocation
+    const STACK_BUFFER_SIZE: usize = 64;
+    
+    // Open file with buffered IO
+    if let Ok(mut file) = File::open(path) {
+        // Use stack allocation for small reads, heap for larger
+        if max_offset_plus_len <= STACK_BUFFER_SIZE {
+            let mut buffer = [0u8; STACK_BUFFER_SIZE];
+            
+            if let Ok(bytes_read) = file.read(&mut buffer[..max_offset_plus_len]) {
+                if bytes_read >= max_offset_plus_len {
+                    // Check signatures against the buffer
+                    return signatures.iter().any(|(signature, offset)| {
+                        *offset + signature.len() <= max_offset_plus_len &&
+                        &buffer[*offset..*offset + signature.len()] == *signature
+                    });
+                }
+            }
+        } else {
+            // Use heap allocation for larger reads
             let mut buffer = vec![0u8; max_offset_plus_len];
-            match file.read(&mut buffer) {
-                Ok(bytes_read) if bytes_read >= max_offset_plus_len => {
-                    // Check each signature
-                    signatures.iter().any(|(signature, offset)| {
+            
+            if let Ok(bytes_read) = file.read(&mut buffer) {
+                if bytes_read >= max_offset_plus_len {
+                    // Check signatures against the buffer
+                    return signatures.iter().any(|(signature, offset)| {
                         *offset + signature.len() <= buffer.len() &&
                         &buffer[*offset..*offset + signature.len()] == *signature
-                    })
-                },
-                _ => false, // Not enough bytes or read error
+                    });
+                }
             }
-        },
-        Err(_) => false,
+        }
     }
+    
+    false // File couldn't be opened or read
 }
 
 /// Validates multiple files in parallel based on their categories.
@@ -317,26 +485,48 @@ pub fn validate_files<'py>(
         ));
     }
     
-    // Convert to PathBuf and FileCategory in one pass
-    let path_categories: Vec<(PathBuf, FileCategory)> = file_paths.into_iter()
-        .zip(categories.into_iter())
-        .map(|(path, category)| {
-            let file_category = match category {
-                0 => FileCategory::Photo,
-                1 => FileCategory::Raw,
-                2 => FileCategory::Tiff,
-                3 => FileCategory::Video,
-                4 => FileCategory::Table,
-                _ => FileCategory::Unknown,
-            };
-            (PathBuf::from(path), file_category)
+    let file_count = file_paths.len();
+    
+    // Create an index vector for chunking
+    let indices: Vec<usize> = (0..file_count).collect();
+    
+    // Process in chunks for better cache locality
+    const CHUNK_SIZE: usize = 64;
+    
+    // Process chunks in parallel and collect results
+    let chunk_results: Vec<Vec<(usize, bool)>> = indices.par_chunks(CHUNK_SIZE)
+        .map(|chunk| {
+            // Each thread creates its own results vector
+            let mut local_results = Vec::with_capacity(chunk.len());
+            
+            for &i in chunk {
+                let path = PathBuf::from(&file_paths[i]);
+                let file_category = match categories[i] {
+                    0 => FileCategory::Photo,
+                    1 => FileCategory::Raw,
+                    2 => FileCategory::Tiff,
+                    3 => FileCategory::Video,
+                    4 => FileCategory::Table,
+                    _ => FileCategory::Unknown,
+                };
+                
+                // Store result with index
+                local_results.push((i, validate_file(&path, file_category)));
+            }
+            
+            local_results
         })
         .collect();
     
-    // Process files in parallel
-    let results: Vec<bool> = path_categories.par_iter()
-        .map(|(path, category)| validate_file(path, *category))
-        .collect();
+    // Create the final results array
+    let mut results = vec![false; file_count];
+    
+    // Combine all thread-local results
+    for chunk in chunk_results {
+        for (index, value) in chunk {
+            results[index] = value;
+        }
+    }
     
     // Convert to numpy array
     let array = Array1::from_vec(results);
