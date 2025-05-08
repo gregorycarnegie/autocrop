@@ -22,7 +22,7 @@ pub enum FileCategory {
 }
 
 // Type aliases for better code readability
-type Signature = (Vec<u8>, usize);
+type Signature = (&'static [u8], usize);
 type SignatureList = Vec<Signature>;
 type ExtensionMap = HashMap<Cow<'static, str>, SignatureList>;
 
@@ -33,6 +33,66 @@ static SIGNATURE_REGISTRY: LazyLock<SignatureRegistry> = LazyLock::new(|| Signat
 struct SignatureRegistry {
     signatures: HashMap<FileCategory, ExtensionMap>,
 }
+
+// Common file signatures as static byte slices
+static JPG_SIG: &[u8] = &[0xFF, 0xD8, 0xFF];
+static JP2_SIG: &[u8] = &[0x00, 0x00, 0x00, 0x0C, 0x6A, 0x50, 0x20, 0x20, 0x0D, 0x0A, 0x87, 0x0A];
+static PNG_SIG: &[u8] = &[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+static BMP_SIG: &[u8] = &[0x42, 0x4D];
+static WEBP_SIG1: &[u8] = &[0x52, 0x49, 0x46, 0x46];  // "RIFF"
+static WEBP_SIG2: &[u8] = &[0x57, 0x45, 0x42, 0x50];  // "WEBP"
+
+// ASCII signatures can use byte literals
+static PBM_RAW_SIG: &[u8] = &[b'P', b'4'];
+static PBM_ASCII_SIG: &[u8] = &[b'P', b'1'];
+static PGM_RAW_SIG: &[u8] = &[b'P', b'5'];
+static PGM_ASCII_SIG: &[u8] = &[b'P', b'2'];
+static PPM_RAW_SIG: &[u8] = &[b'P', b'6'];
+static PPM_ASCII_SIG: &[u8] = &[b'P', b'3'];
+
+static PNM_PXM_SIG: &[u8] = &[b'P', b'7'];
+
+// Portable FloatMap (32‑bit float HDR)
+static PFM_SIG1: &[u8] = &[b'P', b'F'];
+static PFM_SIG2: &[u8] = &[b'P', b'f']; // Lowercase variant
+
+// Sun Raster signature
+static SUN_RASTER_SIG: &[u8] = &[0x59, 0xA6, 0x6A, 0x95]; // "Y\xA6j\x95"
+
+// RAW format signatures
+static DNG_SIG: &[u8] = &[0x49, 0x49, 0x2A, 0x00]; // "II*\0" (little endian)
+static CR2_SIG: &[u8] = &[0x49, 0x49, 0x2A, 0x00, 0x10, 0x00, 0x00, 0x00, 0x43, 0x52]; // "II*\0" (little endian)
+static CRW_SIG: &[u8] = &[0x49, 0x49, 0x1A, 0x00, 0x00, 0x00, 0x48, 0x45, 0x41, 0x50, 0x43, 0x43, 0x44, 0x52, 0x02, 0x00]; // "II*\0" (little endian)
+static EXR_SIG: &[u8] = &[0x76, 0x2F, 0x31, 0x01]; // "v/1\0"
+static X3F_SIG: &[u8] = &[b'F', b'O', b'V', b'b']; // "FOVb"
+static ORF_SIG1: &[u8] = &[b'I', b'I', b'R', b'O']; // "IIR\0"
+static ORF_SIG2: &[u8] = &[b'I', b'I'];
+static TIFF_LE_SIG: &[u8] = &[0x49, 0x49, 0x2A, 0x00];  // "II*\0" (little endian)
+static TIFF_BE_SIG: &[u8] = &[0x4D, 0x4D, 0x00, 0x2A];  // "MM\0*" (big endian)
+
+// For longer signatures
+static FUJI_RAF_SIG: &[u8] = &[
+    b'F', b'U', b'J', b'I', b'F', b'I', b'L', b'M', 
+    b'C', b'C', b'D', b'-', b'R', b'A', b'W'
+];
+
+static RADIANCE_HDR_SIG: &[u8] = &[
+    b'#', b'?', b'R', b'A', b'D', b'I', b'A', b'N', b'C', b'E'
+];
+static RADIANCE_PIC_SIG: &[u8] = &[
+    b'#', b'?', b'R', b'G', b'B', b'E'
+];
+
+// Table format signatures
+static ZIP_SIG: &[u8] = &[0x50, 0x4B, 0x03, 0x04]; // "PK\x03\x04"
+static PARQUET_SIG1: &[u8] = &[b'P', b'A', b'R', b'1']; // "PAR1"
+static PARQUET_SIG2: &[u8] = &[b'P', b'A', b'R', b'E']; // "PARE"
+
+// Video format signatures
+static AVI_SIG1: &[u8] = &[b'R', b'I', b'F', b'F']; // "RIFF"
+static AVI_SIG2: &[u8] = &[b'A', b'V', b'I', b' ']; // "AVI "
+static MKV_SIG: &[u8] = &[0x1A, 0x45, 0xDF, 0xA3]; // Matroska signature
+static MP4_SIG: &[u8] = &[b'f', b't', b'y', b'p']; // "ftyp"
 
 impl SignatureRegistry {
     fn new() -> Self {
@@ -48,114 +108,75 @@ impl SignatureRegistry {
         let mut table_signatures = ExtensionMap::new();
         
         // Initialize photo signatures
-        photo_signatures.insert(".jpg".into(), vec![(vec![0xFF, 0xD8, 0xFF], 0)]);
-        photo_signatures.insert(".jpeg".into(), vec![(vec![0xFF, 0xD8, 0xFF], 0)]);
-        photo_signatures.insert(".jfif".into(), vec![(vec![0xFF, 0xD8, 0xFF], 0)]);
-        photo_signatures.insert(".jpe".into(), vec![(vec![0xFF, 0xD8, 0xFF], 0)]);
-        photo_signatures.insert(".png".into(), vec![(vec![0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A], 0)]);
-        photo_signatures.insert(".bmp".into(), vec![(vec![0x42, 0x4D], 0)]);
-        photo_signatures.insert(".dib".into(), vec![(vec![0x42, 0x4D], 0)]);
-        photo_signatures.insert(".webp".into(), vec![
-            (vec![0x52, 0x49, 0x46, 0x46], 0), (vec![0x57, 0x45, 0x42, 0x50], 8)
-        ]);
-        photo_signatures.insert(".jp2".into(), vec![(vec![0x00, 0x00, 0x00, 0x0C, 0x6A, 0x50, 0x20, 0x20, 0x0D, 0x0A, 0x87, 0x0A], 0)]);
+        photo_signatures.insert(".jpg".into(), vec![(JPG_SIG, 0)]);
+        photo_signatures.insert(".jpeg".into(), vec![(JPG_SIG, 0)]);
+        photo_signatures.insert(".jfif".into(), vec![(JPG_SIG, 0)]);
+        photo_signatures.insert(".jpe".into(), vec![(JPG_SIG, 0)]);
+        photo_signatures.insert(".png".into(), vec![(PNG_SIG, 0)]);
+        photo_signatures.insert(".bmp".into(), vec![(BMP_SIG, 0)]);
+        photo_signatures.insert(".dib".into(), vec![(BMP_SIG, 0)]);
+        photo_signatures.insert(".webp".into(), vec![(WEBP_SIG1, 0), (WEBP_SIG2, 8)]);
+        photo_signatures.insert(".jp2".into(), vec![(JP2_SIG, 0)]);
         
         // Netpbm family (ASCII vs. raw variants)
-        photo_signatures.insert(".pbm".into(), vec![
-            (vec![b'P', b'4'], 0),
-            (vec![b'P', b'1'], 0)
-        ]);
-        photo_signatures.insert(".pgm".into(), vec![
-            (vec![b'P', b'5'], 0),
-            (vec![b'P', b'2'], 0)
-        ]);
-        photo_signatures.insert(".ppm".into(), vec![
-            (vec![b'P', b'6'], 0),
-            (vec![b'P', b'3'], 0)
-        ]);
-        photo_signatures.insert(".pnm".into(), vec![(vec![b'P', b'7'], 0)]);
-        photo_signatures.insert(".pxm".into(), vec![(vec![b'P', b'7'], 0)]);
+        photo_signatures.insert(".pbm".into(), vec![(PBM_RAW_SIG, 0), (PBM_ASCII_SIG, 0)]);
+        photo_signatures.insert(".pgm".into(), vec![(PGM_RAW_SIG, 0), (PGM_ASCII_SIG, 0)]);
+        photo_signatures.insert(".ppm".into(), vec![(PPM_RAW_SIG, 0), (PPM_ASCII_SIG, 0)]);
+        photo_signatures.insert(".pnm".into(), vec![(PNM_PXM_SIG, 0)]);
+        photo_signatures.insert(".pxm".into(), vec![(PNM_PXM_SIG, 0)]);
         
         // Portable FloatMap (32‑bit float HDR)
-        photo_signatures.insert(".pfm".into(), vec![(vec![b'P', b'F'], 0), (vec![b'P', b'f'], 0)]);   // colour / greyscale
+        photo_signatures.insert(".pfm".into(), vec![(PFM_SIG1, 0), (PFM_SIG2, 0)]);   // colour / greyscale
         
         // Sun Raster / SR files
-        photo_signatures.insert(".sr".into(),  vec![(vec![0x59, 0xA6, 0x6A, 0x95], 0)]);
-        photo_signatures.insert(".ras".into(), vec![(vec![0x59, 0xA6, 0x6A, 0x95], 0)]);
+        photo_signatures.insert(".sr".into(),  vec![(SUN_RASTER_SIG, 0)]);
+        photo_signatures.insert(".ras".into(), vec![(SUN_RASTER_SIG, 0)]);
 
         // Radiance HDR / PIC: ASCII "#?RADIANCE" (occasionally "#?RGBE")
-        photo_signatures.insert(".hdr".into(), vec![
-            (vec![b'#', b'?', b'R', b'A', b'D', b'I', b'A', b'N', b'C', b'E'], 0),
-            (vec![b'#', b'?', b'R', b'G', b'B', b'E'], 0)
-        ]);
-        photo_signatures.insert(".pic".into(), vec![
-            (vec![b'#', b'?', b'R', b'A', b'D', b'I', b'A', b'N', b'C', b'E'], 0),
-            (vec![b'#', b'?', b'R', b'G', b'B', b'E'], 0)
-        ]);
+        photo_signatures.insert(".hdr".into(), vec![(RADIANCE_HDR_SIG, 0), (RADIANCE_PIC_SIG, 0)]);
+        photo_signatures.insert(".pic".into(), vec![(RADIANCE_HDR_SIG, 0), (RADIANCE_PIC_SIG, 0)]);
 
         // Initialize raw signatures
-        raw_signatures.insert(".dng".into(), vec![
-            (vec![0x49, 0x49, 0x2A, 0x00], 0), (vec![0x49, 0x49, 0x00, 0x2A], 0)
-        ]);
-        raw_signatures.insert(".arw".into(), vec![(vec![0x49, 0x49, 0x2A, 0x00], 0)]);
-        raw_signatures.insert(".nef".into(), vec![
-            (vec![0x49, 0x49, 0x2A, 0x00], 0), (vec![0x4D, 0x4D, 0x00, 0x2A], 0)
-        ]);
-        raw_signatures.insert(".cr2".into(), vec![(vec![0x49, 0x49, 0x2A, 0x00, 0x10, 0x00, 0x00, 0x00, 0x43, 0x52], 0)]);
-        raw_signatures.insert(".crw".into(), vec![(vec![0x49, 0x49, 0x1A, 0x00, 0x00, 0x00, 0x48, 0x45, 0x41, 0x50, 0x43, 0x43, 0x44, 0x52, 0x02, 0x00], 0)]);
-        raw_signatures.insert(".raf".into(), vec![(vec![b'F', b'U', b'J', b'I', b'F', b'I', b'L', b'M', b'C', b'C', b'D', b'-', b'R', b'A', b'W'], 0)]);
-        raw_signatures.insert(".x3f".into(), vec![(vec![b'F', b'O', b'V', b'b'], 0)]);
-        raw_signatures.insert(".orf".into(), vec![
-            (vec![b'I', b'I', b'R', b'O'], 0),
-            (vec![b'I', b'I'], 0)
-        ]);
-        raw_signatures.insert(".erf".into(), vec![
-            (vec![0x49, 0x49, 0x2A, 0x00], 0),
-            (vec![0x4D, 0x4D, 0x00, 0x2A], 0)
-        ]);
-        raw_signatures.insert(".kdc".into(), vec![
-            (vec![0x49, 0x49, 0x2A, 0x00], 0),
-            (vec![0x4D, 0x4D, 0x00, 0x2A], 0)
-        ]);
-        raw_signatures.insert(".nrw".into(), vec![(vec![0x49, 0x49, 0x2A, 0x00], 0)]);
-        raw_signatures.insert(".pef".into(), vec![(vec![0x49, 0x49, 0x2A, 0x00], 0)]);
-        raw_signatures.insert(".raw".into(), vec![
-            (vec![0x49, 0x49, 0x2A, 0x00], 0),
-            (vec![0x4D, 0x4D, 0x00, 0x2A], 0)
-        ]);
-        raw_signatures.insert(".sr2".into(), vec![(vec![0x49, 0x49, 0x2A, 0x00], 0)]);
-        raw_signatures.insert(".srw".into(), vec![(vec![0x49, 0x49, 0x2A, 0x00], 0)]);
-        raw_signatures.insert(".exr".into(), vec![(vec![0x76, 0x2F, 0x31, 0x01], 0)]);
+        raw_signatures.insert(".dng".into(), vec![(TIFF_LE_SIG, 0), (DNG_SIG, 0)]);
+        raw_signatures.insert(".arw".into(), vec![(TIFF_LE_SIG, 0)]);
+        raw_signatures.insert(".nef".into(), vec![(TIFF_LE_SIG, 0), (TIFF_BE_SIG, 0)]);
+        raw_signatures.insert(".cr2".into(), vec![(CR2_SIG, 0)]);
+        raw_signatures.insert(".crw".into(), vec![(CRW_SIG, 0)]);
+        raw_signatures.insert(".raf".into(), vec![(FUJI_RAF_SIG, 0)]);
+        raw_signatures.insert(".x3f".into(), vec![(X3F_SIG, 0)]);
+        raw_signatures.insert(".orf".into(), vec![(ORF_SIG1, 0), (ORF_SIG2, 0)]);
+        raw_signatures.insert(".erf".into(), vec![(TIFF_LE_SIG, 0), (TIFF_BE_SIG, 0)]);
+        raw_signatures.insert(".kdc".into(), vec![(TIFF_LE_SIG, 0), (TIFF_BE_SIG, 0)]);
+        raw_signatures.insert(".nrw".into(), vec![(TIFF_LE_SIG, 0)]);
+        raw_signatures.insert(".pef".into(), vec![(TIFF_LE_SIG, 0)]);
+        raw_signatures.insert(".raw".into(), vec![(TIFF_LE_SIG, 0), (TIFF_BE_SIG, 0)]);
+        raw_signatures.insert(".sr2".into(), vec![(TIFF_LE_SIG, 0)]);
+        raw_signatures.insert(".srw".into(), vec![(TIFF_LE_SIG, 0)]);
+        raw_signatures.insert(".exr".into(), vec![(EXR_SIG, 0)]);
         
         // Initialize tiff signatures
         tiff_signatures.insert(".tiff".into(), vec![
-            (vec![0x49, 0x49, 0x2A, 0x00], 0),  // Little-endian TIFF
-            (vec![0x4D, 0x4D, 0x00, 0x2A], 0),  // Big-endian TIFF
+            (TIFF_LE_SIG, 0),  // Little-endian TIFF
+            (TIFF_BE_SIG, 0),  // Big-endian TIFF
         ]);
         tiff_signatures.insert(".tif".into(), vec![
-            (vec![0x49, 0x49, 0x2A, 0x00], 0),  // Little-endian TIFF
-            (vec![0x4D, 0x4D, 0x00, 0x2A], 0),  // Big-endian TIFF
+            (TIFF_LE_SIG, 0),  // Little-endian TIFF
+            (TIFF_BE_SIG, 0),  // Big-endian TIFF
         ]);
 
         // Initialize video signatures
-        video_signatures.insert(".mp4".into(), vec![(vec![b'f', b't', b'y', b'p'], 4)]);
-        video_signatures.insert(".m4v".into(), vec![(vec![b'f', b't', b'y', b'p'], 4)]);
-        video_signatures.insert(".mov".into(), vec![(vec![b'f', b't', b'y', b'p'], 4)]);
-        video_signatures.insert(".avi".into(), vec![
-            (vec![b'R', b'I', b'F', b'F'], 0),
-            (vec![b'A', b'V', b'I', b' '], 8),
-        ]);
-        video_signatures.insert(".mkv".into(), vec![(vec![0x1A, 0x45, 0xDF, 0xA3], 0)]);
+        video_signatures.insert(".mp4".into(), vec![(MP4_SIG, 4)]);
+        video_signatures.insert(".m4v".into(), vec![(MP4_SIG, 4)]);
+        video_signatures.insert(".mov".into(), vec![(MP4_SIG, 4)]);
+        video_signatures.insert(".avi".into(), vec![(AVI_SIG1, 0), (AVI_SIG2, 8)]);
+        video_signatures.insert(".mkv".into(), vec![(MKV_SIG, 0)]);
         
         // Initialize table signatures
-        table_signatures.insert(".xlsx".into(), vec![(vec![0x50, 0x4B, 0x03, 0x04], 0)]);
-        table_signatures.insert(".xlsm".into(), vec![(vec![0x50, 0x4B, 0x03, 0x04], 0)]);
-        table_signatures.insert(".xltx".into(), vec![(vec![0x50, 0x4B, 0x03, 0x04], 0)]);
-        table_signatures.insert(".xltm".into(), vec![(vec![0x50, 0x4B, 0x03, 0x04], 0)]);
-        table_signatures.insert(".parquet".into(), vec![
-            (vec![b'P', b'A', b'R', b'1'], 0),
-            (vec![b'P', b'A', b'R', b'E'], 0),
-        ]);
+        table_signatures.insert(".xlsx".into(), vec![(ZIP_SIG, 0)]);
+        table_signatures.insert(".xlsm".into(), vec![(ZIP_SIG, 0)]);
+        table_signatures.insert(".xltx".into(), vec![(ZIP_SIG, 0)]);
+        table_signatures.insert(".xltm".into(), vec![(ZIP_SIG, 0)]);
+        table_signatures.insert(".parquet".into(), vec![(PARQUET_SIG1, 0), (PARQUET_SIG2, 0)]);
         
         // Store all signature maps in the registry
         registry.signatures.insert(FileCategory::Photo, photo_signatures);
@@ -242,7 +263,7 @@ fn validate_file(path: &Path, category: FileCategory) -> bool {
     false
 }
 
-// Optimized helper function to check file signatures with smarter buffer management
+// Optimized helper function to check file signatures with static byte arrays
 fn check_file_signatures(path: &Path, signatures: &[Signature]) -> bool {
     // If there are no signatures to check, return false early
     if signatures.is_empty() {
@@ -265,7 +286,7 @@ fn check_file_signatures(path: &Path, signatures: &[Signature]) -> bool {
                     // Check each signature
                     signatures.iter().any(|(signature, offset)| {
                         *offset + signature.len() <= buffer.len() &&
-                        &buffer[*offset..*offset + signature.len()] == signature
+                        &buffer[*offset..*offset + signature.len()] == *signature
                     })
                 },
                 _ => false, // Not enough bytes or read error
