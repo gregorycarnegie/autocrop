@@ -603,15 +603,18 @@ def make_frame_filepath(destination: Path,
 def _save_standard(image: Union[cv2.Mat, np.ndarray],
       file_path: Path,
       user_gam: float,
-      is_tiff: bool = False) -> None:
+      _is_tiff: bool = False) -> None:
         lut = cv2.LUT(image, rs.gamma(user_gam * Config.gamma_threshold))
+        if file_path.suffix.lower() not in file_manager.get_save_formats(FileCategory.PHOTO):
+            file_path = file_path.with_suffix('.jpg')
         cv2.imwrite(file_path.as_posix(), lut)
 
 
 def _save_tiff(image: Union[cv2.Mat, np.ndarray],
       file_path: Path,
-      user_gam: float,
-      is_tiff: bool = False) -> None:
+      _user_gam: float,
+      _is_tiff: bool = False) -> None:
+        
         if image.dtype != np.uint8:
             image  = normalize_image(image)
         tiff.imwrite(file_path, image)
