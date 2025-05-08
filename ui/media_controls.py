@@ -146,7 +146,7 @@ class UiMediaControlWidget(QtWidgets.QWidget):
         self.selectEndMarkerButton.setText(QtCore.QCoreApplication.translate("self", u"00:00:00", None))
 
     def playing_case(self):
-        self.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PAUSE.value))
+        self.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PAUSE))
         self.stopButton.setEnabled(True)
         self.stepbackButton.setEnabled(True)
         self.stepfwdButton.setEnabled(True)
@@ -160,7 +160,7 @@ class UiMediaControlWidget(QtWidgets.QWidget):
         self.selectStartMarkerButton.setEnabled(True)
 
     def paused_case(self):
-        self.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PLAY.value))
+        self.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PLAY))
         self.stopButton.setEnabled(True)
         self.stepbackButton.setEnabled(True)
         self.stepfwdButton.setEnabled(True)
@@ -174,7 +174,7 @@ class UiMediaControlWidget(QtWidgets.QWidget):
         self.selectStartMarkerButton.setEnabled(True)
 
     def stopped_case(self):
-        self.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PLAY.value))
+        self.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PLAY))
         self.stopButton.setDisabled(True)
         self.stepbackButton.setDisabled(True)
         self.stepfwdButton.setDisabled(True)

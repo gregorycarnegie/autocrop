@@ -271,9 +271,8 @@ def initialise_message_box(window_title: str) -> QtWidgets.QMessageBox:
         message_box = initialise_message_box(title)
         ```
     """
-    path = GuiIcon.ICON
     msg_box = QtWidgets.QMessageBox()
-    msg_box.setWindowIcon(QtGui.QIcon(path))
+    msg_box.setWindowIcon(QtGui.QIcon(GuiIcon.ICON))
     msg_box.setWindowTitle(window_title)
     return msg_box
 

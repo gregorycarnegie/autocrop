@@ -23,7 +23,7 @@ class UiDialog(QDialog):
         self.widget = ImageWidget(parent=self)
         self.widget.setObjectName('widget')
         self.widget.setImage(QImage(GuiIcon.LOGO))
-        self.setWindowIcon(QIcon(GuiIcon.ICON.value))
+        self.setWindowIcon(QIcon(GuiIcon.ICON))
         self.verticalLayout.addWidget(self.widget)
         self.frame = ut.setup_frame('frame', parent=self)
         self.horizontalLayout_2 = ut.setup_hbox(u'horizontalLayout_2', self.frame)
