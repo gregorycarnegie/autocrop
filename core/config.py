@@ -28,3 +28,5 @@ class Config:
     bbox_font_scale: float = 0.45
     bbox_line_width: int = 2
     bbox_text_offset: int = 10
+
+    infer_schema_length=1_000

@@ -258,17 +258,17 @@ def _load_csv(file: Path) -> Optional[pl.DataFrame]:
     """
     try:
         # First peek at the file to validate headers
-        with open(file, 'r', encoding='utf-8') as f:
+        with file.open(mode='r', encoding='utf-8') as f:
             header_line = f.readline().strip()
             if not header_line:
                 return None
         
         # If headers look valid, load the full file
-        return pl.read_csv(file, infer_schema_length=1000)
+        return pl.read_csv(file, infer_schema_length=Config.infer_schema_length)
     except (pl.exceptions.PolarsError, UnicodeDecodeError, OSError):
         # Try with different encoding if the initial attempt fails
         try:
-            return pl.read_csv(file, encoding='latin-1', infer_schema_length=1000)
+            return pl.read_csv(file, encoding='latin-1', infer_schema_length=Config.infer_schema_length)
         except pl.exceptions.PolarsError:
             return None
 
@@ -898,7 +898,7 @@ def batch_process_with_mapping(images: list[Path],
             image_array = load_and_prepare_image(img_path, face_detection_tools, job)
 
             # Create a function to get output paths for mapping
-            def get_output_path_fn(image_path: Path, face_index: Optional[int]) -> Path:
+            def get_output_path_fn(_image_path: Path, face_index: Optional[int]) -> Path:
                 if face_index is not None:
                     # Multi-face output path
                     return out_path.with_stem(f"{out_path.stem}_{face_index}")
