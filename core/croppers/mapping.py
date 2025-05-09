@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from itertools import batched
 from pathlib import Path
-from typing import Callable, Optional, Union, Any
+from typing import Callable, Optional, Any
 
 import numpy as np
 import numpy.typing as npt
