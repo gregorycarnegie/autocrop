@@ -8,6 +8,15 @@ use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::io::{Read, BufRead, BufReader};
 
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+use std::arch::x86_64::{
+    __m128i, __m256i,
+    _mm_cmpeq_epi8, _mm_loadu_si128, _mm_movemask_epi8,
+    _mm256_cmpeq_epi8, _mm256_loadu_si256, _mm256_movemask_epi8
+};
+
+use crate::dispatch_simd::dispatch_simd;
+
 // File category enum matching Python's FileCategory
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FileCategory {
@@ -24,19 +33,7 @@ type Signature = (&'static [u8], usize);
 type FileSignatureMap = Map<&'static str, &'static [Signature]>;
 
 // Helper constants for common signature checks
-const JPEG_SIG: &[u8] = &[0xFF, 0xD8, 0xFF];
 const PNG_SIG: &[u8] = &[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
-const TIFF_LE_SIG: &[u8] = &[0x49, 0x49, 0x2A, 0x00];
-const TIFF_BE_SIG: &[u8] = &[0x4D, 0x4D, 0x00, 0x2A];
-const RIFF_SIG: &[u8] = &[0x52, 0x49, 0x46, 0x46]; // "RIFF"
-const WEBP_SIG: &[u8] = &[0x57, 0x45, 0x42, 0x50]; // "WEBP"
-const BMP_SIG: &[u8] = &[0x42, 0x4D];
-const FTYP_SIG: &[u8] = &[b'f', b't', b'y', b'p']; // "ftyp"
-const AVI_SIG: &[u8] = &[b'A', b'V', b'I', b' ']; // "AVI "
-const MKV_SIG: &[u8] = &[0x1A, 0x45, 0xDF, 0xA3];
-const ZIP_SIG: &[u8] = &[0x50, 0x4B, 0x03, 0x04]; // "PK\x03\x04"
-const PARQUET_SIG1: &[u8] = &[b'P', b'A', b'R', b'1']; // "PAR1"
-const PARQUET_SIG2: &[u8] = &[b'P', b'A', b'R', b'E']; // "PARE"
 
 // Common file signatures as static byte slices
 static JPG_SIGNATURES: &[Signature] = &[(&[0xFF, 0xD8, 0xFF], 0)];
@@ -252,140 +249,9 @@ fn validate_csv(path: &Path) -> bool {
     }
 }
 
-/// Validates a single file with improved memory usage and error handling
-fn validate_file(path: &Path, category: FileCategory) -> bool {
-    // Check if file exists and is readable
-    if !path.exists() || !path.is_file() {
-        return false;
-    }
-    
-    // Special case for CSV files (Table category)
-    if category == FileCategory::Table {
-        let extension = path.extension()
-            .and_then(|e| e.to_str())
-            .unwrap_or("")
-            .to_lowercase();
-            
-        if extension == "csv" {
-            return validate_csv(path);
-        }
-    }
-    
-    // Get extension for analysis
-    let extension = path.extension()
-        .and_then(|e| e.to_str())
-        .map(|s| s.to_ascii_lowercase())
-        .unwrap_or_default();
-    
-    // Read first 16 bytes for detection
-    let file = match File::open(path) {
-        Ok(f) => f,
-        Err(_) => return false,
-    };
-    
-    let mut reader = BufReader::new(file);
-    let mut header = [0u8; 16];
-    
-    if let Ok(bytes_read) = reader.read(&mut header) {
-        if bytes_read >= 4 {
-            if let Some(possible_categories) = analyze_file_header(
-                &header[..bytes_read], 
-                &extension
-            ) {
-                // If our category is the only possibility, we can return true
-                if possible_categories.len() == 1 && possible_categories[0] == category {
-                    return true;
-                }
-                
-                // If our category isn't in the possible list, we can return false immediately
-                if !possible_categories.contains(&category) {
-                    return false;
-                }
-                
-                // If our category is one of multiple possibilities, continue to detailed checking
-            }
-        }
-    }
-    
-    // Get signatures for the file category and extension
-    if let Some(signatures) = get_signatures(path, category) {
-        return check_file_signatures(path, signatures);
-    }
-    
-    false
-}
-
-/// Analyze file header bytes to determine possible file categories
-fn analyze_file_header(buffer: &[u8], extension: &str) -> Option<Vec<FileCategory>> {
-    if buffer.len() < 4 {
-        return None; // Not enough data
-    }
-    
-    let mut possible_categories = Vec::with_capacity(2);
-    
-    // JPEG detection
-    if buffer.starts_with(JPEG_SIG) {
-        possible_categories.push(FileCategory::Photo);
-    }
-    // PNG detection
-    else if buffer.len() >= 8 && buffer.starts_with(PNG_SIG) {
-        possible_categories.push(FileCategory::Photo);
-    }
-    // TIFF or RAW detection
-    else if buffer.starts_with(TIFF_LE_SIG) || buffer.starts_with(TIFF_BE_SIG) {
-        // Check extension to disambiguate
-        if extension == "tif" || extension == "tiff" {
-            possible_categories.push(FileCategory::Tiff);
-        } else if extension == "dng" || extension == "arw" || extension == "nef" || extension == "cr2" {
-            possible_categories.push(FileCategory::Raw);
-        } else {
-            // Could be either
-            possible_categories.push(FileCategory::Tiff);
-            possible_categories.push(FileCategory::Raw);
-        }
-    }
-    // WEBP detection
-    else if buffer.len() >= 12 && 
-        buffer.starts_with(RIFF_SIG) && 
-        &buffer[8..12] == WEBP_SIG {
-        possible_categories.push(FileCategory::Photo);
-    }
-    // BMP detection
-    else if buffer.starts_with(BMP_SIG) {
-        possible_categories.push(FileCategory::Photo);
-    }
-    // MP4/QuickTime container detection
-    else if buffer.len() >= 8 && &buffer[4..8] == FTYP_SIG {
-        possible_categories.push(FileCategory::Video);
-    }
-    // AVI detection
-    else if buffer.len() >= 12 && 
-        buffer.starts_with(RIFF_SIG) && 
-        &buffer[8..12] == AVI_SIG {
-        possible_categories.push(FileCategory::Video);
-    }
-    // Matroska (MKV) detection
-    else if buffer.starts_with(MKV_SIG) {
-        possible_categories.push(FileCategory::Video);
-    }
-    // ZIP-based formats (could be XLSX, etc.)
-    else if buffer.starts_with(ZIP_SIG) {
-        possible_categories.push(FileCategory::Table);
-    }
-    // Parquet format detection
-    else if buffer.starts_with(PARQUET_SIG1) || 
-            buffer.starts_with(PARQUET_SIG2) {
-        possible_categories.push(FileCategory::Table);
-    }
-    
-    if possible_categories.is_empty() {
-        None
-    } else {
-        Some(possible_categories)
-    }
-}
-
-// Optimized helper function to check file signatures with static byte arrays
+/// SIMD accelerated signature checking using AVX2 or SSE2 instructions
+/// Returns true if any signature matches
+#[inline]
 fn check_file_signatures(path: &Path, signatures: &[Signature]) -> bool {
     // Early return for empty signatures
     if signatures.is_empty() {
@@ -409,11 +275,12 @@ fn check_file_signatures(path: &Path, signatures: &[Signature]) -> bool {
             
             if let Ok(bytes_read) = file.read(&mut buffer[..max_offset_plus_len]) {
                 if bytes_read >= max_offset_plus_len {
-                    // Check signatures against the buffer
-                    return signatures.iter().any(|(signature, offset)| {
-                        *offset + signature.len() <= max_offset_plus_len &&
-                        &buffer[*offset..*offset + signature.len()] == *signature
-                    });
+                    // Use SIMD or scalar implementation based on architecture
+                    return dispatch_simd(
+                        (&buffer[..max_offset_plus_len], signatures),
+                        |(buf, sigs)| unsafe { check_signatures_simd(buf, sigs) },
+                        |(buf, sigs)| check_signatures_scalar(buf, sigs)
+                    );
                 }
             }
         } else {
@@ -422,11 +289,12 @@ fn check_file_signatures(path: &Path, signatures: &[Signature]) -> bool {
             
             if let Ok(bytes_read) = file.read(&mut buffer) {
                 if bytes_read >= max_offset_plus_len {
-                    // Check signatures against the buffer
-                    return signatures.iter().any(|(signature, offset)| {
-                        *offset + signature.len() <= buffer.len() &&
-                        &buffer[*offset..*offset + signature.len()] == *signature
-                    });
+                    // Use SIMD or scalar implementation based on architecture
+                    return dispatch_simd(
+                        (&buffer[..], signatures),
+                        |(buf, sigs)| unsafe { check_signatures_simd(buf, sigs) },
+                        |(buf, sigs)| check_signatures_scalar(buf, sigs)
+                    );
                 }
             }
         }
@@ -435,14 +303,205 @@ fn check_file_signatures(path: &Path, signatures: &[Signature]) -> bool {
     false // File couldn't be opened or read
 }
 
-/// Validates multiple files in parallel based on their categories.
-///
-/// Args:
-///     file_paths: List of string paths to files to validate
-///     categories: List of category codes (0=Photo, 1=Raw, 2=Tiff, 3=Video, 4=Table, 5=Unknown)
-///
-/// Returns:
-///     A boolean NumPy array with validation results (True = valid, False = invalid)
+/// Scalar implementation of signature checking
+#[inline]
+fn check_signatures_scalar(buffer: &[u8], signatures: &[Signature]) -> bool {
+    signatures.iter().any(|(signature, offset)| {
+        *offset + signature.len() <= buffer.len() &&
+        &buffer[*offset..*offset + signature.len()] == *signature
+    })
+}
+
+/// SIMD-accelerated signature checking using AVX2 when available
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[inline]
+unsafe fn check_signatures_simd(buffer: &[u8], signatures: &[Signature]) -> bool {
+    // For very short signatures (1-2 bytes), scalar code is faster
+    if signatures.iter().all(|(sig, _)| sig.len() <= 2) {
+        return check_signatures_scalar(buffer, signatures);
+    }
+    
+    // Try each signature
+    for (signature, offset) in signatures {
+        let sig_len = signature.len();
+        let buf_offset = *offset;
+        
+        // Ensure we have enough bytes
+        if buf_offset + sig_len > buffer.len() {
+            continue;
+        }
+        
+        // Choose SIMD strategy based on signature length
+        let matched = if sig_len >= 32 {
+            // Use AVX2 for long signatures
+            check_long_signature_avx2(buffer, buf_offset, signature)
+        } else if sig_len >= 16 {
+            // Use SSE2 for medium signatures
+            check_medium_signature_sse2(buffer, buf_offset, signature)
+        } else {
+            // Use scalar comparison for short signatures
+            &buffer[buf_offset..buf_offset + sig_len] == *signature
+        };
+        
+        if matched {
+            return true;
+        }
+    }
+    
+    false
+}
+
+/// Check a signature that's 32 bytes or longer using AVX2
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[inline]
+unsafe fn check_long_signature_avx2(buffer: &[u8], offset: usize, signature: &[u8]) -> bool {
+    let sig_len = signature.len();
+    let chunks = sig_len / 32;
+    let remainder = sig_len % 32;
+    
+    // Compare 32 bytes at a time
+    for i in 0..chunks {
+        let buf_ptr = buffer.as_ptr().add(offset + i * 32) as *const __m256i;
+        let sig_ptr = signature.as_ptr().add(i * 32) as *const __m256i;
+        
+        let buf_chunk = _mm256_loadu_si256(buf_ptr);
+        let sig_chunk = _mm256_loadu_si256(sig_ptr);
+        
+        // Compare equality (0xFF where equal, 0x00 where different)
+        let comparison = _mm256_cmpeq_epi8(buf_chunk, sig_chunk);
+        
+        // Convert to bitmask (1 bit per byte)
+        let mask = _mm256_movemask_epi8(comparison);
+        
+        // If all 32 bytes match, mask will be 0xFFFFFFFF
+        // Fix: Use u32 explicitly
+        if mask as u32 != 0xFFFF_FFFFu32 {
+            return false;
+        }
+    }
+    
+    // Check remaining bytes if any
+    if remainder > 0 {
+        let start = chunks * 32;
+        return &buffer[offset + start..offset + sig_len] == &signature[start..sig_len];
+    }
+    
+    true
+}
+
+/// Check a signature that's 16-31 bytes long using SSE2
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[inline]
+unsafe fn check_medium_signature_sse2(buffer: &[u8], offset: usize, signature: &[u8]) -> bool {
+    let sig_len = signature.len();
+    let chunks = sig_len / 16;
+    let remainder = sig_len % 16;
+    
+    // Compare 16 bytes at a time
+    for i in 0..chunks {
+        let buf_ptr = buffer.as_ptr().add(offset + i * 16) as *const __m128i;
+        let sig_ptr = signature.as_ptr().add(i * 16) as *const __m128i;
+        
+        let buf_chunk = _mm_loadu_si128(buf_ptr);
+        let sig_chunk = _mm_loadu_si128(sig_ptr);
+        
+        // Compare equality (0xFF where equal, 0x00 where different)
+        let comparison = _mm_cmpeq_epi8(buf_chunk, sig_chunk);
+        
+        // Convert to bitmask (1 bit per byte)
+        let mask = _mm_movemask_epi8(comparison);
+        
+        // If all 16 bytes match, mask will be 0xFFFF
+        // Fix: Use appropriate size and type
+        if mask as u16 != 0xFFFFu16 {
+            return false;
+        }
+    }
+    
+    // Check remaining bytes if any
+    if remainder > 0 {
+        let start = chunks * 16;
+        return &buffer[offset + start..offset + sig_len] == &signature[start..sig_len];
+    }
+    
+    true
+}
+
+/// Fast check for PNG file signature (8 bytes)
+#[inline]
+fn is_png_file(path: &Path) -> bool {
+    if let Ok(mut file) = File::open(path) {
+        let mut signature = [0u8; 8];
+        if let Ok(bytes_read) = file.read(&mut signature) {
+            if bytes_read == 8 {
+                return dispatch_simd(
+                    (&signature, PNG_SIG),
+                    |(sig, png_sig)| unsafe { is_png_signature_simd(sig, png_sig) },
+                    |(sig, png_sig)| sig == png_sig
+                );
+            }
+        }
+    }
+    false
+}
+
+/// SIMD-optimized PNG signature check using 64-bit comparison
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[inline]
+unsafe fn is_png_signature_simd(signature: &[u8; 8], png_sig: &[u8]) -> bool {
+    // This is faster than AVX2 for just 8 bytes - use direct 64-bit comparison
+    let sig_ptr = signature.as_ptr() as *const u64;
+    let png_ptr = png_sig.as_ptr() as *const u64;
+    
+    std::ptr::read_unaligned(sig_ptr) == std::ptr::read_unaligned(png_ptr)
+}
+
+/// Fast check for JPEG file signature
+#[inline]
+fn is_jpeg_file(path: &Path) -> bool {
+    if let Ok(mut file) = File::open(path) {
+        let mut signature = [0u8; 3];
+        if let Ok(bytes_read) = file.read(&mut signature) {
+            if bytes_read == 3 {
+                // JPEG has a 3-byte signature
+                return signature == [0xFF, 0xD8, 0xFF];
+            }
+        }
+    }
+    false
+}
+
+/// Optimized file validation with special handling for common formats
+#[inline]
+pub fn validate_file(path: &Path, category: FileCategory) -> bool {
+    // Check if file exists and is readable
+    if !path.exists() || !path.is_file() {
+        return false;
+    }
+    
+    // Get extension for fast path decisions
+    let extension = path.extension()
+        .and_then(|e| e.to_str())
+        .map(|s| s.to_ascii_lowercase())
+        .unwrap_or_default();
+        
+    // Fast path for common image formats
+    match (&extension[..], category) {
+        ("png", FileCategory::Photo) => return is_png_file(path),
+        ("jpg" | "jpeg", FileCategory::Photo) => return is_jpeg_file(path),
+        ("csv", FileCategory::Table) => return validate_csv(path),
+        _ => {}  // Continue with standard validation
+    }
+    
+    // Get signatures for the file category and extension
+    if let Some(signatures) = get_signatures(path, category) {
+        return check_file_signatures(path, signatures);
+    }
+    
+    false // No matching signatures
+}
+
+/// A faster version of validate_files that uses the optimized functions
 #[pyfunction]
 pub fn validate_files<'py>(
     py: Python<'py>,
@@ -458,44 +517,37 @@ pub fn validate_files<'py>(
     
     let file_count = file_paths.len();
     
-    // Create an index vector for chunking
-    let indices: Vec<usize> = (0..file_count).collect();
-    
-    // Process in chunks for better cache locality
-    const CHUNK_SIZE: usize = 64;
-    
-    // Process chunks in parallel and collect results
-    let chunk_results: Vec<Vec<(usize, bool)>> = indices.par_chunks(CHUNK_SIZE)
-        .map(|chunk| {
-            // Each thread creates its own results vector
-            let mut local_results = Vec::with_capacity(chunk.len());
+    // Create input tuples for processing
+    let inputs: Vec<(usize, PathBuf, FileCategory)> = file_paths.into_iter()
+        .zip(categories.into_iter().enumerate())
+        .map(|(path, (idx, category))| {
+            let file_category = match category {
+                0 => FileCategory::Photo,
+                1 => FileCategory::Raw,
+                2 => FileCategory::Tiff,
+                3 => FileCategory::Video,
+                4 => FileCategory::Table,
+                _ => FileCategory::Unknown,
+            };
             
-            for &i in chunk {
-                let path = PathBuf::from(&file_paths[i]);
-                let file_category = match categories[i] {
-                    0 => FileCategory::Photo,
-                    1 => FileCategory::Raw,
-                    2 => FileCategory::Tiff,
-                    3 => FileCategory::Video,
-                    4 => FileCategory::Table,
-                    _ => FileCategory::Unknown,
-                };
-                
-                // Store result with index
-                local_results.push((i, validate_file(&path, file_category)));
-            }
-            
-            local_results
+            (idx, PathBuf::from(path), file_category)
         })
         .collect();
     
-    // Create the final results array
+    // Process in parallel using the optimized validator and collect results directly
+    let results_with_indices: Vec<(usize, bool)> = inputs.into_par_iter()
+        .map(|(idx, path, category)| {
+            (idx, validate_file(&path, category))
+        })
+        .collect();
+    
+    // Initialize all results as false
     let mut results = vec![false; file_count];
     
-    // Combine all thread-local results
-    for chunk in chunk_results {
-        for (index, value) in chunk {
-            results[index] = value;
+    // Fill in the actual results based on the indices
+    for (idx, valid) in results_with_indices {
+        if idx < file_count {
+            results[idx] = valid;
         }
     }
     
@@ -525,4 +577,12 @@ pub fn verify_file_type(file_path: String, category: u8) -> PyResult<bool> {
     };
     
     Ok(validate_file(&path, file_category))
+}
+
+/// Register the functions with the Python module
+pub fn register_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(validate_files, m)?)?;
+    m.add_function(wrap_pyfunction!(verify_file_type, m)?)?;
+    
+    Ok(())
 }

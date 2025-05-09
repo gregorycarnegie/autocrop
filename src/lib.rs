@@ -2,12 +2,12 @@ use ndarray::{Array1, Array2, Array3, ArrayView2, ArrayView3, Axis, Dim, Ix3, pa
 use numpy::{IntoPyArray, PyArray, PyArray2, PyArray3, PyReadonlyArray2, PyReadonlyArray3};
 use pyo3::{prelude::*, types::PyBytes};
 use pyo3::exceptions::{PyValueError, PyRuntimeError};
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::convert::Into;
 use rayon::prelude::*;
 use rayon::current_num_threads;
 
 mod file_types;
+mod dispatch_simd;
 
 // For x86/x86_64 specific SIMD intrinsics
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
@@ -24,54 +24,6 @@ type Rectangle = (f64, f64, f64, f64);
 type Padding = (u32, u32, u32, u32);
 /// Alias for the four integer coordinates of a bounding box.
 type BoxCoordinates = (i32, i32, i32, i32);
-
-/// Helper function to check if AVX2 is supported with result caching
-#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-#[inline]
-fn is_avx2_supported() -> bool {
-    static AVX2_SUPPORTED: AtomicBool = AtomicBool::new(false);
-    static CHECKED: AtomicBool = AtomicBool::new(false);
-    
-    if !CHECKED.load(Ordering::Relaxed) {
-        #[cfg(target_arch = "x86")]
-        use std::arch::x86::__cpuid;
-        #[cfg(target_arch = "x86_64")]
-        use std::arch::x86_64::__cpuid;
-
-        let supported = unsafe {
-            let info = __cpuid(7);
-            ((info.ebx >> 5) & 1) != 0
-        };
-        
-        AVX2_SUPPORTED.store(supported, Ordering::Relaxed);
-        CHECKED.store(true, Ordering::Relaxed);
-    }
-    
-    AVX2_SUPPORTED.load(Ordering::Relaxed)
-}
-
-#[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
-#[inline]
-fn is_avx2_supported() -> bool {
-    false
-}
-
-/// Generic function to dispatch between SIMD-accelerated and fallback implementations
-#[inline]
-fn dispatch_simd<F, G, Args, Ret>(args: Args, avx2_fn: F, fallback_fn: G) -> Ret
-where
-    F: FnOnce(Args) -> Ret,
-    G: FnOnce(Args) -> Ret,
-{
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    {
-        if is_avx2_supported() {
-            return avx2_fn(args);
-        }
-    }
-    
-    fallback_fn(args)
-}
 
 /// Compute the cumulative sum of a slice of f64 values. (Corrected, simple version)
 fn cumsum(vec: &[f64]) -> Vec<f64> {
@@ -200,7 +152,7 @@ where
 }
 /// Convert BGR image view to grayscale array (Parallelized with Rayon).
 fn bgr_to_gray(image_view: ArrayView3<u8>, use_rec709: bool) -> Array2<u8> {
-    dispatch_simd(
+    dispatch_simd::dispatch_simd(
         (image_view, use_rec709),
         |(view, rec709)| unsafe {bgr_to_gray_avx2_impl(view, rec709)},
         |(view, rec709)| bgr_to_gray_standard_impl(view, rec709)
@@ -421,7 +373,7 @@ fn calc_alpha_beta(hist: &[f64]) -> Option<(f64, f64)> {
 
 /// Apply scale and shift (convertScaleAbs logic) to an image view
 fn convert_scale_abs(image_view: ArrayView3<u8>, alpha: f64, beta: f64) -> Array3<u8> {
-    dispatch_simd(
+    dispatch_simd::dispatch_simd(
         (image_view, alpha, beta),
         |(view, a, b)| unsafe {convert_scale_abs_avx2_impl(view, a, b)},
         |(view, a, b)| convert_scale_abs_standard_impl(view, a, b)
@@ -600,7 +552,7 @@ fn correct_exposure<'py>(
 /// Python-facing gamma correction function
 #[pyfunction]
 fn gamma<'py>(gamma_value: f64, py: Python<'py>) -> PyResult<Bound<'py, PyArray<u8, Dim<[usize; 1]>>>> {
-    let lookup = dispatch_simd(
+    let lookup = dispatch_simd::dispatch_simd(
         gamma_value,
         |g| unsafe {gamma_avx2_impl(g)},
         |g| gamma_standard_impl(g)
@@ -860,8 +812,8 @@ fn autocrop_rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(get_rotation_matrix, m)?)?;
     m.add_function(wrap_pyfunction!(correct_exposure, m)?)?;
     m.add_function(wrap_pyfunction!(reshape_buffer_to_image, m)?)?;
-    m.add_function(wrap_pyfunction!(file_types::validate_files, m)?)?;
-    m.add_function(wrap_pyfunction!(file_types::verify_file_type, m)?)?;
+
+    file_types::register_module(m)?;
     
     Ok(())
 }
