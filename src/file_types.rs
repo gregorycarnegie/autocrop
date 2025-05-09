@@ -21,6 +21,7 @@ pub enum FileCategory {
 
 // Type aliases for better code readability
 type Signature = (&'static [u8], usize);
+type FileSignatureMap = Map<&'static str, &'static [Signature]>;
 
 // Helper constants for common signature checks
 const JPEG_SIG: &[u8] = &[0xFF, 0xD8, 0xFF];
@@ -106,7 +107,7 @@ static MKV_SIGNATURE: &[Signature] = &[(&[0x1A, 0x45, 0xDF, 0xA3], 0)]; // Matro
 static MP4_SIGNATURES: &[Signature] = &[(&[b'f', b't', b'y', b'p'], 4)]; // "ftyp"
 
 // Define a static PHF map for photo signatures
-static PHOTO_SIGNATURES_MAP: Map<&'static str, &'static [Signature]> = phf_map! {
+static PHOTO_SIGNATURES_MAP: FileSignatureMap = phf_map! {
     "jpg" => JPG_SIGNATURES,
     "jpeg" => JPG_SIGNATURES,
     "jfif" => JPG_SIGNATURES,
@@ -129,7 +130,7 @@ static PHOTO_SIGNATURES_MAP: Map<&'static str, &'static [Signature]> = phf_map! 
 };
 
 // Similar maps for other categories
-static RAW_SIGNATURES_MAP: Map<&'static str, &'static [Signature]> = phf_map! {
+static RAW_SIGNATURES_MAP: FileSignatureMap = phf_map! {
     "dng" => DNG_SIGNATURES,
     "arw" => TIFF_LE_SIGNATURE,
     "nef" => TIFF_SIGNATURES,
@@ -148,12 +149,12 @@ static RAW_SIGNATURES_MAP: Map<&'static str, &'static [Signature]> = phf_map! {
     "exr" => EXR_SIGNATURE,
 };
 
-static TIFF_SIGNATURES_MAP: Map<&'static str, &'static [Signature]> = phf_map! {
+static TIFF_SIGNATURES_MAP: FileSignatureMap = phf_map! {
     "tiff" => TIFF_SIGNATURES,
     "tif" => TIFF_SIGNATURES,
 };
 
-static VIDEO_SIGNATURES_MAP: Map<&'static str, &'static [Signature]> = phf_map! {
+static VIDEO_SIGNATURES_MAP: FileSignatureMap = phf_map! {
     "mp4" => MP4_SIGNATURES,
     "m4v" => MP4_SIGNATURES,
     "mov" => MP4_SIGNATURES,
@@ -161,7 +162,7 @@ static VIDEO_SIGNATURES_MAP: Map<&'static str, &'static [Signature]> = phf_map! 
     "mkv" => MKV_SIGNATURE,
 };
 
-static TABLE_SIGNATURES_MAP: Map<&'static str, &'static [Signature]> = phf_map! {
+static TABLE_SIGNATURES_MAP: FileSignatureMap = phf_map! {
     "xlsx" => ZIP_SIGNATURE,
     "xlsm" => ZIP_SIGNATURE,
     "xltx" => ZIP_SIGNATURE,
