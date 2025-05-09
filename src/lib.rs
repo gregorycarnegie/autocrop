@@ -8,6 +8,7 @@ use rayon::current_num_threads;
 
 mod file_types;
 mod dispatch_simd;
+mod file_signatures;
 
 // For x86/x86_64 specific SIMD intrinsics
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
