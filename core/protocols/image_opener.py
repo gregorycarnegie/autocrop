@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Protocol, Optional
+from typing import Protocol
 
 import cv2
 
@@ -16,5 +16,5 @@ class ImageOpener(Protocol):
         file: Path,
         face_detection_tools: FaceToolPair,
         job: Job
-    ) -> Optional[cv2.Mat]:
+    ) -> cv2.Mat | None:
         ...

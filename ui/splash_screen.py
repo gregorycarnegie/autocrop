@@ -1,6 +1,6 @@
-from typing import ClassVar, Optional
+from typing import ClassVar
 
-from PyQt6.QtCore import pyqtSignal, Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QGuiApplication, QMouseEvent, QPixmap
 from PyQt6.QtWidgets import QSplashScreen
 
@@ -13,9 +13,9 @@ class UiClickableSplashScreen(QSplashScreen):
 
     def __init__(self):
         pixmap = self.get_scaled_pixmap(self.image_path)
-        super(UiClickableSplashScreen, self).__init__(pixmap, Qt.WindowType.WindowStaysOnTopHint)
+        super().__init__(pixmap, Qt.WindowType.WindowStaysOnTopHint)
 
-    def mousePressEvent(self, a0: Optional[QMouseEvent]) -> None:
+    def mousePressEvent(self, a0: QMouseEvent | None) -> None:
         self.clicked.emit()
 
     def show_message(self, message: str = 'Loading...', color: QColor = QColor(255, 255, 255)) -> None:

@@ -1,18 +1,21 @@
 import contextlib
+from collections.abc import Callable
 from multiprocessing import Process
 from pathlib import Path
 from threading import Thread
-from typing import Optional, Callable, Any
+from typing import Any
 
 import numpy as np
 from PyQt6 import QtCore, QtGui, QtMultimedia, QtMultimediaWidgets, QtWidgets
+from PyQt6.QtMultimedia import QMediaPlayer
 
 from core import Job
 from core import processing as prc
 from core.croppers import VideoCropper
 from core.enums import FunctionType
-from file_types import file_manager, FileCategory
+from file_types import FileCategory, file_manager
 from ui import utils as ut
+
 from .crop_widget import UiCropWidget
 from .enums import GuiIcon
 from .media_controls import UiMediaControlWidget
@@ -20,49 +23,49 @@ from .media_controls import UiMediaControlWidget
 
 class UiVideoTabWidget(UiCropWidget):
     """Video tab widget with enhanced inheritance from base crop_from_path widget"""
-    
+
     PROGRESSBAR_STEPS: int = 1_000  # From UiCropBatchWidget
-    
+
     def __init__(self, crop_worker: VideoCropper, object_name: str, parent: QtWidgets.QWidget) -> None:
         """Initialize the video tab widget"""
         super().__init__(parent, object_name)
-    
+
         # Path storage fields
         self.input_path = ""
         self.destination_path = ""
         self.crop_worker = crop_worker
-        
+
         # Media player attributes
         self.vol_cache = 70
         self.rewind_timer = QtCore.QTimer()
         self.default_directory = file_manager.get_default_directory(FileCategory.VIDEO).as_posix()
-        self.player = QtMultimedia.QMediaPlayer()
+        self.player = QMediaPlayer()
         self.audio = QtMultimedia.QAudioOutput()
         self.start_position, self.stop_position, self.step = .0, .0, 100
         self.speed = 0
         self.reverse = 0
-        
+
         # Create additional UI elements
         self.progressBar = self.create_progress_bar("progressBar")
         self.progressBar_2 = self.create_progress_bar("progressBar_2")
         self.toolBox = QtWidgets.QToolBox(self)
         self.toolBox.setObjectName("toolBox")
-        
+
         # Create pages for the toolbox
         self.page_1 = QtWidgets.QWidget()
         self.page_1.setObjectName("page_1")
         self.page_2 = QtWidgets.QWidget()
         self.page_2.setObjectName("page_2")
-        
+
         # Set up page layouts
         self.verticalLayout_200 = ut.setup_vbox("verticalLayout_200", self.page_1)
         self.verticalLayout_300 = ut.setup_vbox("verticalLayout_300", self.page_2)
-        
+
         # Create video-specific widgets
         self.videoWidget = QtMultimediaWidgets.QVideoWidget()
         self.videoWidget.setObjectName("videoWidget")
         self.videoWidget.setStyleSheet("background: #1f2c33")
-        
+
         self.muteButton_1 = QtWidgets.QPushButton()
         self.muteButton_2 = QtWidgets.QPushButton()
         self.volumeSlider_1 = QtWidgets.QSlider()
@@ -82,19 +85,19 @@ class UiVideoTabWidget(UiCropWidget):
 
         # Set up the main layout structure
         self.setup_layouts()
-        
-        self.connect_preview_updates() 
+
+        self.connect_preview_updates()
 
         # Connect signals
-        
+
         self.connect_signals()
-        
+
         # Set initial UI text
         self.retranslateUi()
-        
+
         # Set initial toolbox page
         self.toolBox.setCurrentIndex(0)
-        
+
         QtCore.QMetaObject.connectSlotsByName(self)
 
     # Todo
@@ -103,7 +106,7 @@ class UiVideoTabWidget(UiCropWidget):
         # Connect to player position changes
         self.timelineSlider_1.sliderReleased.connect(self.display_crop_preview)
         self.timelineSlider_2.sliderReleased.connect(self.display_crop_preview)
-        
+
         # Connect to settings changes
         self.mfaceCheckBox.stateChanged.connect(self.display_crop_preview)
         self.tiltCheckBox.stateChanged.connect(self.display_crop_preview)
@@ -118,7 +121,7 @@ class UiVideoTabWidget(UiCropWidget):
         self.controlWidget.leftDial.valueChanged.connect(self.display_crop_preview)
         self.controlWidget.rightDial.valueChanged.connect(self.display_crop_preview)
 
-    def create_progress_bar(self, name: str, parent: Optional[QtWidgets.QWidget] = None) -> QtWidgets.QProgressBar:
+    def create_progress_bar(self, name: str, parent: QtWidgets.QWidget | None = None) -> QtWidgets.QProgressBar:
         """Create a progress bar with consistent styling"""
         progress_bar = QtWidgets.QProgressBar() if parent is None else QtWidgets.QProgressBar(parent)
         progress_bar.setObjectName(name)
@@ -126,7 +129,7 @@ class UiVideoTabWidget(UiCropWidget):
         progress_bar.setMaximumSize(QtCore.QSize(16_777_215, 15))
         progress_bar.setRange(0, self.PROGRESSBAR_STEPS)
         progress_bar.setValue(0)
-    
+
         # Apply styling
         progress_bar.setStyleSheet("""
             QProgressBar {
@@ -136,7 +139,7 @@ class UiVideoTabWidget(UiCropWidget):
                 text-align: center;
                 color: #505050;
             }
-            
+
             QProgressBar::chunk {
                 background-color: #4285f4;
                 width: 10px;
@@ -150,15 +153,15 @@ class UiVideoTabWidget(UiCropWidget):
     def setup_layouts(self) -> None:
         """Set up the main layout structure"""
         # ---- Page 1: Video Player ----
-        
+
         # Main frame with video player
         frame_1 = self.create_main_frame("frame_1")
         frame_1.setParent(self.page_1)
         vertical_layout_9 = ut.setup_vbox("verticalLayout_9", frame_1)
-        
+
         # Media controls layout
         media_control_layout = ut.setup_hbox("horizontalLayout_1")
-        
+
         # Mute button
         self.muteButton_1.setObjectName("muteButton_1")
         self.muteButton_1.setMinimumSize(QtCore.QSize(30, 30))
@@ -166,7 +169,7 @@ class UiVideoTabWidget(UiCropWidget):
         self.muteButton_1.setBaseSize(QtCore.QSize(30, 30))
         self.muteButton_1.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_MUTE))
         media_control_layout.addWidget(self.muteButton_1)
-        
+
         # Volume slider
         self.volumeSlider_1.setObjectName("volumeSlider_1")
         size_policy3 = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed)
@@ -181,7 +184,7 @@ class UiVideoTabWidget(UiCropWidget):
         self.volumeSlider_1.setValue(70)
         self.volumeSlider_1.setOrientation(QtCore.Qt.Orientation.Horizontal)
         media_control_layout.addWidget(self.volumeSlider_1)
-        
+
         # Position label
         self.positionLabel_1.setObjectName("positionLabel_1")
         size_policy4 = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Fixed)
@@ -192,7 +195,7 @@ class UiVideoTabWidget(UiCropWidget):
         self.positionLabel_1.setMinimumSize(QtCore.QSize(0, 30))
         self.positionLabel_1.setMaximumSize(QtCore.QSize(16_777_215, 30))
         media_control_layout.addWidget(self.positionLabel_1)
-        
+
         # Timeline slider
         self.timelineSlider_1.setObjectName("timelineSlider_1")
         size_policy5 = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
@@ -204,7 +207,7 @@ class UiVideoTabWidget(UiCropWidget):
         self.timelineSlider_1.setMaximumSize(QtCore.QSize(16_777_215, 30))
         self.timelineSlider_1.setOrientation(QtCore.Qt.Orientation.Horizontal)
         media_control_layout.addWidget(self.timelineSlider_1)
-        
+
         # Duration label
         self.durationLabel_1.setObjectName("durationLabel_1")
         size_policy4.setHeightForWidth(self.durationLabel_1.sizePolicy().hasHeightForWidth())
@@ -212,55 +215,55 @@ class UiVideoTabWidget(UiCropWidget):
         self.durationLabel_1.setMinimumSize(QtCore.QSize(0, 30))
         self.durationLabel_1.setMaximumSize(QtCore.QSize(16_777_215, 30))
         media_control_layout.addWidget(self.durationLabel_1)
-        
+
         # Horizontal spacer
         horizontal_spacer_1 = QtWidgets.QSpacerItem(
-            20, 20, 
+            20, 20,
             QtWidgets.QSizePolicy.Policy.Fixed,
             QtWidgets.QSizePolicy.Policy.Minimum
         )
         media_control_layout.addItem(horizontal_spacer_1)
         media_control_layout.setStretch(0, 1)
         media_control_layout.setStretch(1, 3)
-        
+
         vertical_layout_9.addLayout(media_control_layout)
-        
+
         # Video widget
         self.videoWidget.setParent(frame_1)
         self.size_policy_expand_expand.setHeightForWidth(self.videoWidget.sizePolicy().hasHeightForWidth())
         self.videoWidget.setSizePolicy(self.size_policy_expand_expand)
         self.videoWidget.setMinimumSize(QtCore.QSize(200, 200))
-        
+
         vertical_layout_9.addWidget(self.videoWidget)
-        
+
         # Media control widget 1
         self.mediacontrolWidget_1 = UiMediaControlWidget(frame_1, self.player, self.crop_worker)
         self.mediacontrolWidget_1.setObjectName("mediacontrolWidget_1")
         vertical_layout_9.addWidget(self.mediacontrolWidget_1)
-        
+
         # Progress bar
         self.progressBar.setParent(frame_1)
         vertical_layout_9.addWidget(self.progressBar)
-        
+
         vertical_layout_9.setStretch(1, 1)
-        
+
         self.verticalLayout_200.addWidget(frame_1)
-        
+
         # Destination selection
         self.verticalLayout_200.addLayout(self.horizontalLayout_3)
-        
+
         # Add page to toolbox
         self.toolBox.addItem(self.page_1, "Video Player")
-        
+
         # ---- Page 2: Crop View ----
         # Main frame with crop_from_path preview
         frame_2 = self.create_main_frame("frame_2")
         frame_2.setParent(self.page_2)
         vertical_layout_10 = ut.setup_vbox("verticalLayout_10", frame_2)
-        
+
         # Media controls layout for page 2
         media_control_layout2 = ut.setup_hbox("horizontalLayout_5")
-        
+
         # Mute button
         self.muteButton_2.setObjectName("muteButton_2")
         self.muteButton_2.setMinimumSize(QtCore.QSize(30, 30))
@@ -268,7 +271,7 @@ class UiVideoTabWidget(UiCropWidget):
         self.muteButton_2.setBaseSize(QtCore.QSize(30, 30))
         self.muteButton_2.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_MUTE))
         media_control_layout2.addWidget(self.muteButton_2)
-        
+
         # Volume slider
         self.volumeSlider_2.setObjectName("volumeSlider_2")
         size_policy3.setHeightForWidth(self.volumeSlider_2.sizePolicy().hasHeightForWidth())
@@ -280,7 +283,7 @@ class UiVideoTabWidget(UiCropWidget):
         self.volumeSlider_2.setValue(70)
         self.volumeSlider_2.setOrientation(QtCore.Qt.Orientation.Horizontal)
         media_control_layout2.addWidget(self.volumeSlider_2)
-        
+
         # Position label
         self.positionLabel_2.setObjectName("positionLabel_2")
         size_policy4.setHeightForWidth(self.positionLabel_2.sizePolicy().hasHeightForWidth())
@@ -288,7 +291,7 @@ class UiVideoTabWidget(UiCropWidget):
         self.positionLabel_2.setMinimumSize(QtCore.QSize(0, 30))
         self.positionLabel_2.setMaximumSize(QtCore.QSize(16_777_215, 30))
         media_control_layout2.addWidget(self.positionLabel_2)
-        
+
         # Timeline slider
         self.timelineSlider_2.setObjectName("timelineSlider_2")
         size_policy5.setHeightForWidth(self.timelineSlider_2.sizePolicy().hasHeightForWidth())
@@ -297,7 +300,7 @@ class UiVideoTabWidget(UiCropWidget):
         self.timelineSlider_2.setMaximumSize(QtCore.QSize(16_777_215, 30))
         self.timelineSlider_2.setOrientation(QtCore.Qt.Orientation.Horizontal)
         media_control_layout2.addWidget(self.timelineSlider_2)
-        
+
         # Duration label
         self.durationLabel_2.setObjectName("durationLabel_2")
         size_policy4.setHeightForWidth(self.durationLabel_2.sizePolicy().hasHeightForWidth())
@@ -305,39 +308,39 @@ class UiVideoTabWidget(UiCropWidget):
         self.durationLabel_2.setMinimumSize(QtCore.QSize(0, 30))
         self.durationLabel_2.setMaximumSize(QtCore.QSize(16_777_215, 30))
         media_control_layout2.addWidget(self.durationLabel_2)
-        
+
         media_control_layout2.setStretch(0, 1)
         media_control_layout2.setStretch(1, 3)
-        
+
         vertical_layout_10.addLayout(media_control_layout2)
-        
+
         # Checkbox section for page 2
         self.toggleCheckBox.setParent(frame_2)
         self.mfaceCheckBox.setParent(frame_2)
         self.tiltCheckBox.setParent(frame_2)
         self.exposureCheckBox.setParent(frame_2)
-        
+
         checkbox_layout = ut.setup_hbox("horizontalLayout_4")
         checkbox_layout.addWidget(self.toggleCheckBox)
-        
+
         # Add spacer
         horizontal_spacer_2 = QtWidgets.QSpacerItem(
-            40, 20, 
+            40, 20,
             QtWidgets.QSizePolicy.Policy.Expanding,
             QtWidgets.QSizePolicy.Policy.Minimum
         )
         checkbox_layout.addItem(horizontal_spacer_2)
-        
+
         # Add checkboxes
         checkbox_layout.addWidget(self.mfaceCheckBox)
         checkbox_layout.addWidget(self.tiltCheckBox)
         checkbox_layout.addWidget(self.exposureCheckBox)
-        
+
         # Set stretch factor for spacer
         checkbox_layout.setStretch(1, 20)
-        
+
         vertical_layout_10.addLayout(checkbox_layout)
-        
+
         # Add preview button
         self.previewButton.setObjectName("previewButton")
         self.previewButton.setMinimumSize(QtCore.QSize(0, 40))
@@ -346,29 +349,29 @@ class UiVideoTabWidget(UiCropWidget):
         self.previewButton.setIcon(icon)
         self.previewButton.setIconSize(QtCore.QSize(18, 18))
         vertical_layout_10.addWidget(self.previewButton)
-        
+
         # Image widget (preview)
         self.imageWidget.setParent(frame_2)
         vertical_layout_10.addWidget(self.imageWidget)
-        
+
         # Media control widget 2
         self.mediacontrolWidget_2 = UiMediaControlWidget(frame_2, self.player, self.crop_worker)
         self.mediacontrolWidget_2.setObjectName("mediacontrolWidget_2")
         vertical_layout_10.addWidget(self.mediacontrolWidget_2)
-        
+
         # Progress bar 2
         self.progressBar_2.setParent(frame_2)
         vertical_layout_10.addWidget(self.progressBar_2)
-        
+
         # Add frame to page layout
         self.verticalLayout_300.addWidget(frame_2)
-        
+
         # Add page to toolbox
         self.toolBox.addItem(self.page_2, "Crop View")
-        
+
         # Add toolbox to the main layout
         self.verticalLayout_100.addWidget(self.toolBox)
-        
+
         # Set up the media player
         self.create_media_player()
 
@@ -376,7 +379,7 @@ class UiVideoTabWidget(UiCropWidget):
         """Connect widget signals to handlers"""
         # Connect preview button
         self.previewButton.clicked.connect(self.display_crop_preview)
-        
+
         # Marker button connections
         self.mediacontrolWidget_1.startmarkerButton.clicked.connect(
             lambda: self.set_start_position(self.mediacontrolWidget_1.selectStartMarkerButton)
@@ -402,7 +405,7 @@ class UiVideoTabWidget(UiCropWidget):
         self.mediacontrolWidget_2.endmarkerButton.clicked.connect(
             lambda: self.set_stop_position(self.mediacontrolWidget_2.selectEndMarkerButton)
         )
-        
+
         # Media player connections
         self.volumeSlider_1.sliderMoved.connect(self.volume_slider_changed)
         self.volumeSlider_2.sliderMoved.connect(self.volume_slider_changed)
@@ -410,7 +413,7 @@ class UiVideoTabWidget(UiCropWidget):
         self.timelineSlider_2.sliderMoved.connect(self.player_slider_changed)
         self.timelineSlider_1.sliderMoved.connect(self.timelineSlider_2.setSliderPosition)
         self.timelineSlider_2.sliderMoved.connect(self.timelineSlider_1.setSliderPosition)
-        
+
         # Connect media control widgets
         for control in [self.mediacontrolWidget_1, self.mediacontrolWidget_2]:
             control.cropButton.clicked.connect(self.crop_frame)
@@ -421,7 +424,7 @@ class UiVideoTabWidget(UiCropWidget):
                                                      control.videocropButton,
                                                      control.cropButton)
             )
-            
+
             control.playButton.clicked.connect(self.change_playback_state)
             control.stopButton.clicked.connect(self.stop_playback)
             control.stepbackButton.clicked.connect(self.step_back)
@@ -435,17 +438,17 @@ class UiVideoTabWidget(UiCropWidget):
             control.selectEndMarkerButton.clicked.connect(
                 lambda: self.goto(control.selectEndMarkerButton)
             )
-            
+
         # Audio control buttons
         self.muteButton_1.clicked.connect(self.volume_mute)
         self.muteButton_2.clicked.connect(self.volume_mute)
-        
+
         # Media player connections
         self.audio.mutedChanged.connect(self.change_audio_icon)
         self.player.positionChanged.connect(self.position_changed)
         self.player.durationChanged.connect(self.duration_changed)
         self.player.errorOccurred.connect(self.player_error_occurred)
-        
+
         # Register button dependencies with TabStateManager
         for control in [self.mediacontrolWidget_1, self.mediacontrolWidget_2]:
             ut.register_button_dependencies(
@@ -456,7 +459,7 @@ class UiVideoTabWidget(UiCropWidget):
                     self.controlWidget.heightLineEdit
                 }
             )
-            
+
             ut.register_button_dependencies(
                 self.tab_state_manager,
                 control.videocropButton,
@@ -465,7 +468,7 @@ class UiVideoTabWidget(UiCropWidget):
                     self.controlWidget.heightLineEdit
                 }
             )
-        
+
         # Connect input widgets for validation tracking
         self.tab_state_manager.connect_widgets(
             self.controlWidget.widthLineEdit,
@@ -481,7 +484,7 @@ class UiVideoTabWidget(UiCropWidget):
             self.controlWidget.leftDial,
             self.controlWidget.rightDial
         )
-        
+
         # Connect crop_from_path worker signals
         self.connect_crop_worker()
 
@@ -542,10 +545,10 @@ class UiVideoTabWidget(UiCropWidget):
         self.player.setAudioOutput(self.audio)
         self.player.setVideoOutput(self.videoWidget)
 
-    def player_error_occurred(self, error: QtMultimedia.QMediaPlayer.Error) -> None:
+    def player_error_occurred(self, error: QMediaPlayer.Error) -> None:
         """Handle media player errors"""
         match error:
-            case QtMultimedia.QMediaPlayer.Error.NoError:
+            case QMediaPlayer.Error.NoError:
                 pass
             case _:
                 self.stop_playback()
@@ -600,23 +603,23 @@ class UiVideoTabWidget(UiCropWidget):
                 self.muteButton_2.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_MUTE))
 
     def playback_bool(self,
-                        a0: QtMultimedia.QMediaPlayer.PlaybackState = QtMultimedia.QMediaPlayer.PlaybackState.PausedState,
-                        a1: QtMultimedia.QMediaPlayer.PlaybackState = QtMultimedia.QMediaPlayer.PlaybackState.StoppedState) -> \
+                      a0: QMediaPlayer.PlaybackState = QMediaPlayer.PlaybackState.PausedState,
+                      a1: QMediaPlayer.PlaybackState = QMediaPlayer.PlaybackState.StoppedState) -> \
             tuple[bool, bool]:
         """Returns a tuple of bools comparing the playback state to the Class attributes of
-        PyQt6.QtMultimedia.QMediaPlayer.PlaybackState"""
+        PyQt6.QMediaPlayer.PlaybackState"""
         return self.player.playbackState() == a0, self.player.playbackState() == a1
 
     def check_playback_state(self) -> None:
         """Stops playback if in the paused state or playing state"""
-        x, y = self.playback_bool(a1=QtMultimedia.QMediaPlayer.PlaybackState.PlayingState)
+        x, y = self.playback_bool(a1=QMediaPlayer.PlaybackState.PlayingState)
         if x ^ y:
             self.stop_playback()
 
     def change_playback_state(self) -> None:
         """Toggle between play and pause"""
         match self.player.playbackState():
-            case QtMultimedia.QMediaPlayer.PlaybackState.PlayingState:
+            case QMediaPlayer.PlaybackState.PlayingState:
                 self.player.pause()
                 self.speed = 0
             case _:
@@ -627,7 +630,7 @@ class UiVideoTabWidget(UiCropWidget):
         self.timelineSlider_1.setDisabled(True)
         self.timelineSlider_2.setDisabled(True)
         # Check paused or playing
-        x, y = self.playback_bool(a1=QtMultimedia.QMediaPlayer.PlaybackState.PlayingState)
+        x, y = self.playback_bool(a1=QMediaPlayer.PlaybackState.PlayingState)
         if x ^ y:
             self.player.stop()
 
@@ -719,7 +722,7 @@ class UiVideoTabWidget(UiCropWidget):
         """Set time marker button text"""
         if flag:
             position = time_value
-            ut.set_marker_time(button, position)     
+            ut.set_marker_time(button, position)
 
     def set_start_position(self, button: QtWidgets.QPushButton) -> None:
         """Set the start position marker"""
@@ -737,7 +740,7 @@ class UiVideoTabWidget(UiCropWidget):
         """Go to a marked position in the video"""
         if not marker_button.text():
             return
-        
+
         position = ut.pos_from_marker(marker_button.text()) * 1000
         if position >= self.player.duration():
             self.player.setPosition(self.player.duration())
@@ -752,9 +755,9 @@ class UiVideoTabWidget(UiCropWidget):
         controls = []
         for control in [self.mediacontrolWidget_1, self.mediacontrolWidget_2]:
             controls.extend([
-                control.cropButton, control.videocropButton, control.playButton, 
-                control.stopButton, control.stepbackButton, control.stepfwdButton, 
-                control.fastfwdButton, control.goto_beginingButton, control.goto_endButton, 
+                control.cropButton, control.videocropButton, control.playButton,
+                control.stopButton, control.stepbackButton, control.stepfwdButton,
+                control.fastfwdButton, control.goto_beginingButton, control.goto_endButton,
                 control.startmarkerButton, control.endmarkerButton,
                 control.selectStartMarkerButton, control.selectEndMarkerButton
             ])
@@ -777,7 +780,7 @@ class UiVideoTabWidget(UiCropWidget):
             self.crop_worker.started.disconnect()
             self.crop_worker.finished.disconnect()
             self.crop_worker.progress.disconnect()
-            
+
         # Video start connection - setup buttons
         self.crop_worker.started.connect(lambda: ut.disable_widget(*widget_list))
         self.crop_worker.started.connect(self.enable_cancel_buttons)
@@ -823,7 +826,7 @@ class UiVideoTabWidget(UiCropWidget):
         """Handle cancel button clicks"""
         # Call the terminate method to stop the job
         self.crop_worker.terminate()
-        
+
         # Re-enable control buttons and reset progress
         for control in [self.mediacontrolWidget_1, self.mediacontrolWidget_2]:
             control.cropButton.setEnabled(True)
@@ -832,29 +835,29 @@ class UiVideoTabWidget(UiCropWidget):
             control.videocropButton.repaint()
             control.cancelButton.setEnabled(False)
             control.cancelButton.repaint()
-        
+
         # Reset progress bars
         self.progressBar.setValue(0)
         self.progressBar.repaint()
         self.progressBar_2.setValue(0)
         self.progressBar_2.repaint()
-        
+
         QtWidgets.QApplication.processEvents()
 
     def update_progress(self, x: int, y:int) -> None:
         """Update both progress bars based on crop_from_path worker progress"""
         if y <= 0:  # Prevent division by zero
             return
-            
+
         # Calculate percentage
         percentage = min(100.0, (x / y) * 100.0)
         value = int(self.PROGRESSBAR_STEPS * percentage / 100.0)
-        
+
         # Force UI updates on both progress bars
         for progress_bar in [self.progressBar, self.progressBar_2]:
             progress_bar.setValue(value)
             progress_bar.repaint()
-        
+
         # Process events to ensure UI updates immediately
         QtWidgets.QApplication.processEvents()
 
@@ -869,7 +872,7 @@ class UiVideoTabWidget(UiCropWidget):
         """Crop the current video frame"""
         def execute_crop():
             self.player.pause()
-            
+
             # Disable crop_from_path buttons immediately
             for control in [self.mediacontrolWidget_1, self.mediacontrolWidget_2]:
                 control.cropButton.setEnabled(False)
@@ -878,9 +881,9 @@ class UiVideoTabWidget(UiCropWidget):
                 control.videocropButton.repaint()
                 control.cancelButton.setEnabled(True)
                 control.cancelButton.repaint()
-                
+
             QtWidgets.QApplication.processEvents()
-            
+
             job = self.create_job(
                 FunctionType.FRAME,
                 video_path=Path(self.input_path),
@@ -905,7 +908,7 @@ class UiVideoTabWidget(UiCropWidget):
 
         def execute_crop():
             self.player.pause()
-            
+
             # Disable crop_from_path buttons immediately
             for control in [self.mediacontrolWidget_1, self.mediacontrolWidget_2]:
                 control.cropButton.setEnabled(False)
@@ -914,9 +917,9 @@ class UiVideoTabWidget(UiCropWidget):
                 control.videocropButton.repaint()
                 control.cancelButton.setEnabled(True)
                 control.cancelButton.repaint()
-                
+
             QtWidgets.QApplication.processEvents()
-            
+
             job = self.create_job(
                 FunctionType.VIDEO,
                 video_path=Path(self.input_path),
@@ -924,7 +927,7 @@ class UiVideoTabWidget(UiCropWidget):
                 start_position=ut.pos_from_marker(x),
                 stop_position=ut.pos_from_marker(y)
             )
-            
+
             # Use Thread instead of Process to avoid pickling issues
             self.crop_worker.reset_task()
             thread = Thread(

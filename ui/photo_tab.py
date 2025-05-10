@@ -4,15 +4,16 @@ from PyQt6 import QtCore, QtWidgets
 
 from core.croppers import PhotoCropper
 from core.enums import FunctionType
-from file_types import file_manager, FileCategory
+from file_types import FileCategory, file_manager
 from ui import utils as ut
+
 from .crop_widget import UiCropWidget
 from .enums import GuiIcon
 
 
 class UiPhotoTabWidget(UiCropWidget):
     """Photo tab widget with enhanced inheritance from the base crop_from_path widget"""
-    
+
     def __init__(self, crop_worker: PhotoCropper, object_name: str, parent: QtWidgets.QWidget) -> None:
         """Initialize the photo tab widget"""
         super().__init__(parent, object_name)
@@ -24,16 +25,16 @@ class UiPhotoTabWidget(UiCropWidget):
         # Path storage fields
         self.input_path = ""
         self.destination_path = ""
-        
+
         # Set up the main layout structure
         self.setup_layouts()
-        
+
         # Connect signals
         self.connect_signals()
-        
+
         # Set initial UI text
         self.retranslateUi()
-        
+
         QtCore.QMetaObject.connectSlotsByName(self)
 
     def setup_layouts(self) -> None:
@@ -41,11 +42,11 @@ class UiPhotoTabWidget(UiCropWidget):
         # Input file selection
         self.horizontalLayout_2.setStretch(0, 1)
         self.verticalLayout_100.addLayout(self.horizontalLayout_2)
-        
+
         # Main frame with image and controls
         frame = self.create_main_frame("frame")
         vertical_layout = ut.setup_vbox("verticalLayout_4", frame)
-        
+
         # Checkbox section
         self.toggleCheckBox.setParent(frame)
         self.mfaceCheckBox.setParent(frame)
@@ -53,20 +54,20 @@ class UiPhotoTabWidget(UiCropWidget):
         self.exposureCheckBox.setParent(frame)
         self.setup_checkboxes_frame(self.horizontalLayout_1)
         vertical_layout.addLayout(self.horizontalLayout_1)
-        
+
         # Image widget
         self.imageWidget.setParent(frame)
         vertical_layout.addWidget(self.imageWidget)
-        
+
         # Crop button
 
         self.cropButton.setParent(frame)
         self.cropButton.setDisabled(True)
         vertical_layout.addWidget(self.cropButton)
-        
+
         # Add frame to the main layout
         self.verticalLayout_100.addWidget(frame)
-        
+
         # Destination selection
         self.verticalLayout_100.addLayout(self.horizontalLayout_3)
 
@@ -74,7 +75,7 @@ class UiPhotoTabWidget(UiCropWidget):
         """Connect widget signals to handlers"""
         # Button connections
         self.cropButton.clicked.connect(self.crop_photo)
-        
+
         # Register button dependencies with the TabStateManager
         ut.register_button_dependencies(
             self.tab_state_manager,
@@ -84,22 +85,22 @@ class UiPhotoTabWidget(UiCropWidget):
                 self.controlWidget.heightLineEdit
             }
         )
-        
+
         # Connect all input widgets for validation tracking
         self.tab_state_manager.connect_widgets(
             # self.inputLineEdit,
             self.controlWidget.widthLineEdit,
-            self.controlWidget.heightLineEdit, 
+            self.controlWidget.heightLineEdit,
             # self.destinationLineEdit,
             self.exposureCheckBox,
-            self.mfaceCheckBox, 
-            self.tiltCheckBox, 
+            self.mfaceCheckBox,
+            self.tiltCheckBox,
             self.controlWidget.sensitivityDial,
-            self.controlWidget.fpctDial, 
+            self.controlWidget.fpctDial,
             self.controlWidget.gammaDial,
-            self.controlWidget.topDial, 
+            self.controlWidget.topDial,
             self.controlWidget.bottomDial,
-            self.controlWidget.leftDial, 
+            self.controlWidget.leftDial,
             self.controlWidget.rightDial
         )
 

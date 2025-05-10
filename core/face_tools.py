@@ -43,11 +43,11 @@ class Rectangle:
             raise ValueError("Invalid rectangle coordinates")
         if not (0.0 <= self.confidence <= 1.0):
             raise ValueError("confidence must be in [0, 1]")
-    
+
 
 class YuNetFaceDetector:
     """Face detector using YuNet with OpenCV's DNN module."""
-    
+
     def __init__(self):
         # Create YuNet detector
         self._detector = cv2.FaceDetectorYN.create(
@@ -58,31 +58,31 @@ class YuNetFaceDetector:
             0.3,         # NMS threshold
             5000         # Top K
         )
-    
+
     def __call__(self, image, sensitivity: int) -> list[Rectangle]:
         """
         Detect faces in the image.
-        
+
         Args:
             image: Input image
             sensitivity: Detection threshold (0-100)
-            
+
         Returns:
             List of Rectangle objects mimicking dlib's detection results
         """
         # Get image dimensions
         height, width = image.shape[:2]
-        
+
         # Set input size
         self._detector.setInputSize((width, height))
-        
+
         # Adjust a score threshold based on sensitivity
         score_threshold = max(0.1, sensitivity / 100.0)  # Ensure a minimum threshold
         self._detector.setScoreThreshold(score_threshold)
-        
+
         # Detect faces
         _, faces = self._detector.detect(image)
-        
+
         def create_rectangle(face) -> Rectangle:
             x, y, w, h = map(int, face[:4])
             # Create the rectangle with the top-left (x, y) and bottom-right (x+w, y+h)
@@ -97,17 +97,17 @@ type FaceToolPair = tuple[YuNetFaceDetector, cv2.face.Facemark]
 def create_tool_pair() -> FaceToolPair:
     """
     Create a pair of face detection and shape prediction tools.
-    
+
     Returns:
         A pair of face detection and shape prediction tools.
     """
     # Use our optimized face detector
     detector = YuNetFaceDetector()
-    
+
     # Use OpenCV's FacemarkLBF instead of dlib's shape predictor
     facemark = cv2.face.createFacemarkLBF()
     facemark.loadModel(LBFMODEL)
-    
+
     # Return the detector and facemark model as a pair
     return detector, facemark
 
@@ -115,11 +115,11 @@ def create_tool_pair() -> FaceToolPair:
 def generate_face_detection_tools() -> list[FaceToolPair]:
     """
     Generate a list of face detection and shape prediction tools.
-    
+
     This method creates a list of tuples, where each tuple contains an instance of
     our ModernFaceDetector and dlib's shape_predictor for facial landmark detection.
     The number of tuples is determined by THREAD_NUMBER.
-    
+
     Returns:
         Iterator of tool pairs for multi-threading.
     """

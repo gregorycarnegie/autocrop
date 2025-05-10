@@ -5,7 +5,6 @@ Simplified file type handling system using Python's standard libraries.
 import contextlib
 import mimetypes
 from pathlib import Path
-from typing import Optional
 
 from .file_category import FileCategory
 
@@ -22,9 +21,9 @@ class FileTypeManager:
     _EXTENSIONS: dict[FileCategory, set[str]] = {
         FileCategory.PHOTO: {
             '.bmp', '.dib', '.jfif', '.jpeg',
-            '.jpg', '.jpe', '.jp2', '.png', 
+            '.jpg', '.jpe', '.jp2', '.png',
             '.webp', '.pbm', '.pgm', '.ppm',
-            '.pxm', '.pnm', '.pfm', '.sr', 
+            '.pxm', '.pnm', '.pfm', '.sr',
             '.ras', '.exr', '.hdr', '.pic'
         },
         FileCategory.TIFF: {'.tiff', '.tif'},
@@ -46,7 +45,7 @@ class FileTypeManager:
         FileCategory.VIDEO: Path.home() / 'Videos',
         FileCategory.TABLE: Path.home() / 'Documents',
     }
-    
+
     # Which categories can be saved in which formats
     _SAVE_FORMATS: dict[FileCategory, tuple[str, ...]] = {
         FileCategory.PHOTO: ('.bmp', '.jpg', '.png', '.tiff', '.webp'),
@@ -55,7 +54,7 @@ class FileTypeManager:
         FileCategory.VIDEO: ('.jpg', '.png', '.tiff', '.webp'),  # Video frames
         FileCategory.TABLE: (),  # Tables aren't saved in this application
     }
-    
+
     # Common mime types for faster lookup
     _MIME_TYPES: dict[str, FileCategory] = {
         'image/bmp'                       : FileCategory.PHOTO,     # .bmp .dib
@@ -102,12 +101,12 @@ class FileTypeManager:
         'application/vnd.apache.parquet'                        : FileCategory.TABLE, # .parquet  (official)
         'application/x-parquet'                                 : FileCategory.TABLE, # legacy alias
     }
-    
+
     @classmethod
     def get_extensions(cls, category: FileCategory) -> set[str]:
         """Get all file extensions for a given category."""
         return cls._EXTENSIONS.get(category, set())
-    
+
     @classmethod
     def get_all_extensions(cls) -> set[str]:
         """Get all recognized file extensions."""
@@ -115,17 +114,17 @@ class FileTypeManager:
         for extensions in cls._EXTENSIONS.values():
             all_extensions.update(extensions)
         return all_extensions
-    
+
     @classmethod
     def get_default_directory(cls, category: FileCategory) -> Path:
         """Get the default directory for a given file category."""
         return cls._DEFAULT_DIRS.get(category, Path.home())
-    
+
     @classmethod
     def get_save_formats(cls, category: FileCategory) -> tuple[str, ...]:
         """Get the valid save formats for a given file category."""
         return cls._SAVE_FORMATS.get(category, ())
-    
+
     @classmethod
     def detect_category(cls, path: Path) -> FileCategory:
         """
@@ -147,29 +146,29 @@ class FileTypeManager:
             if mime_type in cls._MIME_TYPES:
                 return cls._MIME_TYPES[mime_type]
         return FileCategory.UNKNOWN
-    
+
     @classmethod
     def is_valid_type(cls, path: Path, category: FileCategory) -> bool:
         """Check if a file is of the specified category."""
         if not path.is_file():
             return False
-            
+
         # For performance, first check by extension
         if path.suffix.lower() in cls.get_extensions(category):
             return True
-            
+
         # Only do deeper validation if extension check fails
         detected = cls.detect_category(path)
         return detected == category
-    
+
     @classmethod
-    def get_filter_string(cls, category: Optional[FileCategory] = None) -> str:
+    def get_filter_string(cls, category: FileCategory | None = None) -> str:
         """
         Generate a filter string for file dialogs.
-        
+
         Args:
             category: Optional category to filter for
-            
+
         Returns:
             A Qt-compatible filter string for file dialogs
         """
@@ -201,7 +200,7 @@ class FileTypeManager:
                 all_filters.append(f"{cat.value.title()} Files ({' '.join(filters)})")
 
         return ";;".join(all_filters)
-    
+
     @classmethod
     def should_use_tiff_save(cls, path: Path) -> bool:
         """Determine if TIFF saving should be used based on file extension."""

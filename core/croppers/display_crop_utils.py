@@ -1,15 +1,14 @@
 from pathlib import Path
-from typing import Optional
 
 import cv2
+from cachetools import TTLCache, cached
 from PyQt6.QtGui import QImage
-from cachetools import cached, TTLCache
 
 from core import processing as prc
 from core.enums import FunctionType
 from core.face_tools import FaceToolPair
 from core.job import Job
-from file_types import file_manager, FileCategory
+from file_types import FileCategory, file_manager
 
 RadioButtonTuple = tuple[bool, bool, bool, bool, bool, bool]
 WidgetState = tuple[str, str, str, bool, bool, bool, int, int, int, int, int, int, int, RadioButtonTuple]
@@ -18,10 +17,10 @@ cache = TTLCache(maxsize=128, ttl=60)  # Entries expire after 60 seconds
 
 
 @cached(cache)
-def path_iterator(path: Path) -> Optional[Path]:
+def path_iterator(path: Path) -> Path | None:
     if not path or not path.is_dir():
         return None
-    
+
     return next(
         filter(
             lambda f: f.is_file() and file_manager.is_valid_type(f, FileCategory.PHOTO), path.iterdir()
@@ -41,7 +40,7 @@ def matlike_to_qimage(image: cv2.Mat) -> QImage:
 def perform_crop_helper(function_type: FunctionType,
                         widget_state: WidgetState,
                         img_path_str: str,
-                        face_detection_tools: FaceToolPair) -> Optional[QImage]:
+                        face_detection_tools: FaceToolPair) -> QImage | None:
     # Unpack and validate widget state
     if not validate_widget_state(widget_state):
         return None
@@ -65,7 +64,7 @@ def validate_widget_state(widget_state: WidgetState) -> bool:
     return all(widget_state[:3])
 
 
-def get_image_path(function_type: FunctionType, input_line_edit_text: str) -> Optional[Path]:
+def get_image_path(function_type: FunctionType, input_line_edit_text: str) -> Path | None:
     img_path = Path(input_line_edit_text)
     match function_type:
         case FunctionType.PHOTO:
@@ -94,7 +93,7 @@ def create_job(widget_state: WidgetState, img_path_str: str, function_type: Func
     )
 
 
-def handle_face_detection(pic_array: cv2.Mat, job: Job, face_detection_tools: FaceToolPair) -> Optional[QImage]:
+def handle_face_detection(pic_array: cv2.Mat, job: Job, face_detection_tools: FaceToolPair) -> QImage | None:
     if job.multi_face_job:
         pic = prc.annotate_faces(pic_array, job, face_detection_tools)
         # final_image = prc.convert_colour_space(pic) # Uncomment if needed

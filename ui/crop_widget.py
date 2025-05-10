@@ -1,16 +1,17 @@
 from pathlib import Path
-from typing import ClassVar, Optional
+from typing import ClassVar
 
 import polars as pl
 from PyQt6 import QtCore, QtWidgets
 
 from core import Job
 from core.enums import FunctionType
-from file_types import file_manager, FileCategory
+from file_types import FileCategory, file_manager
 from line_edits import PathLineEdit, PathType
 from ui import utils as ut
+
 from .control_widget import UiCropControlWidget
-from .enums import GuiIcon, FunctionTabSelectionState
+from .enums import FunctionTabSelectionState, GuiIcon
 from .image_widget import ImageWidget
 from .tab_state import TabStateManager
 
@@ -22,7 +23,7 @@ class UiCropWidget(QtWidgets.QWidget):
     """
     SELECTED: ClassVar[FunctionTabSelectionState] = FunctionTabSelectionState.SELECTED
     NOT_SELECTED: ClassVar[FunctionTabSelectionState] = FunctionTabSelectionState.NOT_SELECTED
-    
+
     # Common size policies
     size_policy_fixed: ClassVar[QtWidgets.QSizePolicy] = QtWidgets.QSizePolicy(
         QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed)
@@ -30,7 +31,7 @@ class UiCropWidget(QtWidgets.QWidget):
         QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
     size_policy_expand_expand: ClassVar[QtWidgets.QSizePolicy] = QtWidgets.QSizePolicy(
         QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Expanding)
-    
+
     # Common stylesheet
     CHECKBOX_STYLESHEET: ClassVar[str] = """QCheckBox:unchecked{color: red}
     QCheckBox:checked{color: white}
@@ -54,7 +55,7 @@ class UiCropWidget(QtWidgets.QWidget):
     def __init__(self, parent: QtWidgets.QWidget, name: str) -> None:
         """
         Initialize the base crop_from_path widget with common components.
-        
+
         Args:
             parent: The parent widget
             name: Object name for the widget
@@ -62,22 +63,22 @@ class UiCropWidget(QtWidgets.QWidget):
         super().__init__(parent)
         self.setObjectName(name)
         self.tab_state_manager = TabStateManager(self)
-        
+
         # Common state and attributes
         self.destination: Path = Path.home()
         self.selection_state = self.NOT_SELECTED
         self.folder_icon = ut.create_button_icon(GuiIcon.FOLDER)
-        
+
         # Main layouts
         self.verticalLayout_100 = ut.setup_vbox(f"{name}_verticalLayout_100", self)
         self.horizontalLayout_1 = ut.setup_hbox(f"{name}_horizontalLayout_1")
         self.horizontalLayout_2 = ut.setup_hbox(f"{name}_horizontalLayout_2")
         self.horizontalLayout_3 = ut.setup_hbox(f"{name}_horizontalLayout_3")
-        
+
         # Main image widget and control widget
         self.imageWidget = self.create_image_widget()
         self.controlWidget = self.create_control_widget()
-        
+
         # Common checkboxes
         self.toggleCheckBox = self.create_checkbox("toggleCheckBox")
         self.toggleCheckBox.setChecked(True)
@@ -86,11 +87,16 @@ class UiCropWidget(QtWidgets.QWidget):
         self.exposureCheckBox = self.create_checkbox("exposureCheckBox")
 
         self._setup_checkbox_relationships(self.mfaceCheckBox, self.tiltCheckBox, self.exposureCheckBox)
-        
+
         # Common signal connections
         self.toggleCheckBox.toggled.connect(self.controlWidget.setVisible)
 
-    def _setup_checkbox_relationships(self, ckbx0: QtWidgets.QCheckBox, ckbx1: QtWidgets.QCheckBox, ckbx2: QtWidgets.QCheckBox) -> None:
+    def _setup_checkbox_relationships(
+            self,
+            ckbx0: QtWidgets.QCheckBox,
+            ckbx1: QtWidgets.QCheckBox,
+            ckbx2: QtWidgets.QCheckBox
+    ) -> None:
         self.tab_state_manager.register_checkbox_exclusivity(ckbx0, {ckbx2, ckbx1})
         self.tab_state_manager.register_checkbox_exclusivity(ckbx2, {ckbx0})  # Exposure is exclusive with multi-face
         self.tab_state_manager.register_checkbox_exclusivity(ckbx1, {ckbx0})  # Tilt is exclusive with multi-face
@@ -100,7 +106,7 @@ class UiCropWidget(QtWidgets.QWidget):
         image_widget = ImageWidget()
         image_widget.setObjectName("imageWidget")
         ut.apply_size_policy(
-            image_widget, 
+            image_widget,
             self.size_policy_expand_expand,
             min_size=QtCore.QSize(0, 0),
             max_size=QtCore.QSize(16_777_215, 16_777_215)
@@ -153,8 +159,8 @@ class UiCropWidget(QtWidgets.QWidget):
     def open_path(self, line_edit: PathLineEdit) -> None:
         """Open a file/folder dialog for selecting paths"""
         f_name = QtWidgets.QFileDialog.getExistingDirectory(
-            self, 
-            'Select Directory', 
+            self,
+            'Select Directory',
             file_manager.get_default_directory(FileCategory.PHOTO).as_posix()
         )
         # Validate the file exists and is accessible
@@ -164,24 +170,24 @@ class UiCropWidget(QtWidgets.QWidget):
     def disable_buttons(self) -> None:
         """
         Update button states based on input validation.
-        This method should be overridden by subclasses to register 
+        This method should be overridden by subclasses to register
         their specific button dependencies.
         """
         self.tab_state_manager.update_button_states()
 
-    def create_job(self, function_type: Optional[FunctionType] = None,
-                  photo_path: Optional[Path] = None,
-                  destination: Optional[Path] = None,
-                  folder_path: Optional[Path] = None,
-                  table: Optional[pl.DataFrame] = None,
-                  column1: Optional[QtWidgets.QComboBox] = None,
-                  column2: Optional[QtWidgets.QComboBox] = None,
-                  video_path: Optional[Path] = None,
-                  start_position: Optional[float] = None,
-                  stop_position: Optional[float] = None) -> Job:
+    def create_job(self, function_type: FunctionType | None = None,
+                  photo_path: Path | None = None,
+                  destination: Path | None = None,
+                  folder_path: Path | None = None,
+                  table: pl.DataFrame | None = None,
+                  column1: QtWidgets.QComboBox | None = None,
+                  column2: QtWidgets.QComboBox | None = None,
+                  video_path: Path | None = None,
+                  start_position: float | None = None,
+                  stop_position: float | None = None) -> Job:
         """
         Create a job with standardized handling of overlapping paths and consistent defaults.
-        
+
         Args:
             function_type: The type of function being performed
             photo_path: Optional path to a photo
@@ -193,7 +199,7 @@ class UiCropWidget(QtWidgets.QWidget):
             video_path: Optional video path
             start_position: Optional video start position
             stop_position: Optional video stop position
-            
+
         Returns:
             A configured Job object
         """
@@ -253,18 +259,18 @@ class UiCropWidget(QtWidgets.QWidget):
         """Create a unique folder path that doesn't conflict with existing content"""
         if not base_path.exists():
             return base_path
-            
+
         if all(file.suffix not in valid_extensions
                for file in base_path.iterdir()
                if file.is_file()):
             return base_path  # Return the original path if no files with the specified extensions are found
-            
+
         counter = 1
         new_path = base_path if base_path.name else base_path / 'results'
         while new_path.exists():
             new_path = base_path.with_name(f"{base_path.name}_{counter}")
             counter += 1
-            
+
         new_path.mkdir(parents=True, exist_ok=True)
         return new_path
 
@@ -285,24 +291,24 @@ class UiCropWidget(QtWidgets.QWidget):
                 destination = destination.with_name(f'{destination.name}_CROPS')
             destination = self._create_unique_folder(destination, extensions)
         return destination
-        
+
     def setup_checkboxes_frame(self, layout: QtWidgets.QHBoxLayout) -> None:
         """Set up a standard checkbox layout frame"""
         layout.addWidget(self.toggleCheckBox)
-        
+
         # Add spacer
         h_spacer = QtWidgets.QSpacerItem(
-            40, 20, 
+            40, 20,
             QtWidgets.QSizePolicy.Policy.Expanding,
             QtWidgets.QSizePolicy.Policy.Minimum
         )
         layout.addItem(h_spacer)
-        
+
         # Add checkboxes
         layout.addWidget(self.mfaceCheckBox)
         layout.addWidget(self.tiltCheckBox)
         layout.addWidget(self.exposureCheckBox)
-        
+
         # Set stretch factor for spacer
         layout.setStretch(1, 20)
 

@@ -5,8 +5,9 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 
 from core.croppers import FolderCropper
 from core.enums import FunctionType
-from file_types import file_manager, FileCategory
+from file_types import FileCategory, file_manager
 from ui import utils as ut
+
 from .batch_tab import UiBatchCropWidget
 from .image_hover_preview import ImageHoverPreview
 
@@ -17,7 +18,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
     def __init__(self, crop_worker: FolderCropper, object_name: str, parent: QtWidgets.QWidget) -> None:
         """Initialize the folder tab widget"""
         super().__init__(crop_worker, object_name, parent)
-        
+
         # Path storage fields
         self.input_path = ""
         self.destination_path = ""
@@ -30,11 +31,11 @@ class UiFolderTabWidget(UiBatchCropWidget):
         self.file_model.setNameFilters(file_filter)
 
         self.treeView = QtWidgets.QTreeView(self.page_2)
-        
+
         # Create image preview widget
         self.image_preview = ImageHoverPreview(parent=None)
         self.image_preview.hide()
-        
+
         # Track mouse position for preview
         self._last_mouse_pos = None
         self._hover_timer = QtCore.QTimer()
@@ -43,7 +44,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
 
         # Set up the main layout structure
         self.setup_layouts()
-        
+
 
         # Connect signals
         self.connect_signals()
@@ -83,10 +84,10 @@ class UiFolderTabWidget(UiBatchCropWidget):
         # ---- Page 2: Folder View ----
         self.treeView.setObjectName("treeView")
         self.treeView.setModel(self.file_model)
-        
+
         # Enable mouse tracking for hover detection
         self.treeView.setMouseTracking(True)
-        
+
         # Connect tree view hover events
         self.treeView.entered.connect(self._on_item_entered)
         self.treeView.viewport().installEventFilter(self)
@@ -112,7 +113,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
         """Handle when mouse enters a tree view item"""
         # Get file path from model index
         file_path = self.file_model.filePath(index)
-        
+
         # Check if it's an image file
         if file_path and self._is_image_file(file_path):
             self._last_mouse_pos = QtGui.QCursor.pos()
@@ -121,7 +122,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
     def _on_mouse_move(self, event: QtGui.QMouseEvent) -> None:
         """Handle mouse movement in tree view"""
         index = self.treeView.indexAt(event.position().toPoint())
-        
+
         if index.isValid():
             file_path = self.file_model.filePath(index)
             if file_path and self._is_image_file(file_path):
@@ -143,11 +144,11 @@ class UiFolderTabWidget(UiBatchCropWidget):
         """Show the image preview"""
         if self._last_mouse_pos is None:
             return
-            
+
         # Get current index under mouse
         pos = self.treeView.mapFromGlobal(self._last_mouse_pos)
         index = self.treeView.indexAt(pos)
-        
+
         if index.isValid():
             file_path = self.file_model.filePath(index)
             if file_path and self._is_image_file(file_path):
@@ -157,10 +158,10 @@ class UiFolderTabWidget(UiBatchCropWidget):
                     folder_path=Path(self.input_path) if self.input_path else None,
                     destination=Path(self.destination_path) if self.destination_path else None
                 )
-                
+
                 # Show preview
                 self.image_preview.preview_file(
-                    file_path, 
+                    file_path,
                     self._last_mouse_pos,
                     self.crop_worker.face_detection_tools[0],
                     job
@@ -183,7 +184,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
         """Hide preview when tab is hidden"""
         self._hide_preview()
         super().hideEvent(event)
-    
+
     def closeEvent(self, event):
         """Clean up when widget is closed"""
         self._hide_preview()
@@ -195,7 +196,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
         """Connect widget signals to handlers"""
         # Button connections
         self.cropButton.clicked.connect(self.folder_process)
-        
+
         # Register button dependencies with the TabStateManager
         ut.register_button_dependencies(
             self.tab_state_manager,
@@ -205,7 +206,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
                 self.controlWidget.heightLineEdit
             }
         )
-        
+
         # Connect all input widgets for validation tracking
         self.tab_state_manager.connect_widgets(
             self.controlWidget.widthLineEdit,
@@ -275,18 +276,18 @@ class UiFolderTabWidget(UiBatchCropWidget):
             # Use the stored input_path instead of inputLineEdit.text()
             if not self.input_path:
                 return
-            
+
             # Verify the path exists and is a directory
             path = Path(self.input_path)
             if not path.exists():
                 return
-                
+
             if not path.is_dir():
                 return
 
             self.file_model.setRootPath(self.input_path)
             self.treeView.setRootIndex(self.file_model.index(self.input_path))
-            
+
         except (IndexError, FileNotFoundError, ValueError, AttributeError):
             return
 
@@ -311,7 +312,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
             # Manually disable the crop_from_path button right away
             self.cropButton.setEnabled(False)
             self.cropButton.repaint()
-            
+
             job = self.create_job(
                 FunctionType.FOLDER,
                 folder_path=Path(self.input_path) if self.input_path else None,

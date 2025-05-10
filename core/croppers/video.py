@@ -1,22 +1,22 @@
 from fractions import Fraction
 from functools import cache
 from pathlib import Path
-from typing import Optional
 
 import autocrop_rs as rs
 import ffmpeg
 import numpy as np
 import numpy.typing as npt
-from PyQt6.QtWidgets import QApplication, QLabel, QSlider, QProgressBar
+from PyQt6.QtWidgets import QApplication, QLabel, QProgressBar, QSlider
 
 from core import processing as prc
 from core.face_tools import FaceToolPair
 from core.job import Job
+
 from .base import Cropper
 
 
 @cache
-def get_video_stream(video_line_edit: str) -> Optional[dict]:
+def get_video_stream(video_line_edit: str) -> dict | None:
     probe = ffmpeg.probe(video_line_edit)
     return next((stream for stream in probe['streams'] if stream['codec_type'] == 'video'), None)
 
@@ -34,7 +34,7 @@ def ffmpeg_input(video_line_edit: str, timestamp_seconds: float, width: int, hei
     )
     print('out',type(out))
     # Now the output will match our specified dimensions
-    return rs.reshape_buffer_to_image(out, height, width)   
+    return rs.reshape_buffer_to_image(out, height, width)
 
 
 class VideoCropper(Cropper):
@@ -43,15 +43,20 @@ class VideoCropper(Cropper):
         self.face_detection_tools = face_detection_tools
         self.progressBars: list[QProgressBar] = []
 
-    def grab_frame(self, position_slider: int, video_line_edit: str, for_preview: bool = False) -> Optional[npt.NDArray[np.uint8]]:
+    def grab_frame(
+            self,
+            position_slider: int,
+            video_line_edit: str,
+            for_preview: bool = False
+    ) -> npt.NDArray[np.uint8] | None:
         """
         Grabs a frame from the video at the specified position.
-        
+
         Args:
             position_slider (int): Position value from the slider
             video_line_edit (str): Path to the video file
             for_preview (bool): If True, use a lower resolution for performance
-            
+
         Returns:
             Optional[npt.NDArray[np.uint8]]: The frame as a NumPy array, or None if error
         """
@@ -62,10 +67,10 @@ class VideoCropper(Cropper):
             if not video_stream:
                 exception, message = self.create_error('file', "Video Stream not found")
                 return self._display_error(exception, message)
-                
+
             # Get original dimensions
             orig_width, orig_height = int(video_stream['width']), int(video_stream['height'])
-            
+
             # For preview, use a smaller resolution for better performance
             if for_preview:
                 # Calculate scale to keep aspect ratio but limit size
@@ -75,7 +80,7 @@ class VideoCropper(Cropper):
                 height = int(orig_height * scale) & ~1
             else:
                 width, height = orig_width, orig_height
-                
+
             # Get the frame with specified dimensions
             return ffmpeg_input(video_line_edit, timestamp_seconds, width, height)
         except ffmpeg.Error:
@@ -187,17 +192,24 @@ class VideoCropper(Cropper):
         else:
             prc.save_video_frame(cropped_image, file_enum, destination, job)
 
-    def extract_frame_ffmpeg(self, video_path: str, frame_number: int, width: int, height: int, fps: float) -> Optional[npt.NDArray]:
+    def extract_frame_ffmpeg(
+            self,
+            video_path: str,
+            frame_number: int,
+            width: int,
+            height: int,
+            fps: float
+    ) -> npt.NDArray | None:
         # Validate input parameters
         if not Path(video_path).is_file():
             raise ValueError(f"Invalid video path: {video_path}")
-            
+
         if frame_number < 0:
             raise ValueError(f"Invalid frame number: {frame_number}")
-            
+
         if width <= 0 or height <= 0:
             raise ValueError(f"Invalid dimensions: {width}x{height}")
-        
+
         try:
             timestamp = frame_to_timestamp(frame_number, fps)
             return ffmpeg_input(video_path, timestamp, width, height)
@@ -256,7 +268,7 @@ class VideoCropper(Cropper):
         for frame_number in range(start_frame, end_frame + 1):
             # Process UI events to allow cancel signals to be processed
             QApplication.processEvents()
-            
+
             # Check if cancellation has been requested
             if self.end_task:
                 self.emit_done()
@@ -295,4 +307,3 @@ class VideoCropper(Cropper):
         if not self.end_task:
             self.end_task = True
             self.emit_done()
-    

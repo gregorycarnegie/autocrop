@@ -1,4 +1,3 @@
-from typing import Optional
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 
@@ -20,13 +19,13 @@ class NumberLineEdit(CustomLineEdit):
         value(self) -> int: Returns the integer value of the text input.
     """
 
-    def __init__(self, name: str, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, name: str, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
         self.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhDigitsOnly)
         self.setValidator(QtGui.QIntValidator(parent=self))
         self.setText('')
         self.setObjectName(name)
-        self.setPlaceholderText(QtCore.QCoreApplication.translate("self", u"Type a number", None))
+        self.setPlaceholderText(QtCore.QCoreApplication.translate("self", "Type a number", None))
 
     def validate_path(self):
         """

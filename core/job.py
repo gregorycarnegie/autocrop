@@ -3,13 +3,12 @@ import shutil
 from contextlib import suppress
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 import polars as pl
 from PyQt6.QtWidgets import QComboBox
 
-from file_types import file_manager, FileCategory
+from file_types import FileCategory, file_manager
 
 
 @dataclass(slots=True, frozen=True, repr=True)
@@ -59,18 +58,18 @@ class Job:
 
     # Optional fields with default values
     radio_options: np.ndarray = field(default_factory=lambda: np.array(['No', '.bmp', '.jpg', '.png', '.tiff', '.webp']))
-    destination: Optional[Path] = None
-    photo_path: Optional[Path] = None
-    folder_path: Optional[Path] = None
-    video_path: Optional[Path] = None
-    start_position: Optional[float] = None
-    stop_position: Optional[float] = None
-    table: Optional[pl.DataFrame] = None
-    column1: Optional[QComboBox] = None
-    column2: Optional[QComboBox] = None
+    destination: Path | None = None
+    photo_path: Path | None = None
+    folder_path: Path | None = None
+    video_path: Path | None = None
+    start_position: float | None = None
+    stop_position: float | None = None
+    table: pl.DataFrame | None = None
+    column1: QComboBox | None = None
+    column2: QComboBox | None = None
 
     @staticmethod
-    def _validate_path(path: Optional[Path]) -> Optional[Path]:
+    def _validate_path(path: Path | None) -> Path | None:
         """
         Validate a path to ensure it's safe and accessible.
         Returns None if the path is invalid or inaccessible.
@@ -89,28 +88,28 @@ class Job:
             # Check that the path is accessible
             return resolved_path if os.access(resolved_path, os.R_OK) else None
         return None
-    
+
     @property
-    def safe_photo_path(self) -> Optional[Path]:
+    def safe_photo_path(self) -> Path | None:
         """Returns a validated photo path or None if invalid."""
         return self._validate_path(self.photo_path)
-    
+
     @property
-    def safe_folder_path(self) -> Optional[Path]:
+    def safe_folder_path(self) -> Path | None:
         """Returns a validated folder path or None if invalid."""
         return self._validate_path(self.folder_path)
-    
+
     @property
-    def safe_destination(self) -> Optional[Path]:
+    def safe_destination(self) -> Path | None:
         """Returns a validated destination path or None if invalid."""
         return self._validate_path(self.destination)
-    
+
     @property
-    def safe_video_path(self) -> Optional[Path]:
+    def safe_video_path(self) -> Path | None:
         """Returns a validated video path or None if invalid."""
         return self._validate_path(self.video_path)
 
-    def iter_images(self) -> Optional[list[Path]]:
+    def iter_images(self) -> list[Path] | None:
         """
         Retrieves a list of files from `folder_path` whose suffix is in supported file types.
         Includes path validation for security.
@@ -171,7 +170,7 @@ class Job:
         """
         return 100 - self.sensitivity
 
-    def get_destination(self) -> Optional[Path]:
+    def get_destination(self) -> Path | None:
         """
         Creates and returns the `destination` directory if specified.
         Returns None if not set or invalid.
@@ -180,14 +179,14 @@ class Job:
         safe_dest = self.safe_destination
         if safe_dest is None:
             return None
-            
+
         # Try to create the directory
         with suppress(Exception):
             safe_dest.mkdir(exist_ok=True)
             return safe_dest
         return None
 
-    def file_list_to_numpy(self) -> Optional[tuple[np.ndarray, np.ndarray]]:
+    def file_list_to_numpy(self) -> tuple[np.ndarray, np.ndarray] | None:
         """
         Converts two columns of the `table` (specified by `column1` and `column2`) into
         NumPy string arrays, filtering by actual file existence in `folder_path`.
@@ -246,7 +245,7 @@ class Job:
         safe_dest = self.safe_destination
         if safe_dest is None:
             return False
-            
+
         # Check if the directory can be written to
         try:
             return os.access(safe_dest, os.W_OK)
@@ -263,7 +262,7 @@ class Job:
         safe_dest = self.safe_destination
         if safe_dest is None:
             return 0
-            
+
         # Check free space with error handling
         try:
             return shutil.disk_usage(safe_dest).free

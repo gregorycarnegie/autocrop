@@ -1,9 +1,9 @@
 from threading import Lock
-from typing import ClassVar, Literal, Optional
+from typing import ClassVar, Literal
 
 import ffmpeg
 import psutil
-from PyQt6.QtCore import pyqtSignal, QObject, Qt, QMetaObject
+from PyQt6.QtCore import QMetaObject, QObject, Qt, pyqtSignal
 
 from ui import utils as ut
 
@@ -24,8 +24,8 @@ class Cropper(QObject):
     error = pyqtSignal()
     progress = pyqtSignal(int, int)
 
-    def __init__(self, parent: Optional[QObject] = None):
-        super(Cropper, self).__init__(parent)
+    def __init__(self, parent: QObject | None = None):
+        super().__init__(parent)
 
         # # Task state
         self.progress_count, self.end_task, self.show_message_box = self.TASK_VALUES
@@ -33,7 +33,7 @@ class Cropper(QObject):
 
         # # Synchronization
         self.lock = Lock()
-        
+
         # Enable cross-thread signals (only needed for Qt 6.5+)
         self.started.connect(self._handle_started, Qt.ConnectionType.QueuedConnection)
         self.finished.connect(self._handle_finished, Qt.ConnectionType.QueuedConnection)
@@ -46,7 +46,7 @@ class Cropper(QObject):
         """Helper method to handle started signal in the main thread"""
         # This just helps with cross-thread signal delivery
         print("Processing started.")
-        
+
     @staticmethod
     def _handle_finished():
         """Helper method to handle the finished signal in the main thread"""
@@ -57,7 +57,7 @@ class Cropper(QObject):
     def create_error(error_type: Literal[
         'access', 'amount', 'capacity', 'ffmpeg', 'file', 'file_type', 'directory', 'memory', 'thread'
     ],
-                     custom_message: Optional[str] = None) -> tuple[Exception, str]:
+                     custom_message: str | None = None) -> tuple[Exception, str]:
         errors = {
             'access': (
                 PermissionError("Permission denied."),
@@ -115,11 +115,11 @@ class Cropper(QObject):
         if not self.finished_signal_emitted:
             # Set flag to prevent multiple emissions
             self.finished_signal_emitted = True
-            
+
             # Use QMetaObject.invokeMethod for cross-thread signal emission
             QMetaObject.invokeMethod(
-                self, 
-                "finished", 
+                self,
+                "finished",
                 Qt.ConnectionType.QueuedConnection
             )
             print("Finished signal emitted")
@@ -144,7 +144,7 @@ class Cropper(QObject):
         Displays an error message using the window_functions module
         and emits the error signal.
         """
-        
+
         ut.show_error_box(f"{exception}\n{suggestion}")
         self.error.emit()
         self.end_task = True

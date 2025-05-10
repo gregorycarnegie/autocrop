@@ -1,22 +1,33 @@
 import os
+import platform
+import subprocess
 from functools import cache, partial
 from pathlib import Path
-from typing import Optional, Union
 
 import cv2.typing as cvt
-from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtGui
+from PyQt6.QtWidgets import (
+    QApplication,
+    QComboBox,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QPushButton,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 
 from core.enums import FunctionType
+
 from .dialog import UiDialog
 from .enums import GuiIcon
 from .image_widget import ImageWidget
 
-import platform
-import subprocess
 
-
-def register_button_dependencies(widget, button: QtWidgets.QPushButton,
-                                 dependent_widgets: set[QtWidgets.QWidget]) -> None:
+def register_button_dependencies(widget, button: QPushButton,
+                                 dependent_widgets: set[QWidget]) -> None:
     """
     Register button dependencies with path validation support
 
@@ -66,7 +77,7 @@ def check_paths_valid(tab_widget) -> bool:
     # For other tabs, just check input and destination
     return input_valid and dest_valid
 
-def sanitize_path(path_str: str) -> Optional[str]:
+def sanitize_path(path_str: str) -> str | None:
     """
     Sanitize path input to prevent path traversal attacks.
     Returns None if the path is invalid or inaccessible.
@@ -133,9 +144,9 @@ def is_subpath(path: Path, base_path: Path) -> bool:
     # Check if path starts with base_path followed by a path separator
     return path_str == base_str or path_str.startswith(f'{base_str}/')
 
-def setup_combobox(combobox: QtWidgets.QComboBox,
-                   layout: Union[QtWidgets.QHBoxLayout, QtWidgets.QHBoxLayout],
-                   policy: QtWidgets.QSizePolicy,
+def setup_combobox(combobox: QComboBox,
+                   layout: QHBoxLayout | QHBoxLayout,
+                   policy: QSizePolicy,
                    name: str) -> None:
     """Set up the combo boxes"""
     combobox.setObjectName(name)
@@ -146,20 +157,20 @@ def setup_combobox(combobox: QtWidgets.QComboBox,
     layout.addWidget(combobox)
 
 
-def setup_hbox(name: str, parent: Optional[QtWidgets.QWidget] = None) -> QtWidgets.QHBoxLayout:
-    horizontal_layout = QtWidgets.QHBoxLayout(parent)
+def setup_hbox(name: str, parent: QWidget | None = None) -> QHBoxLayout:
+    horizontal_layout = QHBoxLayout(parent)
     horizontal_layout.setObjectName(name)
     return horizontal_layout
 
 
-def setup_vbox(name: str, parent: Optional[QtWidgets.QWidget] = None) -> QtWidgets.QVBoxLayout:
-    vertical_layout = QtWidgets.QVBoxLayout(parent)
+def setup_vbox(name: str, parent: QWidget | None = None) -> QVBoxLayout:
+    vertical_layout = QVBoxLayout(parent)
     vertical_layout.setObjectName(name)
     return vertical_layout
 
 
-def apply_size_policy(widget: QtWidgets.QWidget,
-                      size_policy: QtWidgets.QSizePolicy,
+def apply_size_policy(widget: QWidget,
+                      size_policy: QSizePolicy,
                       min_size: QtCore.QSize = QtCore.QSize(0, 30),
                       max_size: QtCore.QSize = QtCore.QSize(16_777_215, 30)) -> None:
     size_policy.setHeightForWidth(widget.sizePolicy().hasHeightForWidth())
@@ -169,10 +180,10 @@ def apply_size_policy(widget: QtWidgets.QWidget,
 
 
 def create_main_button(name: str,
-                       size_policy: QtWidgets.QSizePolicy,
+                       size_policy: QSizePolicy,
                        icon_file: GuiIcon,
-                       parent: QtWidgets.QWidget) -> QtWidgets.QPushButton:
-    button = QtWidgets.QPushButton(parent)
+                       parent: QWidget) -> QPushButton:
+    button = QPushButton(parent)
     button.setObjectName(name)
     size_policy.setHeightForWidth(button.sizePolicy().hasHeightForWidth())
     button.setSizePolicy(size_policy)
@@ -186,15 +197,15 @@ def create_main_button(name: str,
 
 
 def create_frame(name: str,
-                 parent: QtWidgets.QWidget,
-                 size_policy: QtWidgets.QSizePolicy) -> QtWidgets.QFrame:
-    frame = QtWidgets.QFrame(parent)
+                 parent: QWidget,
+                 size_policy: QSizePolicy) -> QFrame:
+    frame = QFrame(parent)
     frame.setObjectName(name)
     size_policy.setHeightForWidth(frame.sizePolicy().hasHeightForWidth())
     frame.setSizePolicy(size_policy)
-    frame.setStyleSheet(u"background: #1f2c33")
-    frame.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)
-    frame.setFrameShadow(QtWidgets.QFrame.Shadow.Raised)
+    frame.setStyleSheet("background: #1f2c33")
+    frame.setFrameShape(QFrame.Shape.StyledPanel)
+    frame.setFrameShadow(QFrame.Shadow.Raised)
     return frame
 
 
@@ -253,7 +264,7 @@ def load_about_form() -> None:
 
 
 @cache
-def initialise_message_box(window_title: str) -> QtWidgets.QMessageBox:
+def initialise_message_box(window_title: str) -> QMessageBox:
     """
     Initializes a message box with the specified window title.
 
@@ -261,7 +272,7 @@ def initialise_message_box(window_title: str) -> QtWidgets.QMessageBox:
         window_title (str): The title of the message box window.
 
     Returns:
-        QtWidgets.QMessageBox: The initialized message box object.
+        QMessageBox: The initialized message box object.
 
     Example:
         ```python
@@ -271,13 +282,13 @@ def initialise_message_box(window_title: str) -> QtWidgets.QMessageBox:
         message_box = initialise_message_box(title)
         ```
     """
-    msg_box = QtWidgets.QMessageBox()
+    msg_box = QMessageBox()
     msg_box.setWindowIcon(QtGui.QIcon(GuiIcon.ICON))
     msg_box.setWindowTitle(window_title)
     return msg_box
 
-def create_message_box(title: str, icon: QtWidgets.QMessageBox.Icon, 
-                     buttons: QtWidgets.QMessageBox.StandardButton = QtWidgets.QMessageBox.StandardButton.Ok) -> QtWidgets.QMessageBox:
+def create_message_box(title: str, icon: QMessageBox.Icon,
+                     buttons: QMessageBox.StandardButton = QMessageBox.StandardButton.Ok) -> QMessageBox:
     """Factory function to create message boxes with standard settings"""
     msg_box = initialise_message_box(title)
     msg_box.setIcon(icon)
@@ -286,36 +297,36 @@ def create_message_box(title: str, icon: QtWidgets.QMessageBox.Icon,
 
 # Create specialized message box creators using partial
 create_error_box = partial(
-    create_message_box, 
-    title='Error', 
-    icon=QtWidgets.QMessageBox.Icon.Warning
+    create_message_box,
+    title='Error',
+    icon=QMessageBox.Icon.Warning
 )
 
 create_warning_box = partial(
-    create_message_box, 
-    title='Paths Match', 
-    icon=QtWidgets.QMessageBox.Icon.Warning, 
-    buttons=QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No
+    create_message_box,
+    title='Paths Match',
+    icon=QMessageBox.Icon.Warning,
+    buttons=QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
 )
 
 create_question_box = partial(
-    create_message_box, 
-    title='Open Destination Folder', 
-    icon=QtWidgets.QMessageBox.Icon.Question,
-    buttons=QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No
+    create_message_box,
+    title='Open Destination Folder',
+    icon=QMessageBox.Icon.Question,
+    buttons=QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
 )
 
 def show_message_box(destination: Path) -> None:
     """Shows a message box with the option to open the destination folder."""
     msg_box = create_question_box()
     msg_box.setText('Open destination folder?')
-    if msg_box.exec() == QtWidgets.QMessageBox.StandardButton.Yes:
+    if msg_box.exec() == QMessageBox.StandardButton.Yes:
         # Replace the insecure os.startfile with a safer alternative
         try:
             # Use platform-specific methods to open file explorer
             # Make sure destination path is absolute and normalized
             abs_path = str(destination.resolve())
-            
+
             # Use different commands based on operating system
             if platform.system() == "Windows":
                 # On Windows, use subprocess.run with explorer.exe
@@ -347,12 +358,12 @@ def show_error_box(*messages: str) -> None:
     msg_box.setText('\n'.join(messages))
     msg_box.exec()
 
-def generate_message(msg_box: QtWidgets.QMessageBox, message: str) -> None:
+def generate_message(msg_box: QMessageBox, message: str) -> None:
     """
     Generates a message for the message box with the specified text.
 
     Args:
-        msg_box (QtWidgets.QMessageBox): The message box object.
+        msg_box (QMessageBox): The message box object.
         message (str): The message to include in the text.
 
     Returns:
@@ -360,7 +371,7 @@ def generate_message(msg_box: QtWidgets.QMessageBox, message: str) -> None:
 
     Example:
         ```python
-        message_box = QtWidgets.QMessageBox()
+        message_box = QMessageBox()
         text_message = 'This is a warning message.'
 
         # Generate a message for the message box
@@ -384,16 +395,16 @@ def show_warning(function_type: FunctionType) -> int:
             message = 'This will overwrite any cropped frames with the same name.'
 
     generate_message(msg_box, message)
-    
+
     return msg_box.exec()
 
 
-def disable_widget(*args: QtWidgets.QWidget) -> None:
+def disable_widget(*args: QWidget) -> None:
     """
     Disables multiple widgets with improved state handling.
 
     Args:
-        *args (QtWidgets.QWidget): Variable number of widgets to disable.
+        *args (QWidget): Variable number of widgets to disable.
     """
     for arg in args:
         arg.blockSignals(True)  # Block signals during state change
@@ -401,12 +412,12 @@ def disable_widget(*args: QtWidgets.QWidget) -> None:
         arg.blockSignals(False)  # Unblock signals
         arg.repaint()  # Force immediate repaint
 
-def enable_widget(*args: QtWidgets.QWidget) -> None:
+def enable_widget(*args: QWidget) -> None:
     """
     Enables multiple widgets with improved state handling.
 
     Args:
-        *args (QtWidgets.QWidget): Variable number of widgets to enable.
+        *args (QWidget): Variable number of widgets to enable.
     """
     for arg in args:
         arg.blockSignals(True)  # Block signals during state change
@@ -414,17 +425,17 @@ def enable_widget(*args: QtWidgets.QWidget) -> None:
         arg.blockSignals(False)  # Unblock signals
         arg.repaint()  # Force immediate repaint
 
-def change_widget_state(boolean: bool, *args: QtWidgets.QWidget) -> None:
+def change_widget_state(boolean: bool, *args: QWidget) -> None:
     """
     Changes the state of multiple widgets based on a boolean value with improved state handling.
 
     Args:
         boolean (bool): The boolean value to determine the state of the widgets.
-        *args (QtWidgets.QWidget): Variable number of widgets to change the state of.
+        *args (QWidget): Variable number of widgets to change the state of.
     """
     if not args:
         return
-        
+
     for arg in args:
         arg.blockSignals(True)  # Block signals during state change
         if boolean:
@@ -433,13 +444,13 @@ def change_widget_state(boolean: bool, *args: QtWidgets.QWidget) -> None:
             arg.setDisabled(not boolean)
         arg.blockSignals(False)  # Unblock signals
         arg.repaint()  # Force immediate repaint
-    
-    # Process events to ensure UI updates
-    QtWidgets.QApplication.processEvents()
 
-def check_mime_data(event: Union[QtGui.QDragEnterEvent, QtGui.QDragMoveEvent]) -> None:
+    # Process events to ensure UI updates
+    QApplication.processEvents()
+
+def check_mime_data(event: QtGui.QDragEnterEvent | QtGui.QDragMoveEvent) -> None:
     """
-    Checks the mime data of a drag enter or drag move event and accepts or ignores the event based on the presence of URLs in the mime data.
+    Checks the mime data of a drag enter or drag move event and accepts/ignores the event based on the presence of URLs.
 
     Args:
         event (Union[QtGui.QDragEnterEvent, QtGui.QDragMoveEvent]): The drag enter or drag move event.
@@ -463,20 +474,20 @@ def check_mime_data(event: Union[QtGui.QDragEnterEvent, QtGui.QDragMoveEvent]) -
         event.ignore()
 
 
-def setup_frame(name: str, *, parent: QtWidgets.QWidget) -> QtWidgets.QFrame:
+def setup_frame(name: str, *, parent: QWidget) -> QFrame:
     """
     Sets up and returns a QFrame with the specified name and parent.
 
     Args:
         name (str): The name of the QFrame object.
-        parent (QtWidgets.QWidget): The parent widget for the QFrame.
+        parent (QWidget): The parent widget for the QFrame.
 
     Returns:
-        QtWidgets.QFrame: The created QFrame object.
+        QFrame: The created QFrame object.
 
     Example:
         ```python
-        parent_widget = QtWidgets.QWidget()
+        parent_widget = QWidget()
         frame_name = 'myFrame'
 
         # Set up a QFrame with the specified name and parent
@@ -484,16 +495,16 @@ def setup_frame(name: str, *, parent: QtWidgets.QWidget) -> QtWidgets.QFrame:
         ```
     """
 
-    frame = QtWidgets.QFrame(parent=parent)
-    frame.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
-    frame.setFrameShadow(QtWidgets.QFrame.Shadow.Raised)
+    frame = QFrame(parent=parent)
+    frame.setFrameShape(QFrame.Shape.NoFrame)
+    frame.setFrameShadow(QFrame.Shadow.Raised)
     frame.setObjectName(name)
     return frame
 
-def create_media_button(parent: QtWidgets.QWidget, size_policy: QtWidgets.QSizePolicy,
+def create_media_button(parent: QWidget, size_policy: QSizePolicy,
                         *, name: str,
-                        icon_resource: GuiIcon) -> QtWidgets.QPushButton:
-    button = QtWidgets.QPushButton(parent)
+                        icon_resource: GuiIcon) -> QPushButton:
+    button = QPushButton(parent)
     button.setObjectName(name)
     size_policy.setHeightForWidth(button.sizePolicy().hasHeightForWidth())
     button.setSizePolicy(size_policy)
@@ -507,10 +518,10 @@ def create_media_button(parent: QtWidgets.QWidget, size_policy: QtWidgets.QSizeP
     button.setIconSize(QtCore.QSize(24, 24))
     return button
 
-def create_label(parent: QtWidgets.QWidget, size_policy: QtWidgets.QSizePolicy,
+def create_label(parent: QWidget, size_policy: QSizePolicy,
                     *, name: str,
-                    icon_resource: GuiIcon) -> QtWidgets.QLabel:
-    label = QtWidgets.QLabel(parent)
+                    icon_resource: GuiIcon) -> QLabel:
+    label = QLabel(parent)
     label.setObjectName(name)
     size_policy.setHeightForWidth(label.sizePolicy().hasHeightForWidth())
     label.setSizePolicy(size_policy)
@@ -522,9 +533,9 @@ def create_label(parent: QtWidgets.QWidget, size_policy: QtWidgets.QSizePolicy,
     label.setScaledContents(True)
     return label
 
-def create_marker_button(parent: QtWidgets.QWidget, size_policy: QtWidgets.QSizePolicy,
-                            name: str) -> QtWidgets.QPushButton:
-    button = QtWidgets.QPushButton(parent)
+def create_marker_button(parent: QWidget, size_policy: QSizePolicy,
+                            name: str) -> QPushButton:
+    button = QPushButton(parent)
     button.setObjectName(name)
     size_policy.setHeightForWidth(button.sizePolicy().hasHeightForWidth())
     button.setSizePolicy(size_policy)
@@ -542,7 +553,7 @@ def get_qtime(position: int) -> QtCore.QTime:
     hours, minutes = divmod(minutes, 60)
     return QtCore.QTime(hours, minutes, seconds)
 
-def set_marker_time(button: QtWidgets.QPushButton, position: Union[int, float]) -> None:
+def set_marker_time(button: QPushButton, position: int | float) -> None:
     button.setText(get_qtime(position * 1000).toString())
 
 @cache

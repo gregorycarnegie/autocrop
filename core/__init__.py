@@ -1,4 +1,4 @@
-from . import processing, face_tools
+from . import face_tools, processing
 from .data_model import DataFrameModel
 from .job import Job
 from .resource_path import ResourcePath

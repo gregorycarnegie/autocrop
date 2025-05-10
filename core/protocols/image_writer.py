@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Protocol, Union
+from typing import Protocol
 
 import cv2
 import numpy as np
@@ -11,7 +11,7 @@ class ImageWriter(Protocol):
     """
     def __call__(
         self,
-        image: Union[cv2.Mat, np.ndarray],
+        image: cv2.Mat | np.ndarray,
         file: Path,
         user_gam: float,
         is_tiff: bool = False

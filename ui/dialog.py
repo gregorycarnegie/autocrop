@@ -3,13 +3,14 @@ from PyQt6.QtGui import QIcon, QImage
 from PyQt6.QtWidgets import QDialog, QLabel, QSizePolicy
 
 from ui import utils as ut
+
 from .enums import GuiIcon
 from .image_widget import ImageWidget
 
 
 class UiDialog(QDialog):
     def __init__(self):
-        super(UiDialog, self).__init__()
+        super().__init__()
         self.setObjectName('Dialog')
         self.resize(347, 442)
         size_policy = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
@@ -26,7 +27,7 @@ class UiDialog(QDialog):
         self.setWindowIcon(QIcon(GuiIcon.ICON))
         self.verticalLayout.addWidget(self.widget)
         self.frame = ut.setup_frame('frame', parent=self)
-        self.horizontalLayout_2 = ut.setup_hbox(u'horizontalLayout_2', self.frame)
+        self.horizontalLayout_2 = ut.setup_hbox('horizontalLayout_2', self.frame)
         self.horizontalLayout_2.setContentsMargins(-1, 0, -1, 0)
         self.label = QLabel(parent=self.frame)
         self.label.setObjectName('label')
@@ -93,10 +94,10 @@ class UiDialog(QDialog):
         self.label.setText(_translate('Dialog', 'Version:'))
         self.label_5.setText(_translate('Dialog', '2.2.0'))
         self.label_2.setText(_translate('Dialog', 'Creator:'))
-        self.label_6.setText(_translate("Dialog", """<a href="https://github.com/gregorycarnegie/autocrop">Gregory 
+        self.label_6.setText(_translate("Dialog", """<a href="https://github.com/gregorycarnegie/autocrop">Gregory
         Carnegie</a>"""))
         self.label_3.setText(_translate('Dialog', 'Inspiration:'))
-        self.label_7.setText(_translate('Dialog', """<a href="https://leblancfg.com/autocrop/">François Leblanc's 
+        self.label_7.setText(_translate('Dialog', """<a href="https://leblancfg.com/autocrop/">François Leblanc's
         autocrop library</a>"""))
         self.label_8.setText(_translate('Dialog', """<a href="https://bleedaiacademy.com/5-easy-effective-face
         -detection-algorithms-in-python/">Bleed AI's Face Detection article</a>"""))

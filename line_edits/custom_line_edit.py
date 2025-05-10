@@ -1,10 +1,11 @@
-from typing import ClassVar, Optional
+from typing import ClassVar
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon, QPixmap, QResizeEvent
 from PyQt6.QtWidgets import QLineEdit, QStyle, QToolButton, QWidget
 
 from ui.enums import GuiIcon
+
 from .enums import LineEditState
 
 
@@ -12,15 +13,20 @@ class CustomLineEdit(QLineEdit):
     """
     Represents a CustomLineEdit class that inherits from the QLineEdit class.
 
-    The CustomLineEdit class provides a customized line edit widget with a clear button and validation functionality. It overrides the `resizeEvent` method to handle the positioning of the clear button. The class also defines methods for updating the clear button visibility, validating the input path, setting the valid and invalid colors, and updating the style.
+    The CustomLineEdit class provides a customized line edit widget with a clear button and validation
+    functionality. It overrides the `resizeEvent` method to handle the positioning of the clear button.
+    The class also defines methods for updating the clear button visibility, validating the input path,
+    setting the valid and invalid colors, and updating the style.
 
     Attributes:
         VALID_COLOR (ClassVar[str]): The colour code for valid input.
         INVALID_COLOR (ClassVar[str]): The colour code for invalid input.
 
     Methods:
-        resizeEvent(a0: Optional[QResizeEvent]): Overrides the resize event to handle the positioning of the clear button.
-        update_clear_button(text: str) -> None: Updates the visibility of the clear button based on the text input.
+        resizeEvent(a0: Optional[QResizeEvent]): Overrides the resize event to handle the positioning
+            of the clear button.
+        update_clear_button(text: str) -> None: Updates the visibility of the clear button based on
+            the text input.
         validate_path() -> None: Validates the input path and sets the colour accordingly.
         set_valid_color() -> None: Sets the colour to the valid colour.
         set_invalid_color() -> None: Sets the colour to the invalid colour.
@@ -28,7 +34,7 @@ class CustomLineEdit(QLineEdit):
         update_style() -> None: Updates the style of the line edit.
 
     Example:
-        ```python
+
         # Creating an instance of the CustomLineEdit class
         line_edit = CustomLineEdit()
 
@@ -49,14 +55,13 @@ class CustomLineEdit(QLineEdit):
 
         # Updating the style
         line_edit.update_style()
-        ```
-    """
 
+    """
     VALID_COLOR: ClassVar[str] = '#7fda91'  # light green
     INVALID_COLOR: ClassVar[str] = '#ff6c6c'  # rose
 
-    def __init__(self, parent: Optional[QWidget] = None):
-        super(CustomLineEdit, self).__init__(parent)
+    def __init__(self, parent: QWidget | None = None):
+        super().__init__(parent)
         self.state = LineEditState.INVALID_INPUT
         self.colour = self.INVALID_COLOR
         self.clearButton = QToolButton(self)
@@ -73,7 +78,7 @@ class CustomLineEdit(QLineEdit):
 
         self.update_style()
 
-    def resizeEvent(self, a0: Optional[QResizeEvent]):
+    def resizeEvent(self, a0: QResizeEvent | None):
         """
         Overrides the resize event to handle the positioning of the clear button.
 
@@ -88,13 +93,13 @@ class CustomLineEdit(QLineEdit):
         button_size = self.clearButton.sizeHint()
         if (style := self.style()) is None:
             return
-        
+
         frame_width = style.pixelMetric(QStyle.PixelMetric.PM_DefaultFrameWidth)
         rect = self.rect()
         self.clearButton.move(rect.right() - frame_width - button_size.width(),
                               (rect.bottom() - button_size.height() + 1) >> 1)
-        
-        super(CustomLineEdit, self).resizeEvent(a0)
+
+        super().resizeEvent(a0)
 
     def update_clear_button(self, text: str) -> None:
         """
@@ -113,10 +118,10 @@ class CustomLineEdit(QLineEdit):
     def showEvent(self, event) -> None:
         """
         Override showEvent to ensure clear button visibility is properly updated when widget becomes visible.
-        
+
         Args:
             event: The show event.
-            
+
         Returns:
             None
         """

@@ -11,7 +11,7 @@ def load_stylesheet(app: QApplication) -> None:
     """Load the browser-style CSS stylesheet"""
     # Path to our custom stylesheet
     style_path = ResourcePath("resources\\browser_style.css").as_resource()
-    
+
     # Load the stylesheet
     file = QFile(style_path)
     if file.open(QFile.OpenModeFlag.ReadOnly | QFile.OpenModeFlag.Text):
@@ -29,21 +29,21 @@ def setup_fonts(app: QApplication) -> None:
 
 def main():
     app = QApplication([])
-    
+
     # Set application details
     app.setApplicationName("Autocrop")
     app.setApplicationDisplayName("Autocrop")
     app.setWindowIcon(QIcon(GuiIcon.ICON))
-    
+
     # Setup custom styling
     setup_fonts(app)
     load_stylesheet(app)
-    
+
     # Create the main window
     window = UiMainWindow()
     window.adjust_ui(app)
     window.show()
-    
+
     app.aboutToQuit.connect(window.cleanup_workers)
     app.exec()
 

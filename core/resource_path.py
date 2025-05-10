@@ -17,4 +17,3 @@ class ResourcePath(_BasePath):
 
     def as_resource(self) -> str:     #  ← returns its own concrete subclass
         return type(self)(self._base_dir / self).as_posix()
-    

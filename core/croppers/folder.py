@@ -1,9 +1,9 @@
 import threading
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from itertools import batched
 from pathlib import Path
-from typing import Callable, Optional
 
 import numpy as np
 from autocrop_rs import validate_files
@@ -12,6 +12,7 @@ from core import processing as prc
 from core.face_tools import FaceToolPair
 from core.job import Job
 from file_types import FileCategory, file_manager
+
 from .batch import BatchCropper
 
 
@@ -30,19 +31,19 @@ class FolderCropper(BatchCropper):
         """
         # Convert tuple to list if needed
         image_paths = list(file_list)
-        
+
         # Process the images
         prc.batch_process_with_pipeline(
             image_paths, job, face_detection_tools, cancel_event, False
         )
-        
+
         # Update completion status
         self._check_completion(file_amount)
-        
+
         if self.progress_count == file_amount or self.end_task:
             self.show_message_box = False
 
-    def prepare_crop_operation(self, job: Job) -> tuple[Optional[int], Optional[list[Path]]]:
+    def prepare_crop_operation(self, job: Job) -> tuple[int | None, list[Path] | None]:
         """
         Prepare the folder crop_from_path operation by getting the file list and splitting into chunks.
         """

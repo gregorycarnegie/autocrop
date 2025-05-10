@@ -1,7 +1,8 @@
-from PyQt6 import QtCore, QtWidgets, QtGui, QtMultimedia
+from PyQt6 import QtCore, QtGui, QtMultimedia, QtWidgets
 
 from core.croppers import VideoCropper
 from ui import utils as ut
+
 from .enums import GuiIcon
 
 
@@ -10,8 +11,8 @@ class UiMediaControlWidget(QtWidgets.QWidget):
         super().__init__(parent)
         self.media_player = media_player
         self.crop_worker = crop_worker
-        self.setObjectName(u"MediaControlWidget")
-        self.horizontalLayout = ut.setup_hbox(u"horizontalLayout", self)
+        self.setObjectName("MediaControlWidget")
+        self.horizontalLayout = ut.setup_hbox("horizontalLayout", self)
         size_policy1 = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
         size_policy1.setHorizontalStretch(1)
         size_policy1.setVerticalStretch(1)
@@ -20,17 +21,17 @@ class UiMediaControlWidget(QtWidgets.QWidget):
             button = ut.create_media_button(self, size_policy1, name=button_name, icon_resource=icon_resource)
             self.horizontalLayout.addWidget(button)
             return button
-        
-        self.playButton = media_button_helper(u"playButton", GuiIcon.MULTIMEDIA_PLAY)
-        self.stopButton = media_button_helper(u"stopButton", GuiIcon.MULTIMEDIA_STOP)
-        self.stepbackButton = media_button_helper(u"stepbackButton", GuiIcon.MULTIMEDIA_LEFT)
-        self.stepfwdButton = media_button_helper(u"stepfwdButton", GuiIcon.MULTIMEDIA_RIGHT)
-        self.rewindButton = media_button_helper(u"rewindButton", GuiIcon.MULTIMEDIA_REWIND)
-        self.fastfwdButton = media_button_helper(u"fastfwdButton", GuiIcon.MULTIMEDIA_FASTFWD)
-        self.goto_beginingButton = media_button_helper(u"goto_beginingButton", GuiIcon.MULTIMEDIA_BEGINNING)
-        self.goto_endButton = media_button_helper(u"goto_endButton", GuiIcon.MULTIMEDIA_END)
-        self.startmarkerButton = media_button_helper(u"startmarkerButton", GuiIcon.MULTIMEDIA_LEFTMARKER)
-        self.endmarkerButton = media_button_helper(u"endmarkerButton", GuiIcon.MULTIMEDIA_RIGHTMARKER)
+
+        self.playButton = media_button_helper("playButton", GuiIcon.MULTIMEDIA_PLAY)
+        self.stopButton = media_button_helper("stopButton", GuiIcon.MULTIMEDIA_STOP)
+        self.stepbackButton = media_button_helper("stepbackButton", GuiIcon.MULTIMEDIA_LEFT)
+        self.stepfwdButton = media_button_helper("stepfwdButton", GuiIcon.MULTIMEDIA_RIGHT)
+        self.rewindButton = media_button_helper("rewindButton", GuiIcon.MULTIMEDIA_REWIND)
+        self.fastfwdButton = media_button_helper("fastfwdButton", GuiIcon.MULTIMEDIA_FASTFWD)
+        self.goto_beginingButton = media_button_helper("goto_beginingButton", GuiIcon.MULTIMEDIA_BEGINNING)
+        self.goto_endButton = media_button_helper("goto_endButton", GuiIcon.MULTIMEDIA_END)
+        self.startmarkerButton = media_button_helper("startmarkerButton", GuiIcon.MULTIMEDIA_LEFTMARKER)
+        self.endmarkerButton = media_button_helper("endmarkerButton", GuiIcon.MULTIMEDIA_RIGHTMARKER)
 
         self.horizontalSpacer_1 = QtWidgets.QSpacerItem(60, 20, QtWidgets.QSizePolicy.Policy.Fixed,
                                                         QtWidgets.QSizePolicy.Policy.Minimum)
@@ -41,16 +42,16 @@ class UiMediaControlWidget(QtWidgets.QWidget):
         size_policy2.setHorizontalStretch(0)
         size_policy2.setVerticalStretch(0)
 
-        self.cropButton = ut.create_media_button(self, size_policy2, name=u"cropButton",
+        self.cropButton = ut.create_media_button(self, size_policy2, name="cropButton",
                                                  icon_resource=GuiIcon.CROP)
         self.cropButton.setDisabled(True)
         self.horizontalLayout.addWidget(self.cropButton)
 
-        self.videocropButton = ut.create_media_button(self, size_policy2, name=u"videocropButton",
+        self.videocropButton = ut.create_media_button(self, size_policy2, name="videocropButton",
                                                       icon_resource=GuiIcon.CLAPPERBOARD)
         self.horizontalLayout.addWidget(self.videocropButton)
 
-        self.cancelButton = ut.create_media_button(self, size_policy2, name=u"cancelButton",
+        self.cancelButton = ut.create_media_button(self, size_policy2, name="cancelButton",
                                                    icon_resource=GuiIcon.CANCEL)
         self.cancelButton.setDisabled(True)
         self.horizontalLayout.addWidget(self.cancelButton)
@@ -61,18 +62,18 @@ class UiMediaControlWidget(QtWidgets.QWidget):
         self.horizontalLayout.addItem(self.horizontalSpacer_2)
 
         self.gridLayout = QtWidgets.QGridLayout()
-        self.gridLayout.setObjectName(u"gridLayout")
+        self.gridLayout.setObjectName("gridLayout")
 
-        self.label_A = ut.create_label(self, size_policy2, name=u"label_A", icon_resource=GuiIcon.MULTIMEDIA_LABEL_A)
+        self.label_A = ut.create_label(self, size_policy2, name="label_A", icon_resource=GuiIcon.MULTIMEDIA_LABEL_A)
         self.gridLayout.addWidget(self.label_A, 0, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
 
-        self.selectStartMarkerButton = ut.create_marker_button(self, size_policy2, u"selectStartMarkerButton")
+        self.selectStartMarkerButton = ut.create_marker_button(self, size_policy2, "selectStartMarkerButton")
         self.gridLayout.addWidget(self.selectStartMarkerButton, 0, 1, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
 
-        self.label_B = ut.create_label(self, size_policy2, name=u"label_B", icon_resource=GuiIcon.MULTIMEDIA_LABEL_B)
+        self.label_B = ut.create_label(self, size_policy2, name="label_B", icon_resource=GuiIcon.MULTIMEDIA_LABEL_B)
         self.gridLayout.addWidget(self.label_B, 1, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
 
-        self.selectEndMarkerButton = ut.create_marker_button(self, size_policy2, u"selectEndMarkerButton")
+        self.selectEndMarkerButton = ut.create_marker_button(self, size_policy2, "selectEndMarkerButton")
         self.gridLayout.addWidget(self.selectEndMarkerButton, 1, 1, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
 
         self.gridLayout.setColumnStretch(0, 1)
@@ -108,12 +109,12 @@ class UiMediaControlWidget(QtWidgets.QWidget):
                 self.goto_beginingButton, self.goto_endButton,
                 self.startmarkerButton, self.endmarkerButton,
                 self.selectEndMarkerButton, self.selectStartMarkerButton))
-        
+
         controls = (self.cropButton, self.videocropButton, self.playButton, self.stopButton,
                     self.stepbackButton, self.stepfwdButton, self.fastfwdButton,
                     self.goto_beginingButton, self.goto_endButton, self.startmarkerButton,
                     self.endmarkerButton, self.selectStartMarkerButton, self.selectEndMarkerButton)
-        
+
         # Video start connection
         self.crop_worker.started.connect(lambda: ut.disable_widget(*controls))
         self.crop_worker.started.connect(lambda: ut.enable_widget(self.cancelButton))
@@ -126,7 +127,7 @@ class UiMediaControlWidget(QtWidgets.QWidget):
     # setupUi
 
     def retranslateUi(self):
-        self.setWindowTitle(QtCore.QCoreApplication.translate("self", u"Form", None))
+        self.setWindowTitle(QtCore.QCoreApplication.translate("self", "Form", None))
         self.playButton.setText("")
         self.stopButton.setText("")
         self.stepbackButton.setText("")
@@ -141,9 +142,9 @@ class UiMediaControlWidget(QtWidgets.QWidget):
         self.videocropButton.setText("")
         self.cancelButton.setText("")
         self.label_A.setText("")
-        self.selectStartMarkerButton.setText(QtCore.QCoreApplication.translate("self", u"00:00:00", None))
+        self.selectStartMarkerButton.setText(QtCore.QCoreApplication.translate("self", "00:00:00", None))
         self.label_B.setText("")
-        self.selectEndMarkerButton.setText(QtCore.QCoreApplication.translate("self", u"00:00:00", None))
+        self.selectEndMarkerButton.setText(QtCore.QCoreApplication.translate("self", "00:00:00", None))
 
     def playing_case(self):
         self.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PAUSE))

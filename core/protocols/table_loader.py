@@ -1,7 +1,7 @@
-from typing import Optional, Protocol
+from pathlib import Path
+from typing import Protocol
 
 import polars as pl
-from pathlib import Path
 
 
 class TableLoader(Protocol):
@@ -11,5 +11,5 @@ class TableLoader(Protocol):
     def __call__(
         self,
         file: Path,
-    ) -> Optional[pl.DataFrame]:
+    ) -> pl.DataFrame | None:
         ...

@@ -1,15 +1,17 @@
 
 import contextlib
 import threading
+from collections.abc import Callable
 from pathlib import Path
-from typing import Optional, Callable, Any
+from typing import Any
 
-from PyQt6 import QtWidgets
+from PyQt6.QtWidgets import QApplication, QFrame, QMessageBox, QPushButton, QToolBox, QVBoxLayout, QWidget
 
 from core import Job
 from core.croppers import BatchCropper
 from ui import utils as ut
 from ui.pulsing_indicator import PulsingProgressIndicator
+
 from .crop_widget import UiCropWidget
 from .enums import GuiIcon
 
@@ -22,23 +24,23 @@ class UiBatchCropWidget(UiCropWidget):
 
     PROGRESSBAR_STEPS: int = 1_000
 
-    def __init__(self, crop_worker: BatchCropper, object_name: str, parent: QtWidgets.QWidget) -> None:
+    def __init__(self, crop_worker: BatchCropper, object_name: str, parent: QWidget) -> None:
         """Initialize the batch crop widget with pulsing progress indicator"""
         super().__init__(parent, object_name)
         self.crop_worker = crop_worker
-        
+
         # Create pulsing progress indicator
         self.pulsing_indicator = PulsingProgressIndicator(self)
         self.pulsing_indicator.setObjectName("pulsingIndicator")
-        
+
         # Create common UI elements for batch operations
-        self.toolBox = QtWidgets.QToolBox(self)
+        self.toolBox = QToolBox(self)
         self.toolBox.setObjectName("toolBox")
 
         # Create pages for the toolbox
-        self.page_1 = QtWidgets.QWidget()
+        self.page_1 = QWidget()
         self.page_1.setObjectName("page_1")
-        self.page_2 = QtWidgets.QWidget()
+        self.page_2 = QWidget()
         self.page_2.setObjectName("page_2")
 
         # Set up page layouts
@@ -56,7 +58,7 @@ class UiBatchCropWidget(UiCropWidget):
         # Connect cancel button to terminate
         self.cancelButton.clicked.connect(self.crop_worker.terminate)
         self.cancelButton.clicked.connect(self.handle_cancel_button_click)
-        
+
         # Connect crop worker signals for proper state management
         self.connect_crop_worker()
 
@@ -66,27 +68,27 @@ class UiBatchCropWidget(UiCropWidget):
             self.crop_worker.terminate()
         except Exception as e:
             print(f"Error terminating worker: {e}")
-        
+
         # Force button states immediately
         self.cancelButton.setEnabled(False)
         self.cropButton.setEnabled(True)
-        
+
         # Reset pulsing indicator to idle state
         self.pulsing_indicator.reset()
-        
+
         # Force UI update
-        QtWidgets.QApplication.processEvents()
+        QApplication.processEvents()
 
     def enable_cancel_button(self) -> None:
         """Enable the cancel button immediately"""
         self.cancelButton.setEnabled(True)
         self.cancelButton.repaint()
-        QtWidgets.QApplication.processEvents()
+        QApplication.processEvents()
 
     def connect_crop_worker(self) -> None:
         raise NotImplementedError("function must be implemented in subclasses.")
 
-    def create_main_action_buttons(self, parent_frame: Optional[QtWidgets.QFrame]=None) -> tuple[QtWidgets.QPushButton, QtWidgets.QPushButton]:
+    def create_main_action_buttons(self, parent_frame: QFrame | None=None) -> tuple[QPushButton, QPushButton]:
         """Create crop_from_path and cancel buttons with consistent styling"""
         # Crop button
         crop_button = self.create_main_button("cropButton", GuiIcon.CROP)
@@ -100,7 +102,7 @@ class UiBatchCropWidget(UiCropWidget):
 
         return crop_button, cancel_button
 
-    def setup_main_crop_frame(self, parent_widget: QtWidgets.QWidget) -> tuple[QtWidgets.QFrame, QtWidgets.QVBoxLayout]:
+    def setup_main_crop_frame(self, parent_widget: QWidget) -> tuple[QFrame, QVBoxLayout]:
         """Create and set up the main crop_from_path frame with checkboxes and image widget"""
         frame = self.create_main_frame("frame")
         frame.setParent(parent_widget)
@@ -123,20 +125,20 @@ class UiBatchCropWidget(UiCropWidget):
         return frame, vertical_layout
 
     @staticmethod
-    def cancel_button_operation(cancel_button: QtWidgets.QPushButton, *crop_buttons: QtWidgets.QPushButton) -> None:
+    def cancel_button_operation(cancel_button: QPushButton, *crop_buttons: QPushButton) -> None:
         """Handle cancel button operations"""
         cancel_button.setDisabled(True)
         for crop_button in crop_buttons:
             crop_button.setEnabled(True)
 
-    def connect_crop_worker_signals(self, *widget_list: QtWidgets.QWidget) -> None:
+    def connect_crop_worker_signals(self, *widget_list: QWidget) -> None:
         """Connect the signals from the crop worker to UI handlers"""
         with contextlib.suppress(TypeError, RuntimeError):
             # Disconnect existing connections to avoid duplicates
             self.crop_worker.started.disconnect()
             self.crop_worker.finished.disconnect()
             # No need to disconnect progress signal anymore
-        
+
         # Batch start connection - disable all controls and start pulsing
         self.crop_worker.started.connect(lambda: ut.disable_widget(*widget_list))
         self.crop_worker.started.connect(lambda: ut.enable_widget(self.cancelButton))
@@ -153,19 +155,19 @@ class UiBatchCropWidget(UiCropWidget):
                           reset_worker_func: Callable[..., Any]) -> None:
         """Run a batch processing operation using threading instead of multiprocessing"""
         reset_worker_func()
-        
+
         # Reset pulsing indicator
         self.pulsing_indicator.reset()
-        
+
         # Disable crop button and enable cancel button manually
         self.pulsing_indicator.start_processing()
         self.cropButton.setEnabled(False)
         self.cropButton.repaint()
         self.enable_cancel_button()
-    
+
         # Process UI events to ensure indicator is shown
-        QtWidgets.QApplication.processEvents()
-        
+        QApplication.processEvents()
+
         # Use Thread instead of Process to avoid pickling issues
         thread = threading.Thread(target=function, args=(job,), daemon=True)
         thread.start()
@@ -176,7 +178,7 @@ class UiBatchCropWidget(UiCropWidget):
         """Check if source and destination are the same and warn if needed"""
         if Path(source_path) == Path(dest_path):
             match ut.show_warning(function_type):
-                case QtWidgets.QMessageBox.StandardButton.Yes:
+                case QMessageBox.StandardButton.Yes:
                     process_func()
                 case _:
                     return

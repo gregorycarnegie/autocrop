@@ -1,9 +1,10 @@
 import threading
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from itertools import batched
 from pathlib import Path
-from typing import Callable, Optional, Any
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
@@ -13,6 +14,7 @@ from core import processing as prc
 from core.face_tools import FaceToolPair
 from core.job import Job
 from file_types import FileCategory, file_manager
+
 from .batch import BatchCropper
 
 
@@ -32,15 +34,15 @@ class MappingCropper(BatchCropper):
         # Convert mapping arrays to lists of image paths and their targets
         image_paths: list[Path] = []
         output_paths: list[Path] = []
-        
+
         for old_name, new_name in zip(old, new):
             old_path: Path = job.safe_folder_path / old_name
             if old_path.is_file():
-                new_path: Path = job.safe_destination / (new_name + old_path.suffix if job.radio_choice() == 'No' 
+                new_path: Path = job.safe_destination / (new_name + old_path.suffix if job.radio_choice() == 'No'
                                             else new_name + job.radio_choice())
                 image_paths.append(old_path)
                 output_paths.append(new_path)
-        
+
         if image_paths and not cancel_event.is_set():
             prc.batch_process_with_mapping(
                 image_paths,
@@ -50,14 +52,14 @@ class MappingCropper(BatchCropper):
                 cancel_event,
                 False
             )
-        
+
         # Update completion status
         self._check_completion(file_amount)
-        
+
         if self.progress_count == file_amount or self.end_task:
             self.show_message_box = False
 
-    def prepare_crop_operation(self, job: Job) -> tuple[Optional[int], Optional[tuple[npt.NDArray[np.str_], npt.NDArray[np.str_]]]]:
+    def prepare_crop_operation(self, job: Job) -> tuple[int | None, tuple[npt.NDArray[np.str_], npt.NDArray[np.str_]] | None]:
         """
         Prepare the mapping crop_from_path operation by getting file lists and splitting into chunks.
         """
@@ -95,7 +97,7 @@ class MappingCropper(BatchCropper):
         # Check if we should use multithreading
         if not self._should_use_multithreading(amount):
             # Single-threaded processing
-            
+
             # For mapping operations, process directly
             self.worker(
                 file_amount=amount,

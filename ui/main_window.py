@@ -3,18 +3,24 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
 from pathlib import Path
-from typing import Union, Optional
 
-from PyQt6 import QtCore, QtWidgets, QtGui
+from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtSvg import QSvgRenderer
 
 from core import face_tools as ft
 from core import processing as prc
-from core.croppers import FolderCropper, PhotoCropper, MappingCropper, VideoCropper, DisplayCropper
+from core.croppers import (
+    DisplayCropper,
+    FolderCropper,
+    MappingCropper,
+    PhotoCropper,
+    VideoCropper,
+)
 from core.enums import FunctionType, Preset
-from file_types import file_manager, FileCategory, SignatureChecker
-from line_edits import NumberLineEdit, PathLineEdit, LineEditState, PathType
+from file_types import FileCategory, SignatureChecker, file_manager
+from line_edits import LineEditState, NumberLineEdit, PathLineEdit, PathType
 from ui import utils as ut
+
 from .control_widget import UiCropControlWidget
 from .crop_widget import UiCropWidget
 from .enums import GuiIcon
@@ -24,7 +30,7 @@ from .photo_tab import UiPhotoTabWidget
 from .splash_screen import UiClickableSplashScreen
 from .video_tab import UiVideoTabWidget
 
-type TabWidget = Union[UiPhotoTabWidget, UiFolderTabWidget, UiMappingTabWidget, UiVideoTabWidget]
+type TabWidget = UiPhotoTabWidget | UiFolderTabWidget | UiMappingTabWidget | UiVideoTabWidget
 
 
 class UiMainWindow(QtWidgets.QMainWindow):
@@ -50,7 +56,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
         # Create the central widget
         self.centralwidget = QtWidgets.QWidget(self)
-        self.centralwidget.setObjectName(u"centralwidget")
+        self.centralwidget.setObjectName("centralwidget")
         self.main_layout = QtWidgets.QVBoxLayout(self.centralwidget)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
@@ -88,80 +94,80 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
         self.function_tabWidget = QtWidgets.QTabWidget(self.centralwidget)
         self.photo_tab = QtWidgets.QWidget()
-        self.verticalLayout_2 = ut.setup_vbox(u"verticalLayout_2", self.photo_tab)
-        self.photo_tab_widget = UiPhotoTabWidget(self.photo_worker, u"photo_tab_widget", self.photo_tab)
+        self.verticalLayout_2 = ut.setup_vbox("verticalLayout_2", self.photo_tab)
+        self.photo_tab_widget = UiPhotoTabWidget(self.photo_worker, "photo_tab_widget", self.photo_tab)
         self.folder_tab = QtWidgets.QWidget()
-        self.verticalLayout_3 = ut.setup_vbox(u"verticalLayout_3", self.folder_tab)
-        self.folder_tab_widget = UiFolderTabWidget(self.folder_worker, u"folder_tab_widget", self.folder_tab)
+        self.verticalLayout_3 = ut.setup_vbox("verticalLayout_3", self.folder_tab)
+        self.folder_tab_widget = UiFolderTabWidget(self.folder_worker, "folder_tab_widget", self.folder_tab)
         self.mapping_tab = QtWidgets.QWidget()
-        self.verticalLayout_4 = ut.setup_vbox(u"verticalLayout_4", self.mapping_tab)
-        self.mapping_tab_widget = UiMappingTabWidget(self.mapping_worker, u"mapping_tab_widget", self.mapping_tab)
+        self.verticalLayout_4 = ut.setup_vbox("verticalLayout_4", self.mapping_tab)
+        self.mapping_tab_widget = UiMappingTabWidget(self.mapping_worker, "mapping_tab_widget", self.mapping_tab)
         self.video_tab = QtWidgets.QWidget()
-        self.verticalLayout_5 = ut.setup_vbox(u"verticalLayout_5", self.video_tab)
-        self.video_tab_widget = UiVideoTabWidget(self.video_worker, u"video_tab_widget", self.video_tab)
+        self.verticalLayout_5 = ut.setup_vbox("verticalLayout_5", self.video_tab)
+        self.video_tab_widget = UiVideoTabWidget(self.video_worker, "video_tab_widget", self.video_tab)
 
-        self.setObjectName(u"MainWindow")
+        self.setObjectName("MainWindow")
         self.resize(1256, 652)
         icon = QtGui.QIcon()
         icon.addFile(GuiIcon.LOGO, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         self.setWindowIcon(icon)
-        
+
         # Create the main menu
         self.create_main_menu()
-        
+
         # Create an address bar (browser-like)
         self.create_address_bar()
-        
+
         # Create tab widget (browser-like)
         self.create_tab_widgets()
 
         self.video_worker.progressBars = [self.video_tab_widget.progressBar, self.video_tab_widget.progressBar_2]
-        
+
         # Create a status bar
         self.statusbar = QtWidgets.QStatusBar(self)
-        self.statusbar.setObjectName(u"statusbar")
+        self.statusbar.setObjectName("statusbar")
         self.setStatusBar(self.statusbar)
-        
+
         # Connect signals
         self.connect_widgets()
-        
+
         self.setCentralWidget(self.centralwidget)
         self.retranslateUi()
-        
+
         # Set the initial tab
         self.function_tabWidget.setCurrentIndex(0)
 
         self.initialize_clear_button_states()
-        
+
         QtCore.QMetaObject.connectSlotsByName(self)
 
     def create_main_menu(self):
         """Create the main menu for the application"""
         # Create actions
-        self.actionAbout_Face_Cropper.setObjectName(u"actionAbout_Face_Cropper")
+        self.actionAbout_Face_Cropper.setObjectName("actionAbout_Face_Cropper")
         icon0 = QtGui.QIcon.fromTheme("help-browser")
         self.actionAbout_Face_Cropper.setIcon(icon0)
 
-        self.actionUse_Mapping.setObjectName(u"actionUse_Mapping")
+        self.actionUse_Mapping.setObjectName("actionUse_Mapping")
         icon1 = QtGui.QIcon()
         icon1.addFile(GuiIcon.EXCEL, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         self.actionUse_Mapping.setIcon(icon1)
 
-        self.actionCrop_File.setObjectName(u"actionCrop_File")
+        self.actionCrop_File.setObjectName("actionCrop_File")
         icon2 = QtGui.QIcon()
         icon2.addFile(GuiIcon.PICTURE, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         self.actionCrop_File.setIcon(icon2)
 
-        self.actionCrop_Folder.setObjectName(u"actionCrop_Folder")
+        self.actionCrop_Folder.setObjectName("actionCrop_Folder")
         icon3 = QtGui.QIcon()
         icon3.addFile(GuiIcon.FOLDER, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         self.actionCrop_Folder.setIcon(icon3)
 
-        self.actionSquare.setObjectName(u"actionSquare")
-        self.actionGolden_Ratio.setObjectName(u"actionGolden_Ratio")
-        self.action2_3_Ratio.setObjectName(u"action2_3_Ratio")
-        self.action3_4_Ratio.setObjectName(u"action3_4_Ratio")
-        self.action4_5_Ratio.setObjectName(u"action4_5_Ratio")
+        self.actionSquare.setObjectName("actionSquare")
+        self.actionGolden_Ratio.setObjectName("actionGolden_Ratio")
+        self.action2_3_Ratio.setObjectName("action2_3_Ratio")
+        self.action3_4_Ratio.setObjectName("action3_4_Ratio")
+        self.action4_5_Ratio.setObjectName("action4_5_Ratio")
 
         self.decorate_action(self.actionSquare, 1, 1, "#3498db")
         self.decorate_action(self.actionGolden_Ratio, 100, 162, "#f39c12")
@@ -169,53 +175,53 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.decorate_action(self.action3_4_Ratio, 3, 4, "#e74c3c")
         self.decorate_action(self.action4_5_Ratio, 4, 5, "#9b59b6")
 
-        self.actionCrop_Video.setObjectName(u"actionCrop_Video")
+        self.actionCrop_Video.setObjectName("actionCrop_Video")
         icon4 = QtGui.QIcon()
         icon4.addFile(GuiIcon.CLAPPERBOARD, QtCore.QSize(), QtGui.QIcon.Mode.Normal,
                       QtGui.QIcon.State.Off)
         self.actionCrop_Video.setIcon(icon4)
-        
+
         # Create menu bar
-        self.menubar.setObjectName(u"menubar")
+        self.menubar.setObjectName("menubar")
         self.menubar.setGeometry(QtCore.QRect(0, 0, 1256, 22))
-        
+
         # Create menus
-        self.menuFile.setObjectName(u"menuFile")
-        self.menuTools.setObjectName(u"menuTools")
-        self.menuInfo.setObjectName(u"menuInfo")
-        
+        self.menuFile.setObjectName("menuFile")
+        self.menuTools.setObjectName("menuTools")
+        self.menuInfo.setObjectName("menuInfo")
+
         # Add menus to menu bar
         self.setMenuBar(self.menubar)
         self.menubar.addAction(self.menuFile.menuAction())
         self.menubar.addAction(self.menuTools.menuAction())
         self.menubar.addAction(self.menuInfo.menuAction())
-        
+
         # Add actions to menus
         self.menuFile.addAction(self.actionSquare)
         self.menuFile.addAction(self.actionGolden_Ratio)
         self.menuFile.addAction(self.action2_3_Ratio)
         self.menuFile.addAction(self.action3_4_Ratio)
         self.menuFile.addAction(self.action4_5_Ratio)
-        
+
         self.menuTools.addAction(self.actionCrop_File)
         self.menuTools.addAction(self.actionCrop_Folder)
         self.menuTools.addAction(self.actionUse_Mapping)
         self.menuTools.addAction(self.actionCrop_Video)
-        
+
         self.menuInfo.addAction(self.actionAbout_Face_Cropper)
-        
+
     def create_address_bar(self):
         """Create a dynamic, context-aware address bar layout"""
         # Address bar container
         self.address_bar_widget.setObjectName("addressBarWidget")
         self.address_bar_widget.setMinimumHeight(48)
         self.address_bar_widget.setMaximumHeight(48)
-        
+
         # Address bar layout
         address_bar_layout = QtWidgets.QHBoxLayout(self.address_bar_widget)
         address_bar_layout.setContentsMargins(10, 5, 10, 5)
         address_bar_layout.setSpacing(10)
-        
+
         # Navigation buttons
         self.back_button.setIcon(QtGui.QIcon.fromTheme("go-previous"))
         self.back_button.setObjectName("backButton")
@@ -231,21 +237,21 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.refresh_button.setObjectName("refreshButton")
         self.refresh_button.setToolTip("Refresh")
         self.refresh_button.setFixedSize(36, 36)
-        
+
         # Unified address bar (dynamic path field)
         self.unified_address_bar.setObjectName("unifiedAddressBar")
         self.unified_address_bar.setPlaceholderText("Enter path...")
-        
+
         # Context-aware open button with changing icon
         self.context_button.setObjectName("contextButton")
         self.context_button.setToolTip("Open File")
         self.context_button.setIcon(QtGui.QIcon(GuiIcon.PICTURE))  # Default icon
         self.context_button.setFixedSize(36, 36)
-        
+
         # Secondary input for mapping tab (initially hidden)
         self.secondary_input_container.setObjectName("secondaryInputContainer")
         self.secondary_input_container.setVisible(False)  # Hidden by default
-        
+
         secondary_layout = QtWidgets.QHBoxLayout(self.secondary_input_container)
         secondary_layout.setContentsMargins(0, 0, 0, 0)
         secondary_layout.setSpacing(5)
@@ -257,13 +263,13 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.secondary_button.setIcon(QtGui.QIcon(GuiIcon.EXCEL))
         self.secondary_button.setFixedSize(36, 36)
         self.secondary_button.setToolTip("Open Table File")
-        
+
         secondary_layout.addWidget(self.secondary_input)
         secondary_layout.addWidget(self.secondary_button)
-        
+
         # Destination section (always visible)
         self.destination_container.setObjectName("destinationContainer")
-        
+
         destination_layout = QtWidgets.QHBoxLayout(self.destination_container)
         destination_layout.setContentsMargins(0, 0, 0, 0)
         destination_layout.setSpacing(5)
@@ -277,17 +283,17 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.destination_button.setIcon(QtGui.QIcon(GuiIcon.FOLDER))
         self.destination_button.setFixedSize(36, 36)
         self.destination_button.setToolTip("Select Destination Folder")
-        
+
         destination_layout.addWidget(self.destination_label)
         destination_layout.addWidget(self.destination_input)
         destination_layout.addWidget(self.destination_button)
-        
+
         # Info button (on the right)
         self.info_button.setIcon(QtGui.QIcon.fromTheme("help-browser"))
         self.info_button.setObjectName("infoButton")
         self.info_button.setToolTip("Info")
         self.info_button.setFixedSize(36, 36)
-        
+
         # Add widgets to layout
         address_bar_layout.addWidget(self.back_button)
         address_bar_layout.addWidget(self.forward_button)
@@ -297,36 +303,36 @@ class UiMainWindow(QtWidgets.QMainWindow):
         address_bar_layout.addWidget(self.secondary_input_container)
         address_bar_layout.addWidget(self.destination_container)
         address_bar_layout.addWidget(self.info_button)
-        
+
         # Set stretch factors
         address_bar_layout.setStretch(3, 3)  # Unified address bar gets more space
         address_bar_layout.setStretch(5, 3)  # Secondary input gets more space
         address_bar_layout.setStretch(6, 4)  # Destination gets more space
-        
+
         # Add to the main layout
         self.main_layout.addWidget(self.address_bar_widget)
 
     def create_tab_widgets(self):
         """Create browser-like tab widget layout"""
         # Create the tab widget
-        self.function_tabWidget.setObjectName(u"function_tabWidget")
+        self.function_tabWidget.setObjectName("function_tabWidget")
         self.function_tabWidget.setMovable(True)
-        
+
         # Add tabs
         self.create_photo_tab()
         self.create_folder_tab()
         self.create_mapping_tab()
         self.create_video_tab()
-        
+
         # Add tab widget to the main layout
         self.main_layout.addWidget(self.function_tabWidget)
-        
+
     def create_photo_tab(self):
         """Create photo tab without redundant input fields"""
         icon2 = QtGui.QIcon()
         icon2.addFile(GuiIcon.PICTURE, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
-        self.photo_tab.setObjectName(u"photo_tab")
+        self.photo_tab.setObjectName("photo_tab")
 
         # Hide the redundant input fields that will be handled by unified address bar
         self.photo_tab_widget.horizontalLayout_2.setParent(None)  # Remove input layout
@@ -334,13 +340,13 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
         self.verticalLayout_2.addWidget(self.photo_tab_widget)
         self.function_tabWidget.addTab(self.photo_tab, icon2, "")
-        
+
     def create_folder_tab(self):
         """Create folder tab without redundant input fields"""
         icon3 = QtGui.QIcon()
         icon3.addFile(GuiIcon.FOLDER, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
-        self.folder_tab.setObjectName(u"folder_tab")
+        self.folder_tab.setObjectName("folder_tab")
 
         # Modify the setup to remove redundant input fields
         # Access the verticalLayout_200 in page_1 to remove input and destination layouts
@@ -364,23 +370,23 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
         self.verticalLayout_3.addWidget(self.folder_tab_widget)
         self.function_tabWidget.addTab(self.folder_tab, icon3, "")
-        
+
     def create_mapping_tab(self):
         """Create mapping tab without redundant input fields"""
         icon1 = QtGui.QIcon()
         icon1.addFile(GuiIcon.EXCEL, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
-        self.mapping_tab.setObjectName(u"mapping_tab")
+        self.mapping_tab.setObjectName("mapping_tab")
 
         self.verticalLayout_4.addWidget(self.mapping_tab_widget)
         self.function_tabWidget.addTab(self.mapping_tab, icon1, "")
-        
+
     def create_video_tab(self):
         """Create video tab without redundant input fields"""
         icon4 = QtGui.QIcon()
         icon4.addFile(GuiIcon.CLAPPERBOARD, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
-        self.video_tab.setObjectName(u"video_tab")
+        self.video_tab.setObjectName("video_tab")
 
         # Register state retrieval functions for each widget type
         for func_type, widget in [
@@ -418,7 +424,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         # Create SVG data with the rectangle
         svg_data = f"""
         <svg width="{max_dim}" height="{max_dim}" xmlns="http://www.w3.org/2000/svg">
-            <rect x="{x_offset}" y="{y_offset}" width="{w}" height="{h}" fill="{color}" 
+            <rect x="{x_offset}" y="{y_offset}" width="{w}" height="{h}" fill="{color}"
                 stroke="#333333" stroke-width="2" rx="2" ry="2"/>
         </svg>
         """
@@ -444,7 +450,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.unified_address_bar.update_clear_button(self.unified_address_bar.text())
         self.destination_input.update_clear_button(self.destination_input.text())
         self.secondary_input.update_clear_button(self.secondary_input.text())
-        
+
         # Make sure visibility is properly set
         if not self.unified_address_bar.text():
             self.unified_address_bar.clearButton.setVisible(False)
@@ -456,7 +462,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
     def update_address_bar_context(self):
         """Update address bar context based on current tab"""
         current_index = self.function_tabWidget.currentIndex()
-        
+
         match current_index:
             case FunctionType.PHOTO:
                 # Update primary address bar
@@ -464,83 +470,83 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 self.unified_address_bar.setPlaceholderText("Enter image file path...")
                 self.context_button.setIcon(QtGui.QIcon(GuiIcon.PICTURE))
                 self.context_button.setToolTip("Open Image")
-                
+
                 # Hide secondary input (not needed for photo tab)
                 self.secondary_input_container.setVisible(False)
-                
+
                 # Get the current path from tab widget if it exists
                 self.unified_address_bar.blockSignals(True)
                 self.unified_address_bar.setText(self.photo_tab_widget.input_path)
                 self.unified_address_bar.blockSignals(False)
-                
+
                 # Get a destination path
                 self.destination_input.blockSignals(True)
                 self.destination_input.setText(self.photo_tab_widget.destination_path)
                 self.destination_input.blockSignals(False)
-            
+
             case FunctionType.FOLDER:
                 self.unified_address_bar.set_path_type(PathType.FOLDER)
                 self.unified_address_bar.setPlaceholderText("Enter folder path...")
                 self.context_button.setIcon(QtGui.QIcon(GuiIcon.FOLDER))
                 self.context_button.setToolTip("Select Folder")
-                
+
                 # Hide secondary input (not needed for folder tab)
                 self.secondary_input_container.setVisible(False)
-                
+
                 # Get the current path from tab widget if it exists
                 self.unified_address_bar.blockSignals(True)
                 self.unified_address_bar.setText(self.folder_tab_widget.input_path)
                 self.unified_address_bar.blockSignals(False)
-                
+
                 # Get a destination path
                 self.destination_input.blockSignals(True)
                 self.destination_input.setText(self.folder_tab_widget.destination_path)
                 self.destination_input.blockSignals(False)
-            
+
             case FunctionType.MAPPING:
                 self.unified_address_bar.set_path_type(PathType.FOLDER)
                 self.unified_address_bar.setPlaceholderText("Enter source folder path...")
                 self.context_button.setIcon(QtGui.QIcon(GuiIcon.FOLDER))
                 self.context_button.setToolTip("Select Source Folder")
-                
+
                 # Show and configure secondary input for mapping tab
                 self.secondary_input_container.setVisible(True)
                 self.secondary_input.set_path_type(PathType.TABLE)
                 self.secondary_input.setPlaceholderText("Enter table file path...")
-                
+
                 # Get current paths from tab widget if they exist
                 self.unified_address_bar.blockSignals(True)
                 self.unified_address_bar.setText(self.mapping_tab_widget.input_path)
                 self.unified_address_bar.blockSignals(False)
-                
+
                 self.secondary_input.blockSignals(True)
                 self.secondary_input.setText(self.mapping_tab_widget.table_path)
                 self.secondary_input.blockSignals(False)
-                
+
                 # Get a destination path
                 self.destination_input.blockSignals(True)
                 self.destination_input.setText(self.mapping_tab_widget.destination_path)
                 self.destination_input.blockSignals(False)
-            
+
             case FunctionType.VIDEO:
                 self.unified_address_bar.set_path_type(PathType.VIDEO)
                 self.unified_address_bar.setPlaceholderText("Enter video file path...")
                 self.context_button.setIcon(QtGui.QIcon(GuiIcon.CLAPPERBOARD))
                 self.context_button.setToolTip("Open Video")
-                
+
                 # Hide secondary input (not needed for video tab)
                 self.secondary_input_container.setVisible(False)
-                
+
                 # Get the current path from tab widget if it exists
                 self.unified_address_bar.blockSignals(True)
                 self.unified_address_bar.setText(self.video_tab_widget.input_path)
                 self.unified_address_bar.blockSignals(False)
-                
+
                 # Get a destination path
                 self.destination_input.blockSignals(True)
                 self.destination_input.setText(self.video_tab_widget.destination_path)
                 self.destination_input.blockSignals(False)
-        
+
         # Force update of clear button visibility after changing tab
         # This is important since we block signals during setText operations
         self.unified_address_bar.update_clear_button(self.unified_address_bar.text())
@@ -551,37 +557,37 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
     # retranslateUi
     def retranslateUi(self):
-        self.setWindowTitle(QtCore.QCoreApplication.translate("self", u"Autocrop", None))
-        self.actionAbout_Face_Cropper.setText(QtCore.QCoreApplication.translate("self", u"About Autocrop", None))
-        self.actionUse_Mapping.setText(QtCore.QCoreApplication.translate("self", u"Use Mapping", None))
-        self.actionCrop_File.setText(QtCore.QCoreApplication.translate("self", u"Crop File", None))
-        self.actionCrop_Folder.setText(QtCore.QCoreApplication.translate("self", u"Crop Folder", None))
-        self.actionSquare.setText(QtCore.QCoreApplication.translate("self", u"Square", None))
-        self.actionGolden_Ratio.setText(QtCore.QCoreApplication.translate("self", u"Golden Ratio", None))
-        self.action2_3_Ratio.setText(QtCore.QCoreApplication.translate("self", u"2:3 Ratio", None))
-        self.action3_4_Ratio.setText(QtCore.QCoreApplication.translate("self", u"3:4 Ratio", None))
-        self.action4_5_Ratio.setText(QtCore.QCoreApplication.translate("self", u"4:5 Ratio", None))
-        self.actionCrop_Video.setText(QtCore.QCoreApplication.translate("self", u"Crop Video", None))
+        self.setWindowTitle(QtCore.QCoreApplication.translate("self", "Autocrop", None))
+        self.actionAbout_Face_Cropper.setText(QtCore.QCoreApplication.translate("self", "About Autocrop", None))
+        self.actionUse_Mapping.setText(QtCore.QCoreApplication.translate("self", "Use Mapping", None))
+        self.actionCrop_File.setText(QtCore.QCoreApplication.translate("self", "Crop File", None))
+        self.actionCrop_Folder.setText(QtCore.QCoreApplication.translate("self", "Crop Folder", None))
+        self.actionSquare.setText(QtCore.QCoreApplication.translate("self", "Square", None))
+        self.actionGolden_Ratio.setText(QtCore.QCoreApplication.translate("self", "Golden Ratio", None))
+        self.action2_3_Ratio.setText(QtCore.QCoreApplication.translate("self", "2:3 Ratio", None))
+        self.action3_4_Ratio.setText(QtCore.QCoreApplication.translate("self", "3:4 Ratio", None))
+        self.action4_5_Ratio.setText(QtCore.QCoreApplication.translate("self", "4:5 Ratio", None))
+        self.actionCrop_Video.setText(QtCore.QCoreApplication.translate("self", "Crop Video", None))
         self.function_tabWidget.setTabText(self.function_tabWidget.indexOf(self.photo_tab),
-                                          QtCore.QCoreApplication.translate("self", u"Photo Crop", None))
+                                          QtCore.QCoreApplication.translate("self", "Photo Crop", None))
         self.function_tabWidget.setTabText(self.function_tabWidget.indexOf(self.folder_tab),
-                                          QtCore.QCoreApplication.translate("self", u"Folder Crop", None))
+                                          QtCore.QCoreApplication.translate("self", "Folder Crop", None))
         self.function_tabWidget.setTabText(self.function_tabWidget.indexOf(self.mapping_tab),
-                                          QtCore.QCoreApplication.translate("self", u"Mapping Crop", None))
+                                          QtCore.QCoreApplication.translate("self", "Mapping Crop", None))
         self.function_tabWidget.setTabText(self.function_tabWidget.indexOf(self.video_tab),
-                                          QtCore.QCoreApplication.translate("self", u"Video Crop", None))
-        self.menuFile.setTitle(QtCore.QCoreApplication.translate("self", u"Presets", None))
-        self.menuTools.setTitle(QtCore.QCoreApplication.translate("self", u"Tools", None))
-        self.menuInfo.setTitle(QtCore.QCoreApplication.translate("self", u"Info", None))
-        
+                                          QtCore.QCoreApplication.translate("self", "Video Crop", None))
+        self.menuFile.setTitle(QtCore.QCoreApplication.translate("self", "Presets", None))
+        self.menuTools.setTitle(QtCore.QCoreApplication.translate("self", "Tools", None))
+        self.menuInfo.setTitle(QtCore.QCoreApplication.translate("self", "Info", None))
+
         # Address bar elements
-        self.unified_address_bar.setPlaceholderText(QtCore.QCoreApplication.translate("self", 
-                                            u"Enter file path or drag and drop files here", None))
-        self.back_button.setToolTip(QtCore.QCoreApplication.translate("self", u"Back", None))
-        self.forward_button.setToolTip(QtCore.QCoreApplication.translate("self", u"Forward", None))
-        self.refresh_button.setToolTip(QtCore.QCoreApplication.translate("self", u"Refresh Preview", None))
-        self.info_button.setToolTip(QtCore.QCoreApplication.translate("self", u"Settings", None))
-        
+        self.unified_address_bar.setPlaceholderText(QtCore.QCoreApplication.translate("self",
+                                            "Enter file path or drag and drop files here", None))
+        self.back_button.setToolTip(QtCore.QCoreApplication.translate("self", "Back", None))
+        self.forward_button.setToolTip(QtCore.QCoreApplication.translate("self", "Forward", None))
+        self.refresh_button.setToolTip(QtCore.QCoreApplication.translate("self", "Refresh Preview", None))
+        self.info_button.setToolTip(QtCore.QCoreApplication.translate("self", "Settings", None))
+
     def connect_widgets(self):
         """Connect widget signals to handlers"""
         # CONNECTIONS
@@ -594,7 +600,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.action3_4_Ratio.triggered.connect(partial(self.load_preset, Preset.THREE_QUARTERS))
         self.action4_5_Ratio.triggered.connect(partial(self.load_preset, Preset.FOUR_FIFTHS))
         self.actionSquare.triggered.connect(partial(self.load_preset, Preset.SQUARE))
-        
+
         # Connect tab selection actions
         self.actionCrop_File.triggered.connect(partial(self.function_tabWidget.setCurrentIndex, FunctionType.PHOTO))
         self.actionCrop_Folder.triggered.connect(partial(self.function_tabWidget.setCurrentIndex, FunctionType.FOLDER))
@@ -606,10 +612,10 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.forward_button.clicked.connect(self.navigate_forward)
         self.refresh_button.clicked.connect(self.refresh_current_view)
         self.info_button.clicked.connect(self.show_settings)
-        
+
         # Connect unified address bar signals
         self.connect_address_bar_signals()
-        
+
         # Tab change event
         self.function_tabWidget.currentChanged.connect(self.check_tab_selection)
         self.function_tabWidget.currentChanged.connect(self.video_tab_widget.player.pause)
@@ -624,16 +630,16 @@ class UiMainWindow(QtWidgets.QMainWindow):
         """Connect signals for the unified address bar"""
         # Connect tab change to update address bar context
         self.function_tabWidget.currentChanged.connect(self.update_address_bar_context)
-        
+
         # Connect the unified address bar to update the current tab's input field
         self.unified_address_bar.textChanged.connect(self.unified_address_changed)
-        
+
         # Connect secondary input for mapping tab
         self.secondary_input.textChanged.connect(self.secondary_input_changed)
-        
+
         # Connect destination input
         self.destination_input.textChanged.connect(self.destination_input_changed)
-        
+
         # Connect context-aware buttons
         self.context_button.clicked.connect(self.handle_context_button)
         self.secondary_button.clicked.connect(self.handle_secondary_button)
@@ -641,7 +647,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
     def unified_address_changed(self, text: str):
         """Handle changes to the unified address bar"""
-        
+
         # Clean quotation marks if they exist
         x, y = text.startswith("'") & text.endswith("'"), text.startswith('"') & text.endswith('"')
         cleaned_text = text[1:][:-1] if x ^ y else text
@@ -664,7 +670,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
     def trigger_preview_update(self):
         """Trigger preview update for the current tab when path is valid"""
         current_index = self.function_tabWidget.currentIndex()
-        
+
         # Check if the path is valid before updating
         if self.unified_address_bar.state == LineEditState.VALID_INPUT:
             match current_index:
@@ -735,16 +741,16 @@ class UiMainWindow(QtWidgets.QMainWindow):
             default_dir = file_manager.get_default_directory(category).as_posix()
             filter_string = file_manager.get_filter_string(category)
             title = self._get_dialog_title(path_type)
-            
+
             # Open the dialog
             f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
                 self, title, default_dir, filter_string, options=options
             )
-            
+
             # Validate and process the selected file
             if f_name := ut.sanitize_path(f_name):
                 self._process_and_update_path(f_name, category, path_type, target_input)
-                
+
         except Exception as e:
             ut.show_error_box(f"An error occurred opening the file\n{e}")
 
@@ -766,30 +772,30 @@ class UiMainWindow(QtWidgets.QMainWindow):
         }
         return title_map.get(path_type, "Open File")
 
-    def _process_and_update_path(self, file_path: str, category: FileCategory, 
+    def _process_and_update_path(self, file_path: str, category: FileCategory,
                                 path_type: PathType, target_input: PathLineEdit) -> None:
         """Process and validate the selected file path"""
         path_obj = Path(file_path).resolve()
-        
+
         # Validate file exists
         if not path_obj.is_file():
             ut.show_error_box("Selected path is not a valid file")
             return
-        
+
         # Validate file type
         if not file_manager.is_valid_type(path_obj, category):
             ut.show_error_box(f"Selected file is not a valid {category.name.lower()}")
             return
-        
+
         # Verify file content matches extension
         if not SignatureChecker.verify_file_type(path_obj, category):
             ut.show_error_box("File content doesn't match its extension. The file may be corrupted or modified.")
             return
-        
+
         # Update the appropriate input path and UI
         self._update_path_and_ui(file_path, path_type, target_input)
 
-    def _update_path_and_ui(self, file_path: str, path_type: PathType, 
+    def _update_path_and_ui(self, file_path: str, path_type: PathType,
                         target_input: PathLineEdit) -> None:
         """Update the path storage and UI elements"""
         current_index = self.function_tabWidget.currentIndex()
@@ -808,17 +814,17 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 data = prc.load_table(Path(file_path))
                 self.mapping_tab_widget.process_data(data)
 
-    def _get_current_tab_widget(self) -> Optional[TabWidget]:
+    def _get_current_tab_widget(self) -> TabWidget | None:
         """Get the currently active tab widget"""
         current_index = self.function_tabWidget.currentIndex()
-        
+
         widget_map = {
             FunctionType.PHOTO: self.photo_tab_widget,
             FunctionType.FOLDER: self.folder_tab_widget,
             FunctionType.MAPPING: self.mapping_tab_widget,
             FunctionType.VIDEO: self.video_tab_widget
         }
-        
+
         return widget_map.get(current_index)
 
     def open_folder_dialog(self, target_input: PathLineEdit) -> None:
@@ -826,32 +832,32 @@ class UiMainWindow(QtWidgets.QMainWindow):
         try:
             # Use QFileDialog with options that improve security
             options = QtWidgets.QFileDialog.Option.ShowDirsOnly | QtWidgets.QFileDialog.Option.DontResolveSymlinks
-            
+
             # Get appropriate default directory
             default_dir = file_manager.get_default_directory(FileCategory.PHOTO).as_posix()
-            
+
             # Open the dialogue with the appropriate title
             f_name = QtWidgets.QFileDialog.getExistingDirectory(
                 self, 'Select Directory', default_dir, options=options
             )
-            
+
             # Validate the selected path
             if f_name := ut.sanitize_path(f_name):
                 # Create a Path object for additional validation
                 path_obj = Path(f_name).resolve()
-                
+
                 # Verify directory exists and is accessible
                 if not path_obj.is_dir():
                     ut.show_error_box("Selected path is not a valid directory")
                     return
-                
+
                 # Update the input with a safe path
                 target_input.setText(str(path_obj))
-                
+
                 # If this is a source directory, refresh any view that depends on it
                 if target_input == self.unified_address_bar and self.function_tabWidget.currentIndex() == FunctionType.FOLDER:
                     self.folder_tab_widget.load_data()
-        
+
         except Exception as e:
             # Log error internally without exposing details
             ut.show_error_box(f"An error occurred opening the directory\n{e}")
@@ -862,13 +868,13 @@ class UiMainWindow(QtWidgets.QMainWindow):
         current_index = self.function_tabWidget.currentIndex()
         if current_index > 0:
             self.function_tabWidget.setCurrentIndex(current_index - 1)
-    
+
     def navigate_forward(self):
         """Navigate to the next tab"""
         current_index = self.function_tabWidget.currentIndex()
         if current_index < self.function_tabWidget.count() - 1:
             self.function_tabWidget.setCurrentIndex(current_index + 1)
-    
+
     def refresh_current_view(self):
         """Refresh the current tab's view"""
         # Handle refresh based on the current tab
@@ -891,16 +897,16 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 self.display_worker.crop(FunctionType.VIDEO)
             case _:
                 pass
-            
+
         # Update the status bar with a message
         self.statusbar.showMessage("View refreshed", 2000)
-    
+
     @staticmethod
     def show_settings():
         """Show settings dialogue"""
         # For now, show the About dialogue as a placeholder
         ut.load_about_form()
-    
+
     def update_address_bar(self):
         """Update address bar with current tab's path"""
 
@@ -916,7 +922,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 path = self.video_tab_widget.input_path
             case _:
                 return None
-            
+
         # Update the address bar without triggering the text_changed event
         self.unified_address_bar.blockSignals(True)
         self.unified_address_bar.setText(path)
@@ -926,7 +932,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
     def update_current_tab_path(self):
         """Update the current tab's path with address bar text"""
         path = self.unified_address_bar.text()
-        
+
         # Update the appropriate input field based on the current tab
         match self.function_tabWidget.currentIndex():
             case FunctionType.PHOTO:
@@ -939,7 +945,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 self.video_tab_widget.input_path = path
             case _:
                 pass
-    
+
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """
         Handle window close event by performing proper clean-up.
@@ -947,10 +953,10 @@ class UiMainWindow(QtWidgets.QMainWindow):
         """
         # Clean up all worker thread pools
         self.cleanup_workers()
-        
+
         # Call the parent class implementation
         super().closeEvent(event)
-    
+
     def cleanup_workers(self) -> None:
         """
         Clean up all worker threads and resources before application exit.
@@ -958,7 +964,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         # Clean up batch workers
         self.folder_worker.cleanup()
         self.mapping_worker.cleanup()
-        
+
         # Stop any ongoing video playback
         self.video_tab_widget.player.stop()
 
@@ -989,7 +995,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
             assert isinstance(tab_widget, UiMappingTabWidget)
         except AssertionError:
             return
-            
+
         tab_widget.comboBox_1.currentTextChanged.connect(tab_widget.disable_buttons)
         tab_widget.comboBox_2.currentTextChanged.connect(tab_widget.disable_buttons)
 
@@ -1012,7 +1018,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
             control.rightDial.value(),
             control.radio_tuple,
         )
-    
+
     @staticmethod
     def get_path(w: TabWidget) -> str:
         return w.input_path
@@ -1040,38 +1046,38 @@ class UiMainWindow(QtWidgets.QMainWindow):
     def adjust_ui(self, app: QtWidgets.QApplication):
         if (screen := app.primaryScreen()) is None:
             return
-        
+
         # Get screen dimensions
         size = screen.size()
         width, height = size.width(), size.height()
-        
+
         # Calculate the appropriate window size based on screen size
         window_width = max(min(int(width * 0.85), 1600), 800)  # Cap at 1600 px for very large screens
         window_height = max(min(int(height * 0.85), 900), 600)  # Cap at 900 px for very large screens
-        
+
         # Resize the window
         self.resize(window_width, window_height)
-        
+
         # Center the window on the screen
         center_point = screen.geometry().center()
         frame_geometry = self.frameGeometry()
         frame_geometry.moveCenter(center_point)
         self.move(frame_geometry.topLeft())
-        
+
         # Adjust font size based on screen resolution
         base_font_size = 10
         if height > 1080:
             scale_factor = min(height / 1080, 1.5)  # Cap scaling at 1.5x
             base_font_size = int(base_font_size * scale_factor)
-        
+
         font = app.font()
         font.setPointSize(base_font_size)
         app.setFont(font)
-        
+
         # Set appropriate tab sizes
         self.function_tabWidget.setTabsClosable(True)
         self.function_tabWidget.tabCloseRequested.connect(self.handle_tab_close)
-        
+
         # Initialize navigation button states
         self.update_navigation_button_states()
 
@@ -1081,10 +1087,10 @@ class UiMainWindow(QtWidgets.QMainWindow):
         For a browser-like experience, we don't close tabs but reset their state.
         """
         # Doesn't close the tab, just resets its state
-        
+
         # Show a message in the status bar
         self.statusbar.showMessage(f"Tab {self.function_tabWidget.tabText(index)} reset", 2000)
-        
+
         # Reset the appropriate tab widget
         match index:
             case FunctionType.PHOTO:
@@ -1101,18 +1107,18 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 self.video_tab_widget.input_path = ''
                 self.video_tab_widget.destination_path = ''
                 self.video_tab_widget.player.stop()
-            
+
         # Update the address bar
         self.update_address_bar()
-    
+
     def update_navigation_button_states(self):
         """Update the state of navigation buttons"""
         current_index = self.function_tabWidget.currentIndex()
         tab_count = self.function_tabWidget.count()
-        
+
         # Enable/disable back button
         self.back_button.setEnabled(current_index > 0)
-        
+
         # Enable/disable forward button
         self.forward_button.setEnabled(current_index < tab_count - 1)
 
@@ -1122,16 +1128,16 @@ class UiMainWindow(QtWidgets.QMainWindow):
         """
         # Update navigation buttons
         self.update_navigation_button_states()
-        
+
         # Update unified address bar context
         self.update_address_bar_context()
-        
+
         # Force validation of path inputs
         self.unified_address_bar.validate_path()
         self.destination_input.validate_path()
         if self.secondary_input_container.isVisible():
             self.secondary_input.validate_path()
-        
+
         # Process tab selection as before
         match self.function_tabWidget.currentIndex():
             case FunctionType.PHOTO:
@@ -1176,8 +1182,8 @@ class UiMainWindow(QtWidgets.QMainWindow):
         def callback(control: UiCropControlWidget) -> None:
             if any(line.state is LineEditState.INVALID_INPUT for line in
                   (control.widthLineEdit, control.heightLineEdit)):
-                control.widthLineEdit.setText(u'1000')
-                control.heightLineEdit.setText(u'1000')
+                control.widthLineEdit.setText('1000')
+                control.heightLineEdit.setText('1000')
 
             match phi:
                 case Preset.SQUARE:
@@ -1202,20 +1208,20 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 callback(self.video_tab_widget.controlWidget)
             case _:
                 pass
-                
+
     # Drag and drop event handlers
-    def dragEnterEvent(self, a0: Optional[QtGui.QDragEnterEvent]) -> None:
+    def dragEnterEvent(self, a0: QtGui.QDragEnterEvent | None) -> None:
         """Handle drag enter events for browser-like drag and drop"""
         try:
             assert isinstance(a0, QtGui.QDragEnterEvent)
         except AssertionError:
             return
         ut.check_mime_data(a0)
-        
+
         # Show a status message
         self.statusbar.showMessage("Drop files here to open", 2000)
 
-    def dragMoveEvent(self, a0: Optional[QtGui.QDragMoveEvent]) -> None:
+    def dragMoveEvent(self, a0: QtGui.QDragMoveEvent | None) -> None:
         """Handle drag move events"""
         try:
             assert isinstance(a0, QtGui.QDragMoveEvent)
@@ -1223,7 +1229,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
             return
         ut.check_mime_data(a0)
 
-    def dropEvent(self, a0: Optional[QtGui.QDropEvent]) -> None:
+    def dropEvent(self, a0: QtGui.QDropEvent | None) -> None:
         """
         Handle drop events with enhanced security.
         """
@@ -1240,24 +1246,24 @@ class UiMainWindow(QtWidgets.QMainWindow):
             return
 
         a0.setDropAction(QtCore.Qt.DropAction.CopyAction)
-        
+
         # Get the dropped URL and convert to a local file path
         url = mime_data.urls()[0]
         if not url.isLocalFile():
             ut.show_error_box("Only local files can be dropped")
             a0.ignore()
             return
-            
+
         file_path_str = url.toLocalFile()
-        
+
         # Validate the path with our improved sanitize_path function
         if not (safe_path_str := ut.sanitize_path(file_path_str)):
             a0.ignore()
             return
-            
+
         # Create a Path object from the sanitized path
         file_path = Path(safe_path_str).resolve()
-        
+
         # Handle the file based on its type with proper error handling
         try:
             if file_path.is_dir():
@@ -1268,10 +1274,10 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 ut.show_error_box("Dropped item is neither a file nor a directory")
                 a0.ignore()
                 return
-                
+
             a0.accept()
             self.statusbar.showMessage(f"Opened {file_path.name}", 2000)
-            
+
         except Exception as e:
             # Log error internally without exposing details
             print(f"Error processing dropped file: {e}")
@@ -1291,8 +1297,8 @@ class UiMainWindow(QtWidgets.QMainWindow):
         try:
             # Look for table files to determine if this is a mapping operation
             has_table_files = any(
-                file_manager.is_valid_type(f, FileCategory.TABLE) 
-                for f in dir_path.iterdir() 
+                file_manager.is_valid_type(f, FileCategory.TABLE)
+                for f in dir_path.iterdir()
                 if f.is_file() and os.access(f, os.R_OK)
             )
 
@@ -1315,7 +1321,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 self.display_worker.current_paths[FunctionType.FOLDER] = None
                 self.folder_tab_widget.load_data()
                 self.display_worker.crop(FunctionType.FOLDER)
-        except (IOError, OSError) as e:
+        except OSError as e:
             # Log error internally without exposing details
             print(f"Error handling dropped directory: {e}")
             ut.show_error_box("An error occurred processing the directory")
@@ -1328,20 +1334,20 @@ class UiMainWindow(QtWidgets.QMainWindow):
         if not file_path.is_file() or not os.access(file_path, os.R_OK):
             ut.show_error_box("File is not accessible")
             return
-            
+
         try:
             # Determine the file type and handle accordingly
             if ((file_manager.is_valid_type(file_path, FileCategory.PHOTO) or
                 file_manager.is_valid_type(file_path, FileCategory.RAW) or
                 file_manager.is_valid_type(file_path, FileCategory.TIFF)) and
                 SignatureChecker.verify_file_type(file_path, FileCategory.PHOTO)):
-                
+
                 # Handle with the photo tab
                 self.function_tabWidget.setCurrentIndex(FunctionType.PHOTO)
                 self.photo_tab_widget.input_path = str(file_path)
                 self.unified_address_bar.setText(str(file_path))
                 self.display_worker.crop(FunctionType.PHOTO)
-                
+
             elif (file_manager.is_valid_type(file_path, FileCategory.VIDEO) and
                   SignatureChecker.verify_file_type(file_path, FileCategory.VIDEO)):
                 # Handle with the video tab
@@ -1349,25 +1355,25 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 self.video_tab_widget.input_path = str(file_path)
                 self.unified_address_bar.setText(str(file_path))
                 self.video_tab_widget.open_dropped_video()
-                
+
             elif (file_manager.is_valid_type(file_path, FileCategory.TABLE) and
                   SignatureChecker.verify_file_type(file_path, FileCategory.TABLE)):
                 # Handle with the mapping tab
                 self.function_tabWidget.setCurrentIndex(FunctionType.MAPPING)
                 self.mapping_tab_widget.table_path = str(file_path)
                 self.secondary_input.setText(str(file_path))
-                
+
                 # Process the table data
                 data = prc.load_table(file_path)
                 self.mapping_tab_widget.process_data(data)
-                
+
             else:
                 ut.show_error_box(f"Unsupported file type: {file_path.suffix}")
-        except (IOError, OSError, ValueError, TypeError) as e:
+        except (OSError, ValueError, TypeError) as e:
             # Log error internally without exposing details
             print(f"Error handling dropped file: {e}")
             ut.show_error_box("An error occurred processing the file")
-        
+
     def handle_path_main(self, file_path: Path) -> None:
         """
         Handles a file path by checking the file extensions in the directory, validating the mapping and folder tabs, and calling the handle_path method with the appropriate arguments.
@@ -1458,9 +1464,9 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.mapping_tab_widget.process_data(data)
 
     @staticmethod
-    def all_filled(*line_edits: Union[PathLineEdit, NumberLineEdit, QtWidgets.QComboBox]) -> bool:
+    def all_filled(*line_edits: PathLineEdit | NumberLineEdit | QtWidgets.QComboBox) -> bool:
         x = all(edit.state == LineEditState.VALID_INPUT
-                for edit in line_edits if isinstance(edit, (PathLineEdit, NumberLineEdit)))
+                for edit in line_edits if isinstance(edit, PathLineEdit | NumberLineEdit))
         y = all(edit.currentText() for edit in line_edits if isinstance(edit, QtWidgets.QComboBox))
         return x and y
 
@@ -1483,7 +1489,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
                                       *common_line_edits)
 
         match tab_widget:
-            case tab_widget if isinstance(tab_widget, (UiPhotoTabWidget, UiFolderTabWidget)):
+            case tab_widget if isinstance(tab_widget, UiPhotoTabWidget | UiFolderTabWidget):
                 ut.change_widget_state(check_button_state(),
                     tab_widget.cropButton,
                 )

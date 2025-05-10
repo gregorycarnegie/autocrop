@@ -1,20 +1,19 @@
-from typing import Optional
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPainter, QPaintEvent, QPixmap, QImage
+from PyQt6.QtGui import QImage, QPainter, QPaintEvent, QPixmap
 from PyQt6.QtWidgets import QWidget
 
 
 class ImageWidget(QWidget):
-    def __init__(self, parent: Optional[QWidget] = None):
+    def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
-        self.image: Optional[QPixmap] = None
+        self.image: QPixmap | None = None
 
     def setImage(self, image: QImage) -> None:
         self.image = QPixmap.fromImage(image)
         self.update()
 
-    def paintEvent(self, a0: Optional[QPaintEvent]) -> None:
+    def paintEvent(self, a0: QPaintEvent | None) -> None:
         if self.image is not None:
             qp = QPainter(self)
             qp.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)

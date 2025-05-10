@@ -1,22 +1,24 @@
 import atexit
 import os
 import threading
-from concurrent.futures import Future, ThreadPoolExecutor, CancelledError
+from collections.abc import Callable
+from concurrent.futures import CancelledError, Future, ThreadPoolExecutor
 from contextlib import suppress
 from pathlib import Path
-from typing import Callable, Optional, Union, Any
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
-from PyQt6.QtCore import QMetaObject, Qt, Q_ARG
+from PyQt6.QtCore import Q_ARG, QMetaObject, Qt
 from PyQt6.QtWidgets import QApplication
 
 from core.face_tools import FaceToolPair
 from core.job import Job
-from file_types import SignatureChecker, FileCategory, file_manager
+from file_types import FileCategory, SignatureChecker, file_manager
+
 from .base import Cropper
 
-FileList = Union[list[Path], npt.NDArray[np.str_]]
+FileList = list[Path] | npt.NDArray[np.str_]
 
 
 class BatchCropper(Cropper):
@@ -49,10 +51,10 @@ class BatchCropper(Cropper):
     def _should_use_multithreading(self, file_count: int) -> bool:
         """
         Determine whether to use multithreading based on the number of files.
-        
+
         Args:
             file_count: Number of files to process
-            
+
         Returns:
             bool: True if multithreading should be used
         """
@@ -63,20 +65,20 @@ class BatchCropper(Cropper):
         # Check if we have a reasonable files/thread ratio
         files_per_thread = file_count / self.THREAD_NUMBER
         return files_per_thread >= self.MIN_RATIO_FOR_MULTITHREAD
-    
+
     def _process_single_threaded(self,
                                  file_list: list[Path],
                                  job: Job) -> None:
         """
         Process files using a single thread.
-        
+
         Args:
             file_list: List of files to process
             job: Job configuration
         """
         # Use the first face detection tool for single-threaded processing
         face_detection_tools = self.face_detection_tools[0]
-        
+
         # Process the files directly
         self.worker(
             file_amount=len(file_list),
@@ -106,7 +108,7 @@ class BatchCropper(Cropper):
             for future in self.futures:
                 if future and not future.done():
                     future.cancel()
-            
+
             # Shutdown the executor with a timeout
             self.executor.shutdown(wait=True, cancel_futures=True)
             self.executor = None
@@ -126,11 +128,11 @@ class BatchCropper(Cropper):
 
         if not self.end_task:
             self.end_task = True
-            
+
             # Force reset progress to prevent lingering jobs
             self.progress_count = 0
             self.progress.emit(0, 1)  # Send zero progress
-            
+
             # Emit finished signal to reset UI
             self.emit_done()
 
@@ -147,7 +149,7 @@ class BatchCropper(Cropper):
         """
         # Reset cancellation event
         self.cancel_event.clear()
-        
+
         # Reset other task variables
         self.progress_count, self.end_task, self.show_message_box = self.TASK_VALUES
         self.finished_signal_emitted = False
@@ -155,8 +157,8 @@ class BatchCropper(Cropper):
     def set_futures(self, worker: Callable[..., None],
                     amount: int,
                     job: Job,
-                    list_1: Union[list[Path], npt.NDArray[np.str_]],
-                    list_2: Optional[npt.NDArray[np.str_]] = None):
+                    list_1: list[Path] | npt.NDArray[np.str_],
+                    list_2: npt.NDArray[np.str_] | None = None):
         """
         Configure worker futures for parallel execution with enhanced security.
         """
@@ -209,7 +211,7 @@ class BatchCropper(Cropper):
                          amount: int,
                          job: Job,
                          list_1: FileList,
-                         list_2: Optional[FileList]) -> bool:
+                         list_2: FileList | None) -> bool:
         """
         Validate all inputs to set_futures before processing.
         """
@@ -223,7 +225,7 @@ class BatchCropper(Cropper):
 
         # Validate list_1
         return (
-            list_2 is None or isinstance(list_2, (list, np.ndarray)) if isinstance(list_1, (list, np.ndarray)) else False
+            list_2 is None or isinstance(list_2, list | np.ndarray) if isinstance(list_1, list | np.ndarray) else False
         )
 
     def _validate_chunk(self, chunk) -> bool:
@@ -233,20 +235,20 @@ class BatchCropper(Cropper):
         # Basic validation
         if chunk is None:
             return False
-            
+
         # For Path objects, ensure they're valid
-        if isinstance(chunk, (list, tuple)):
+        if isinstance(chunk, list | tuple):
             # Check if the chunk contains Path objects
             if all(isinstance(item, Path) for item in chunk):
                 # Validate each path
                 return all(self._validate_path(item) for item in chunk)
-                
+
         # For numpy arrays, check shape and type
         elif hasattr(chunk, 'shape') and hasattr(chunk, 'dtype'):
             # Reject arrays with object dtype (could contain serialized code)
             if 'object' in str(chunk.dtype):
                 return False
-                
+
         return True
 
     @staticmethod
@@ -258,17 +260,17 @@ class BatchCropper(Cropper):
         try:
             # Resolve to the absolute path
             resolved = path.resolve()
-            
+
             # Check existence and access
             if not resolved.exists():
                 return False
-                
+
             if not resolved.is_file() or not os.access(resolved, os.R_OK):
                 return False
 
             # For image files, verify content matches claimed type
             # Import only when needed to avoid circular imports
-            if any(file_manager.is_valid_type(resolved, category) for category in 
+            if any(file_manager.is_valid_type(resolved, category) for category in
                 [FileCategory.PHOTO, FileCategory.RAW, FileCategory.TIFF]):
                 # Determine which category this file claims to be
                 for category in [FileCategory.PHOTO, FileCategory.RAW, FileCategory.TIFF]:
@@ -278,7 +280,7 @@ class BatchCropper(Cropper):
                             print(f"Content verification failed for: {resolved}")
                             return False
                         break
-            
+
             return True
         except Exception as e:
             print(f"Path validation error: {type(e).__name__}")
@@ -346,14 +348,14 @@ class BatchCropper(Cropper):
             (TypeError, AttributeError): lambda _: self._display_error(_, "Data type error. This may indicate a corrupted image file."),
             CancelledError: lambda _: None,  # Silently handle cancelled futures
         }
-        
+
         try:
             future.result()  # This raises any exceptions that occurred during execution
         except Exception as e:
             # Special handling for cancellation - don't show any error
             if isinstance(e, CancelledError):
                 return
-                
+
             # Find the matching exception handler or use default
             for exc_type, handler in error_handlers.items():
                 if isinstance(e, exc_type if isinstance(exc_type, tuple) else exc_type):
@@ -367,7 +369,7 @@ class BatchCropper(Cropper):
             if self.end_task or all(f.done() for f in self.futures):
                 self.all_tasks_done()
 
-    def validate_job(self, job: Job, file_count: Optional[int] = None) -> bool:
+    def validate_job(self, job: Job, file_count: int | None = None) -> bool:
         """
         Validate job parameters and available resources.
 
@@ -397,7 +399,7 @@ class BatchCropper(Cropper):
 
         return True
 
-    def prepare_crop_operation(self, job: Job) -> tuple[Optional[int], FileList]:
+    def prepare_crop_operation(self, job: Job) -> tuple[int | None, FileList]:
         """
         Abstract method to be implemented by child classes.
         Should prepare the crop_from_path operation by validating inputs and creating
@@ -433,7 +435,7 @@ class BatchCropper(Cropper):
 
         # complete_futures is common to all
         self.complete_futures()
-        
+
         # Make sure cancel buttons are enabled right away
         QApplication.processEvents()
 
@@ -454,8 +456,8 @@ class BatchCropper(Cropper):
             self.finished_signal_emitted = True
             # Use QMetaObject.invokeMethod for cross-thread signal emission
             QMetaObject.invokeMethod(
-                self, 
-                "finished", 
+                self,
+                "finished",
                 Qt.ConnectionType.QueuedConnection
             )
             # Also force a progress update to 100% to ensure the UI is updated

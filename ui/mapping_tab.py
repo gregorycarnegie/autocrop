@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Optional
 
 import polars as pl
 from PyQt6 import QtCore, QtWidgets
@@ -8,8 +7,9 @@ from core import DataFrameModel
 from core import processing as prc
 from core.croppers import MappingCropper
 from core.enums import FunctionType
-from file_types import file_manager, FileCategory
+from file_types import FileCategory, file_manager
 from ui import utils as ut
+
 from .batch_tab import UiBatchCropWidget
 
 
@@ -19,15 +19,15 @@ class UiMappingTabWidget(UiBatchCropWidget):
     def __init__(self, crop_worker: MappingCropper, object_name: str, parent: QtWidgets.QWidget) -> None:
         """Initialize the mapping tab widget"""
         super().__init__(crop_worker, object_name, parent)
-        
+
         # Path storage fields
-        self.input_path = ""         # Folder path 
+        self.input_path = ""         # Folder path
         self.table_path = ""         # Table file path
         self.destination_path = ""   # Destination folder
 
         # Data model
-        self.model: Optional[DataFrameModel] = None
-        self.data_frame: Optional[pl.DataFrame] = None
+        self.model: DataFrameModel | None = None
+        self.data_frame: pl.DataFrame | None = None
 
         # Create mapping-specific widgets
         self.tableButton = self.create_nav_button("tableButton")
@@ -124,7 +124,7 @@ class UiMappingTabWidget(UiBatchCropWidget):
                 self.controlWidget.heightLineEdit
             }
         )
-        
+
         # Connect all input widgets for validation tracking
         self.tab_state_manager.connect_widgets(
             self.controlWidget.widthLineEdit,

@@ -2,20 +2,24 @@ from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Dict, Union
 
 import cv2
 import rawpy
-from PyQt6.QtCore import pyqtSignal, QObject
+from PyQt6.QtCore import QObject, pyqtSignal
 from PyQt6.QtGui import QImage
-from rawpy._rawpy import NotSupportedError, LibRawError, LibRawFatalError, LibRawNonFatalError
+from rawpy._rawpy import (
+    LibRawError,
+    LibRawFatalError,
+    LibRawNonFatalError,
+    NotSupportedError,
+)
 
 from core import processing as prc
 from core.croppers.base import Cropper
 from core.enums import FunctionType
 from core.face_tools import FaceToolPair
 from core.job import Job
-from file_types import file_manager, FileCategory
+from file_types import FileCategory, file_manager
 
 
 class EventEmitter(QObject):
@@ -38,55 +42,60 @@ class DisplayCropper(Cropper):
         self.events = EventEmitter()
         self._widget_states = {}
         self._input_paths = {}
-        
-        # Simple cache for the currently loaded raw image - keyed by function type
-        self.preview_data: Dict[FunctionType, Optional[Preview]] = {}
-        self.current_paths: Dict[FunctionType, Optional[str]] = {}
 
-    def register_widget_state(self, function_type: FunctionType, get_state_callback: Callable[[], tuple], get_path_callback: Callable[[], str]):
+        # Simple cache for the currently loaded raw image - keyed by function type
+        self.preview_data: dict[FunctionType, Preview | None] = {}
+        self.current_paths: dict[FunctionType, str | None] = {}
+
+    def register_widget_state(
+            self,
+            function_type: FunctionType,
+            get_state_callback: Callable[[], tuple],
+            get_path_callback: Callable[[], str]
+    ):
         """Register efficient callbacks to get state information directly without dependencies"""
         self._widget_states[function_type] = get_state_callback
         self._input_paths[function_type] = get_path_callback
-        
+
         # Initialize cache entries for this function type
         if function_type not in self.preview_data:
             self.preview_data[function_type] = None
         if function_type not in self.current_paths:
             self.current_paths[function_type] = None
-    
+
     def crop(self, function_type: FunctionType) -> None:
         """Perform the crop operation with simple image caching"""
         if function_type not in self._widget_states:
             return None
-        
+
         # Skip video tab since it has its own display methods
         if function_type == FunctionType.VIDEO:
             return None
-            
+
         # Get current widget state and path
         widget_state = self._widget_states[function_type]()
         img_path_str = self._input_paths[function_type]()
-        
+
         # Validate path
         if not img_path_str:
             return None
-        
+
         # Only load image if the path changed or no image loaded yet for this function type
-        file_category: Optional[FileCategory] = None
+        file_category: FileCategory | None = None
         current_path = self.current_paths.get(function_type)
         if current_path != img_path_str or self.preview_data.get(function_type) is None:
             # Load appropriate image data based on the function type
             raw_image, file_category = self._load_appropriate_image(function_type, img_path_str)
-            
+
             if raw_image is None or file_category is None:
                 return None
-                
+
             self.preview_data[function_type] = Preview(
                 raw_image,
                 QImage.Format.Format_RGB888 if file_category == FileCategory.PHOTO else QImage.Format.Format_BGR888
             )
             self.current_paths[function_type] = img_path_str
-        
+
         # Now process the cached image with current settings
         with suppress(cv2.error, ValueError, TypeError):
             # Create a job with all settings
@@ -97,7 +106,11 @@ class DisplayCropper(Cropper):
 
         return None
 
-    def _load_appropriate_image(self, function_type: FunctionType, path_str: str) -> Union[tuple[cv2.Mat, FileCategory] | tuple[None, None]]:
+    def _load_appropriate_image(
+            self,
+            function_type: FunctionType,
+            path_str: str
+    ) -> tuple[cv2.Mat, FileCategory] | tuple[None, None]:
         """Load the appropriate image based on the function type"""
         match function_type:
             case FunctionType.PHOTO:
@@ -117,16 +130,16 @@ class DisplayCropper(Cropper):
             case _:
                 # We don't handle VIDEO tab here - it uses its own display methods
                 return None, None
-    
+
     @staticmethod
     def _is_supported_image(file_path: Path) -> bool:
         """Check if the file is a supported image type"""
         return (file_manager.is_valid_type(file_path, FileCategory.PHOTO) or
                 file_manager.is_valid_type(file_path, FileCategory.TIFF) or
                 file_manager.is_valid_type(file_path, FileCategory.RAW))
-    
+
     @staticmethod
-    def _load_raw_image(file_path: Path) -> Union[tuple[cv2.Mat, FileCategory] | tuple[None, None]]:
+    def _load_raw_image(file_path: Path) -> tuple[cv2.Mat, FileCategory] | tuple[None, None]:
         """Load the raw image data without any processing"""
         with suppress(cv2.error):
             # Determine the file type
@@ -134,7 +147,7 @@ class DisplayCropper(Cropper):
                file_manager.is_valid_type(file_path, FileCategory.TIFF):
                 # Standard image file - use OpenCV directly
                 return cv2.imread(file_path.as_posix()), FileCategory.PHOTO
-                
+
             elif file_manager.is_valid_type(file_path, FileCategory.RAW):
                 # RAW image file - use rawpy
                 with suppress(
@@ -149,17 +162,17 @@ class DisplayCropper(Cropper):
                     with rawpy.imread(file_path.as_posix()) as raw:
                         # Process the RAW file to get a standard image
                         return raw.postprocess(use_camera_wb=True), FileCategory.RAW
-                    
+
             return None, None
-            
+
         return None, None
-    
+
     @staticmethod
     def _create_job_from_widget_state(widget_state, img_path_str: str, function_type: FunctionType) -> Job:
         """Create a Job with all parameters from widget state"""
         input_path, width_text, height_text, fix_exposure, multi_face, auto_tilt, sensitivity, face_percent, \
             gamma, top, bottom, left, right, radio_buttons = widget_state
-            
+
         job_params = {
             'width': int(width_text) if width_text.isdigit() else 0,
             'height': int(height_text) if height_text.isdigit() else 0,
@@ -175,17 +188,22 @@ class DisplayCropper(Cropper):
             'right': right,
             'radio_buttons': radio_buttons,
         }
-        
+
         # Add the appropriate path parameter based on the function type
         match function_type:
             case FunctionType.PHOTO:
                 job_params['photo_path'] = Path(img_path_str)
             case FunctionType.FOLDER | FunctionType.MAPPING:
                 job_params['folder_path'] = Path(img_path_str)
-        
+
         return Job(**job_params)
-    
-    def _process_cached_image(self, function_type: FunctionType, job: Job, file_category: FileCategory) -> Optional[QImage]:
+
+    def _process_cached_image(
+            self,
+            function_type: FunctionType,
+            job: Job,
+            file_category: FileCategory
+    ) -> QImage | None:
         """Process the cached raw image with the job parameters"""
         # Get the cached image for this function type
         cached_image = self.preview_data.get(function_type)
@@ -212,15 +230,15 @@ class DisplayCropper(Cropper):
             processed_image = prc.run_processing_pipeline(image_copy, pipeline)
 
         return self._convert_to_qimage(processed_image, cached_image.color_space)
-    
+
     @staticmethod
     def _convert_to_qimage(cv_image: cv2.Mat, color_space: QImage.Format) -> QImage:
         """Convert OpenCV image to QImage"""
         height, width, channels = cv_image.shape
         bytes_per_line = channels * width
         return QImage(cv_image.data, width, height, bytes_per_line, color_space)
-    
-    def clear_cache(self, function_type: Optional[FunctionType] = None):
+
+    def clear_cache(self, function_type: FunctionType | None = None):
         """Clear the image cache for a specific function type or all types"""
         if function_type is not None:
             # Clear cache for the specific function type

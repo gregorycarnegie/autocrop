@@ -1,10 +1,10 @@
 import contextlib
 from pathlib import Path
-from typing import Optional
 
 from PyQt6 import QtCore, QtWidgets
 
-from file_types import file_manager, FileCategory
+from file_types import FileCategory, file_manager
+
 from .custom_line_edit import CustomLineEdit
 from .enums import PathType
 from .file_path_validator import FilePathValidator
@@ -13,7 +13,7 @@ from .file_path_validator import FilePathValidator
 class PathLineEdit(CustomLineEdit):
     """
     Represents a PathLineEdit class that inherits from the CustomLineEdit class.
-        
+
     A custom line edit widget for handling file paths.
 
     Args:
@@ -31,7 +31,7 @@ class PathLineEdit(CustomLineEdit):
         None
     """
 
-    def __init__(self, path_type: PathType = PathType.FOLDER, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, path_type: PathType = PathType.FOLDER, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
         self.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
         self.setValidator(FilePathValidator(parent=self))
@@ -90,29 +90,29 @@ class PathLineEdit(CustomLineEdit):
     def focusInEvent(self, event) -> None:
         """
         Override focus in event to update clear button visibility
-        
+
         Args:
             event: The focus event
-            
+
         Returns:
             None
         """
         super().focusInEvent(event)
         # Ensure clear button visibility is correct
         self.update_clear_button(self.text())
-    
+
     def focusOutEvent(self, event) -> None:
         """
         Override focus out event to update clear button visibility
-        
+
         Args:
             event: The focus event
-            
+
         Returns:
             None
         """
         super().focusOutEvent(event)
-        # Ensure clear button visibility is correct 
+        # Ensure clear button visibility is correct
         self.update_clear_button(self.text())
 
     def is_valid_path(self, path: Path) -> bool:
@@ -126,10 +126,10 @@ class PathLineEdit(CustomLineEdit):
             bool: True if the path is valid, False otherwise.
         """
         is_file = path.is_file()
-        
+
         match self.path_type:
             case PathType.IMAGE:
-                return is_file and (file_manager.is_valid_type(path, FileCategory.PHOTO) or 
+                return is_file and (file_manager.is_valid_type(path, FileCategory.PHOTO) or
                                     file_manager.is_valid_type(path, FileCategory.RAW))
             case PathType.TABLE:
                 return is_file and file_manager.is_valid_type(path, FileCategory.TABLE)
@@ -143,7 +143,7 @@ class PathLineEdit(CustomLineEdit):
     def set_path_type(self, path_type: PathType) -> None:
         """
         Sets the path type for the line edit and updates validation accordingly.
-        
+
         Args:
             path_type (PathType): The type of path to validate against.
         """

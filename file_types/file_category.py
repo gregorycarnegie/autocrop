@@ -1,4 +1,4 @@
-from enum import auto, Flag
+from enum import Flag, auto
 
 
 class FileCategory(Flag):

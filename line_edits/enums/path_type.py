@@ -1,4 +1,4 @@
-from enum import auto, Flag, unique
+from enum import Flag, auto, unique
 
 
 @unique
