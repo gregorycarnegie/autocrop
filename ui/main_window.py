@@ -827,7 +827,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
         return widget_map.get(current_index)
 
-    def open_folder_dialog(self, target_input: PathLineEdit) -> None:
+    def open_folder_dialog(self, target: PathLineEdit) -> None:
         """Securely open a folder dialogue and validate the selected path"""
         try:
             # Use QFileDialog with options that improve security
@@ -852,10 +852,10 @@ class UiMainWindow(QtWidgets.QMainWindow):
                     return
 
                 # Update the input with a safe path
-                target_input.setText(str(path_obj))
+                target.setText(str(path_obj))
 
                 # If this is a source directory, refresh any view that depends on it
-                if target_input == self.unified_address_bar and self.function_tabWidget.currentIndex() == FunctionType.FOLDER:
+                if target == self.unified_address_bar and self.function_tabWidget.currentIndex() == FunctionType.FOLDER:
                     self.folder_tab_widget.load_data()
 
         except Exception as e:
@@ -1376,7 +1376,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
     def handle_path_main(self, file_path: Path) -> None:
         """
-        Handles a file path by checking the file extensions in the directory, validating the mapping and folder tabs, and calling the handle_path method with the appropriate arguments.
+        Handles a file path by checking the file extensions in the directory.
         """
         extensions = {y.suffix.lower() for y in file_path.iterdir()}
         if extensions & file_manager.get_extensions(FileCategory.TABLE):
@@ -1388,7 +1388,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
                     tab_index: FunctionType,
                     line_edit: PathLineEdit) -> None:
         """
-        Handles a file path by setting the function tab widget to the specified tab index, updating the line edit with the file path, and handling the selection state of the tabs.
+        Handles a file path by setting the function tab widget to the specified tab index.
         """
         self.function_tabWidget.setCurrentIndex(tab_index.value)
         line_edit.setText(file_path.as_posix())
@@ -1428,7 +1428,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
     def handle_image_file(self, file_path: Path) -> None:
         """
-        Handles an image file by validating the file path and calling the handle_path method with the appropriate arguments.
+        Handles an image by validating the file path and calling the handle_path method with the appropriate arguments.
         """
         try:
             assert isinstance(self.photo_tab_widget, UiPhotoTabWidget)
@@ -1438,7 +1438,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
     def handle_video_file(self, file_path: Path) -> None:
         """
-        Handles a video file by setting the function tab widget to the video tab, validating the file path, and configuring the video player.
+        Handles a video by setting the function tab widget to the video tab, and configuring the video player.
         """
         self.handle_function_tab_state(self.video_tab_widget, self.folder_tab_widget, self.photo_tab_widget,
                                       self.mapping_tab_widget)
@@ -1456,7 +1456,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
     def handle_table_file(self, file_path: Path) -> None:
         """
-        Handles a table file by setting the function tab widget to the mapping tab, validating the file path, and opening the table.
+        Handles a table file by setting the function tab widget to the mapping tab, and opening the table.
         """
         self.function_tabWidget.setCurrentIndex(FunctionType.MAPPING)
         self.mapping_tab_widget.table_path = file_path.as_posix()

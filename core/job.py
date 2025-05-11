@@ -2,6 +2,7 @@ import os
 import shutil
 from contextlib import suppress
 from dataclasses import dataclass, field
+from functools import partial
 from pathlib import Path
 
 import numpy as np
@@ -57,7 +58,9 @@ class Job:
     radio_buttons: tuple[bool, bool, bool, bool, bool, bool]
 
     # Optional fields with default values
-    radio_options: np.ndarray = field(default_factory=lambda: np.array(['No', '.bmp', '.jpg', '.png', '.tiff', '.webp']))
+    radio_options: np.ndarray = field(
+        default_factory=partial(np.array, ['No', '.bmp', '.jpg', '.png', '.tiff', '.webp'])
+    )
     destination: Path | None = None
     photo_path: Path | None = None
     folder_path: Path | None = None

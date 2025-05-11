@@ -339,13 +339,17 @@ class BatchCropper(Cropper):
         """
         # Define error handlers based on exception types
         error_handlers = {
-            FileNotFoundError: lambda _: self.create_error('file', "File not found. Please check that all input files exist."),
+            FileNotFoundError: lambda _: self.create_error(
+                'file', "File not found. Please check that all input files exist."
+            ),
             PermissionError: lambda _: self.create_error('access'),
             MemoryError: lambda _: self.create_error('memory'),
             OSError: lambda _: self.create_error('capacity') if "space" in str(_).lower() else
                             self._display_error(_, "File system error. Check input and output paths."),
             ValueError: lambda _: self._display_error(_, "Invalid data format. Please check input files."),
-            (TypeError, AttributeError): lambda _: self._display_error(_, "Data type error. This may indicate a corrupted image file."),
+            (TypeError, AttributeError): lambda _: self._display_error(
+                _, "Data type error. This may indicate a corrupted image file."
+            ),
             CancelledError: lambda _: None,  # Silently handle cancelled futures
         }
 

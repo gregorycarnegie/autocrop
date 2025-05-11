@@ -59,7 +59,9 @@ class MappingCropper(BatchCropper):
         if self.progress_count == file_amount or self.end_task:
             self.show_message_box = False
 
-    def prepare_crop_operation(self, job: Job) -> tuple[int | None, tuple[npt.NDArray[np.str_], npt.NDArray[np.str_]] | None]:
+    def prepare_crop_operation(
+            self, job: Job
+    ) -> tuple[int | None, tuple[npt.NDArray[np.str_], npt.NDArray[np.str_]] | None]:
         """
         Prepare the mapping crop_from_path operation by getting file lists and splitting into chunks.
         """

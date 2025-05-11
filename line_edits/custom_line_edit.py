@@ -180,7 +180,7 @@ class CustomLineEdit(QLineEdit):
 
     def update_style(self) -> None:
         """
-        Updates the style of the CustomLineEdit by setting the background colour and text colour based on the current colour value.
+        Updates the style of the CustomLineEdit.
 
         Args:
             self: The CustomLineEdit instance.

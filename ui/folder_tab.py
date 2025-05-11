@@ -26,7 +26,11 @@ class UiFolderTabWidget(UiBatchCropWidget):
         # Create a file model for the tree view
         self.file_model = QtGui.QFileSystemModel(self)
         self.file_model.setFilter(QtCore.QDir.Filter.NoDotAndDotDot | QtCore.QDir.Filter.Files)
-        p_types = file_manager.get_extensions(FileCategory.PHOTO) | file_manager.get_extensions(FileCategory.TIFF) | file_manager.get_extensions(FileCategory.RAW)
+        p_types = (
+            file_manager.get_extensions(FileCategory.PHOTO) |
+            file_manager.get_extensions(FileCategory.TIFF) |
+            file_manager.get_extensions(FileCategory.RAW)
+        )
         file_filter = np.array([f'*{file}' for file in p_types])
         self.file_model.setNameFilters(file_filter)
 

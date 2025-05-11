@@ -208,10 +208,14 @@ class UiCropWidget(QtWidgets.QWidget):
             match function_type:
                 case FunctionType.FOLDER | FunctionType.MAPPING:
                     if destination and folder_path:
-                        self.destination = self._handle_folder_path(destination, folder_path, file_manager.get_save_formats(FileCategory.PHOTO))
+                        self.destination = self._handle_folder_path(
+                            destination, folder_path, file_manager.get_save_formats(FileCategory.PHOTO)
+                        )
                 case FunctionType.VIDEO:
                     if destination and video_path:
-                        self.destination = self._handle_video_path(destination, video_path, file_manager.get_save_formats(FileCategory.PHOTO))
+                        self.destination = self._handle_video_path(
+                            destination, video_path, file_manager.get_save_formats(FileCategory.PHOTO)
+                        )
                 case FunctionType.FRAME | FunctionType.PHOTO:
                     self.destination = destination if destination is not None else self.destination
 
@@ -248,7 +252,7 @@ class UiCropWidget(QtWidgets.QWidget):
 
     @staticmethod
     def _check_matching_files(destination: Path, filenames: set[str], extensions: tuple[str]) -> bool:
-        """Recursively check if the destination contains any files with the given extensions that match the filenames."""
+        """Recursively check if the destination has any files with the given extensions that match the filenames."""
         return any(p.is_file()
                    and p.suffix.lower() in extensions
                    and p.stem in filenames
