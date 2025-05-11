@@ -2,6 +2,7 @@ from PyQt6.QtCore import QFile, QTextStream
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication
 
+from core.ffmpeg_utils import configure_ffmpeg
 from core.resource_path import ResourcePath
 from ui import UiMainWindow
 from ui.enums import GuiIcon
@@ -34,6 +35,9 @@ def main():
     app.setApplicationName("Autocrop")
     app.setApplicationDisplayName("Autocrop")
     app.setWindowIcon(QIcon(GuiIcon.ICON))
+
+    # Configure FFmpeg to use bundled version
+    configure_ffmpeg()
 
     # Setup custom styling
     setup_fonts(app)
