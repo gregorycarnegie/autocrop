@@ -796,7 +796,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self._update_path_and_ui(file_path, path_type, target_input)
 
     def _update_path_and_ui(self, file_path: str, path_type: PathType,
-                        target_input: PathLineEdit) -> None:
+                            target_input: PathLineEdit) -> None:
         """Update the path storage and UI elements"""
         current_index = self.function_tabWidget.currentIndex()
 
@@ -1337,42 +1337,66 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
         try:
             # Determine the file type and handle accordingly
-            if ((file_manager.is_valid_type(file_path, FileCategory.PHOTO) or
-                file_manager.is_valid_type(file_path, FileCategory.RAW) or
-                file_manager.is_valid_type(file_path, FileCategory.TIFF)) and
-                SignatureChecker.verify_file_type(file_path, FileCategory.PHOTO)):
+            if file_manager.is_valid_type(file_path, FileCategory.PHOTO):
+                # Photo file - verify PHOTO signature
+                if SignatureChecker.verify_file_type(file_path, FileCategory.PHOTO):
+                    self._handle_image_drop(file_path)
+                else:
+                    ut.show_error_box("File content doesn't match its extension (expected photo)")
 
-                # Handle with the photo tab
-                self.function_tabWidget.setCurrentIndex(FunctionType.PHOTO)
-                self.photo_tab_widget.input_path = str(file_path)
-                self.unified_address_bar.setText(str(file_path))
-                self.display_worker.crop(FunctionType.PHOTO)
+            elif file_manager.is_valid_type(file_path, FileCategory.RAW):
+                # RAW file - verify RAW signature
+                if SignatureChecker.verify_file_type(file_path, FileCategory.RAW):
+                    self._handle_image_drop(file_path)
+                else:
+                    ut.show_error_box("File content doesn't match its extension (expected RAW)")
 
-            elif (file_manager.is_valid_type(file_path, FileCategory.VIDEO) and
-                  SignatureChecker.verify_file_type(file_path, FileCategory.VIDEO)):
-                # Handle with the video tab
-                self.function_tabWidget.setCurrentIndex(FunctionType.VIDEO)
-                self.video_tab_widget.input_path = str(file_path)
-                self.unified_address_bar.setText(str(file_path))
-                self.video_tab_widget.open_dropped_video()
+            elif file_manager.is_valid_type(file_path, FileCategory.TIFF):
+                # TIFF file - verify TIFF signature
+                if SignatureChecker.verify_file_type(file_path, FileCategory.TIFF):
+                    self._handle_image_drop(file_path)
+                else:
+                    ut.show_error_box("File content doesn't match its extension (expected TIFF)")
 
-            elif (file_manager.is_valid_type(file_path, FileCategory.TABLE) and
-                  SignatureChecker.verify_file_type(file_path, FileCategory.TABLE)):
-                # Handle with the mapping tab
-                self.function_tabWidget.setCurrentIndex(FunctionType.MAPPING)
-                self.mapping_tab_widget.table_path = str(file_path)
-                self.secondary_input.setText(str(file_path))
+            elif file_manager.is_valid_type(file_path, FileCategory.VIDEO):
+                # Video file - verify VIDEO signature
+                if SignatureChecker.verify_file_type(file_path, FileCategory.VIDEO):
+                    # Handle with the video tab
+                    self.function_tabWidget.setCurrentIndex(FunctionType.VIDEO)
+                    self.video_tab_widget.input_path = str(file_path)
+                    self.unified_address_bar.setText(str(file_path))
+                    self.video_tab_widget.open_dropped_video()
+                else:
+                    ut.show_error_box("File content doesn't match its extension (expected video)")
 
-                # Process the table data
-                data = prc.load_table(file_path)
-                self.mapping_tab_widget.process_data(data)
+            elif file_manager.is_valid_type(file_path, FileCategory.TABLE):
+                # Table file - verify TABLE signature  
+                if SignatureChecker.verify_file_type(file_path, FileCategory.TABLE):
+                    # Handle with the mapping tab
+                    self.function_tabWidget.setCurrentIndex(FunctionType.MAPPING)
+                    self.mapping_tab_widget.table_path = str(file_path)
+                    self.secondary_input.setText(str(file_path))
+
+                    # Process the table data
+                    data = prc.load_table(file_path)
+                    self.mapping_tab_widget.process_data(data)
+                else:
+                    ut.show_error_box("File content doesn't match its extension (expected table)")
 
             else:
                 ut.show_error_box(f"Unsupported file type: {file_path.suffix}")
+
         except (OSError, ValueError, TypeError) as e:
             # Log error internally without exposing details
             print(f"Error handling dropped file: {e}")
             ut.show_error_box("An error occurred processing the file")
+
+    def _handle_image_drop(self, file_path: Path) -> None:
+        """Handle dropping an image file (photo, RAW, or TIFF)"""
+        self.function_tabWidget.setCurrentIndex(FunctionType.PHOTO)
+        self.photo_tab_widget.input_path = str(file_path)
+        self.unified_address_bar.setText(str(file_path))
+        self.display_worker.crop(FunctionType.PHOTO)
 
     def handle_path_main(self, file_path: Path) -> None:
         """
