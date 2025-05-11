@@ -4,6 +4,7 @@ import subprocess
 from functools import cache, partial
 from pathlib import Path
 
+import autocrop_rs as rs
 import cv2.typing as cvt
 from PyQt6 import QtCore, QtGui
 from PyQt6.QtWidgets import (
@@ -79,52 +80,24 @@ def check_paths_valid(tab_widget) -> bool:
 
 def sanitize_path(path_str: str) -> str | None:
     """
-    Sanitize path input to prevent path traversal attacks.
-    Returns None if the path is invalid or inaccessible.
+    Sanitize path input to prevent security vulnerabilities.
+    Uses the Rust implementation for better security guarantees.
     """
-    if not path_str:
-        return None
-
     try:
-        # Remove control characters
-        path_str = ''.join(c for c in path_str if c.isprintable())
-
-        # Create a Path object and resolve it to get absolute normalized path
-        path = Path(path_str).resolve()
-
-        # Check that the path exists and is accessible
-        if not path.exists():
-            show_error_box("Path does not exist")
-            return None
-
-        if not os.access(path, os.R_OK):
-            show_error_box("Path is not accessible")
-            return None
-
-        # For extra security, you can add base directory restrictions
-        # For example, ensure path is within allowed directories:
-        allowed_base_dirs = [
-            Path.home(),
-            Path("/mnt"),  # Common mount point on Linux
-            Path("/media"),  # Common media mount point on Linux
-            # Add other allowed base directories
-        ]
-
-        # Add Windows drives if on Windows
-        if os.name == 'nt':
-            import string
-            allowed_base_dirs.extend(
-                Path(f"{letter}:") for letter in string.ascii_uppercase
-            )
-        # Check if path is within allowed directories
-        if not any(is_subpath(path, base_dir) for base_dir in allowed_base_dirs):
-            show_error_box("Path is outside of allowed directories")
-            return None
-
-        return str(path)
-    except (ValueError, OSError):
-        # Log the error internally but don't expose details to user
-        show_error_box("Invalid path")
+        # Use the Rust sanitize_path function
+        return rs.sanitize_path(
+            path_str,
+            allowed_operations=['read', 'write'],
+            max_path_length=4096,
+            follow_symlinks=False
+        )
+    except rs.PathSecurityError as e:
+        # Use get_safe_error_message to sanitize the error message
+        safe_msg = rs.get_safe_error_message(str(e))
+        show_error_box(f"Path security error: {safe_msg}")
+        return None
+    except Exception as e:
+        show_error_box(f"Invalid path:\n {e}")
         return None
 
 def is_subpath(path: Path, base_path: Path) -> bool:
