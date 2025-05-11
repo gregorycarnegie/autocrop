@@ -328,7 +328,7 @@ class BatchCropper(Cropper):
             self.emit_done()
             self.end_task = True
 
-    def worker(self, *args: Any) -> None:
+    def worker(self, *args: Any, **kwargs) -> None:
         """Worker function to be overridden in subclasses"""
         raise NotImplementedError("Worker function must be implemented in subclasses.")
 

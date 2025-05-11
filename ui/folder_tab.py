@@ -94,7 +94,8 @@ class UiFolderTabWidget(UiBatchCropWidget):
 
         # Connect tree view hover events
         self.treeView.entered.connect(self._on_item_entered)
-        self.treeView.viewport().installEventFilter(self)
+        if viewport := self.treeView.viewport():
+            viewport.installEventFilter(self)
 
         self.verticalLayout_300.addWidget(self.treeView)
 

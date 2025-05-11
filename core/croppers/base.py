@@ -15,7 +15,7 @@ class Cropper(QObject):
     A class that manages image-cropping tasks using a thread pool.
     """
 
-    THREAD_NUMBER: ClassVar[int] = min(psutil.cpu_count(), MEM_FACTOR, 8)
+    THREAD_NUMBER: ClassVar[int] = min(psutil.cpu_count() or 1, MEM_FACTOR, 8)
     MEM_FACTOR = MEM_FACTOR
     TASK_VALUES: ClassVar[tuple[int, bool, bool]] = 0, False, True
 

@@ -77,9 +77,14 @@ class UiVideoTabWidget(UiCropWidget):
         self.durationLabel_1 = QtWidgets.QLabel()
         self.durationLabel_2 = QtWidgets.QLabel()
 
+        self.frame_1 = self.create_main_frame("frame_1")
+        self.frame_1.setParent(self.page_1)
+
+        self.frame_2 = self.create_main_frame("frame_2")
+        self.frame_2.setParent(self.page_2)
         # Create media control widgets
-        self.mediacontrolWidget_1 = None  # Will be initialized in setup_layouts
-        self.mediacontrolWidget_2 = None  # Will be initialized in setup_layouts
+        self.mediacontrolWidget_1 = UiMediaControlWidget(self.frame_1, self.player, self.crop_worker)  # Will be initialized in setup_layouts
+        self.mediacontrolWidget_2 = UiMediaControlWidget(self.frame_2, self.player, self.crop_worker)  # Will be initialized in setup_layouts
 
         self.previewButton = QtWidgets.QPushButton("Update Preview")
 
@@ -155,9 +160,9 @@ class UiVideoTabWidget(UiCropWidget):
         # ---- Page 1: Video Player ----
 
         # Main frame with video player
-        frame_1 = self.create_main_frame("frame_1")
-        frame_1.setParent(self.page_1)
-        vertical_layout_9 = ut.setup_vbox("verticalLayout_9", frame_1)
+        # frame_1 = self.create_main_frame("frame_1")
+        # frame_1.setParent(self.page_1)
+        vertical_layout_9 = ut.setup_vbox("verticalLayout_9", self.frame_1)
 
         # Media controls layout
         media_control_layout = ut.setup_hbox("horizontalLayout_1")
@@ -229,7 +234,7 @@ class UiVideoTabWidget(UiCropWidget):
         vertical_layout_9.addLayout(media_control_layout)
 
         # Video widget
-        self.videoWidget.setParent(frame_1)
+        self.videoWidget.setParent(self.frame_1)
         self.size_policy_expand_expand.setHeightForWidth(self.videoWidget.sizePolicy().hasHeightForWidth())
         self.videoWidget.setSizePolicy(self.size_policy_expand_expand)
         self.videoWidget.setMinimumSize(QtCore.QSize(200, 200))
@@ -237,17 +242,17 @@ class UiVideoTabWidget(UiCropWidget):
         vertical_layout_9.addWidget(self.videoWidget)
 
         # Media control widget 1
-        self.mediacontrolWidget_1 = UiMediaControlWidget(frame_1, self.player, self.crop_worker)
+        # self.mediacontrolWidget_1 = UiMediaControlWidget(frame_1, self.player, self.crop_worker)
         self.mediacontrolWidget_1.setObjectName("mediacontrolWidget_1")
         vertical_layout_9.addWidget(self.mediacontrolWidget_1)
 
         # Progress bar
-        self.progressBar.setParent(frame_1)
+        self.progressBar.setParent(self.frame_1)
         vertical_layout_9.addWidget(self.progressBar)
 
         vertical_layout_9.setStretch(1, 1)
 
-        self.verticalLayout_200.addWidget(frame_1)
+        self.verticalLayout_200.addWidget(self.frame_1)
 
         # Destination selection
         self.verticalLayout_200.addLayout(self.horizontalLayout_3)
@@ -257,9 +262,9 @@ class UiVideoTabWidget(UiCropWidget):
 
         # ---- Page 2: Crop View ----
         # Main frame with crop_from_path preview
-        frame_2 = self.create_main_frame("frame_2")
-        frame_2.setParent(self.page_2)
-        vertical_layout_10 = ut.setup_vbox("verticalLayout_10", frame_2)
+        # frame_2 = self.create_main_frame("frame_2")
+        # frame_2.setParent(self.page_2)
+        vertical_layout_10 = ut.setup_vbox("verticalLayout_10", self.frame_2)
 
         # Media controls layout for page 2
         media_control_layout2 = ut.setup_hbox("horizontalLayout_5")
@@ -315,10 +320,10 @@ class UiVideoTabWidget(UiCropWidget):
         vertical_layout_10.addLayout(media_control_layout2)
 
         # Checkbox section for page 2
-        self.toggleCheckBox.setParent(frame_2)
-        self.mfaceCheckBox.setParent(frame_2)
-        self.tiltCheckBox.setParent(frame_2)
-        self.exposureCheckBox.setParent(frame_2)
+        self.toggleCheckBox.setParent(self.frame_2)
+        self.mfaceCheckBox.setParent(self.frame_2)
+        self.tiltCheckBox.setParent(self.frame_2)
+        self.exposureCheckBox.setParent(self.frame_2)
 
         checkbox_layout = ut.setup_hbox("horizontalLayout_4")
         checkbox_layout.addWidget(self.toggleCheckBox)
@@ -351,20 +356,20 @@ class UiVideoTabWidget(UiCropWidget):
         vertical_layout_10.addWidget(self.previewButton)
 
         # Image widget (preview)
-        self.imageWidget.setParent(frame_2)
+        self.imageWidget.setParent(self.frame_2)
         vertical_layout_10.addWidget(self.imageWidget)
 
         # Media control widget 2
-        self.mediacontrolWidget_2 = UiMediaControlWidget(frame_2, self.player, self.crop_worker)
+        # self.mediacontrolWidget_2 = UiMediaControlWidget(frame_2, self.player, self.crop_worker)
         self.mediacontrolWidget_2.setObjectName("mediacontrolWidget_2")
         vertical_layout_10.addWidget(self.mediacontrolWidget_2)
 
         # Progress bar 2
-        self.progressBar_2.setParent(frame_2)
+        self.progressBar_2.setParent(self.frame_2)
         vertical_layout_10.addWidget(self.progressBar_2)
 
         # Add frame to page layout
-        self.verticalLayout_300.addWidget(frame_2)
+        self.verticalLayout_300.addWidget(self.frame_2)
 
         # Add page to toolbox
         self.toolBox.addItem(self.page_2, "Crop View")

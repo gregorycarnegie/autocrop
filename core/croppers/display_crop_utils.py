@@ -1,6 +1,6 @@
 from pathlib import Path
 
-import cv2
+import cv2.typing as cvt
 from cachetools import TTLCache, cached
 from PyQt6.QtGui import QImage
 
@@ -29,12 +29,12 @@ def path_iterator(path: Path) -> Path | None:
     )
 
 
-def matlike_to_qimage(image: cv2.Mat) -> QImage:
+def matlike_to_qimage(image: cvt.MatLike) -> QImage:
     """
     Convert a BGR NumPy array (shape = [height, width, channels])
     to a QImage using QImage.Format_BGR888.
     """
-    return QImage(image, image.shape[1], image.shape[0], image.strides[0], QImage.Format.Format_BGR888)
+    return QImage(bytes(image.data), image.shape[1], image.shape[0], image.strides[0], QImage.Format.Format_BGR888)
 
 
 def perform_crop_helper(function_type: FunctionType,
@@ -88,12 +88,12 @@ def create_job(widget_state: WidgetState, img_path_str: str, function_type: Func
         left=widget_state[11],
         right=widget_state[12],
         radio_buttons=widget_state[13],
-        photo_path=img_path_str if function_type == FunctionType.PHOTO else None,
-        folder_path=img_path_str if function_type != FunctionType.PHOTO else None,
+        photo_path=Path(img_path_str) if function_type == FunctionType.PHOTO else None,
+        folder_path=Path(img_path_str) if function_type != FunctionType.PHOTO else None,
     )
 
 
-def handle_face_detection(pic_array: cv2.Mat, job: Job, face_detection_tools: FaceToolPair) -> QImage | None:
+def handle_face_detection(pic_array: cvt.MatLike, job: Job, face_detection_tools: FaceToolPair) -> QImage | None:
     if job.multi_face_job:
         pic = prc.annotate_faces(pic_array, job, face_detection_tools)
         # final_image = prc.convert_colour_space(pic) # Uncomment if needed
