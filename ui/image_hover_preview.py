@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import cv2
+import cv2.typing as cvt
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtGui import QImage, QPixmap
 
@@ -136,11 +137,11 @@ class ImageHoverPreview(QtWidgets.QLabel):
         )
 
     @staticmethod
-    def _cv2_to_pixmap(image: cv2.Mat) -> QPixmap:
+    def _cv2_to_pixmap(image: cvt.MatLike) -> QPixmap:
         """Convert OpenCV image to QPixmap"""
         height, width, channels = image.shape
         bytes_per_line = channels * width
-        q_image = QImage(image.data, width, height, bytes_per_line, QImage.Format.Format_RGB888)
+        q_image = QImage(bytes(image.data), width, height, bytes_per_line, QImage.Format.Format_RGB888)
         return QPixmap.fromImage(q_image)
 
     def position_near_mouse(self, mouse_pos: QtCore.QPoint):

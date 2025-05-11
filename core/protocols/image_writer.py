@@ -1,8 +1,7 @@
 from pathlib import Path
 from typing import Protocol
 
-import cv2
-import numpy as np
+import cv2.typing as cvt
 
 
 class ImageWriter(Protocol):
@@ -11,9 +10,9 @@ class ImageWriter(Protocol):
     """
     def __call__(
         self,
-        image: cv2.Mat | np.ndarray,
-        file: Path,
-        user_gam: float,
-        is_tiff: bool = False
+        image: cvt.MatLike,
+        file_path: Path,
+        _user_gam: float,
+        _is_tiff: bool = False
     ) -> None:
         ...

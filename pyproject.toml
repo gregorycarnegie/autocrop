@@ -42,3 +42,18 @@ select = [
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
+
+[tool.pyright]
+include = ["**/*.py", "stubs"]
+exclude = ["**/__pycache__"]
+stubPath = "./stubs"
+extraPaths = ["./stubs"]
+typeCheckingMode = "basic"
+pythonVersion = "3.13"
+reportMissingImports = true
+reportMissingTypeStubs = false
+
+[tool.mypy]
+mypy_path = "stubs"
+explicit_package_bases = true
+namespace_packages = true

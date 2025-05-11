@@ -803,7 +803,8 @@ fn crop_positions(
 }
 
 /// Module initialization
-pub fn register_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
+// #[pymodule]
+pub fn image_processing(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(crop_positions, m)?)?;
     m.add_function(wrap_pyfunction!(gamma, m)?)?;
     m.add_function(wrap_pyfunction!(calculate_dimensions, m)?)?;

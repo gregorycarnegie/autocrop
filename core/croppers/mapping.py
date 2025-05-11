@@ -6,9 +6,9 @@ from itertools import batched
 from pathlib import Path
 from typing import Any
 
+import autocrop_rs.file_types as r_types
 import numpy as np
 import numpy.typing as npt
-from autocrop_rs import validate_files
 
 from core import processing as prc
 from core.face_tools import FaceToolPair
@@ -145,7 +145,7 @@ class MappingCropper(BatchCropper):
         path_strings = [path.as_posix() for path in path_strings]
 
         # Validate all files in parallel using Rust
-        validation_results = validate_files(path_strings, categories)
+        validation_results = r_types.validate_files(path_strings, categories)
 
         # Filter valid files
         valid_indices = np.where(validation_results)[0]

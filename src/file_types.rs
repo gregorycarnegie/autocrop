@@ -441,9 +441,9 @@ pub fn verify_file_type(file_path: String, category: u8) -> PyResult<bool> {
 }
 
 /// Register the functions with the Python module
-pub fn register_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
+// #[pymodule]
+pub fn file_types(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(validate_files, m)?)?;
     m.add_function(wrap_pyfunction!(verify_file_type, m)?)?;
-    
     Ok(())
 }

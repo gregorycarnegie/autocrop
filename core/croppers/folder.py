@@ -5,8 +5,8 @@ from functools import partial
 from itertools import batched
 from pathlib import Path
 
+import autocrop_rs.file_types as r_types
 import numpy as np
-from autocrop_rs import validate_files
 
 from core import processing as prc
 from core.face_tools import FaceToolPair
@@ -110,7 +110,7 @@ class FolderCropper(BatchCropper):
                 categories.append(5)  # Unknown category
 
         # Validate all files in parallel using Rust
-        validation_results = validate_files(path_strings, categories)
+        validation_results = r_types.validate_files(path_strings, categories)
 
         # Filter valid files
         valid_indices = np.where(validation_results)[0]

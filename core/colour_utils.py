@@ -4,14 +4,15 @@ Centralized colour space handling utilities for the autocrop application.
 This module provides common functions for colour space conversions and manipulations,
 eliminating code duplication across the application.
 """
+import autocrop_rs.image_processing as r_img
 import cv2
+import cv2.typing as cvt
 import numpy as np
-from autocrop_rs import gamma
 
 from .config import Config
 
 
-def ensure_rgb(image: cv2.Mat) -> cv2.Mat:
+def ensure_rgb(image: cvt.MatLike) -> cvt.MatLike:
     """
     Ensures the image is in RGB format by converting from BGR if necessary.
 
@@ -27,7 +28,7 @@ def ensure_rgb(image: cv2.Mat) -> cv2.Mat:
     return image
 
 
-def ensure_bgr(image: cv2.Mat) -> cv2.Mat:
+def ensure_bgr(image: cvt.MatLike) -> cvt.MatLike:
     """
     Ensures the image is in BGR format (OpenCV standard) by converting from RGB if necessary.
 
@@ -43,7 +44,7 @@ def ensure_bgr(image: cv2.Mat) -> cv2.Mat:
     return image
 
 
-def to_grayscale(image: cv2.Mat) -> cv2.Mat:
+def to_grayscale(image: cvt.MatLike) -> cvt.MatLike:
     """
     Converts an image to grayscale using specified coefficients.
 
@@ -60,14 +61,14 @@ def to_grayscale(image: cv2.Mat) -> cv2.Mat:
     return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
 
-def adjust_gamma(image: cv2.Mat, gam: float) -> cv2.Mat:
+def adjust_gamma(image: cvt.MatLike, gam: float) -> cvt.MatLike:
     """
     Adjusts image gamma using a precomputed lookup table.
     """
-    return cv2.LUT(image, gamma(gam * Config.gamma_threshold))
+    return cv2.LUT(image, r_img.gamma(gam * Config.gamma_threshold))
 
 
-def normalize_image(image: cv2.Mat) -> cv2.Mat:
+def normalize_image(image: cvt.MatLike) -> cvt.MatLike:
     """
     Normalizes an image to use the full dynamic range.
 
@@ -86,4 +87,5 @@ def normalize_image(image: cv2.Mat) -> cv2.Mat:
         return image
 
     # Normalize to [0, 255]
-    return cv2.convertScaleAbs(image, alpha=255/delta_val, beta=-min_val*255/delta_val)
+    alpha, beta =float(255/delta_val), float(-min_val*255/delta_val)
+    return cv2.convertScaleAbs(image, alpha=alpha, beta=beta)

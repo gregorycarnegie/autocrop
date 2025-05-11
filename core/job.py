@@ -1,3 +1,4 @@
+import math
 import os
 import shutil
 from contextlib import suppress
@@ -204,38 +205,40 @@ class Job:
         if safe_folder is None:
             return None
 
-        if self.table.is_empty():
-            return None
-
-        with suppress(Exception):
-            # Extract column data safely
-            col1_name = self.column1.currentText()
-            col2_name = self.column2.currentText()
-
-            # Validate column names
-            if not col1_name or not col2_name:
-                return None
-            if col1_name not in self.table.columns or col2_name not in self.table.columns:
+        if self.table is not None:
+            if self.table.is_empty():
                 return None
 
-            # Convert to NumPy arrays
-            old_arr = self.table[col1_name].to_numpy().astype(np.str_)
-            new_arr = self.table[col2_name].to_numpy().astype(np.str_)
+            with suppress(Exception):
+                # Extract column data safely
+                col1_name = self.column1.currentText() if self.column1 is not None else ''
+                col2_name = self.column2.currentText() if self.column2 is not None else ''
 
-            # Build a set of existing filenames with proper validation
-            existing = set()
-            for p in safe_folder.iterdir():
-                try:
-                    if p.is_file() and os.access(p, os.R_OK):
-                        existing.add(p.name)
-                except OSError:
-                    continue
+                # Validate column names
+                if not col1_name or not col2_name:
+                    return None
 
-            # Create a mask for existing files
-            mask = np.isin(old_arr, list(existing))
+                if col1_name not in self.table.columns or col2_name not in self.table.columns:
+                    return None
 
-            # Apply the mask
-            return old_arr[mask], new_arr[mask]
+                # Convert to NumPy arrays
+                old_arr = self.table[col1_name].to_numpy().astype(np.str_)
+                new_arr = self.table[col2_name].to_numpy().astype(np.str_)
+
+                # Build a set of existing filenames with proper validation
+                existing = set()
+                for p in safe_folder.iterdir():
+                    try:
+                        if p.is_file() and os.access(p, os.R_OK):
+                            existing.add(p.name)
+                    except OSError:
+                        continue
+
+                # Create a mask for existing files
+                mask = np.isin(old_arr, list(existing))
+
+                # Apply the mask
+                return old_arr[mask], new_arr[mask]
         return None
 
     @property
@@ -277,4 +280,4 @@ class Job:
         """
         Approximate size in bytes for an image of shape (height, width, 3).
         """
-        return np.prod(self.size) * 3
+        return math.prod(self.size) * 3

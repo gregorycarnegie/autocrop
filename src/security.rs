@@ -390,10 +390,13 @@ pub fn get_safe_error_message(error_msg: &str) -> String {
 }
 
 /// Module initialization
-pub fn register_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
+pub fn security(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(sanitize_path, m)?)?;
     m.add_function(wrap_pyfunction!(get_safe_error_message, m)?)?;
-    m.add_class::<PathSecurityError>()?;
+    
+    // Use the builder to properly attach the class with the correct __module__ attribute
+    let _builder = crate::module_builder::ImportablePyModuleBuilder::from(m.clone())
+        .add_class::<PathSecurityError>()?;
     
     Ok(())
 }

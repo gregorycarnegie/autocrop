@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from autocrop_rs import verify_file_type
+import autocrop_rs.file_types as r_types
 
 from .file_category import FileCategory
 
@@ -37,7 +37,7 @@ class SignatureChecker:
 
         # Call Rust implementation
         try:
-            return verify_file_type(str(file_path), category_value)
+            return r_types.verify_file_type(str(file_path), category_value)
         except Exception:
             # Fallback to always returning False on errors
             return False

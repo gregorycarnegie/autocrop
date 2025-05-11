@@ -6,14 +6,15 @@ from contextlib import suppress
 from functools import cache, lru_cache, partial, singledispatch
 from pathlib import Path
 
-import autocrop_rs as rs
+import autocrop_rs.image_processing as r_img
 import cv2
+import cv2.typing as cvt
 import numpy as np
 import numpy.typing as npt
 import polars as pl
 import tifffile as tiff
 from PyQt6 import QtWidgets
-from rawpy import ColorSpace
+from rawpy import ColorSpace  # type: ignore
 from rawpy._rawpy import (
     LibRawError,
     LibRawFatalError,
@@ -43,11 +44,11 @@ def build_processing_pipeline(job: Job,
                               face_detection_tools: FaceToolPair,
                               bounding_box: Box | None=None,
                               display=False,
-                              video=False) -> list[Callable[[cv2.Mat], cv2.Mat]]:
+                              video=False) -> list[Callable[[cvt.MatLike], cvt.MatLike]]:
     """
     Creates a pipeline of image processing functions based on job parameters.
     """
-    pipeline: list[Callable[[cv2.Mat], cv2.Mat]] = []
+    pipeline: list[Callable[[cvt.MatLike], cvt.MatLike]] = []
     # Add alignment if requested
     if job.auto_tilt_job:
         pipeline.append(partial(align_face, face_detection_tools=face_detection_tools, job=job))
@@ -58,7 +59,7 @@ def build_processing_pipeline(job: Job,
 
     # Add exposure correction if requested
     if job.fix_exposure_job:
-        pipeline.append(partial(rs.correct_exposure, exposure=True, video=video))
+        pipeline.append(partial(r_img.correct_exposure, exposure=True, video=video))
 
     pipeline.extend(
         (
@@ -73,7 +74,7 @@ def build_processing_pipeline(job: Job,
     return pipeline
 
 
-def run_processing_pipeline(image: cv2.Mat, pipeline: list[Callable[[cv2.Mat], cv2.Mat]]) -> cv2.Mat:
+def run_processing_pipeline(image: cvt.MatLike, pipeline: list[Callable[[cvt.MatLike], cvt.MatLike]]) -> cvt.MatLike:
     """
     Apply a sequence of image processing functions to an image.
     """
@@ -83,7 +84,7 @@ def run_processing_pipeline(image: cv2.Mat, pipeline: list[Callable[[cv2.Mat], c
     return result
 
 
-def crop_to_bounding_box(image: cv2.Mat, bounding_box: Box) -> cv2.Mat:
+def crop_to_bounding_box(image: cvt.MatLike, bounding_box: Box) -> cvt.MatLike:
     x0, y0, x1, y1 = bounding_box
     h, w = image.shape[:2]
     # Crop the valid region first
@@ -100,26 +101,27 @@ def crop_to_bounding_box(image: cv2.Mat, bounding_box: Box) -> cv2.Mat:
     )
 
 
-def prepare_visualisation_image(image: cv2.Mat) -> tuple[cv2.Mat, float]:
+def prepare_visualisation_image(image: cvt.MatLike) -> tuple[cvt.MatLike, float]:
     """
     Resizes an image to 256 px height, returns grayscale if >2 channels, plus the scaling factor.
     """
     output_height = Config.default_preview_height
-    output_width, scaling_factor = rs.calculate_dimensions(*image.shape[:2], output_height)
+    height, width = image.shape[:2]
+    output_width, scaling_factor = r_img.calculate_dimensions(height, width, output_height)
     image_array = cv2.resize(image, (output_width, output_height), interpolation=Config.interpolation)
     return to_grayscale(image_array) if len(image_array.shape) >= 3 else image_array, scaling_factor
 
 
-def colour_and_align_face(image: cv2.Mat,
+def colour_and_align_face(image: cvt.MatLike,
                           face_detection_tools: FaceToolPair,
-                          job: Job) -> cv2.Mat:
+                          job: Job) -> cvt.MatLike:
     # Convert BGR -> RGB for consistency
     return align_face(ensure_rgb(image), face_detection_tools, job)
 
 
-def align_face(image: cv2.Mat,
+def align_face(image: cvt.MatLike,
                face_detection_tools: FaceToolPair,
-               job: Job) -> cv2.Mat:
+               job: Job) -> cvt.MatLike:
     """
     Performs face alignment using OpenCV's Facemark model.
 
@@ -175,7 +177,7 @@ def align_face(image: cv2.Mat,
     l_eye = np.ascontiguousarray(landmarks[L_EYE_START:L_EYE_END], dtype=np.float64)
     r_eye = np.ascontiguousarray(landmarks[R_EYE_START:R_EYE_END], dtype=np.float64)
 
-    rotation_matrix = rs.get_rotation_matrix(l_eye, r_eye, scale_factor)
+    rotation_matrix = r_img.get_rotation_matrix(l_eye, r_eye, scale_factor)
     return cv2.warpAffine(
         image,
         rotation_matrix,
@@ -189,7 +191,7 @@ def _open_standard(
     file: Path,
     face_detection_tools: FaceToolPair,
     job: Job
-) -> cv2.Mat | None:
+) -> cvt.MatLike | None:
     img = ImageLoader.loader('standard')(file.as_posix())
     if img is None:
         return None
@@ -200,7 +202,7 @@ def _open_raw(
     file: Path,
     face_detection_tools: FaceToolPair,
     job: Job
-) -> cv2.Mat | None:
+) -> cvt.MatLike | None:
     with suppress(
         NotSupportedError,
         LibRawFatalError,
@@ -233,7 +235,7 @@ def load_and_prepare_image(
     file: Path,
     face_detection_tools: FaceToolPair,
     job: Job
-) -> cv2.Mat | None:
+) -> cvt.MatLike | None:
     """
     Open an image file using the appropriate strategy based on its FileCategory.
     Includes content verification for security.
@@ -265,7 +267,7 @@ def load_and_prepare_image(
     return None
 
 
-def _load_csv(file: Path) -> pl.DataFrame | None:
+def _load_csv(file: Path) -> pl.DataFrame:
     """
     Load a CSV file with header validation.
     """
@@ -274,7 +276,7 @@ def _load_csv(file: Path) -> pl.DataFrame | None:
         with file.open(mode='r', encoding='utf-8') as f:
             header_line = f.readline().strip()
             if not header_line:
-                return None
+                return pl.DataFrame()
 
         # If headers look valid, load the full file
         return pl.read_csv(file, infer_schema_length=Config.infer_schema_length)
@@ -283,24 +285,26 @@ def _load_csv(file: Path) -> pl.DataFrame | None:
         try:
             return pl.read_csv(file, encoding='latin-1', infer_schema_length=Config.infer_schema_length)
         except pl.exceptions.PolarsError:
-            return None
+            return pl.DataFrame()
 
 
-def _load_excel(file: Path) -> pl.DataFrame | None:
+def _load_excel(file: Path) -> pl.DataFrame:
     """
     Load an Excel file with validation.
     """
     with suppress(pl.exceptions.PolarsError):
         # Use read_excel with error handling
         return pl.read_excel(file)
+    return pl.DataFrame()
 
 
-def _load_parquet(file: Path) -> pl.DataFrame | None:
+def _load_parquet(file: Path) -> pl.DataFrame:
     """
     Load a Parquet file with validation.
     """
     with suppress(pl.exceptions.PolarsError):
         return pl.read_parquet(file)
+    return pl.DataFrame()
 
 # Map each extension to its loader strategy
 _LOADER_STRATEGIES: dict[str, TableLoader] = {
@@ -340,13 +344,13 @@ def load_table(file: Path) -> pl.DataFrame:
     return pl.DataFrame()
 
 
-def draw_bounding_box_with_confidence(image: cv2.Mat,
+def draw_bounding_box_with_confidence(image: cvt.MatLike,
                                       confidence: np.float64,
                                       *,
                                       x0: int,
                                       y0: int,
                                       x1: int,
-                                      y1: int) -> cv2.Mat:
+                                      y1: int) -> cvt.MatLike:
     """
     Draws a bounding box and confidence text onto an image.
     """
@@ -362,9 +366,9 @@ def draw_bounding_box_with_confidence(image: cv2.Mat,
     return image
 
 
-def annotate_faces(image: cv2.Mat | np.ndarray,
+def annotate_faces(image: cvt.MatLike | np.ndarray,
                    job: Job,
-                   face_detection_tools: FaceToolPair) -> cv2.Mat | None:
+                   face_detection_tools: FaceToolPair) -> cvt.MatLike | None:
     """
     Draws bounding boxes for all detected faces above a given threshold.
 
@@ -390,7 +394,7 @@ def annotate_faces(image: cv2.Mat | np.ndarray,
     return rgb_image
 
 
-def get_face_boxes(image: cv2.Mat,
+def get_face_boxes(image: cvt.MatLike,
                    job: Job,
                    face_detection_tools: FaceToolPair) -> Iterator[tuple[float, Box]] | None:
     """
@@ -418,7 +422,7 @@ def get_face_boxes(image: cv2.Mat,
     # Generate bounding boxes
     boxes: list[Box] = []
     for face in faces:
-        if box := rs.crop_positions(
+        if box := r_img.crop_positions(
             (face.left, face.top, face.width, face.height),
             job.face_percent,
             (job.width, job.height),
@@ -445,7 +449,7 @@ def determine_scale_factor(width: int, height: int) -> int:
 
 
 
-def detect_faces(image: cv2.Mat,
+def detect_faces(image: cvt.MatLike,
                  threshold: int,
                  detector: YuNetFaceDetector,
                  scale_factor: int) -> list[Rectangle]:
@@ -494,7 +498,7 @@ def scale_face_coordinates(face: Rectangle, scale_factor: int) -> tuple[int, int
 
 
 
-def detect_face_box(image: cv2.Mat,
+def detect_face_box(image: cvt.MatLike,
                     job: Job,
                     face_detection_tools: FaceToolPair) -> Box | None:
     """
@@ -529,7 +533,7 @@ def detect_face_box(image: cv2.Mat,
         x0, y0, face_width, face_height = scale_face_coordinates(face, scale_factor)
 
         # Calculate crop_from_path box using Rust module
-        return rs.crop_positions(
+        return r_img.crop_positions(
             (x0, y0, face_width, face_height),
             job.face_percent,
             (job.width, job.height),
@@ -591,12 +595,12 @@ def set_filename(radio_options: tuple[str, ...],
 
 def reject(*,
            path: Path,
-           destination: Path) -> None:
+           destination: Path | None) -> None:
     """
     Moves (copies) the file to 'rejects' folder under the given destination.
     """
 
-    reject_folder = destination.joinpath('rejects')
+    reject_folder = (destination or Path.home()).joinpath('rejects')
     reject_folder.mkdir(exist_ok=True)
     shutil.copy(path, reject_folder.joinpath(path.name))
 
@@ -613,17 +617,17 @@ def make_frame_filepath(destination: Path,
     return join_path_suffix(file_str, destination)
 
 
-def _save_standard(image: cv2.Mat | np.ndarray,
+def _save_standard(image: cvt.MatLike,
       file_path: Path,
-      user_gam: float,
+      _user_gam: float,
       _is_tiff: bool = False) -> None:
-        lut = cv2.LUT(image, rs.gamma(user_gam * Config.gamma_threshold))
+        lut = cv2.LUT(image, r_img.gamma(_user_gam * Config.gamma_threshold))
         if file_path.suffix.lower() not in file_manager.get_save_formats(FileCategory.PHOTO):
             file_path = file_path.with_suffix('.jpg')
         cv2.imwrite(file_path.as_posix(), lut)
 
 
-def _save_tiff(image: cv2.Mat | np.ndarray,
+def _save_tiff(image: cvt.MatLike,
       file_path: Path,
       _user_gam: float,
       _is_tiff: bool = False) -> None:
@@ -640,14 +644,14 @@ _WRITER_STRATEGIES: dict[FileCategory, ImageWriter] = {
 
 
 @singledispatch
-def save(a0: Iterator | cv2.Mat | np.ndarray | Path,
+def save(a0: Iterator | cvt.MatLike | np.ndarray | Path,
          *args,
          **kwargs) -> None:
     raise NotImplementedError(f"Unsupported input type: {type(a0)}")
 
 
 @save.register
-def _(image: cv2.Mat | np.ndarray,
+def _(image: cvt.MatLike | np.ndarray,
       file_path: Path,
       gamma_value: float,
       is_tiff: bool = False) -> None:
@@ -701,7 +705,7 @@ def _(image: Path,
     save(cropped_images, file_path, job.gamma, is_tiff)
 
 
-def save_cropped_face(processed_image: cv2.Mat,
+def save_cropped_face(processed_image: cvt.MatLike,
                       output_path: Path,
                       gamma_value: int) -> None:
     """Save a processed face to the given output path"""
@@ -709,7 +713,7 @@ def save_cropped_face(processed_image: cv2.Mat,
     save(processed_image, output_path, gamma_value, is_tiff=is_tiff)
 
 
-def save_video_frame(image: cv2.Mat | np.ndarray,
+def save_video_frame(image: cvt.MatLike | np.ndarray,
                      file_enum_str: str,
                      destination: Path,
                      job: Job) -> None:
@@ -721,11 +725,11 @@ def save_video_frame(image: cv2.Mat | np.ndarray,
     save(image, file_path, job.gamma, is_tiff)
 
 
-def process_image(image: cv2.Mat,
+def process_image(image: cvt.MatLike,
                   job: Job,
                   bounding_box: Box,
                   face_detection_tools: FaceToolPair,
-                  video: bool) -> cv2.Mat:
+                  video: bool) -> cvt.MatLike:
     """
     Crops an image according to 'bounding_box', applies the processing pipeline, and resizes.
     """
@@ -735,7 +739,7 @@ def process_image(image: cv2.Mat,
 
 
 @singledispatch
-def crop_single_face(a0: cv2.Mat | np.ndarray | Path, *args, **kwargs) -> cv2.Mat | None:
+def crop_single_face(a0: cvt.MatLike | np.ndarray | Path, *args, **kwargs) -> cvt.MatLike | None:
     """
     Single-face cropping function. Returns the cropped face if found and resizes to `job.size`.
     """
@@ -743,10 +747,10 @@ def crop_single_face(a0: cv2.Mat | np.ndarray | Path, *args, **kwargs) -> cv2.Ma
 
 
 @crop_single_face.register
-def _(image: cv2.Mat | np.ndarray,
+def _(image: cvt.MatLike | np.ndarray,
       job: Job,
       face_detection_tools: FaceToolPair,
-      video: bool=False) -> cv2.Mat | None:
+      video: bool=False) -> cvt.MatLike | None:
     if (bounding_box := detect_face_box(image, job, face_detection_tools)) is None:
         return None
     return process_image(image, job, bounding_box, face_detection_tools, video)
@@ -755,7 +759,7 @@ def _(image: cv2.Mat | np.ndarray,
 @crop_single_face.register
 def _(image: Path,
       job: Job,
-      face_detection_tools: FaceToolPair) -> cv2.Mat | None:
+      face_detection_tools: FaceToolPair) -> cvt.MatLike | None:
     pic_array = load_and_prepare_image(image, face_detection_tools, job)
     if pic_array is None:
         return None
@@ -763,7 +767,7 @@ def _(image: Path,
 
 
 @singledispatch
-def crop_all_faces(a0: cv2.Mat | np.ndarray | Path, *args, **kwargs) -> Iterator[cv2.Mat] | None:
+def crop_all_faces(a0: cvt.MatLike | np.ndarray | Path, *args, **kwargs) -> Iterator[cvt.MatLike] | None:
     """
     Multi-face cropping function. Yields cropped faces above the threshold, resized to `job.size`.
     """
@@ -771,10 +775,10 @@ def crop_all_faces(a0: cv2.Mat | np.ndarray | Path, *args, **kwargs) -> Iterator
 
 
 @crop_all_faces.register
-def _(image: cv2.Mat | np.ndarray,
+def _(image: cvt.MatLike | np.ndarray,
       job: Job,
       face_detection_tools: FaceToolPair,
-      video: bool) -> Iterator[cv2.Mat] | None:
+      video: bool) -> Iterator[cvt.MatLike] | None:
     """
     Optimized multi-face cropping function using the pipeline approach.
     Yields cropped faces above the threshold, resized to `job.size`.
@@ -796,7 +800,7 @@ def _(image: cv2.Mat | np.ndarray,
         return None
 
     # Step 4: Process each face
-    def process_face_box(bounding_box: Box) -> cv2.Mat:
+    def process_face_box(bounding_box: Box) -> cvt.MatLike:
         # Create a pipeline specific to this face with its bounding box
         # This ensures alignment happens before cropping
         face_pipeline = build_processing_pipeline(job, face_detection_tools, bounding_box, video=video)
@@ -811,7 +815,7 @@ def _(image: cv2.Mat | np.ndarray,
 @crop_all_faces.register
 def _(image: Path,
       job: Job,
-      face_detection_tools: FaceToolPair) -> Iterator[cv2.Mat] | None:
+      face_detection_tools: FaceToolPair) -> Iterator[cvt.MatLike] | None:
     img = load_and_prepare_image(image, face_detection_tools, job)
     return None if img is None else crop_all_faces(img, job, face_detection_tools, video=False)
 
@@ -825,7 +829,7 @@ def batch_process_with_pipeline(images: list[Path],
     """
     Process a batch of images with the same pipeline for efficiency with cancellation support.
     """
-    pipeline = None
+    pipeline = []
     all_output_paths = []
     total_images = len(images)
 
@@ -886,7 +890,7 @@ def batch_process_with_mapping(images: list[Path],
     if len(images) != len(output_paths):
         raise ValueError("Input and output path lists must have same length")
 
-    pipeline = None
+    pipeline = []
     all_output_paths = []
     total_images = len(images)
 
@@ -941,7 +945,7 @@ def batch_process_with_mapping(images: list[Path],
     return all_output_paths
 
 
-def process_batch_item(image_array: cv2.Mat,
+def process_batch_item(image_array: cvt.MatLike | None,
                        job: Job,
                        face_detection_tools: FaceToolPair,
                        pipeline: list,
@@ -952,6 +956,10 @@ def process_batch_item(image_array: cv2.Mat,
     Process a single image from a batch with the given pipeline.
     Returns a tuple of (output_paths, pipeline)
     """
+    if image_array is None:
+        # If image loading fails, reject the file
+        reject(path=img_path, destination=job.safe_destination)
+        return [], pipeline
     output_paths = []
 
     def batch_helper(_bounding_box: Box,  face_index: int | None=None) -> None:
@@ -994,7 +1002,7 @@ def process_batch_item(image_array: cv2.Mat,
 
 
 def get_output_path(input_path: Path,
-                    destination: Path,
+                    destination: Path | None,
                     face_index: int | None,
                     radio_choice: str) -> Path:
     """Helper function to generate output paths."""
@@ -1006,7 +1014,7 @@ def get_output_path(input_path: Path,
         # Single face output path
         stem = input_path.stem
 
-    return destination / f"{stem}{suffix}"
+    return (destination or Path.home()) / f"{stem}{suffix}"
 
 
 @singledispatch

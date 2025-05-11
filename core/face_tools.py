@@ -6,7 +6,7 @@ import psutil
 from .resource_path import ResourcePath
 
 # Calculate thread number based on available resources
-THREAD_NUMBER = min(psutil.cpu_count(), psutil.virtual_memory().total // (2 * 1024 ** 3), 8)
+THREAD_NUMBER = min(psutil.cpu_count() or 1, psutil.virtual_memory().total // (2 * 1024 ** 3), 8)
 
 # Paths to model files
 model_directory = ResourcePath('resources\\models')

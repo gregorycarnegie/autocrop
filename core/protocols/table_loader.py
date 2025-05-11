@@ -11,5 +11,5 @@ class TableLoader(Protocol):
     def __call__(
         self,
         file: Path,
-    ) -> pl.DataFrame | None:
+    ) -> pl.DataFrame:
         ...

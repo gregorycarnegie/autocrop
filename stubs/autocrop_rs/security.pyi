@@ -1,0 +1,13 @@
+class PathSecurityError(Exception):
+    message: str
+    def __init__(self, message: str) -> None: ...
+    def __str__(self) -> str: ...
+
+def sanitize_path(
+    path_str: str,
+    allowed_operations: list[str] | None = None,
+    max_path_length: int = 4096,
+    follow_symlinks: bool = False
+) -> str | None: ...
+
+def get_safe_error_message(error_msg: str) -> str: ...

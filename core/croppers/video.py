@@ -2,7 +2,7 @@ from fractions import Fraction
 from functools import cache
 from pathlib import Path
 
-import autocrop_rs as rs
+import autocrop_rs.image_processing as r_img
 import ffmpeg
 import numpy as np
 import numpy.typing as npt
@@ -34,7 +34,7 @@ def ffmpeg_input(video_line_edit: str, timestamp_seconds: float, width: int, hei
     )
     print('out',type(out))
     # Now the output will match our specified dimensions
-    return rs.reshape_buffer_to_image(out, height, width)
+    return r_img.reshape_buffer_to_image(out, height, width)
 
 
 class VideoCropper(Cropper):

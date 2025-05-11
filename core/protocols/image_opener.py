@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Protocol
 
-import cv2
+import cv2.typing as cvt
 
 from core.face_tools import FaceToolPair
 from core.job import Job
@@ -16,5 +16,5 @@ class ImageOpener(Protocol):
         file: Path,
         face_detection_tools: FaceToolPair,
         job: Job
-    ) -> cv2.Mat | None:
+    ) -> cvt.MatLike | None:
         ...

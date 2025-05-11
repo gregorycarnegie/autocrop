@@ -4,7 +4,7 @@ import subprocess
 from functools import cache, partial
 from pathlib import Path
 
-import autocrop_rs as rs
+import autocrop_rs.security as r_sec
 import cv2.typing as cvt
 from PyQt6 import QtCore, QtGui
 from PyQt6.QtWidgets import (
@@ -83,17 +83,18 @@ def sanitize_path(path_str: str) -> str | None:
     Sanitize path input to prevent security vulnerabilities.
     Uses the Rust implementation for better security guarantees.
     """
+    print(f"Sanitizing path: {path_str}")
     try:
         # Use the Rust sanitize_path function
-        return rs.sanitize_path(
+        return r_sec.sanitize_path(
             path_str,
             allowed_operations=['read', 'write'],
             max_path_length=4096,
             follow_symlinks=False
         )
-    except rs.PathSecurityError as e:
+    except r_sec.PathSecurityError as e:
         # Use get_safe_error_message to sanitize the error message
-        safe_msg = rs.get_safe_error_message(str(e))
+        safe_msg = r_sec.get_safe_error_message(str(e))
         show_error_box(f"Path security error: {safe_msg}")
         return None
     except Exception as e:
