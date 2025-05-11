@@ -14,6 +14,7 @@ ndarray = { version = "0.16.1", features = ["rayon"] }
 numpy = "0.24.0"
 rayon = "1.10.0"
 phf = { version = "0.11.3", features = ["macros"] }
+regex = { version = "1.11.1", features = ["unicode"] }
 
 [profile.release]
 lto = true
