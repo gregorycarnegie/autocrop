@@ -366,7 +366,7 @@ def draw_bounding_box_with_confidence(image: cvt.MatLike,
     return image
 
 
-def annotate_faces(image: cvt.MatLike | np.ndarray,
+def annotate_faces(image: cvt.MatLike,
                    job: Job,
                    face_detection_tools: FaceToolPair) -> cvt.MatLike | None:
     """

@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import cv2
+import cv2.typing as cvt
 import rawpy
 from PyQt6.QtCore import QObject, pyqtSignal
 from PyQt6.QtGui import QImage
@@ -31,7 +32,7 @@ class Preview:
     """
     A data class representing a preview image.
     """
-    image: cv2.Mat
+    image: cvt.MatLike
     color_space: QImage.Format
 
 
@@ -80,19 +81,33 @@ class DisplayCropper(Cropper):
         if not img_path_str:
             return None
 
+        # For folder and mapping tabs, we need to check if the folder has changed
+        if function_type in (FunctionType.FOLDER, FunctionType.MAPPING):
+            # Clear cache if the folder path has changed
+            current_path = self.current_paths.get(function_type)
+            if current_path != img_path_str:
+                self.clear_cache(function_type)
+
         # Only load image if the path changed or no image loaded yet for this function type
         file_category: FileCategory | None = None
         current_path = self.current_paths.get(function_type)
-        if current_path != img_path_str or self.preview_data.get(function_type) is None:
+
+        # For folder/mapping, always reload since we're looking for the first image
+        if function_type in (FunctionType.FOLDER, FunctionType.MAPPING) or \
+        current_path != img_path_str or \
+        self.preview_data.get(function_type) is None:
+
             # Load appropriate image data based on the function type
             raw_image, file_category = self._load_appropriate_image(function_type, img_path_str)
 
             if raw_image is None or file_category is None:
+                # Clear the cache for this function type if loading fails
+                self.clear_cache(function_type)
                 return None
 
             self.preview_data[function_type] = Preview(
                 raw_image,
-                QImage.Format.Format_RGB888 if file_category == FileCategory.PHOTO else QImage.Format.Format_BGR888
+                QImage.Format.Format_BGR888 if file_category == FileCategory.RAW else QImage.Format.Format_RGB888
             )
             self.current_paths[function_type] = img_path_str
 
@@ -101,7 +116,7 @@ class DisplayCropper(Cropper):
             # Create a job with all settings
             job = self._create_job_from_widget_state(widget_state, img_path_str, function_type)
 
-            if image := self._process_cached_image(function_type, job, file_category):
+            if image := self._process_cached_image(function_type, job):
                 self.events.image_updated.emit(function_type, image)
 
         return None
@@ -110,7 +125,7 @@ class DisplayCropper(Cropper):
             self,
             function_type: FunctionType,
             path_str: str
-    ) -> tuple[cv2.Mat, FileCategory] | tuple[None, None]:
+    ) -> tuple[cvt.MatLike, FileCategory] | tuple[None, None]:
         """Load the appropriate image based on the function type"""
         match function_type:
             case FunctionType.PHOTO:
@@ -121,8 +136,11 @@ class DisplayCropper(Cropper):
                 # For Folder and Mapping tabs, find the first image in the directory
                 folder_path = Path(path_str)
                 if folder_path.is_dir():
+                    # Get all files and sort them for consistency
+                    files = sorted(folder_path.iterdir())
+
                     # Find the first valid image in the directory
-                    for file_path in folder_path.iterdir():
+                    for file_path in files:
                         if file_path.is_file() and self._is_supported_image(file_path):
                             return self._load_raw_image(file_path)
                 return None, None
@@ -139,7 +157,7 @@ class DisplayCropper(Cropper):
                 file_manager.is_valid_type(file_path, FileCategory.RAW))
 
     @staticmethod
-    def _load_raw_image(file_path: Path) -> tuple[cv2.Mat, FileCategory] | tuple[None, None]:
+    def _load_raw_image(file_path: Path) -> tuple[cvt.MatLike, FileCategory] | tuple[None, None]:
         """Load the raw image data without any processing"""
         with suppress(cv2.error):
             # Determine the file type
@@ -201,13 +219,17 @@ class DisplayCropper(Cropper):
     def _process_cached_image(
             self,
             function_type: FunctionType,
-            job: Job,
-            file_category: FileCategory
+            job: Job
     ) -> QImage | None:
         """Process the cached raw image with the job parameters"""
         # Get the cached image for this function type
         cached_image = self.preview_data.get(function_type)
 
+        # Add None check for cached_image itself
+        if cached_image is None:
+            return None
+
+        # Check if the image within cached_image is None
         if cached_image.image is None:
             return None
 
@@ -232,11 +254,11 @@ class DisplayCropper(Cropper):
         return self._convert_to_qimage(processed_image, cached_image.color_space)
 
     @staticmethod
-    def _convert_to_qimage(cv_image: cv2.Mat, color_space: QImage.Format) -> QImage:
+    def _convert_to_qimage(cv_image: cvt.MatLike, color_space: QImage.Format) -> QImage:
         """Convert OpenCV image to QImage"""
         height, width, channels = cv_image.shape
         bytes_per_line = channels * width
-        return QImage(cv_image.data, width, height, bytes_per_line, color_space)
+        return QImage(bytes(cv_image.data), width, height, bytes_per_line, color_space)
 
     def clear_cache(self, function_type: FunctionType | None = None):
         """Clear the image cache for a specific function type or all types"""

@@ -24,8 +24,8 @@ class ImageHoverPreview(QtWidgets.QLabel):
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_ShowWithoutActivating)
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_TranslucentBackground)
 
-        # Set a fixed size for preview - small but visible
-        self.setFixedSize(150, 150)
+        # Set a larger size for preview to accommodate different aspect ratios
+        self.setFixedSize(250, 250)  # Increased from 150x150
         self.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.setStyleSheet("""
             QLabel {
@@ -35,6 +35,9 @@ class ImageHoverPreview(QtWidgets.QLabel):
                 padding: 5px;
             }
         """)
+
+        # Set scaled contents to true
+        self.setScaledContents(False)  # We handle scaling manually for better control
 
         # Hide initially
         self.hide()
@@ -49,7 +52,7 @@ class ImageHoverPreview(QtWidgets.QLabel):
         self.current_path = None
 
     def preview_file(self, file_path: str, mouse_pos: QtCore.QPoint,
-                     face_tools: FaceToolPair, job: Job):
+                    face_tools: FaceToolPair, job: Job):
         """Load and show a preview of an image file"""
         if not file_path or file_path == self.current_path:
             return
@@ -111,14 +114,13 @@ class ImageHoverPreview(QtWidgets.QLabel):
 
     @staticmethod
     def _create_preview_job(job: Job) -> Job:
-        """Create a job for preview with square dimensions if needed"""
+        """Create a job for preview maintaining the original aspect ratio"""
+        # Use the original job dimensions if they're valid
         width = job.width if job.width > 0 else 200
         height = job.height if job.height > 0 else 200
 
-        # Make it square if dimensions differ significantly
-        if abs(width - height) > 20:
-            size = min(width, height)
-            width = height = size
+        # Don't force square dimensions - keep the original aspect ratio
+        # The original dimensions are what the user wants for their final output
 
         return Job(
             width=width,
@@ -136,13 +138,25 @@ class ImageHoverPreview(QtWidgets.QLabel):
             radio_buttons=job.radio_buttons
         )
 
-    @staticmethod
-    def _cv2_to_pixmap(image: cvt.MatLike) -> QPixmap:
-        """Convert OpenCV image to QPixmap"""
+    def _cv2_to_pixmap(self, image: cvt.MatLike) -> QPixmap:
+        """Convert OpenCV image to QPixmap and scale to fit the preview widget"""
         height, width, channels = image.shape
         bytes_per_line = channels * width
+
+        # Convert to QImage
         q_image = QImage(bytes(image.data), width, height, bytes_per_line, QImage.Format.Format_RGB888)
-        return QPixmap.fromImage(q_image)
+
+        # Convert to QPixmap
+        pixmap = QPixmap.fromImage(q_image)
+
+        # Scale the pixmap to fit within the preview widget while maintaining aspect ratio
+        # The preview widget is 150x150
+        return pixmap.scaled(
+            self.width() - 10,  # Account for padding
+            self.height() - 10,
+            QtCore.Qt.AspectRatioMode.KeepAspectRatio,
+            QtCore.Qt.TransformationMode.SmoothTransformation
+        )
 
     def position_near_mouse(self, mouse_pos: QtCore.QPoint):
         """Position the preview near the mouse cursor"""
