@@ -1,6 +1,6 @@
 // src/security.rs
 
-use pyo3::prelude::*;
+use pyo3::{prelude::*, exceptions::PyException};
 use std::path::{Path, PathBuf, Component};
 use std::fs;
 use std::collections::HashSet;
@@ -9,8 +9,9 @@ use regex;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 
+
+#[pyclass(extends=PyException)]
 #[derive(Debug)]
-#[pyclass]
 pub struct PathSecurityError {
     #[pyo3(get)]
     message: String,
@@ -297,12 +298,36 @@ fn check_permissions(path: &Path, allowed_operations: &HashSet<String>) -> PyRes
 
 /// Check if the current process can read from the path
 fn can_read(path: &Path) -> bool {
-    fs::File::open(path).is_ok()
+    if path.is_dir() {
+        // Can we enumerate entries?
+        fs::read_dir(path).is_ok()
+    } else {
+        // Regular file open
+        fs::File::open(path).is_ok()
+    }
 }
 
 /// Check if the current process can write to the path
 fn can_write(path: &Path) -> bool {
-    fs::OpenOptions::new().write(true).open(path).is_ok()
+    if path.is_dir() {
+        // Try creating (and then removing) a temp file in the directory
+        let test_file = path.join(".perm_test");
+        let result = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&test_file)
+            .and_then(|f| {
+                drop(f);
+                fs::remove_file(&test_file)
+            });
+        result.is_ok()
+    } else {
+        // Normal files: can we open for write?
+        fs::OpenOptions::new()
+            .write(true)
+            .open(path)
+            .is_ok()
+    }
 }
 
 /// Check if the current process can execute the path

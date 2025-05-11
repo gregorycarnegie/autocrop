@@ -16,7 +16,7 @@ def validate_files(files: list[str], categories: list[int]) -> NDArray[np.bool_]
 def verify_file_type(file_path: str, category: int) -> bool: ...
 
 
-class PathSecurityError(Exception):
+class PathSecurityError(BaseException):
     message: str
     def __init__(self, message: str) -> None: ...
 
