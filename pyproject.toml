@@ -1,59 +1,43 @@
 [build-system]
-requires = ["maturin>=1.6.0"]
+requires    = ["maturin>=1.6.0"]
 build-backend = "maturin"
 
 [project]
-name = "autocrop_rs"
-version = "0.5.0"
+name           = "autocrop_rs"
+version        = "0.5.0"
 requires-python = ">=3.10"
-dependencies = [
-    "cachetools>=5.5.2",
-    "fastexcel>=0.14.0",
-    "ffmpeg-python>=0.2.0",
-    "numpy>=2.2.5",
-    "opencv-contrib-python>=4.11.0.86",
-    "polars>=1.29.0",
-    "psutil>=7.0.0",
-    "PyQt6>=6.9.0",
-    "rawpy>=0.24.0",
-    "tifffile>=2025.3.30",
+dependencies   = [
+  "cachetools>=5.5.2",
+  "fastexcel>=0.14.0",
+  "ffmpeg-python>=0.2.0",
+  "numpy>=2.2.5",
+  "opencv-contrib-python>=4.11.0.86",
+  "polars>=1.29.0",
+  "psutil>=7.0.0",
+  "PyQt6>=6.9.0",
+  "rawpy>=0.24.0",
+  "tifffile>=2025.3.30",
 ]
-classifiers = [
-    "Programming Language :: Rust",
-    "Programming Language :: Python :: Implementation :: CPython",
-    "Programming Language :: Python :: Implementation :: PyPy",
-]
-
-[project.optional-dependencies]
-dev = [
-    "maturin>=1.8.4",
-]
-
-[tool.ruff]
-target-version = "py313"
-line-length = 120
-select = [
-    "E",  # pycodestyle errors
-    "W",  # pycodestyle warnings
-    "F",  # pyflakes
-    "I",  # isort
-    "UP", # pyupgrade
+classifiers   = [
+  "Programming Language :: Rust",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
 ]
 
 [tool.maturin]
+bindings = "pyo3"
 features = ["pyo3/extension-module"]
+
+[tool.ruff]
+target-version = "py313"
+line-length    = 120
+select         = ["E","W","F","I","UP"]
 
 [tool.pyright]
 include = ["**/*.py", "stubs"]
 exclude = ["**/__pycache__"]
 stubPath = "./stubs"
-extraPaths = ["./stubs"]
 typeCheckingMode = "basic"
 pythonVersion = "3.13"
 reportMissingImports = true
 reportMissingTypeStubs = false
-
-[tool.mypy]
-mypy_path = "stubs"
-explicit_package_bases = true
-namespace_packages = true
