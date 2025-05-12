@@ -6,6 +6,8 @@ use std::convert::Into;
 use rayon::prelude::*;
 use rayon::current_num_threads;
 
+use crate::ImportablePyModuleBuilder;
+
 // For x86/x86_64 specific SIMD intrinsics
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 use std::arch::x86_64::{
@@ -804,13 +806,17 @@ fn crop_positions(
 
 /// Module initialization
 // #[pymodule]
-pub fn image_processing(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(crop_positions, m)?)?;
-    m.add_function(wrap_pyfunction!(gamma, m)?)?;
-    m.add_function(wrap_pyfunction!(calculate_dimensions, m)?)?;
-    m.add_function(wrap_pyfunction!(get_rotation_matrix, m)?)?;
-    m.add_function(wrap_pyfunction!(correct_exposure, m)?)?;
-    m.add_function(wrap_pyfunction!(reshape_buffer_to_image, m)?)?;
+pub fn register_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    let builder = ImportablePyModuleBuilder::from(m.clone())?;
+    
+    // Add all functions in a single builder chain
+    builder
+        .add_function(wrap_pyfunction!(crop_positions, m)?)?
+        .add_function(wrap_pyfunction!(gamma, m)?)?
+        .add_function(wrap_pyfunction!(calculate_dimensions, m)?)?
+        .add_function(wrap_pyfunction!(get_rotation_matrix, m)?)?
+        .add_function(wrap_pyfunction!(correct_exposure, m)?)?
+        .add_function(wrap_pyfunction!(reshape_buffer_to_image, m)?)?;
     
     Ok(())
 }

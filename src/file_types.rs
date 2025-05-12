@@ -7,6 +7,8 @@ use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::io::{Read, BufRead, BufReader};
 
+use crate::ImportablePyModuleBuilder;
+
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 use std::arch::x86_64::{
     __m128i, __m256i,
@@ -442,8 +444,13 @@ pub fn verify_file_type(file_path: String, category: u8) -> PyResult<bool> {
 
 /// Register the functions with the Python module
 // #[pymodule]
-pub fn file_types(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(validate_files, m)?)?;
-    m.add_function(wrap_pyfunction!(verify_file_type, m)?)?;
+pub fn register_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    let builder = ImportablePyModuleBuilder::from(m.clone())?;
+    
+    // Add functions to module
+    builder
+        .add_function(wrap_pyfunction!(validate_files, m)?)?
+        .add_function(wrap_pyfunction!(verify_file_type, m)?)?;
+        
     Ok(())
 }

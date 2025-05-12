@@ -6,6 +6,8 @@ use std::fs;
 use std::collections::HashSet;
 use regex;
 
+use crate::ImportablePyModuleBuilder;
+
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 
@@ -390,12 +392,13 @@ pub fn get_safe_error_message(error_msg: &str) -> String {
 }
 
 /// Module initialization
-pub fn security(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(sanitize_path, m)?)?;
-    m.add_function(wrap_pyfunction!(get_safe_error_message, m)?)?;
+pub fn register_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    let builder = ImportablePyModuleBuilder::from(m.clone())?;
     
-    // Use the builder to properly attach the class with the correct __module__ attribute
-    let _builder = crate::module_builder::ImportablePyModuleBuilder::from(m.clone())
+    // Add everything to the module in a single chain
+    builder
+        .add_function(wrap_pyfunction!(sanitize_path, m)?)?
+        .add_function(wrap_pyfunction!(get_safe_error_message, m)?)?
         .add_class::<PathSecurityError>()?;
     
     Ok(())
