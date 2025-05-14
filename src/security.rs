@@ -33,33 +33,36 @@ impl PathSecurityError {
 
 /// Sanitize a path string to prevent security vulnerabilities
 #[pyfunction]
-#[pyo3(signature = (path_str, allowed_operations=None, max_path_length=4096, follow_symlinks=false))]
+#[pyo3(signature = (path_str, allowed_operations=vec!["read".to_string(), "write".to_string()], max_path_length=4096, follow_symlinks=false))]
 pub fn sanitize_path(
     path_str: &str,
     allowed_operations: Option<Vec<String>>,
     max_path_length: usize,
     follow_symlinks: bool,
-) -> PyResult<Option<String>> {
+) -> PyResult<String> {
     // Parse allowed operations
     let allowed_ops = allowed_operations.unwrap_or_else(|| vec!["read".to_string()]);
     let allowed_ops_set: HashSet<String> = allowed_ops.into_iter().collect();
     
+    // 0. Pre-clean the path string - Remove quotation marks if they exist
+    let cleaned_path_str = clean_path_string(path_str);
+    
     // 1. Basic validation
-    if path_str.is_empty() {
-        return Ok(None);
+    if cleaned_path_str.is_empty() {
+        return Ok(String::new());
     }
     
     // 2. Length check
-    if path_str.len() > max_path_length {
-        return Ok(None);
+    if cleaned_path_str.len() > max_path_length {
+        return Ok(String::new());
     }
     
     // 3. Remove null bytes and non-printable characters
-    if path_str.contains('\0') {
+    if cleaned_path_str.contains('\0') {
         return Err(PyErr::new::<PathSecurityError, _>("Null byte detected in path"));
     }
     
-    let cleaned_path: String = path_str
+    let cleaned_path: String = cleaned_path_str
         .chars()
         .filter(|c| c.is_ascii_graphic() || c.is_whitespace())
         .collect();
@@ -82,12 +85,12 @@ pub fn sanitize_path(
     
     // 6. Validate against allowed base directories
     if !is_within_allowed_directories(&resolved_path)? {
-        return Ok(None);
+        return Ok(String::new());
     }
     
     // 7. Check for dangerous path components (Windows-specific)
     if cfg!(target_os = "windows") && has_dangerous_windows_components(&resolved_path) {
-        return Ok(None);
+        return Ok(String::new());
     }
     
     // 8. Check permissions if path exists
@@ -97,14 +100,35 @@ pub fn sanitize_path(
     
     // 9. Additional security checks
     if !validate_path_components(&resolved_path)? {
-        return Ok(None);
+        return Ok(String::new());
     }
     
     // 10. Convert to string and return
     match resolved_path.to_str() {
-        Some(path_str) => Ok(Some(path_str.to_string())),
-        None => Ok(None),
+        Some(path_str) => Ok(path_str.to_string()),
+        None => Ok(String::new()),
     }
+}
+
+/// Clean a path string by removing surrounding quotes and normalizing separators
+/// This function is recursive to handle nested quotes
+fn clean_path_string(path_str: &str) -> String {
+    // Base case: empty string or too short for quotes
+    if path_str.len() < 2 {
+        return path_str.to_string();
+    }
+    
+    // Check if the string is wrapped in matching quotation marks
+    let cleaned = if (path_str.starts_with('\'') && path_str.ends_with('\'')) || 
+                    (path_str.starts_with('"') && path_str.ends_with('"')) {
+        // Remove the first and last character (the quotes)
+        &path_str[1..path_str.len() - 1]
+    } else {
+        return path_str.replace('\\', "/"); // No quotes, just normalize and return
+    };
+    
+    // Recursively clean again in case of nested quotes
+    clean_path_string(cleaned)
 }
 
 /// Resolve path following symlinks
