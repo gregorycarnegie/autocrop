@@ -118,6 +118,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
         """Handle when mouse enters a tree view item"""
         # Get file path from model index
         file_path = self.file_model.filePath(index)
+        file_path = ut.sanitize_path(file_path)
 
         # Check if it's an image file
         if file_path and self._is_image_file(file_path):
@@ -130,6 +131,8 @@ class UiFolderTabWidget(UiBatchCropWidget):
 
         if index.isValid():
             file_path = self.file_model.filePath(index)
+            file_path = ut.sanitize_path(file_path)
+
             if file_path and self._is_image_file(file_path):
                 # Use globalPosition() for PyQt6 instead of globalPos()
                 global_pos = event.globalPosition().toPoint()
@@ -156,6 +159,8 @@ class UiFolderTabWidget(UiBatchCropWidget):
 
         if index.isValid():
             file_path = self.file_model.filePath(index)
+            file_path = ut.sanitize_path(file_path)
+
             if file_path and self._is_image_file(file_path):
                 # Create job for preview
                 job = self.create_job(
@@ -246,15 +251,13 @@ class UiFolderTabWidget(UiBatchCropWidget):
                 'Select Directory',
                 file_manager.get_default_directory(FileCategory.PHOTO).as_posix()
             )
-            # Validate the file exists and is accessible
-            if f_name := ut.sanitize_path(f_name):
-                # Update the destination path
-                self.destination_path = f_name
+            # Update the destination path
+            self.destination_path = f_name
 
-                # Also update the main window's destination input if this is the active tab
-                main_window = self.parent().parent().parent()
-                if main_window.function_tabWidget.currentIndex() == FunctionType.FOLDER:
-                    main_window.destination_input.setText(f_name)
+            # Also update the main window's destination input if this is the active tab
+            main_window = self.parent().parent().parent()
+            if main_window.function_tabWidget.currentIndex() == FunctionType.FOLDER:
+                main_window.destination_input.setText(f_name)
 
         elif line_edit_type == "input":
             f_name = QtWidgets.QFileDialog.getExistingDirectory(
@@ -262,18 +265,16 @@ class UiFolderTabWidget(UiBatchCropWidget):
                 'Select Directory',
                 file_manager.get_default_directory(FileCategory.PHOTO).as_posix()
             )
-            # Validate the file exists and is accessible
-            if f_name := ut.sanitize_path(f_name):
-                # Update the input path
-                self.input_path = f_name
+            # Update the input path
+            self.input_path = f_name
 
-                # Also update the main window's unified address bar if this is the active tab
-                main_window = self.parent().parent().parent()
-                if main_window.function_tabWidget.currentIndex() == FunctionType.FOLDER:
-                    main_window.unified_address_bar.setText(f_name)
+            # Also update the main window's unified address bar if this is the active tab
+            main_window = self.parent().parent().parent()
+            if main_window.function_tabWidget.currentIndex() == FunctionType.FOLDER:
+                main_window.unified_address_bar.setText(f_name)
 
-                # Load the data into the tree view
-                self.load_data()
+            # Load the data into the tree view
+            self.load_data()
 
     def load_data(self) -> None:
         """Load data into the tree view from the selected folder"""

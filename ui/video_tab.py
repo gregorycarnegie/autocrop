@@ -83,8 +83,8 @@ class UiVideoTabWidget(UiCropWidget):
         self.frame_2 = self.create_main_frame("frame_2")
         self.frame_2.setParent(self.page_2)
         # Create media control widgets
-        self.mediacontrolWidget_1 = UiMediaControlWidget(self.frame_1, self.player, self.crop_worker)  # Will be initialized in setup_layouts
-        self.mediacontrolWidget_2 = UiMediaControlWidget(self.frame_2, self.player, self.crop_worker)  # Will be initialized in setup_layouts
+        self.mediacontrolWidget_1 = UiMediaControlWidget(self.frame_1, self.player, self.crop_worker)
+        self.mediacontrolWidget_2 = UiMediaControlWidget(self.frame_2, self.player, self.crop_worker)
 
         self.previewButton = QtWidgets.QPushButton("Update Preview")
 
@@ -158,10 +158,6 @@ class UiVideoTabWidget(UiCropWidget):
     def setup_layouts(self) -> None:
         """Set up the main layout structure"""
         # ---- Page 1: Video Player ----
-
-        # Main frame with video player
-        # frame_1 = self.create_main_frame("frame_1")
-        # frame_1.setParent(self.page_1)
         vertical_layout_9 = ut.setup_vbox("verticalLayout_9", self.frame_1)
 
         # Media controls layout
@@ -241,8 +237,6 @@ class UiVideoTabWidget(UiCropWidget):
 
         vertical_layout_9.addWidget(self.videoWidget)
 
-        # Media control widget 1
-        # self.mediacontrolWidget_1 = UiMediaControlWidget(frame_1, self.player, self.crop_worker)
         self.mediacontrolWidget_1.setObjectName("mediacontrolWidget_1")
         vertical_layout_9.addWidget(self.mediacontrolWidget_1)
 
@@ -261,9 +255,6 @@ class UiVideoTabWidget(UiCropWidget):
         self.toolBox.addItem(self.page_1, "Video Player")
 
         # ---- Page 2: Crop View ----
-        # Main frame with crop_from_path preview
-        # frame_2 = self.create_main_frame("frame_2")
-        # frame_2.setParent(self.page_2)
         vertical_layout_10 = ut.setup_vbox("verticalLayout_10", self.frame_2)
 
         # Media controls layout for page 2
@@ -571,19 +562,17 @@ class UiVideoTabWidget(UiCropWidget):
             file_manager.get_filter_string(FileCategory.VIDEO)
         )
 
-        # Validate the file exists and is accessible
-        if file_name := ut.sanitize_path(file_name):
-            # Update the input path
-            self.input_path = file_name
+        # Update the input path
+        self.input_path = file_name
 
-            # Also update the main window's unified address bar if this is the active tab
-            main_window = self.parent().parent().parent()
-            if main_window.function_tabWidget.currentIndex() == FunctionType.VIDEO:
-                main_window.unified_address_bar.setText(file_name)
+        # Also update the main window's unified address bar if this is the active tab
+        main_window = self.parent().parent().parent()
+        if main_window.function_tabWidget.currentIndex() == FunctionType.VIDEO:
+            main_window.unified_address_bar.setText(file_name)
 
-            # Load the video
-            self.player.setSource(QtCore.QUrl.fromLocalFile(file_name))
-            self.reset_video_widgets()
+        # Load the video
+        self.player.setSource(QtCore.QUrl.fromLocalFile(file_name))
+        self.reset_video_widgets()
 
     def open_dropped_video(self) -> None:
         """Handle video dropped onto the widget"""

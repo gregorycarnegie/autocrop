@@ -1,6 +1,7 @@
 import contextlib
 from pathlib import Path
 
+import autocrop_rs.security as r_sec
 from PyQt6 import QtCore, QtWidgets
 
 from file_types import FileCategory, file_manager
@@ -43,23 +44,29 @@ class PathLineEdit(CustomLineEdit):
         Removes the quotation marks from the passed path
         """
         text = self.text()
-        x, y = text.startswith("'") & text.endswith("'"), text.startswith('"') & text.endswith('"')
-        cleaned_text = text[1:][:-1] if x ^ y else text
-        cleaned_text = cleaned_text.replace('\\', '/')
-        self.setText(cleaned_text)
+
+        try:
+            self.blockSignals(True)
+            if sanitized := r_sec.sanitize_path(text):
+                self.setText(sanitized)
+                self.validate_path()
+            self.blockSignals(False)
+        except r_sec.PathSecurityError:
+            self.set_invalid_color()
+            self.update_style()
 
     def validate_path(self) -> None:
         """
         Validates the path entered in the text input based on the selected path type.
         Also triggers button state updates.
         """
-        if not (path := self.text()):
+        if not self.text():
             self.set_invalid_color()
             self.update_style()
             return
 
-        file_path = Path(path)
-        self.color_logic(self.is_valid_path(file_path))
+        # file_path = Path(self.text())
+        self.color_logic(self.is_valid_path(Path(self.text())))
         self.update_style()
 
         # Find the main window to trigger button state updates

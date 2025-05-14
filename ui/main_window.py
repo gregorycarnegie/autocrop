@@ -649,23 +649,24 @@ class UiMainWindow(QtWidgets.QMainWindow):
         """Handle changes to the unified address bar"""
 
         # Clean quotation marks if they exist
-        x, y = text.startswith("'") & text.endswith("'"), text.startswith('"') & text.endswith('"')
-        cleaned_text = text[1:][:-1] if x ^ y else text
-        cleaned_text = cleaned_text.replace('\\', '/')
+        # x, y = text.startswith("'") & text.endswith("'"), text.startswith('"') & text.endswith('"')
+        # cleaned_text = text[1:][:-1] if x ^ y else text
+        # cleaned_text = cleaned_text.replace('\\', '/')
 
-        # Update the appropriate input field in the current tab
-        match self.function_tabWidget.currentIndex():
-            case FunctionType.PHOTO:
-                self.photo_tab_widget.input_path = cleaned_text
-            case FunctionType.FOLDER:
-                self.folder_tab_widget.input_path = cleaned_text
-            case FunctionType.MAPPING:
-                self.mapping_tab_widget.input_path = cleaned_text
-            case FunctionType.VIDEO:
-                self.video_tab_widget.input_path = cleaned_text
+        if cleaned_text:= ut.sanitize_path(text):
+            # Update the appropriate input field in the current tab
+            match self.function_tabWidget.currentIndex():
+                case FunctionType.PHOTO:
+                    self.photo_tab_widget.input_path = cleaned_text
+                case FunctionType.FOLDER:
+                    self.folder_tab_widget.input_path = cleaned_text
+                case FunctionType.MAPPING:
+                    self.mapping_tab_widget.input_path = cleaned_text
+                case FunctionType.VIDEO:
+                    self.video_tab_widget.input_path = cleaned_text
 
-        # Trigger preview update for the current tab
-        self.trigger_preview_update()
+            # Trigger preview update for the current tab
+            self.trigger_preview_update()
 
     def trigger_preview_update(self):
         """Trigger preview update for the current tab when path is valid"""
@@ -688,25 +689,27 @@ class UiMainWindow(QtWidgets.QMainWindow):
                     if self.video_tab_widget.input_path:
                         self.display_worker.crop(FunctionType.VIDEO)
 
-    def secondary_input_changed(self, text):
+    def secondary_input_changed(self, text: str):
         """Handle changes to the secondary input (only for mapping tab)"""
-        match self.function_tabWidget.currentIndex():
-            case FunctionType.MAPPING:
-                self.mapping_tab_widget.table_path = text
-            case _:
-                pass
+        if text := ut.sanitize_path(text):
+            match self.function_tabWidget.currentIndex():
+                case FunctionType.MAPPING:
+                    self.mapping_tab_widget.table_path = text
+                case _:
+                    pass
 
-    def destination_input_changed(self, text):
+    def destination_input_changed(self, text: str):
         """Handle changes to the destination input"""
-        match self.function_tabWidget.currentIndex():
-            case FunctionType.PHOTO:
-                self.photo_tab_widget.destination_path = text
-            case FunctionType.FOLDER:
-                self.folder_tab_widget.destination_path = text
-            case FunctionType.MAPPING:
-                self.mapping_tab_widget.destination_path = text
-            case FunctionType.VIDEO:
-                self.video_tab_widget.destination_path = text
+        if text := ut.sanitize_path(text):
+            match self.function_tabWidget.currentIndex():
+                case FunctionType.PHOTO:
+                    self.photo_tab_widget.destination_path = text
+                case FunctionType.FOLDER:
+                    self.folder_tab_widget.destination_path = text
+                case FunctionType.MAPPING:
+                    self.mapping_tab_widget.destination_path = text
+                case FunctionType.VIDEO:
+                    self.video_tab_widget.destination_path = text
 
     def handle_context_button(self):
         """Handle clicks on the context-aware button"""
@@ -773,7 +776,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         return title_map.get(path_type, "Open File")
 
     def _process_and_update_path(self, file_path: str, category: FileCategory,
-                                path_type: PathType, target_input: PathLineEdit) -> None:
+                                 path_type: PathType, target_input: PathLineEdit) -> None:
         """Process and validate the selected file path"""
         path_obj = Path(file_path).resolve()
 
@@ -1301,6 +1304,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 for f in dir_path.iterdir()
                 if f.is_file() and os.access(f, os.R_OK)
             )
+            self.blockSignals(True)
 
             if has_table_files:
                 # Handle as mapping tab
@@ -1321,6 +1325,8 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 self.display_worker.current_paths[FunctionType.FOLDER] = None
                 self.folder_tab_widget.load_data()
                 self.display_worker.crop(FunctionType.FOLDER)
+
+            self.blockSignals(False)
         except OSError as e:
             # Log error internally without exposing details
             print(f"Error handling dropped directory: {e}")
@@ -1336,6 +1342,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
             return
 
         try:
+            self.blockSignals(True)
             # Determine the file type and handle accordingly
             if file_manager.is_valid_type(file_path, FileCategory.PHOTO):
                 # Photo file - verify PHOTO signature
@@ -1370,7 +1377,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
                     ut.show_error_box("File content doesn't match its extension (expected video)")
 
             elif file_manager.is_valid_type(file_path, FileCategory.TABLE):
-                # Table file - verify TABLE signature  
+                # Table file - verify TABLE signature
                 if SignatureChecker.verify_file_type(file_path, FileCategory.TABLE):
                     # Handle with the mapping tab
                     self.function_tabWidget.setCurrentIndex(FunctionType.MAPPING)
@@ -1386,6 +1393,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
             else:
                 ut.show_error_box(f"Unsupported file type: {file_path.suffix}")
 
+            self.blockSignals(False)
         except (OSError, ValueError, TypeError) as e:
             # Log error internally without exposing details
             print(f"Error handling dropped file: {e}")

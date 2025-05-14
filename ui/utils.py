@@ -1,4 +1,3 @@
-import os
 import platform
 import subprocess
 from functools import cache, partial
@@ -50,6 +49,7 @@ def register_button_dependencies(widget, button: QPushButton,
 
     widget.update_button_states()
 
+
 def check_paths_valid(tab_widget) -> bool:
     """
     Check if the paths stored in the tab widget are valid
@@ -78,45 +78,28 @@ def check_paths_valid(tab_widget) -> bool:
     # For other tabs, just check input and destination
     return input_valid and dest_valid
 
-def sanitize_path(path_str: str) -> str | None:
+
+def sanitize_path(path_str: str) -> str:
     """
     Sanitize path input to prevent security vulnerabilities.
     Uses the Rust implementation for better security guarantees.
     """
     print(f"Sanitizing path: {path_str}")
+    if not path_str:
+        return ''
+
     try:
         # Use the Rust sanitize_path function
-        return r_sec.sanitize_path(
-            path_str,
-            allowed_operations=['read', 'write'],
-            max_path_length=4096,
-            follow_symlinks=False
-        )
+        return r_sec.sanitize_path(path_str)
     except r_sec.PathSecurityError as e:
         # Use get_safe_error_message to sanitize the error message
         safe_msg = r_sec.get_safe_error_message(str(e))
         show_error_box(f"Path security error: {safe_msg}")
-        return None
+        return ''
     except Exception as e:
         show_error_box(f"Invalid path:\n {e}")
-        return None
+        return ''
 
-def is_subpath(path: Path, base_path: Path) -> bool:
-    """
-    Check if path is a subpath of base_path.
-    Both paths must be absolute and normalized.
-    """
-    # Convert to strings for comparison, ensuring consistent path separators
-    path_str = str(path).replace('\\', '/')
-    base_str = str(base_path).replace('\\', '/')
-
-    # Special case for Windows root drives
-    if os.name == 'nt' and len(base_str) <= 3 and base_str.endswith(':'):
-        # For Windows drives like "C:", check if path starts with "C:/"
-        return path_str.startswith(f'{base_str}/')
-
-    # Check if path starts with base_path followed by a path separator
-    return path_str == base_str or path_str.startswith(f'{base_str}/')
 
 def setup_combobox(combobox: QComboBox,
                    layout: QHBoxLayout | QHBoxLayout,
@@ -261,6 +244,7 @@ def initialise_message_box(window_title: str) -> QMessageBox:
     msg_box.setWindowTitle(window_title)
     return msg_box
 
+
 def create_message_box(title: str, icon: QMessageBox.Icon,
                      buttons: QMessageBox.StandardButton = QMessageBox.StandardButton.Ok) -> QMessageBox:
     """Factory function to create message boxes with standard settings"""
@@ -269,12 +253,14 @@ def create_message_box(title: str, icon: QMessageBox.Icon,
     msg_box.setStandardButtons(buttons)
     return msg_box
 
+
 # Create specialized message box creators using partial
 create_error_box = partial(
     create_message_box,
     title='Error',
     icon=QMessageBox.Icon.Warning
 )
+
 
 create_warning_box = partial(
     create_message_box,
@@ -283,12 +269,14 @@ create_warning_box = partial(
     buttons=QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
 )
 
+
 create_question_box = partial(
     create_message_box,
     title='Open Destination Folder',
     icon=QMessageBox.Icon.Question,
     buttons=QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
 )
+
 
 def show_message_box(destination: Path) -> None:
     """Shows a message box with the option to open the destination folder."""
@@ -326,11 +314,13 @@ def show_message_box(destination: Path) -> None:
             error_box.setText(f"Error opening destination folder: {e}")
             error_box.exec()
 
+
 def show_error_box(*messages: str) -> None:
     """Shows an error message box with the given messages."""
     msg_box = create_error_box()
     msg_box.setText('\n'.join(messages))
     msg_box.exec()
+
 
 def generate_message(msg_box: QMessageBox, message: str) -> None:
     """
@@ -386,6 +376,7 @@ def disable_widget(*args: QWidget) -> None:
         arg.blockSignals(False)  # Unblock signals
         arg.repaint()  # Force immediate repaint
 
+
 def enable_widget(*args: QWidget) -> None:
     """
     Enables multiple widgets with improved state handling.
@@ -398,6 +389,7 @@ def enable_widget(*args: QWidget) -> None:
         arg.setEnabled(True)
         arg.blockSignals(False)  # Unblock signals
         arg.repaint()  # Force immediate repaint
+
 
 def change_widget_state(boolean: bool, *args: QWidget) -> None:
     """
@@ -421,6 +413,7 @@ def change_widget_state(boolean: bool, *args: QWidget) -> None:
 
     # Process events to ensure UI updates
     QApplication.processEvents()
+
 
 def check_mime_data(event: QtGui.QDragEnterEvent | QtGui.QDragMoveEvent) -> None:
     """
@@ -475,6 +468,7 @@ def setup_frame(name: str, *, parent: QWidget) -> QFrame:
     frame.setObjectName(name)
     return frame
 
+
 def create_media_button(parent: QWidget, size_policy: QSizePolicy,
                         *, name: str,
                         icon_resource: GuiIcon) -> QPushButton:
@@ -492,6 +486,7 @@ def create_media_button(parent: QWidget, size_policy: QSizePolicy,
     button.setIconSize(QtCore.QSize(24, 24))
     return button
 
+
 def create_label(parent: QWidget, size_policy: QSizePolicy,
                     *, name: str,
                     icon_resource: GuiIcon) -> QLabel:
@@ -507,6 +502,7 @@ def create_label(parent: QWidget, size_policy: QSizePolicy,
     label.setScaledContents(True)
     return label
 
+
 def create_marker_button(parent: QWidget, size_policy: QSizePolicy,
                             name: str) -> QPushButton:
     button = QPushButton(parent)
@@ -518,6 +514,7 @@ def create_marker_button(parent: QWidget, size_policy: QSizePolicy,
     button.setMaximumSize(marker_button_size)
     return button
 
+
 @cache
 def get_qtime(position: int) -> QtCore.QTime:
     """
@@ -527,8 +524,10 @@ def get_qtime(position: int) -> QtCore.QTime:
     hours, minutes = divmod(minutes, 60)
     return QtCore.QTime(hours, minutes, seconds)
 
+
 def set_marker_time(button: QPushButton, position: int | float) -> None:
     button.setText(get_qtime(position * 1000).toString())
+
 
 @cache
 def pos_from_marker(text: str) -> int:

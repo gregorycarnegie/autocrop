@@ -120,15 +120,13 @@ class UiPhotoTabWidget(UiCropWidget):
                 file_manager.get_default_directory(FileCategory.PHOTO).as_posix(),
                 file_manager.get_filter_string(FileCategory.PHOTO)
             )
-            # Validate the file exists and is accessible
-            if f_name := ut.sanitize_path(f_name):
-                # Update the input path
-                self.input_path = f_name
+            # Update the input path
+            self.input_path = f_name
 
-                # Also update the main window's unified address bar if this is the active tab
-                main_window = self.parent().parent().parent()
-                if main_window.function_tabWidget.currentIndex() == FunctionType.PHOTO:
-                    main_window.unified_address_bar.setText(f_name)
+            # Also update the main window's unified address bar if this is the active tab
+            main_window = self.parent().parent().parent()
+            if main_window.function_tabWidget.currentIndex() == FunctionType.PHOTO:
+                main_window.unified_address_bar.setText(f_name)
 
         elif line_edit_type == "destination":
             f_name = QtWidgets.QFileDialog.getExistingDirectory(
@@ -136,15 +134,13 @@ class UiPhotoTabWidget(UiCropWidget):
                 'Select Directory',
                 file_manager.get_default_directory(FileCategory.PHOTO).as_posix()
             )
-            # Validate the file exists and is accessible
-            if f_name := ut.sanitize_path(f_name):
-                # Update the destination path
-                self.destination_path = f_name
+            # Update the destination path
+            self.destination_path = f_name
 
-                # Also update the main window's destination input if this is the active tab
-                main_window = self.parent().parent().parent()
-                if main_window.function_tabWidget.currentIndex() == FunctionType.PHOTO:
-                    main_window.destination_input.setText(f_name)
+            # Also update the main window's destination input if this is the active tab
+            main_window = self.parent().parent().parent()
+            if main_window.function_tabWidget.currentIndex() == FunctionType.PHOTO:
+                main_window.destination_input.setText(f_name)
 
     def crop_photo(self) -> None:
         """Execute the photo cropping operation"""

@@ -5,9 +5,9 @@ class PathSecurityError(Exception):
 
 def sanitize_path(
     path_str: str,
-    allowed_operations: list[str] | None = None,
+    allowed_operations: list[str] | None = ['read', 'write'],
     max_path_length: int = 4096,
     follow_symlinks: bool = False
-) -> str | None: ...
+) -> str: ...
 
 def get_safe_error_message(error_msg: str) -> str: ...
