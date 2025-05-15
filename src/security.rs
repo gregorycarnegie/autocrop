@@ -84,7 +84,7 @@ pub fn sanitize_path(
     };
     
     // 6. Validate against allowed base directories
-    if !is_within_allowed_directories(&resolved_path)? {
+    if !is_within_allowed_directories(&resolved_path, follow_symlinks)? {
         return Ok(String::new());
     }
     
@@ -110,25 +110,30 @@ pub fn sanitize_path(
     }
 }
 
+
 /// Clean a path string by removing surrounding quotes and normalizing separators
 /// This function is recursive to handle nested quotes
 fn clean_path_string(path_str: &str) -> String {
-    // Base case: empty string or too short for quotes
-    if path_str.len() < 2 {
-        return path_str.to_string();
+    let mut result = path_str.to_string();
+    const MAX_ITERATIONS: usize = 10;  // Reasonable upper limit
+    
+    for _ in 0..MAX_ITERATIONS {
+        if result.len() < 2 {
+            break;
+        }
+        
+        let first = result.chars().next().unwrap();
+        let last = result.chars().last().unwrap();
+        
+        if (first == '\'' && last == '\'') ^ (first == '"' && last == '"') {
+            result = result[1..result.len()-1].to_string();
+        } else {
+            break;
+        }
     }
     
-    // Check if the string is wrapped in matching quotation marks
-    let cleaned = if (path_str.starts_with('\'') && path_str.ends_with('\'')) || 
-                    (path_str.starts_with('"') && path_str.ends_with('"')) {
-        // Remove the first and last character (the quotes)
-        &path_str[1..path_str.len() - 1]
-    } else {
-        return path_str.replace('\\', "/"); // No quotes, just normalize and return
-    };
-    
-    // Recursively clean again in case of nested quotes
-    clean_path_string(cleaned)
+    // Always normalize path separators
+    result.replace('\\', "/")
 }
 
 /// Resolve path following symlinks
@@ -181,11 +186,11 @@ fn resolve_path_no_symlinks(path: &Path) -> PyResult<PathBuf> {
 }
 
 /// Check if path is within allowed directories
-fn is_within_allowed_directories(path: &Path) -> PyResult<bool> {
+fn is_within_allowed_directories(path: &Path, follow_symlinks: bool) -> PyResult<bool> {
     let allowed_dirs = get_allowed_base_directories()?;
     
     for allowed_dir in allowed_dirs {
-        if is_safe_subpath(path, &allowed_dir) {
+        if is_safe_subpath(path, &allowed_dir, follow_symlinks) {
             return Ok(true);
         }
     }
@@ -256,10 +261,33 @@ fn get_allowed_base_directories() -> PyResult<Vec<PathBuf>> {
 }
 
 /// Check if path is a safe subpath of base_path
-fn is_safe_subpath(path: &Path, base_path: &Path) -> bool {
-    match (path.canonicalize(), base_path.canonicalize()) {
-        (Ok(abs_path), Ok(abs_base)) => abs_path.starts_with(abs_base),
-        _ => false,
+fn is_safe_subpath(path: &Path, base_path: &Path, follow_symlinks: bool) -> bool {
+    if follow_symlinks {
+        match (path.canonicalize(), base_path.canonicalize()) {
+            (Ok(abs_path), Ok(abs_base)) => abs_path.starts_with(abs_base),
+            _ => false,
+        }
+    } else {
+        // No symlink following - do manual path comparison
+        let abs_path = if path.is_absolute() {
+            path.to_path_buf()
+        } else {
+            match std::env::current_dir() {
+                Ok(cwd) => cwd.join(path),
+                Err(_) => return false,
+            }
+        };
+        
+        let abs_base = if base_path.is_absolute() {
+            base_path.to_path_buf()
+        } else {
+            match std::env::current_dir() {
+                Ok(cwd) => cwd.join(base_path),
+                Err(_) => return false,
+            }
+        };
+        
+        abs_path.starts_with(abs_base)
     }
 }
 
