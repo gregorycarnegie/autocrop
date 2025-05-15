@@ -15,8 +15,8 @@ dependencies   = [
   "polars>=1.29.0",
   "psutil>=7.0.0",
   "PyQt6>=6.9.0",
-  "rawpy>=0.24.0",
-  "tifffile>=2025.3.30",
+  "rawpy>=0.25.0",
+  "tifffile>=2025.5.10",
 ]
 classifiers   = [
   "Programming Language :: Rust",
