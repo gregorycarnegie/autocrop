@@ -15,12 +15,7 @@ import polars as pl
 import tifffile as tiff
 from PyQt6 import QtWidgets
 from rawpy import ColorSpace  # type: ignore
-from rawpy._rawpy import (
-    LibRawError,
-    LibRawFatalError,
-    LibRawNonFatalError,
-    NotSupportedError,
-)
+from rawpy._rawpy import LibRawError
 
 from core.colour_utils import adjust_gamma, ensure_rgb, normalize_image, to_grayscale
 from file_types import FileCategory, SignatureChecker, file_manager
@@ -204,10 +199,7 @@ def _open_raw(
     job: Job
 ) -> cvt.MatLike | None:
     with suppress(
-        NotSupportedError,
-        LibRawFatalError,
         LibRawError,
-        LibRawNonFatalError,
         MemoryError,
         ValueError,
         TypeError,
