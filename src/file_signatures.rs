@@ -34,7 +34,6 @@ static PFM_SIGNATURES: &[Signature] = &[
 static SUN_RASTER_SIGNATURE: &[Signature] = &[(&[0x59, 0xA6, 0x6A, 0x95], 0)];
 
 // RAW format signatures
-static DNG_SIGNATURES: &[Signature] = &[(&[0x49, 0x49, 0x2A, 0x00], 0), (&[0x49, 0x49, 0x2A, 0x00], 0)]; // "II*\0" (little endian)
 static CR2_SIGNATURE: &[Signature] = &[(&[0x49, 0x49, 0x2A, 0x00, 0x10, 0x00, 0x00, 0x00, 0x43, 0x52], 0)]; // "II*\0" (little endian)
 static CRW_SIGNATURE: &[Signature] = &[(&[0x49, 0x49, 0x1A, 0x00, 0x00, 0x00, 0x48, 0x45, 0x41, 0x50, 0x43, 0x43, 0x44, 0x52, 0x02, 0x00], 0)]; // "II*\0" (little endian)
 static EXR_SIGNATURE: &[Signature] = &[(&[0x76, 0x2F, 0x31, 0x01], 0)]; // "v/1\0"
@@ -100,7 +99,7 @@ pub static PHOTO_SIGNATURES_MAP: FileSignatureMap = phf_map! {
 
 // Similar maps for other categories
 pub static RAW_SIGNATURES_MAP: FileSignatureMap = phf_map! {
-    "dng" => DNG_SIGNATURES,
+    "dng" => TIFF_LE_SIGNATURE,
     "arw" => TIFF_LE_SIGNATURE,
     "nef" => TIFF_SIGNATURES,
     "cr2" => CR2_SIGNATURE,

@@ -34,58 +34,35 @@ fn cumsum(vec: &[f64]) -> Vec<f64> {
     
     // For small arrays, use the sequential approach
     if vec.len() < 1000 {
-        let mut result = vec![0.0; vec.len()]; // Pre-allocate with zeros
-        let mut accumulator = 0.0;
+        let mut result = vec![0.0; vec.len()];
+        let mut sum = 0.0;
         
         for (i, &x) in vec.iter().enumerate() {
-            accumulator += x;
-            result[i] = accumulator; // Replace value at index i
+            sum += x;
+            result[i] = sum;
         }
         return result;
     }
     
-    // For larger arrays, use a parallel approach
-    let chunk_size = 1000;
-    let num_chunks = (vec.len() + chunk_size - 1) / chunk_size; // Ceiling division
+    // For larger arrays, use rayon's parallel scan
+    let mut result = vec.to_vec();
     
-    // Step 1: Compute local sums for each chunk in parallel
-    let local_results: Vec<(Vec<f64>, f64)> = vec.par_chunks(chunk_size)
-        .map(|chunk| {
-            let mut local_result = vec![0.0; chunk.len()]; // Pre-allocate
-            let mut sum = 0.0;
+    // Use a slice of the Vec rather than the Vec itself
+    result.as_mut_slice().par_chunks_mut(1000)
+        .enumerate()
+        .for_each(|(chunk_idx, chunk)| {
+            let mut sum = if chunk_idx == 0 { 0.0 } else {
+                // Start with the sum from the end of the previous chunk
+                vec[..chunk_idx * 1000].iter().sum()
+            };
             
-            for (i, &val) in chunk.iter().enumerate() {
-                sum += val;
-                local_result[i] = sum; // Replace at index i
+            for (i, val) in chunk.iter_mut().enumerate() {
+                sum += vec[chunk_idx * 1000 + i];
+                *val = sum;
             }
-            
-            (local_result, sum)
-        })
-        .collect();
+        });
     
-    // Step 2: Calculate prefix sums of chunk totals
-    let mut chunk_prefixes = vec![0.0; num_chunks];
-    let mut prefix_sum = 0.0;
-    
-    for (i, (_, chunk_sum)) in local_results.iter().enumerate() {
-        chunk_prefixes[i] = prefix_sum;
-        prefix_sum += chunk_sum;
-    }
-    
-    // Step 3: Combine results
-    let mut final_result = vec![0.0; vec.len()];
-    
-    let mut result_index = 0;
-    for (chunk_idx, (local_chunk, _)) in local_results.iter().enumerate() {
-        let chunk_prefix = chunk_prefixes[chunk_idx];
-        
-        for &local_val in local_chunk {
-            final_result[result_index] = local_val + chunk_prefix;
-            result_index += 1;
-        }
-    }
-    
-    final_result
+    result
 }
 
 /// Reshapes a raw byte buffer (from Python) into a 3D NumPy array (H, W, 3).
@@ -108,35 +85,30 @@ fn reshape_buffer_to_image<'py>(
     width: usize,
 ) -> PyResult<Bound<'py, PyArray3<u8>>> {
     let bytes_slice: &[u8] = input_bytes.as_bytes();
-
     let channels = 3;
     let expected_len = height * width * channels;
 
     if bytes_slice.len() != expected_len {
         return Err(PyValueError::new_err(format!(
             "Input buffer length ({}) does not match expected length ({}) for shape ({}, {}, {})",
-            bytes_slice.len(),
-            expected_len,
-            height,
-            width,
-            channels
+            bytes_slice.len(), expected_len, height, width, channels
         )));
     }
 
-    // Create rows in parallel
-    let rows: Vec<Vec<u8>> = (0..height).into_par_iter()
-        .map(|i| {
-            let row_start = i * width * channels;
-            let row_end = row_start + (width * channels);
-            bytes_slice[row_start..row_end].to_vec()
-        })
-        .collect();
+    // Allocate a single buffer once
+    let mut output = vec![0u8; expected_len];
     
-    // Flatten and convert to ndarray
-    let flattened: Vec<u8> = rows.into_iter().flatten().collect();
+    // Copy data in parallel chunks
+    let row_size = width * channels;
+    output.par_chunks_mut(row_size)
+          .enumerate()
+          .for_each(|(i, row)| {
+              let src_offset = i * row_size;
+              row.copy_from_slice(&bytes_slice[src_offset..src_offset + row_size]);
+          });
+    
     let shape = Ix3(height, width, channels);
-    
-    let owned_array = Array3::from_shape_vec(shape, flattened)
+    let owned_array = Array3::from_shape_vec(shape, output)
         .map_err(|e| PyValueError::new_err(format!("Failed to reshape array: {}", e)))?;
     
     Ok(owned_array.into_pyarray(py))
