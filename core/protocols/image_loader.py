@@ -22,12 +22,12 @@ class ImageLoader:
 
     @staticmethod
     @overload
-    def loader(loader_type: Literal['raw']) -> Callable[[str], AbstractContextManager]: ...
+    def loader(loader_type: Literal['raw']) -> Callable[[str], AbstractContextManager[rawpy.RawPy, bool | None]]: ...
 
     @staticmethod
     def loader(
         loader_type: str = 'standard'
-    ) -> Callable[[str], cvt.MatLike] | Callable[[str], AbstractContextManager]:
+    ) -> Callable[[str], cvt.MatLike] | Callable[[str], AbstractContextManager[rawpy.RawPy, bool | None]]:
         """
         Return an image loader function based on the loader_type.
 
