@@ -1,10 +1,14 @@
 """Type stubs for rawpy.enhance module"""
 
 import numpy as np
-
 from rawpy._rawpy import RawPy
 
-def find_bad_pixels(paths: list[str], find_hot: bool = True, find_dead: bool = True, confirm_ratio: float = 0.9) -> np.ndarray:
+def find_bad_pixels(
+        paths: list[str],
+        find_hot: bool = True,
+        find_dead: bool = True,
+        confirm_ratio: float = 0.9
+) -> np.ndarray:
     """Find and return coordinates of hot/dead pixels in the given RAW images.
 
     The probability that a detected bad pixel is really a bad pixel gets higher
@@ -31,7 +35,7 @@ def repair_bad_pixels(raw: RawPy, coords: np.ndarray, method: str = 'median') ->
 
     Parameters:
         raw: the RAW image to repair
-        coords: coordinates of bad pixels to repair, array of shape (n,2) 
+        coords: coordinates of bad pixels to repair, array of shape (n,2)
                with y,x coordinates relative to visible RAW size
         method: currently only 'median' is supported
     """

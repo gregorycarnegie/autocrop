@@ -491,7 +491,12 @@ flags: dict[str, bool]
 # Module enhancement.py
 class enhance:
     @staticmethod
-    def find_bad_pixels(paths: list[str], find_hot: bool = True, find_dead: bool = True, confirm_ratio: float = 0.9) -> np.ndarray:
+    def find_bad_pixels(
+        paths: list[str],
+        find_hot: bool = True,
+        find_dead: bool = True,
+        confirm_ratio: float = 0.9
+    ) -> np.ndarray:
         """Find and return coordinates of hot/dead pixels in the given RAW images.
 
         The probability that a detected bad pixel is really a bad pixel gets higher
