@@ -1,7 +1,7 @@
 import contextlib
 from pathlib import Path
 
-import autocrop_rs.security as r_sec
+import autocrop_rs.security as r_sec  # type: ignore
 from PyQt6 import QtCore, QtWidgets
 
 from file_types import FileCategory, file_manager

@@ -2,7 +2,7 @@ from fractions import Fraction
 from functools import cache
 from pathlib import Path
 
-import autocrop_rs.image_processing as r_img
+import autocrop_rs.image_processing as r_img  # type: ignore
 import ffmpeg
 import numpy as np
 import numpy.typing as npt

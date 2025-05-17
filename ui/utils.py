@@ -3,7 +3,7 @@ import subprocess
 from functools import cache, partial
 from pathlib import Path
 
-import autocrop_rs.security as r_sec
+import autocrop_rs.security as r_sec  # type: ignore
 import cv2.typing as cvt
 from PyQt6 import QtCore, QtGui
 from PyQt6.QtWidgets import (

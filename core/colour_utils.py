@@ -4,7 +4,7 @@ Centralized colour space handling utilities for the autocrop application.
 This module provides common functions for colour space conversions and manipulations,
 eliminating code duplication across the application.
 """
-import autocrop_rs.image_processing as r_img
+import autocrop_rs.image_processing as r_img  # type: ignore
 import cv2
 import cv2.typing as cvt
 import numpy as np

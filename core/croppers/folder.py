@@ -5,7 +5,7 @@ from functools import partial
 from itertools import batched
 from pathlib import Path
 
-import autocrop_rs.file_types as r_types
+import autocrop_rs.file_types as r_types  # type: ignore
 import numpy as np
 
 from core import processing as prc

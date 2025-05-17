@@ -10,16 +10,15 @@ from functools import cache, lru_cache, partial, singledispatch
 from pathlib import Path
 from queue import Empty
 
-import autocrop_rs.image_processing as r_img
+import autocrop_rs.image_processing as r_img  # type: ignore
 import cv2
 import cv2.typing as cvt
 import numpy as np
 import numpy.typing as npt
 import polars as pl
-import rawpy
 import tifffile as tiff
 from PyQt6 import QtWidgets
-from rawpy import ColorSpace  # type: ignore
+from rawpy import ColorSpace
 from rawpy._rawpy import LibRawError
 
 from core.colour_utils import adjust_gamma, ensure_rgb, normalize_image, to_grayscale

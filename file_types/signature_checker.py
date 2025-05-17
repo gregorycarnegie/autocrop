@@ -1,6 +1,6 @@
 from pathlib import Path
 
-import autocrop_rs.file_types as r_types
+import autocrop_rs.file_types as r_types  # type: ignore
 
 from .file_category import FileCategory
 

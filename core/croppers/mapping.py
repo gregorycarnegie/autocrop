@@ -6,7 +6,7 @@ from itertools import batched
 from pathlib import Path
 from typing import Any
 
-import autocrop_rs.file_types as r_types
+import autocrop_rs.file_types as r_types  # type: ignore
 import numpy as np
 import numpy.typing as npt
 
