@@ -77,18 +77,18 @@ class PathLineEdit(CustomLineEdit):
         if parent:
             # Try to find the current tab and update button states
             with contextlib.suppress(AttributeError, IndexError):
-                tab_index = parent.function_tabWidget.currentIndex()
+                tab_index = parent.function_tabWidget.currentIndex()  # type: ignore
                 current_tab = None
 
                 # Get the current tab widget
                 if tab_index == 0 and hasattr(parent, 'photo_tab_widget'):
-                    current_tab = parent.photo_tab_widget
+                    current_tab = parent.photo_tab_widget  # type: ignore
                 elif tab_index == 1 and hasattr(parent, 'folder_tab_widget'):
-                    current_tab = parent.folder_tab_widget
+                    current_tab = parent.folder_tab_widget  # type: ignore
                 elif tab_index == 2 and hasattr(parent, 'mapping_tab_widget'):
-                    current_tab = parent.mapping_tab_widget
+                    current_tab = parent.mapping_tab_widget  # type: ignore
                 elif tab_index == 3 and hasattr(parent, 'video_tab_widget'):
-                    current_tab = parent.video_tab_widget
+                    current_tab = parent.video_tab_widget  # type: ignore
 
                 # Update button states if possible
                 if current_tab and hasattr(current_tab, 'disable_buttons'):
