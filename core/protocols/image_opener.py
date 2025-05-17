@@ -15,6 +15,7 @@ class ImageOpener(Protocol):
         self,
         file: Path,
         face_detection_tools: FaceToolPair,
-        job: Job
+        job: Job,
+        skip_face_detection: bool = False
     ) -> cvt.MatLike | None:
         ...
