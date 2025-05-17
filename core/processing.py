@@ -38,7 +38,7 @@ from .face_tools import (
 )
 from .job import Job
 from .operation_types import Box, CropFunction
-from .protocols import ImageLoader, ImageOpener, ImageWriter, TableLoader
+from .protocols import ImageLoader, ImageOpener, ImageWriter, SimpleImageOpener, TableLoader
 
 
 def build_processing_pipeline(job: Job,
@@ -347,6 +347,7 @@ def load_table(file: Path) -> pl.DataFrame:
     # Return an empty DataFrame if loading fails
     return pl.DataFrame()
 
+
 def detect_faces_and_generate_instructions(
         file_list: list[Path],
         job: Job,
@@ -412,6 +413,7 @@ def detect_faces_and_generate_instructions(
             ))
 
     return instructions
+
 
 def execute_crop_instructions(instructions: list[CropInstruction], num_processes: int, cancel_event=None):
     """
@@ -508,6 +510,7 @@ def execute_crop_instructions(instructions: list[CropInstruction], num_processes
     for p in processes:
         p.join(timeout=1.0)
 
+
 def crop_worker_process(task_queue: multiprocessing.Queue, result_queue: multiprocessing.Queue, cancel_flag):
     """Worker process that consumes tasks from the queue"""
     while not cancel_flag.value:
@@ -535,6 +538,39 @@ def crop_worker_process(task_queue: multiprocessing.Queue, result_queue: multipr
             print(f"Error in crop worker: {e}")
             continue
 
+
+def _open_standard_simple(
+    file: Path,
+) -> cvt.MatLike | None:
+    img = ImageLoader.loader('standard')(file.as_posix())
+    return None if img is None else ensure_rgb(img)
+
+
+def _open_raw_simple(
+    file: Path,
+) -> cvt.MatLike | None:
+    with suppress(
+            LibRawError,
+            MemoryError,
+            ValueError,
+            TypeError,
+        ):
+        with ImageLoader.loader('raw')(file.as_posix()) as raw:
+            return raw.postprocess(
+                use_camera_wb=True,
+                no_auto_bright=True,
+                output_color=ColorSpace.sRGB,
+            )
+    return None
+
+# Map each FileCategory to its opener strategy
+_SIMPLE_OPENER_STRATEGIES: dict[FileCategory, SimpleImageOpener] = {
+    FileCategory.PHOTO: _open_standard_simple,
+    FileCategory.TIFF: _open_standard_simple,
+    FileCategory.RAW: _open_raw_simple,
+}
+
+
 def process_single_instruction(instruction: CropInstruction, job: Job):
     """Process a single cropping instruction with the given job parameters"""
     try:
@@ -557,23 +593,21 @@ def process_single_instruction(instruction: CropInstruction, job: Job):
             ),
             None,
         )
-        if category is None:
-            return
+        # Verify file content before opening
+        if not category:
+            return None
 
-        # Use OpenCV directly for PHOTO and TIFF
-        if category in [FileCategory.PHOTO, FileCategory.TIFF]:
-            image = cv2.imread(str(input_path))
-            if image is None:
-                return
-        # Use rawpy for RAW files
-        elif category == FileCategory.RAW:
-            try:
-                with rawpy.imread(str(input_path)) as raw:
-                    image = raw.postprocess(use_camera_wb=True)
-            except Exception:
-                return
-        else:
-            return
+        # Use the optimized file verification
+        if not SignatureChecker.verify_file_type(input_path, category):
+            return None
+
+        opener = _SIMPLE_OPENER_STRATEGIES.get(category)
+        if opener is None:
+            return None
+
+        image = opener(input_path)
+        if image is None:
+            return None
 
         # Create and apply processing pipeline with the pre-detected bounding box
         pipeline = build_cropping_pipeline(job, instruction.bounding_box, video=False)
@@ -587,6 +621,7 @@ def process_single_instruction(instruction: CropInstruction, job: Job):
 
     except Exception as e:
         print(f"Error processing {instruction.file_path}: {e}")
+
 
 def build_cropping_pipeline(
         job: Job,

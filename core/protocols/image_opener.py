@@ -19,3 +19,13 @@ class ImageOpener(Protocol):
         skip_face_detection: bool = False
     ) -> cvt.MatLike | None:
         ...
+
+class SimpleImageOpener(Protocol):
+    """
+    Strategy protocol for opening and preparing images.
+    """
+    def __call__(
+        self,
+        file: Path,
+    ) -> cvt.MatLike | None:
+        ...
