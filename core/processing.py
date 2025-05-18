@@ -1,6 +1,5 @@
 import os
 import random
-import shutil
 import threading
 from collections.abc import Callable, Iterator
 from contextlib import suppress
@@ -42,7 +41,8 @@ def generate_crop_instructions(
         image_paths: list[Path],
         job: Job,
         face_detection_tools: FaceToolPair,
-        output_paths: list[Path] | None = None
+        output_paths: list[Path] | None = None,
+        rejected_list=None
 ) -> list[CropInstruction]:
     """
     Phase 1: Detect faces and generate crop instructions without performing crops
@@ -52,6 +52,7 @@ def generate_crop_instructions(
         job: Job parameters
         face_detection_tools: Face detection tools
         output_paths: Optional list of output paths (for mapping operations)
+        rejected_list: Optional shared list proxy to record rejected files
 
     Returns:
         List of CropInstruction objects
@@ -62,7 +63,9 @@ def generate_crop_instructions(
     for i, img_path in enumerate(image_paths):
         # Process each image
         output_path = determine_output_path(img_path, job, output_paths, i)
-        image_instructions = process_single_image(img_path, output_path, job, face_detection_tools, job_params)
+        image_instructions = process_single_image(
+            img_path, output_path, job, face_detection_tools, job_params, rejected_list
+        )
         instructions.extend(image_instructions)
 
     return instructions
@@ -107,26 +110,32 @@ def process_single_image(
         output_path: str,
         job: Job,
         face_detection_tools: FaceToolPair,
-        job_params: dict
+        job_params: dict,
+        rejected_list=None  # Add parameter
 ) -> list[CropInstruction]:
     """Process a single image and return crop instructions."""
     # Load the image and detect faces
     image_array = load_and_prepare_image(img_path, face_detection_tools, job)
     if image_array is None:
         # Reject the file if it can't be loaded
-        handle_rejected_image(img_path, job)
+        handle_rejected_image(img_path, job, rejected_list)
         return []
 
     if job.multi_face_job:
-        return process_multi_face_image(img_path, output_path, image_array, job, face_detection_tools, job_params)
+        return process_multi_face_image(
+            img_path, output_path, image_array, job, face_detection_tools, job_params, rejected_list
+        )
     else:
-        return process_single_face_image(img_path, output_path, image_array, job, face_detection_tools, job_params)
+        return process_single_face_image(
+            img_path, output_path, image_array, job, face_detection_tools, job_params, rejected_list
+        )
 
 
-def handle_rejected_image(img_path: Path, job: Job) -> None:
-    """Handle rejected images by moving them to the reject folder if configured."""
+
+def handle_rejected_image(img_path: Path, job: Job, rejected_list=None) -> None:
+    """Handle rejected images by adding to rejected list if available, or moving them to the reject folder."""
     if job.safe_destination:
-        reject(path=img_path, destination=job.safe_destination)
+        reject(path=img_path, destination=job.safe_destination, rejected_list=rejected_list)
 
 
 def process_multi_face_image(
@@ -135,7 +144,8 @@ def process_multi_face_image(
         image_array: cvt.MatLike,
         job: Job,
         face_detection_tools: FaceToolPair,
-        job_params: dict
+        job_params: dict,
+        rejected_list=None  # Add parameter
 ) -> list[CropInstruction]:
     """Process an image in multi-face mode."""
     instructions = []
@@ -144,7 +154,7 @@ def process_multi_face_image(
     results = get_face_boxes(image_array, job, face_detection_tools)
     if not results:
         # Reject if no faces detected
-        handle_rejected_image(img_path, job)
+        handle_rejected_image(img_path, job, rejected_list)
         return []
 
     # Create an instruction for each detected face
@@ -186,14 +196,15 @@ def process_single_face_image(
         image_array: cvt.MatLike,
         job: Job,
         face_detection_tools: FaceToolPair,
-        job_params: dict
+        job_params: dict,
+        rejected_list=None  # Add parameter
 ) -> list[CropInstruction]:
     """Process an image in single-face mode."""
     # Single face mode
     bounding_box = detect_face_box(image_array, job, face_detection_tools)
     if bounding_box is None:
         # Reject if no face detected
-        handle_rejected_image(img_path, job)
+        handle_rejected_image(img_path, job, rejected_list)
         return []
 
     instruction = CropInstruction(
@@ -933,15 +944,56 @@ def set_filename(radio_options: tuple[str, ...],
 
 def reject(*,
            path: Path,
-           destination: Path | None) -> None:
+           destination: Path | None,
+           rejected_list=None) -> None:
     """
-    Moves (copies) the file to 'rejects' folder under the given destination.
+    Records rejected file paths in a shared list proxy if provided,
+    otherwise moves (copies) the file to 'rejects' folder under the given destination.
+
+    Args:
+        path: The path to the rejected file
+        destination: The destination folder
+        rejected_list: Optional shared list proxy to record rejects
     """
+    if rejected_list is not None:
+        # Add to shared list instead of copying
+        rejected_list.append(path.as_posix())
+    else:
+        return None
 
-    reject_folder = (destination or Path.home()).joinpath('rejects')
-    reject_folder.mkdir(exist_ok=True)
-    shutil.copy(path, reject_folder.joinpath(path.name))
+def write_rejected_files_to_csv(rejected_list, destination: Path | None) -> Path | None:
+    """
+    Writes the list of rejected file paths to a CSV file.
 
+    Args:
+        rejected_list: Shared list proxy containing rejected file paths
+        destination: The destination folder where the CSV should be saved
+
+    Returns:
+        Path to the CSV file or None if there was an error
+    """
+    if not rejected_list:
+        return None
+
+    if destination is None:
+        destination = Path.home()
+
+    try:
+        # Create a unique filename with timestamp
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        csv_path = destination / f"rejected_files_{timestamp}.csv"
+
+        # Create DataFrame and save to CSV
+        df = pl.DataFrame({
+            "rejected_file_path": list(rejected_list)
+        })
+        df.write_csv(csv_path)
+
+        return csv_path
+    except Exception as e:
+        print(f"Error writing rejected files to CSV: {e}")
+        return None
 
 def make_frame_filepath(destination: Path,
                         file_enum: str,

@@ -49,8 +49,9 @@ class MappingCropper(BatchCropper):
             return
 
         # Phase 1: Generate crop instructions
+        # Pass the shared rejected_files list to track rejected files
         instructions = prc.generate_crop_instructions(
-            image_paths, job, face_detection_tools, output_paths
+            image_paths, job, face_detection_tools, output_paths, self.rejected_files
         )
 
         if cancel_event.is_set():

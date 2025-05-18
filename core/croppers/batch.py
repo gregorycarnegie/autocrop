@@ -4,6 +4,7 @@ import threading
 from collections.abc import Callable
 from concurrent.futures import CancelledError, Future, ThreadPoolExecutor
 from contextlib import suppress
+from multiprocessing import Manager
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +13,7 @@ import numpy.typing as npt
 from PyQt6.QtCore import Q_ARG, QMetaObject, Qt
 from PyQt6.QtWidgets import QApplication
 
+from core import processing as prc
 from core.face_tools import FaceToolPair
 from core.job import Job
 from file_types import FileCategory, SignatureChecker, file_manager
@@ -35,6 +37,10 @@ class BatchCropper(Cropper):
         self.executor = ThreadPoolExecutor(max_workers=self.THREAD_NUMBER)
         self.face_detection_tools = face_detection_tools
         self.cancel_event = threading.Event()
+
+        # Add shared list proxy for rejected files
+        mgr = Manager()
+        self.rejected_files = mgr.list()  # proxy to a list
 
         # Register an exit handler to ensure proper clean-up
         atexit.register(self._cleanup_executor)
@@ -153,6 +159,9 @@ class BatchCropper(Cropper):
         # Reset other task variables
         self.progress_count, self.end_task, self.show_message_box = self.TASK_VALUES
         self.finished_signal_emitted = False
+
+        # Clear rejected files list
+        self.rejected_files[:] = []
 
     def set_futures(self, worker: Callable[..., None],
                     amount: int,
@@ -418,6 +427,9 @@ class BatchCropper(Cropper):
         """
         Common implementation of the crop_from_path method. Uses a template method pattern.
         """
+        # Store job reference for use later
+        self.job = job
+
         # Let child class prepare the operation
         file_count, file_paths = self.prepare_crop_operation(job)
 
@@ -453,11 +465,20 @@ class BatchCropper(Cropper):
     def emit_done(self) -> None:
         """
         Emits the `finished` signal if it has not already been emitted.
+        Also writes rejected files to CSV if any.
         Uses a cross-thread safe approach.
         """
         if not self.finished_signal_emitted:
             # Set flag to prevent multiple emissions
             self.finished_signal_emitted = True
+
+            # Write rejected files to CSV if there are any
+            if self.rejected_files and hasattr(self, 'job') and hasattr(self.job, 'safe_destination'):
+                if csv_path := prc.write_rejected_files_to_csv(
+                    self.rejected_files, self.job.safe_destination
+                ):
+                    print(f"Rejected files list written to {csv_path}")
+
             # Use QMetaObject.invokeMethod for cross-thread signal emission
             QMetaObject.invokeMethod(
                 self,

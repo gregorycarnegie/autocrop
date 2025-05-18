@@ -22,17 +22,17 @@ class FolderCropper(BatchCropper):
         super().__init__(face_detection_tools)
 
     def worker(self, *, file_amount: int,
-                job: Job,
-                face_detection_tools: FaceToolPair,
-                file_list: tuple[Path, ...],
-                cancel_event: threading.Event) -> None:
+            job: Job,
+            face_detection_tools: FaceToolPair,
+            file_list: tuple[Path, ...],
+            cancel_event: threading.Event) -> None:
         """
         Performs cropping for a folder job by iterating over the file list.
         Uses a two-phase approach for efficiency.
         """
         # Phase 1: Generate crop instructions
         instructions = prc.generate_crop_instructions(
-            list(file_list), job, face_detection_tools
+            list(file_list), job, face_detection_tools, None, self.rejected_files
         )
 
         if cancel_event.is_set():
