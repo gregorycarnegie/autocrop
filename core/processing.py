@@ -1,3 +1,4 @@
+import itertools
 import json
 import multiprocessing
 import os
@@ -272,23 +273,29 @@ def load_and_prepare_image(
 
 def _load_csv(file: Path) -> pl.DataFrame:
     """
-    Load a CSV file with header validation.
+    Load a CSV file with more robust error handling and format detection.
     """
-    try:
-        # First peek at the file to validate headers
-        with file.open(mode='r', encoding='utf-8') as f:
-            header_line = f.readline().strip()
-            if not header_line:
-                return pl.DataFrame()
+    encoding_options = ["utf-8", "latin-1", "utf-16", "windows-1252"]
+    delimiter_options = [',', '\t', ';', '|']
 
-        # If headers look valid, load the full file
-        return pl.read_csv(file, infer_schema_length=Config.infer_schema_length)
-    except (pl.exceptions.PolarsError, UnicodeDecodeError, OSError):
-        # Try with different encoding if the initial attempt fails
+    # Try each encoding and delimiter combination
+    for encoding, delimiter in itertools.product(encoding_options, delimiter_options):
         try:
-            return pl.read_csv(file, encoding='latin-1', infer_schema_length=Config.infer_schema_length)
+            return pl.read_csv(
+                file,
+                encoding=encoding,
+                separator=delimiter,
+                infer_schema_length=Config.infer_schema_length,
+                ignore_errors=True
+            )
         except pl.exceptions.PolarsError:
-            return pl.DataFrame()
+            continue  # Try next combination
+
+    # Last resort - try to read without specifying delimiter
+    try:
+        return pl.read_csv(file, infer_schema_length=Config.infer_schema_length);
+    except pl.exceptions.PolarsError:
+        return pl.DataFrame()
 
 
 def _load_excel(file: Path) -> pl.DataFrame:

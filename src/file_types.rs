@@ -56,30 +56,24 @@ fn validate_csv(path: &Path) -> bool {
             let mut buffer = String::with_capacity(1024);
             
             // Read a sample to detect dialect
-            if reader.read_line(&mut buffer).is_err() {
+            if reader.read_line(&mut buffer).is_err() || buffer.is_empty() {
                 return false;
             }
             
-            // More robust delimiter detection
-            let potential_delimiters = [',', '\t', ';', '|'];
-            let counts: Vec<_> = potential_delimiters.iter()
-                .map(|&d| (d, buffer.chars().filter(|&c| c == d).count()))
-                .collect();
-                
-            // Find most common delimiter with at least 1 occurrence
-            if let Some(&(delimiter, count)) = counts.iter().max_by_key(|&&(_, c)| c) {
-                if count > 0 {
-                    // Validate consistency in next few lines
-                    for _ in 0..2 {
-                        buffer.clear();
-                        if reader.read_line(&mut buffer).is_ok() && !buffer.is_empty() {
-                            if buffer.chars().filter(|&c| c == delimiter).count() == 0 {
-                                return false; // Inconsistent format
-                            }
-                        }
-                    }
-                    return true;
+            // More robust delimiter detection - allow any common delimiter
+            let potential_delimiters = [',', '\t', ';', '|', ' '];
+            
+            // Check if ANY delimiter appears in the line
+            for &delimiter in &potential_delimiters {
+                if buffer.contains(delimiter) {
+                    return true;  // Found a delimiter, consider it valid
                 }
+            }
+            
+            // If no common delimiter is found but the line contains alphanumeric characters,
+            // it might still be a simple single-column CSV
+            if buffer.chars().any(|c| c.is_alphanumeric()) {
+                return true;
             }
             
             false
@@ -272,7 +266,49 @@ pub fn verify_file_type(file_path: String, category: u8) -> PyResult<bool> {
         _ => FileCategory::Unknown,
     };
     
+    // Special handling for table files
+    if file_category == FileCategory::Table {
+        let extension = path.extension()
+            .and_then(|e| e.to_str())
+            .map(|s| s.to_ascii_lowercase())
+            .unwrap_or_default();
+            
+        // Enhanced validation for table files
+        match extension.as_str() {
+            "csv" => return Ok(validate_csv(&path)),
+            "xlsx" | "xlsm" | "xltx" | "xltm" => {
+                // Excel files are ZIP files with specific contents
+                // Just check if it's a valid ZIP file
+                return Ok(is_zip_file(&path));
+            },
+            "parquet" => {
+                // Basic check for parquet files - they usually start with PAR1
+                if let Ok(mut file) = File::open(&path) {
+                    let mut signature = [0u8; 4];
+                    if file.read_exact(&mut signature).is_ok() {
+                        return Ok(signature == [b'P', b'A', b'R', b'1']);
+                    }
+                }
+                return Ok(false);
+            },
+            _ => {}  // Fall through to standard validation
+        }
+    }
+    
+    // Standard validation for other file types
     Ok(validate_file(&path, file_category))
+}
+
+// Helper function to check if a file is a valid ZIP file (for Excel)
+fn is_zip_file(path: &Path) -> bool {
+    if let Ok(mut file) = File::open(path) {
+        let mut signature = [0u8; 4];
+        if file.read_exact(&mut signature).is_ok() {
+            // Check for ZIP file signature "PK\x03\x04"
+            return signature == [0x50, 0x4B, 0x03, 0x04];
+        }
+    }
+    false
 }
 
 /// Register the functions with the Python module
