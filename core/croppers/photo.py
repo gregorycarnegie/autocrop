@@ -12,9 +12,11 @@ class PhotoCropper(Cropper):
         super().__init__()
         self.face_detection_tools = face_detection_tools
 
-    def crop(self, image: Path,
+    def crop(
+            self, image: Path,
              job: Job,
-             new: str | None = None) -> None:
+             new: str | None = None
+    ) -> None:
         """
         Crops the photo image based on the provided job parameters.
 

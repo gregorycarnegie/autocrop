@@ -1,3 +1,4 @@
+import multiprocessing
 import threading
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
@@ -21,21 +22,29 @@ class FolderCropper(BatchCropper):
         super().__init__(face_detection_tools)
 
     def worker(self, *, file_amount: int,
-            job: Job,
-            face_detection_tools: FaceToolPair,
-            file_list: tuple[Path, ...],
-            cancel_event: threading.Event) -> None:
+                job: Job,
+                face_detection_tools: FaceToolPair,
+                file_list: tuple[Path, ...],
+                cancel_event: threading.Event) -> None:
         """
         Performs cropping for a folder job by iterating over the file list.
-        Uses batch_process_with_pipeline for efficiency.
+        Uses a two-phase approach for efficiency.
         """
-        # Convert tuple to list if needed
-        image_paths = list(file_list)
-
-        # Process the images
-        prc.batch_process_with_pipeline(
-            image_paths, job, face_detection_tools, cancel_event, False
+        # Phase 1: Generate crop instructions
+        instructions = prc.generate_crop_instructions(
+            list(file_list), job, face_detection_tools
         )
+
+        if cancel_event.is_set():
+            return
+
+        # Phase 2: Execute crop instructions in parallel
+        with multiprocessing.Pool(processes=min(multiprocessing.cpu_count(), 8)) as pool:
+            # Use a multiprocessing pool to execute the crop instructions
+            _results = list(pool.imap_unordered(
+                prc.execute_crop_instruction,
+                instructions
+            ))
 
         # Update completion status
         self._check_completion(file_amount)

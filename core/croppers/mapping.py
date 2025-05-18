@@ -1,9 +1,9 @@
+import multiprocessing
 import threading
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from itertools import batched
-from pathlib import Path
 from typing import Any
 
 import autocrop_rs.file_types as r_types  # type: ignore
@@ -22,36 +22,47 @@ class MappingCropper(BatchCropper):
     def __init__(self, face_detection_tools: list[FaceToolPair]):
         super().__init__(face_detection_tools)
 
-    def worker(self, *, file_amount: int,
+    def worker(
+            self, *, file_amount: int,
             job: Job,
             face_detection_tools: FaceToolPair,
             old: npt.NDArray[np.str_],
             new: npt.NDArray[np.str_],
-            cancel_event: threading.Event) -> None:
+            cancel_event: threading.Event
+    ) -> None:
         """
-        Performs cropping for a mapping job using batch_process_with_mapping.
+        Performs cropping for a mapping job using two-phase approach.
         """
         # Convert mapping arrays to lists of image paths and their targets
-        image_paths: list[Path] = []
-        output_paths: list[Path] = []
+        image_paths = []
+        output_paths = []
 
         for old_name, new_name in zip(old, new):
-            old_path: Path = job.safe_folder_path / old_name
+            old_path = job.safe_folder_path / old_name
             if old_path.is_file():
-                new_path: Path = job.safe_destination / (new_name + old_path.suffix if job.radio_choice() == 'No'
-                                            else new_name + job.radio_choice())
+                new_path = job.safe_destination / (new_name + old_path.suffix if job.radio_choice() == 'No'
+                                        else new_name + job.radio_choice())
                 image_paths.append(old_path)
                 output_paths.append(new_path)
 
-        if image_paths and not cancel_event.is_set():
-            prc.batch_process_with_mapping(
-                image_paths,
-                output_paths,
-                job,
-                face_detection_tools,
-                cancel_event,
-                False
-            )
+        if not image_paths or cancel_event.is_set():
+            return
+
+        # Phase 1: Generate crop instructions
+        instructions = prc.generate_crop_instructions(
+            image_paths, job, face_detection_tools, output_paths
+        )
+
+        if cancel_event.is_set():
+            return
+
+        # Phase 2: Execute crop instructions in parallel
+        with multiprocessing.Pool(processes=min(multiprocessing.cpu_count(), 8)) as pool:
+            # Use a multiprocessing pool to execute the crop instructions
+            _results = list(pool.imap_unordered(
+                prc.execute_crop_instruction,
+                instructions
+            ))
 
         # Update completion status
         self._check_completion(file_amount)
@@ -87,11 +98,13 @@ class MappingCropper(BatchCropper):
         old_list, new_list = file_lists
         self.set_futures(self.worker, file_count, job, old_list, new_list)
 
-    def set_futures(self, worker: Callable[..., None],
-                    amount: int,
-                    job: Job,
-                    list_1: npt.NDArray[np.str_],
-                    list_2: npt.NDArray[np.str_]) -> None:
+    def set_futures(
+            self, worker: Callable[..., None],
+            amount: int,
+            job: Job,
+            list_1: npt.NDArray[np.str_],
+            list_2: npt.NDArray[np.str_]
+    ) -> None:
         """
         Configure worker futures for parallel execution with enhanced security.
         """

@@ -1,3 +1,4 @@
+import os
 import random
 import shutil
 import threading
@@ -6,7 +7,7 @@ from contextlib import suppress
 from functools import cache, lru_cache, partial, singledispatch
 from pathlib import Path
 
-import autocrop_rs.image_processing as r_img
+import autocrop_rs.image_processing as r_img  # type: ignore
 import cv2
 import cv2.typing as cvt
 import numpy as np
@@ -18,6 +19,7 @@ from rawpy import ColorSpace  # type: ignore
 from rawpy._rawpy import LibRawError
 
 from core.colour_utils import adjust_gamma, ensure_rgb, normalize_image, to_grayscale
+from core.crop_instruction import CropInstruction
 from file_types import FileCategory, SignatureChecker, file_manager
 
 from .config import Config
@@ -32,14 +34,288 @@ from .face_tools import (
 )
 from .job import Job
 from .operation_types import Box, CropFunction
-from .protocols import ImageLoader, ImageOpener, ImageWriter, TableLoader
+from .protocols import ImageLoader, ImageOpener, ImageWriter, SimpleImageOpener, TableLoader
+
+# Add to core/processing.py
+
+def generate_crop_instructions(
+        image_paths: list[Path],
+        job: Job,
+        face_detection_tools: FaceToolPair,
+        output_paths: list[Path] | None = None
+) -> list[CropInstruction]:
+    """
+    Phase 1: Detect faces and generate crop instructions without performing crops
+
+    Args:
+        image_paths: List of paths to images
+        job: Job parameters
+        face_detection_tools: Face detection tools
+        output_paths: Optional list of output paths (for mapping operations)
+
+    Returns:
+        List of CropInstruction objects
+    """
+    instructions: list[CropInstruction] = []
+
+    # Serialize job parameters for later
+    job_params = {
+        'width': job.width,
+        'height': job.height,
+        'fix_exposure_job': job.fix_exposure_job,
+        'multi_face_job': job.multi_face_job,
+        'auto_tilt_job': job.auto_tilt_job,
+        'sensitivity': job.sensitivity,
+        'face_percent': job.face_percent,
+        'gamma': job.gamma,
+        'top': job.top,
+        'bottom': job.bottom,
+        'left': job.left,
+        'right': job.right,
+        'radio_buttons': job.radio_tuple()
+    }
+
+    # Process each image
+    for i, img_path in enumerate(image_paths):
+        # Determine output path
+        if output_paths is None:
+            # Standard folder operation
+            output_path = get_output_path(img_path, job.safe_destination, None, job.radio_choice()).as_posix()
+        else:
+            # Mapping operation
+            output_path = output_paths[i].as_posix()
+
+        # Load the image and detect faces
+        image_array = load_and_prepare_image(img_path, face_detection_tools, job)
+        if image_array is None:
+            # Reject the file if it can't be loaded
+            if job.safe_destination:
+                reject(path=img_path, destination=job.safe_destination)
+            continue
+
+        if job.multi_face_job:
+            # Get all faces in multi-face mode
+            results = get_face_boxes(image_array, job, face_detection_tools)
+            if not results:
+                # Reject if no faces detected
+                if job.safe_destination:
+                    reject(path=img_path, destination=job.safe_destination)
+                continue
+
+            # Create an instruction for each detected face
+            for face_idx, (confidence, bounding_box) in enumerate(results):
+                if confidence <= job.threshold:
+                    continue
+
+                face_output_path = output_path
+                if output_paths is None:
+                    # Standard folder operation, add face index to output path
+                    face_output_path = get_output_path(
+                        img_path, job.safe_destination, face_idx, job.radio_choice()
+                    ).as_posix()
+                else:
+                    # Mapping operation
+                    face_output_path = output_paths[i].with_stem(f"{output_paths[i].stem}_{face_idx}").as_posix()
+
+                instructions.append(CropInstruction(
+                    file_path=img_path.as_posix(),
+                    output_path=face_output_path,
+                    bounding_box=bounding_box,
+                    job_params=job_params,
+                    multi_face=True,
+                    face_index=face_idx
+                ))
+        else:
+            # Single face mode
+            bounding_box = detect_face_box(image_array, job, face_detection_tools)
+            if bounding_box is None:
+                # Reject if no face detected
+                if job.safe_destination:
+                    reject(path=img_path, destination=job.safe_destination)
+                continue
+
+            instructions.append(CropInstruction(
+                file_path=img_path.as_posix(),
+                output_path=output_path,
+                bounding_box=bounding_box,
+                job_params=job_params,
+                multi_face=False,
+                face_index=None
+            ))
+
+    return instructions
+
+def execute_crop_instruction(instruction: CropInstruction) -> bool:
+    """
+    Phase 2: Execute a single crop instruction
+
+    Args:
+        instruction: The crop instruction to execute
+
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        # Load the source image
+        # img_path = Path(instruction.file_path)
+        # image = cv2.imread(img_path.as_posix())
+        image = simple_opener(instruction.file_path)
+        if image is None:
+            return False
+
+        # Recreate job parameters
+        job_params = instruction.job_params
+        job = Job(
+            width=job_params['width'],
+            height=job_params['height'],
+            fix_exposure_job=job_params['fix_exposure_job'],
+            multi_face_job=job_params['multi_face_job'],
+            auto_tilt_job=job_params['auto_tilt_job'],
+            sensitivity=job_params['sensitivity'],
+            face_percent=job_params['face_percent'],
+            gamma=job_params['gamma'],
+            top=job_params['top'],
+            bottom=job_params['bottom'],
+            left=job_params['left'],
+            right=job_params['right'],
+            radio_buttons=job_params['radio_buttons'],
+            destination=Path(os.path.dirname(instruction.output_path))
+        )
+
+        # Create the pipeline using just the bounding box (no face detection needed)
+        pipeline = build_crop_instruction_pipeline(job, instruction.bounding_box)
+
+        # Process the image
+        processed_image = run_processing_pipeline(image, pipeline)
+
+        # Save the result
+        output_path = Path(instruction.output_path)
+        is_tiff = output_path.suffix.lower() in {'.tif', '.tiff'}
+        save(processed_image, output_path, job.gamma, is_tiff)
+
+        return True
+    except Exception as e:
+        print(f"Error executing crop instruction: {e}")
+        return False
+
+def _open_standard_simple(
+    file: Path
+) -> cvt.MatLike | None:
+    img = ImageLoader.loader('standard')(file.as_posix())
+    return None if img is None else ensure_rgb(img)
 
 
-def build_processing_pipeline(job: Job,
-                              face_detection_tools: FaceToolPair,
-                              bounding_box: Box | None=None,
-                              display=False,
-                              video=False) -> list[Callable[[cvt.MatLike], cvt.MatLike]]:
+def _open_raw_simple(
+    file: Path
+) -> cvt.MatLike | None:
+    with suppress(
+        LibRawError,
+        MemoryError,
+        ValueError,
+        TypeError,
+    ):
+        with ImageLoader.loader('raw')(file.as_posix()) as raw:
+            return raw.postprocess(
+                use_camera_wb=True,
+                no_auto_bright=True,
+                output_color=ColorSpace.sRGB
+            )
+
+    return None
+
+
+# Map each FileCategory to its opener strategy
+_SIMPLE_OPENER_STRATEGIES: dict[FileCategory, SimpleImageOpener] = {
+    FileCategory.PHOTO: _open_standard_simple,
+    FileCategory.TIFF: _open_standard_simple,
+    FileCategory.RAW: _open_raw_simple,
+}
+
+def simple_opener(
+    file_str: str
+) -> cvt.MatLike | None:
+    """
+    Open an image file using the appropriate strategy based on its FileCategory.
+    Includes content verification for security.
+    """
+    file = Path(file_str)
+    with suppress(IsADirectoryError):
+        category = next(
+            (
+                cat
+                for cat in [
+                    FileCategory.PHOTO,
+                    FileCategory.TIFF,
+                    FileCategory.RAW,
+                ]
+                if file_manager.is_valid_type(file, cat)
+            ),
+            None,
+        )
+        # Verify file content before opening
+        if not category:
+            return None
+
+        # Use the optimized file verification
+        if not SignatureChecker.verify_file_type(file, category):
+            return None
+
+        if opener := _SIMPLE_OPENER_STRATEGIES.get(category):
+            return opener(file)
+
+    return None
+
+def build_crop_instruction_pipeline(
+        job: Job,
+        bounding_box: Box,
+        display: bool = False,
+        video: bool = False
+) -> list[Callable[[cvt.MatLike], cvt.MatLike]]:
+    """
+    Creates a processing pipeline for executing a crop instruction.
+
+    This function is specifically designed for Phase 2 of the two-phase approach,
+    where face detection has already been performed and we have a bounding box.
+
+    Args:
+        job: Job parameters
+        bounding_box: Pre-computed bounding box from Phase 1
+        display: Whether the output is for display
+        video: Whether the input is a video frame
+
+    Returns:
+        List of image processing functions to be applied in sequence
+    """
+    pipeline: list[Callable[[cvt.MatLike], cvt.MatLike]] = [
+        partial(crop_to_bounding_box, bounding_box=bounding_box)
+    ]
+
+    # Add exposure correction if requested
+    if job.fix_exposure_job:
+        pipeline.append(partial(r_img.correct_exposure, exposure=True, video=video))
+
+    # Add standard processing steps
+    pipeline.extend(
+        (
+            partial(adjust_gamma, gam=job.gamma),
+            partial(cv2.resize, dsize=job.size, interpolation=Config.interpolation),
+        )
+    )
+
+    # Add colour space conversion if needed
+    if display or job.radio_choice() in ['.jpg', '.png', '.bmp', '.webp', 'No']:
+        pipeline.append(ensure_rgb)
+
+    return pipeline
+
+
+def build_processing_pipeline(
+        job: Job,
+        face_detection_tools: FaceToolPair,
+        bounding_box: Box | None=None,
+        display=False,
+        video=False
+) -> list[Callable[[cvt.MatLike], cvt.MatLike]]:
     """
     Creates a pipeline of image processing functions based on job parameters.
     """
@@ -69,7 +345,10 @@ def build_processing_pipeline(job: Job,
     return pipeline
 
 
-def run_processing_pipeline(image: cvt.MatLike, pipeline: list[Callable[[cvt.MatLike], cvt.MatLike]]) -> cvt.MatLike:
+def run_processing_pipeline(
+        image: cvt.MatLike,
+        pipeline: list[Callable[[cvt.MatLike], cvt.MatLike]]
+) -> cvt.MatLike:
     """
     Apply a sequence of image processing functions to an image.
     """
@@ -79,7 +358,10 @@ def run_processing_pipeline(image: cvt.MatLike, pipeline: list[Callable[[cvt.Mat
     return result
 
 
-def crop_to_bounding_box(image: cvt.MatLike, bounding_box: Box) -> cvt.MatLike:
+def crop_to_bounding_box(
+        image: cvt.MatLike,
+        bounding_box: Box
+) -> cvt.MatLike:
     x0, y0, x1, y1 = bounding_box
     h, w = image.shape[:2]
     # Crop the valid region first
@@ -107,9 +389,11 @@ def prepare_visualisation_image(image: cvt.MatLike) -> tuple[cvt.MatLike, float]
     return to_grayscale(image_array) if len(image_array.shape) >= 3 else image_array, scaling_factor
 
 
-def colour_and_align_face(image: cvt.MatLike,
-                          face_detection_tools: FaceToolPair,
-                          job: Job) -> cvt.MatLike:
+def colour_and_align_face(
+        image: cvt.MatLike,
+        face_detection_tools: FaceToolPair,
+        job: Job
+) -> cvt.MatLike:
     # Convert BGR -> RGB for consistency
     return align_face(ensure_rgb(image), face_detection_tools, job)
 

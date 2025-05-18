@@ -186,7 +186,11 @@ class DisplayCropper(Cropper):
         return None, None
 
     @staticmethod
-    def _create_job_from_widget_state(widget_state, img_path_str: str, function_type: FunctionType) -> Job:
+    def _create_job_from_widget_state(
+        widget_state,
+        img_path_str: str,
+        function_type: FunctionType
+    ) -> Job:
         """Create a Job with all parameters from widget state"""
         input_path, width_text, height_text, fix_exposure, multi_face, auto_tilt, sensitivity, face_percent, \
             gamma, top, bottom, left, right, radio_buttons = widget_state

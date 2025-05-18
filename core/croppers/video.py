@@ -25,7 +25,12 @@ def frame_to_timestamp(frame_number: int, fps: float) -> float:
     return frame_number / fps
 
 @cache
-def ffmpeg_input(video_line_edit: str, timestamp_seconds: float, width: int, height: int) -> npt.NDArray[np.uint8]:
+def ffmpeg_input(
+    video_line_edit: str,
+    timestamp_seconds: float,
+    width: int,
+    height: int
+) -> npt.NDArray[np.uint8]:
     """Get a frame from a video at the specified timestamp."""
     out, _ = (
         ffmpeg.input(video_line_edit, ss=timestamp_seconds)
@@ -94,7 +99,12 @@ class VideoCropper(Cropper):
                 exception, message = self.create_error('ffmpeg')
                 return self._display_error(exception, message)
 
-    def crop_frame(self, job: Job, position_label: QLabel, timeline_slider: QSlider) -> None:
+    def crop_frame(
+            self,
+            job: Job,
+            position_label: QLabel,
+            timeline_slider: QSlider
+    ) -> None:
         """
         Crops and saves a frame based on the specified job parameters.
 
@@ -143,10 +153,12 @@ class VideoCropper(Cropper):
             return None
         return None
 
-    def process_multiface_frame_job(self, frame: npt.NDArray,
-                                    job: Job,
-                                    file_enum: str,
-                                    destination: Path) -> None:
+    def process_multiface_frame_job(
+            self, frame: npt.NDArray,
+            job: Job,
+            file_enum: str,
+            destination: Path
+    ) -> None:
         """
         Processes a frame for a multi-face job by cropping and saving the individual faces.
 
@@ -169,10 +181,12 @@ class VideoCropper(Cropper):
                 file_path, is_tiff = prc.make_frame_filepath(destination, f'{file_enum}_{i}', job)
                 prc.save(image, file_path, job.gamma, is_tiff)
 
-    def process_singleface_frame_job(self, frame: npt.NDArray,
-                                     job: Job,
-                                     file_enum: str,
-                                     destination: Path) -> None:
+    def process_singleface_frame_job(
+            self, frame: npt.NDArray,
+            job: Job,
+            file_enum: str,
+            destination: Path
+    ) -> None:
         """
         Processes a single-face frame job by cropping the frame and saving the cropped image.
 
