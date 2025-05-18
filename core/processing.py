@@ -57,9 +57,20 @@ def generate_crop_instructions(
         List of CropInstruction objects
     """
     instructions: list[CropInstruction] = []
+    job_params = serialize_job_parameters(job)
 
-    # Serialize job parameters for later
-    job_params = {
+    for i, img_path in enumerate(image_paths):
+        # Process each image
+        output_path = determine_output_path(img_path, job, output_paths, i)
+        image_instructions = process_single_image(img_path, output_path, job, face_detection_tools, job_params)
+        instructions.extend(image_instructions)
+
+    return instructions
+
+
+def serialize_job_parameters(job: Job) -> dict:
+    """Extract job parameters into a dictionary for serialization."""
+    return {
         'width': job.width,
         'height': job.height,
         'fix_exposure_job': job.fix_exposure_job,
@@ -75,75 +86,126 @@ def generate_crop_instructions(
         'radio_buttons': job.radio_tuple()
     }
 
-    # Process each image
-    for i, img_path in enumerate(image_paths):
-        # Determine output path
-        if output_paths is None:
-            # Standard folder operation
-            output_path = get_output_path(img_path, job.safe_destination, None, job.radio_choice()).as_posix()
-        else:
-            # Mapping operation
-            output_path = output_paths[i].as_posix()
 
-        # Load the image and detect faces
-        image_array = load_and_prepare_image(img_path, face_detection_tools, job)
-        if image_array is None:
-            # Reject the file if it can't be loaded
-            if job.safe_destination:
-                reject(path=img_path, destination=job.safe_destination)
+def determine_output_path(
+        img_path: Path,
+        job: Job,
+        output_paths: list[Path] | None,
+        index: int
+) -> str:
+    """Determine the output path for an image."""
+    if output_paths is None:
+        # Standard folder operation
+        return get_output_path(img_path, job.safe_destination, None, job.radio_choice()).as_posix()
+    else:
+        # Mapping operation
+        return output_paths[index].as_posix()
+
+
+def process_single_image(
+        img_path: Path,
+        output_path: str,
+        job: Job,
+        face_detection_tools: FaceToolPair,
+        job_params: dict
+) -> list[CropInstruction]:
+    """Process a single image and return crop instructions."""
+    # Load the image and detect faces
+    image_array = load_and_prepare_image(img_path, face_detection_tools, job)
+    if image_array is None:
+        # Reject the file if it can't be loaded
+        handle_rejected_image(img_path, job)
+        return []
+
+    if job.multi_face_job:
+        return process_multi_face_image(img_path, output_path, image_array, job, face_detection_tools, job_params)
+    else:
+        return process_single_face_image(img_path, output_path, image_array, job, face_detection_tools, job_params)
+
+
+def handle_rejected_image(img_path: Path, job: Job) -> None:
+    """Handle rejected images by moving them to the reject folder if configured."""
+    if job.safe_destination:
+        reject(path=img_path, destination=job.safe_destination)
+
+
+def process_multi_face_image(
+        img_path: Path,
+        output_path: str,
+        image_array: cvt.MatLike,
+        job: Job,
+        face_detection_tools: FaceToolPair,
+        job_params: dict
+) -> list[CropInstruction]:
+    """Process an image in multi-face mode."""
+    instructions = []
+
+    # Get all faces in multi-face mode
+    results = get_face_boxes(image_array, job, face_detection_tools)
+    if not results:
+        # Reject if no faces detected
+        handle_rejected_image(img_path, job)
+        return []
+
+    # Create an instruction for each detected face
+    for face_idx, (confidence, bounding_box) in enumerate(results):
+        if confidence <= job.threshold:
             continue
 
-        if job.multi_face_job:
-            # Get all faces in multi-face mode
-            results = get_face_boxes(image_array, job, face_detection_tools)
-            if not results:
-                # Reject if no faces detected
-                if job.safe_destination:
-                    reject(path=img_path, destination=job.safe_destination)
-                continue
+        face_output_path = generate_face_output_path(img_path, output_path, job, face_idx)
 
-            # Create an instruction for each detected face
-            for face_idx, (confidence, bounding_box) in enumerate(results):
-                if confidence <= job.threshold:
-                    continue
-
-                face_output_path = output_path
-                if output_paths is None:
-                    # Standard folder operation, add face index to output path
-                    face_output_path = get_output_path(
-                        img_path, job.safe_destination, face_idx, job.radio_choice()
-                    ).as_posix()
-                else:
-                    # Mapping operation
-                    face_output_path = output_paths[i].with_stem(f"{output_paths[i].stem}_{face_idx}").as_posix()
-
-                instructions.append(CropInstruction(
-                    file_path=img_path.as_posix(),
-                    output_path=face_output_path,
-                    bounding_box=bounding_box,
-                    job_params=job_params,
-                    multi_face=True,
-                    face_index=face_idx
-                ))
-        else:
-            # Single face mode
-            bounding_box = detect_face_box(image_array, job, face_detection_tools)
-            if bounding_box is None:
-                # Reject if no face detected
-                if job.safe_destination:
-                    reject(path=img_path, destination=job.safe_destination)
-                continue
-
-            instructions.append(CropInstruction(
-                file_path=img_path.as_posix(),
-                output_path=output_path,
-                bounding_box=bounding_box,
-                job_params=job_params,
-                multi_face=False,
-                face_index=None
-            ))
+        instructions.append(CropInstruction(
+            file_path=img_path.as_posix(),
+            output_path=face_output_path,
+            bounding_box=bounding_box,
+            job_params=job_params,
+            multi_face=True,
+            face_index=face_idx
+        ))
 
     return instructions
+
+
+def generate_face_output_path(img_path: Path, output_path: str, job: Job, face_idx: int) -> str:
+    """Generate output path for a specific face in an image."""
+    output_path_obj = Path(output_path)
+
+    if job.safe_destination and not output_path_obj.is_relative_to(job.safe_destination):
+        # Standard folder operation, add face index to output path
+        return get_output_path(
+            img_path, job.safe_destination, face_idx, job.radio_choice()
+        ).as_posix()
+    else:
+        # Mapping operation or path already in destination
+        return output_path_obj.with_stem(f"{output_path_obj.stem}_{face_idx}").as_posix()
+
+
+def process_single_face_image(
+        img_path: Path,
+        output_path: str,
+        image_array: cvt.MatLike,
+        job: Job,
+        face_detection_tools: FaceToolPair,
+        job_params: dict
+) -> list[CropInstruction]:
+    """Process an image in single-face mode."""
+    # Single face mode
+    bounding_box = detect_face_box(image_array, job, face_detection_tools)
+    if bounding_box is None:
+        # Reject if no face detected
+        handle_rejected_image(img_path, job)
+        return []
+
+    instruction = CropInstruction(
+        file_path=img_path.as_posix(),
+        output_path=output_path,
+        bounding_box=bounding_box,
+        job_params=job_params,
+        multi_face=False,
+        face_index=None
+    )
+
+    return [instruction]
 
 def execute_crop_instruction(instruction: CropInstruction) -> bool:
     """
