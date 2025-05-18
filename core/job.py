@@ -5,7 +5,6 @@ from contextlib import suppress
 from dataclasses import dataclass, field
 from functools import partial
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 import polars as pl
@@ -282,53 +281,3 @@ class Job:
         Approximate size in bytes for an image of shape (height, width, 3).
         """
         return math.prod(self.size) * 3
-
-    # Add to core/job.py
-    def serialize(self) -> dict[str, Any]:
-        """Convert job to a serializable dictionary"""
-        return {
-            'width': self.width,
-            'height': self.height,
-            'fix_exposure_job': self.fix_exposure_job,
-            'multi_face_job': self.multi_face_job,
-            'auto_tilt_job': self.auto_tilt_job,
-            'sensitivity': self.sensitivity,
-            'face_percent': self.face_percent,
-            'gamma': self.gamma,
-            'top': self.top,
-            'bottom': self.bottom,
-            'left': self.left,
-            'right': self.right,
-            'radio_buttons': tuple(self.radio_buttons),
-            'radio_options': self.radio_options.tolist(),
-        }
-
-    @classmethod
-    def deserialize(cls, data: dict[str, Any]) -> 'Job':
-        """Create job from serialized dictionary"""
-
-        # Convert radio_options to numpy array if present
-        radio_options = data.get('radio_options')
-        if radio_options is not None:
-            radio_options = np.array(radio_options)
-
-        return cls(
-            width=data['width'],
-            height=data['height'],
-            fix_exposure_job=data['fix_exposure_job'],
-            multi_face_job=data['multi_face_job'],
-            auto_tilt_job=data['auto_tilt_job'],
-            sensitivity=data['sensitivity'],
-            face_percent=data['face_percent'],
-            gamma=data['gamma'],
-            top=data['top'],
-            bottom=data['bottom'],
-            left=data['left'],
-            right=data['right'],
-            radio_buttons=tuple(data['radio_buttons']),
-            radio_options=(
-                radio_options
-                if radio_options is not None
-                else field(default_factory=partial(np.array, cls.radio_options))
-            ),
-        )

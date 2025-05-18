@@ -1,7 +1,3 @@
-import itertools
-import json
-import multiprocessing
-import os
 import random
 import shutil
 import threading
@@ -9,9 +5,8 @@ from collections.abc import Callable, Iterator
 from contextlib import suppress
 from functools import cache, lru_cache, partial, singledispatch
 from pathlib import Path
-from queue import Empty
 
-import autocrop_rs.image_processing as r_img  # type: ignore
+import autocrop_rs.image_processing as r_img
 import cv2
 import cv2.typing as cvt
 import numpy as np
@@ -19,14 +14,13 @@ import numpy.typing as npt
 import polars as pl
 import tifffile as tiff
 from PyQt6 import QtWidgets
-from rawpy import ColorSpace
+from rawpy import ColorSpace  # type: ignore
 from rawpy._rawpy import LibRawError
 
 from core.colour_utils import adjust_gamma, ensure_rgb, normalize_image, to_grayscale
 from file_types import FileCategory, SignatureChecker, file_manager
 
 from .config import Config
-from .crop_instruction import CropInstruction
 from .face_tools import (
     L_EYE_END,
     L_EYE_START,
@@ -38,7 +32,7 @@ from .face_tools import (
 )
 from .job import Job
 from .operation_types import Box, CropFunction
-from .protocols import ImageLoader, ImageOpener, ImageWriter, SimpleImageOpener, TableLoader
+from .protocols import ImageLoader, ImageOpener, ImageWriter, TableLoader
 
 
 def build_processing_pipeline(job: Job,
@@ -191,21 +185,18 @@ def align_face(image: cvt.MatLike,
 def _open_standard(
     file: Path,
     face_detection_tools: FaceToolPair,
-    job: Job,
-    skip_face_detection: bool = False
+    job: Job
 ) -> cvt.MatLike | None:
     img = ImageLoader.loader('standard')(file.as_posix())
     if img is None:
         return None
-    if skip_face_detection:
-        return img  # Skip face alignment
     return colour_and_align_face(img, face_detection_tools, job)
+
 
 def _open_raw(
     file: Path,
     face_detection_tools: FaceToolPair,
-    job: Job,
-    skip_face_detection: bool = False
+    job: Job
 ) -> cvt.MatLike | None:
     with suppress(
         LibRawError,
@@ -219,8 +210,6 @@ def _open_raw(
                 no_auto_bright=True,
                 output_color=ColorSpace.sRGB
             )
-            if skip_face_detection:
-                return img  # Skip face alignment
             return align_face(img, face_detection_tools, job)
 
     return None
@@ -237,8 +226,7 @@ _OPENER_STRATEGIES: dict[FileCategory, ImageOpener] = {
 def load_and_prepare_image(
     file: Path,
     face_detection_tools: FaceToolPair,
-    job: Job,
-    skip_face_detection: bool = False
+    job: Job
 ) -> cvt.MatLike | None:
     """
     Open an image file using the appropriate strategy based on its FileCategory.
@@ -266,36 +254,30 @@ def load_and_prepare_image(
             return None
 
         if opener := _OPENER_STRATEGIES.get(category):
-            return opener(file, face_detection_tools, job, skip_face_detection)
+            return opener(file, face_detection_tools, job)
 
     return None
 
 
 def _load_csv(file: Path) -> pl.DataFrame:
     """
-    Load a CSV file with more robust error handling and format detection.
+    Load a CSV file with header validation.
     """
-    encoding_options = ["utf-8", "latin-1", "utf-16", "windows-1252"]
-    delimiter_options = [',', '\t', ';', '|']
-
-    # Try each encoding and delimiter combination
-    for encoding, delimiter in itertools.product(encoding_options, delimiter_options):
-        try:
-            return pl.read_csv(
-                file,
-                encoding=encoding,
-                separator=delimiter,
-                infer_schema_length=Config.infer_schema_length,
-                ignore_errors=True
-            )
-        except pl.exceptions.PolarsError:
-            continue  # Try next combination
-
-    # Last resort - try to read without specifying delimiter
     try:
-        return pl.read_csv(file, infer_schema_length=Config.infer_schema_length);
-    except pl.exceptions.PolarsError:
-        return pl.DataFrame()
+        # First peek at the file to validate headers
+        with file.open(mode='r', encoding='utf-8') as f:
+            header_line = f.readline().strip()
+            if not header_line:
+                return pl.DataFrame()
+
+        # If headers look valid, load the full file
+        return pl.read_csv(file, infer_schema_length=Config.infer_schema_length)
+    except (pl.exceptions.PolarsError, UnicodeDecodeError, OSError):
+        # Try with different encoding if the initial attempt fails
+        try:
+            return pl.read_csv(file, encoding='latin-1', infer_schema_length=Config.infer_schema_length)
+        except pl.exceptions.PolarsError:
+            return pl.DataFrame()
 
 
 def _load_excel(file: Path) -> pl.DataFrame:
@@ -353,319 +335,6 @@ def load_table(file: Path) -> pl.DataFrame:
     # Return an empty DataFrame if loading fails
     return pl.DataFrame()
 
-
-def detect_faces_and_generate_instructions(
-        file_list: list[Path],
-        job: Job,
-        face_detection_tools: FaceToolPair,
-        cancel_event=None
-) -> list[CropInstruction]:
-    """
-    Phase 1: Detect faces and generate cropping instructions without actually cropping.
-
-    Returns:
-        list[CropInstruction]: List of instructions for cropping operations
-    """
-    instructions = []
-    job_params = job.serialize()
-
-    for file_path in file_list:
-        # Check for cancellation
-        if cancel_event and cancel_event.is_set():
-            break
-
-        # Load image
-        image = load_and_prepare_image(file_path, face_detection_tools, job)
-        if image is None:
-            continue
-
-        # Get output path base
-        output_base = job.get_destination() / file_path.name
-
-        # Handle multi-face vs single-face mode
-        if job.multi_face_job:
-            if results := get_face_boxes(image, job, face_detection_tools):
-                face_boxes = [(confidence, box) for confidence, box in results if confidence > job.threshold]
-                for i, (_, box) in enumerate(face_boxes):
-                    # Create instruction for each face
-                    output_path = output_base.with_stem(f"{output_base.stem}_{i}")
-
-                    # Handle file format
-                    if job.radio_choice() != 'No':
-                        output_path = output_path.with_suffix(job.radio_choice())
-
-                    instructions.append(CropInstruction(
-                        file_path=str(file_path),
-                        output_path=str(output_path),
-                        bounding_box=box,
-                        job_params=job_params,
-                        multi_face=True,
-                        face_index=i
-                    ))
-        elif box := detect_face_box(image, job, face_detection_tools):
-            # Handle file format
-            if job.radio_choice() != 'No':
-                output_path = output_base.with_suffix(job.radio_choice())
-            else:
-                output_path = output_base
-
-            instructions.append(CropInstruction(
-                file_path=str(file_path),
-                output_path=str(output_path),
-                bounding_box=box,
-                job_params=job_params,
-                multi_face=False,
-                face_index=None
-            ))
-
-    return instructions
-
-
-def execute_crop_instructions(instructions: list[CropInstruction], num_processes: int, cancel_event=None):
-    """
-    Phase 2: Execute cropping instructions in parallel using multiprocessing.
-
-    Uses a producer-consumer pattern with a task queue to improve load balancing.
-
-    Args:
-        instructions: List of cropping instructions
-        num_processes: Number of processes to use (defaults to CPU count)
-        cancel_event: Optional threading.Event to signal cancellation
-    """
-    if not instructions:
-        return
-
-    num_processes = min(os.cpu_count() or 1, 8)
-
-    # Group instructions by job parameters to minimize serialization
-    job_groups = {}
-    for instruction in instructions:
-        job_key = json.dumps(instruction.job_params, sort_keys=True)
-        if job_key not in job_groups:
-            job_groups[job_key] = []
-        job_groups[job_key].append(instruction)
-
-    # Create a Manager for sharing the cancellation flag between processes
-    manager = multiprocessing.Manager()
-    cancel_flag = manager.Value('b', False)
-
-    # Set up the cancel_flag if cancel_event is provided
-    if cancel_event:
-        def check_cancel():
-            while not cancel_flag.value:
-                if cancel_event.is_set():
-                    cancel_flag.value = True
-                    break
-                import time
-                time.sleep(0.1)
-
-        # Start a thread to monitor the cancel_event
-        import threading
-        monitor_thread = threading.Thread(target=check_cancel)
-        monitor_thread.daemon = True
-        monitor_thread.start()
-
-    # Create task queue
-    task_queue = multiprocessing.Queue()
-    result_queue = multiprocessing.Queue()
-
-    # Add grouped tasks to queue
-    for job_key, group_instructions in job_groups.items():
-        # Get the job parameters
-        job_params = json.loads(job_key)
-
-        # Split into smaller chunks for better load balancing
-        chunk_size = 10  # Process 10 images per task
-        for i in range(0, len(group_instructions), chunk_size):
-            chunk = group_instructions[i:min(i+chunk_size, len(group_instructions))]
-            task_queue.put((job_params, chunk))
-
-    # Add termination signals
-    for _ in range(num_processes):
-        task_queue.put(None)
-
-    # Start worker processes
-    processes = []
-    for _ in range(num_processes):
-        p = multiprocessing.Process(target=crop_worker_process, args=(task_queue, result_queue, cancel_flag))
-        p.daemon = True  # Make process exit when main process exits
-        p.start()
-        processes.append(p)
-
-    # Track progress
-    total_instructions = len(instructions)
-    completed_count = 0
-
-    # Process results as they come in
-    while completed_count < total_instructions and not cancel_flag.value:
-        try:
-            # Get result with timeout to check for cancellation periodically
-            result = result_queue.get(timeout=0.5)
-            if result == "DONE":
-                completed_count += 1
-        except Empty:
-            continue
-
-    # If cancellation was requested, terminate all processes
-    if cancel_flag.value:
-        for p in processes:
-            if p.is_alive():
-                p.terminate()
-
-    # Clean up the processes
-    for p in processes:
-        p.join(timeout=1.0)
-
-
-def crop_worker_process(task_queue: multiprocessing.Queue, result_queue: multiprocessing.Queue, cancel_flag):
-    """Worker process that consumes tasks from the queue"""
-    while not cancel_flag.value:
-        try:
-            task = task_queue.get(timeout=0.5)
-            if task is None:  # Termination signal
-                break
-
-            job_params, instructions = task
-
-            # Create job object once for this batch
-            job = Job.deserialize(job_params)
-
-            # Process all instructions in this batch
-            for instruction in instructions:
-                if cancel_flag.value:
-                    break
-
-                process_single_instruction(instruction, job)
-                result_queue.put("DONE")
-
-        except Empty:
-            continue
-        except Exception as e:
-            print(f"Error in crop worker: {e}")
-            continue
-
-
-def _open_standard_simple(
-    file: Path,
-) -> cvt.MatLike | None:
-    img = ImageLoader.loader('standard')(file.as_posix())
-    return None if img is None else ensure_rgb(img)
-
-
-def _open_raw_simple(
-    file: Path,
-) -> cvt.MatLike | None:
-    with suppress(
-            LibRawError,
-            MemoryError,
-            ValueError,
-            TypeError,
-        ):
-        with ImageLoader.loader('raw')(file.as_posix()) as raw:
-            return raw.postprocess(
-                use_camera_wb=True,
-                no_auto_bright=True,
-                output_color=ColorSpace.sRGB,
-            )
-    return None
-
-# Map each FileCategory to its opener strategy
-_SIMPLE_OPENER_STRATEGIES: dict[FileCategory, SimpleImageOpener] = {
-    FileCategory.PHOTO: _open_standard_simple,
-    FileCategory.TIFF: _open_standard_simple,
-    FileCategory.RAW: _open_raw_simple,
-}
-
-
-def process_single_instruction(instruction: CropInstruction, job: Job):
-    """Process a single cropping instruction with the given job parameters"""
-    try:
-        # Get file paths
-        input_path = Path(instruction.file_path)
-        output_path = Path(instruction.output_path)
-
-        # Create parent directory if it doesn't exist
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-
-        category = next(
-            (
-                cat
-                for cat in [
-                    FileCategory.PHOTO,
-                    FileCategory.TIFF,
-                    FileCategory.RAW,
-                ]
-                if file_manager.is_valid_type(input_path, cat)
-            ),
-            None,
-        )
-        # Verify file content before opening
-        if not category:
-            return None
-
-        # Use the optimized file verification
-        if not SignatureChecker.verify_file_type(input_path, category):
-            return None
-
-        opener = _SIMPLE_OPENER_STRATEGIES.get(category)
-        if opener is None:
-            return None
-
-        image = opener(input_path)
-        if image is None:
-            return None
-
-        # Create and apply processing pipeline with the pre-detected bounding box
-        pipeline = build_cropping_pipeline(job, instruction.bounding_box, video=False)
-        result = run_processing_pipeline(image, pipeline)
-
-        # Determine if we should use TIFF saving
-        is_tiff = output_path.suffix.lower() in {'.tif', '.tiff'}
-
-        # Save the result
-        save(result, output_path, job.gamma, is_tiff)
-
-    except Exception as e:
-        print(f"Error processing {instruction.file_path}: {e}")
-
-
-def build_cropping_pipeline(
-        job: Job,
-        bounding_box: tuple[int, int, int, int],
-        video=False
-) -> list[Callable[[cvt.MatLike], cvt.MatLike]]:
-    """
-    Creates a simplified processing pipeline for Phase 2 cropping without face detection.
-
-    This is a version of build_processing_pipeline that doesn't require face_detection_tools.
-
-    Args:
-        job: Job parameters
-        bounding_box: Pre-detected bounding box from Phase 1
-        video: Whether the source is a video
-
-    Returns:
-        List of processing functions to apply
-    """
-    pipeline: list[Callable[[cvt.MatLike], cvt.MatLike]] = [
-        partial(crop_to_bounding_box, bounding_box=bounding_box)
-    ]
-
-    # Add exposure correction if requested
-    if job.fix_exposure_job:
-        pipeline.append(partial(r_img.correct_exposure, exposure=True, video=video))
-
-    # Add gamma adjustment and resize
-    pipeline.extend([
-        partial(adjust_gamma, gam=job.gamma),
-        partial(cv2.resize, dsize=job.size, interpolation=Config.interpolation),
-    ])
-
-    # Add colour space conversion if needed
-    if job.radio_choice() in ['.jpg', '.png', '.bmp', '.webp', 'No']:
-        pipeline.append(ensure_rgb)
-
-    return pipeline
 
 def draw_bounding_box_with_confidence(image: cvt.MatLike,
                                       confidence: np.float64,

@@ -2,7 +2,7 @@ import atexit
 import os
 import threading
 from collections.abc import Callable
-from concurrent.futures import CancelledError, Future, ThreadPoolExecutor, as_completed
+from concurrent.futures import CancelledError, Future, ThreadPoolExecutor
 from contextlib import suppress
 from pathlib import Path
 from typing import Any
@@ -10,8 +10,8 @@ from typing import Any
 import numpy as np
 import numpy.typing as npt
 from PyQt6.QtCore import Q_ARG, QMetaObject, Qt
+from PyQt6.QtWidgets import QApplication
 
-import core.processing as prc
 from core.face_tools import FaceToolPair
 from core.job import Job
 from file_types import FileCategory, SignatureChecker, file_manager
@@ -103,12 +103,8 @@ class BatchCropper(Cropper):
         Properly clean up resources before application exit.
         This method should be called during the application shutdown.
         """
-        # Signal cancellation
-        self.cancel_event.set()
-        self.end_task = True
-
-        # Cancel any pending futures (face detection phase)
         if self.executor and not self.executor._shutdown:
+            # Cancel any pending futures
             for future in self.futures:
                 if future and not future.done():
                     future.cancel()
@@ -154,14 +150,9 @@ class BatchCropper(Cropper):
         # Reset cancellation event
         self.cancel_event.clear()
 
-        # Reset progress tracking
-        self.progress_count = 0
-        self.end_task = False
-        self.show_message_box = True
+        # Reset other task variables
+        self.progress_count, self.end_task, self.show_message_box = self.TASK_VALUES
         self.finished_signal_emitted = False
-
-        # Reset the futures list (used only for face detection now)
-        self.futures = []
 
     def set_futures(self, worker: Callable[..., None],
                     amount: int,
@@ -343,11 +334,8 @@ class BatchCropper(Cropper):
 
     def worker_done_callback(self, future: Future) -> None:
         """
-        Callback function to handle completion of a face detection worker thread.
-        Now only used for Phase 1 (face detection) to handle errors and update progress.
-
-        In the two-phase approach, this only processes the detection phase futures.
-        The cropping phase uses direct progress reporting via the result_queue.
+        Callback function to handle completion of a worker thread with detailed error reporting.
+        Uses a functional approach for cleaner exception handling.
         """
         # Define error handlers based on exception types
         error_handlers = {
@@ -366,9 +354,7 @@ class BatchCropper(Cropper):
         }
 
         try:
-            # Get the result from the future - this is now a list of CropInstructions
-            # We don't need to use the result here as it's collected in the crop method
-            future.result()
+            future.result()  # This raises any exceptions that occurred during execution
         except Exception as e:
             # Special handling for cancellation - don't show any error
             if isinstance(e, CancelledError):
@@ -383,9 +369,9 @@ class BatchCropper(Cropper):
                 # Default handler for unspecified exceptions
                 self._display_error(e, f"An unexpected error occurred: {type(e).__name__}")
         finally:
-            # Phase 1 is just for detection, don't check if all futures are done here
-            # The actual completion is now handled in the crop method after Phase 2
-            pass
+            # Check if all futures are done, then emit the finished signal
+            if self.end_task or all(f.done() for f in self.futures):
+                self.all_tasks_done()
 
     def validate_job(self, job: Job, file_count: int | None = None) -> bool:
         """
@@ -428,10 +414,9 @@ class BatchCropper(Cropper):
         """
         raise NotImplementedError("Child classes must implement prepare_crop_operation")
 
-    # In core/croppers/batch.py
     def crop(self, job: Job) -> None:
         """
-        Common implementation of the crop_from_path method using the two-phase approach.
+        Common implementation of the crop_from_path method. Uses a template method pattern.
         """
         # Let child class prepare the operation
         file_count, file_paths = self.prepare_crop_operation(job)
@@ -449,65 +434,14 @@ class BatchCropper(Cropper):
         self.progress.emit(self.progress_count, file_count)
         self.started.emit()  # Emit started signal immediately
 
-        try:
-            # Phase 1: Generate instructions using threading (face detection is non-pickleable)
-            all_instructions = []
+        # Let child class set up the futures based on its specific worker
+        self.set_futures_for_crop(job, file_count, file_paths)
 
-            if self._should_use_multithreading(file_count):
-                # Multithreaded detection for larger batches
-                chunk_size = max(len(file_paths) // self.THREAD_NUMBER, 1)
-                futures = []
+        # complete_futures is common to all
+        self.complete_futures()
 
-                for i, start_idx in enumerate(range(0, len(file_paths), chunk_size)):
-                    chunk = file_paths[start_idx:start_idx + chunk_size]
-                    # Use the appropriate face detection tools for this thread
-                    tool_idx = min(i, len(self.face_detection_tools) - 1)
-                    face_tools = self.face_detection_tools[tool_idx]
-
-                    future = self.executor.submit(
-                        prc.detect_faces_and_generate_instructions,
-                        chunk, job, face_tools, self.cancel_event
-                    )
-                    futures.append(future)
-
-                # Collect instructions from all futures
-                for future in as_completed(futures):
-                    if self.end_task:
-                        break
-                    try:
-                        chunk_instructions = future.result()
-                        all_instructions.extend(chunk_instructions)
-                    except Exception as e:
-                        print(f"Error in face detection: {e}")
-            else:
-                # Single-threaded detection for smaller batches
-                all_instructions = prc.detect_faces_and_generate_instructions(
-                    file_paths, job, self.face_detection_tools[0], self.cancel_event
-                )
-
-            # Check if we should stop before cropping
-            if self.end_task:
-                self.emit_done()
-                return
-
-            # Phase 2: Execute instructions using multiprocessing
-            if all_instructions:
-                # Determine optimal number of processes
-                num_processes = min(
-                    os.cpu_count() or 1,
-                    self.MEM_FACTOR,  # Limit by available memory
-                    8  # Hard upper limit
-                )
-
-                # Execute cropping in parallel
-                prc.execute_crop_instructions(all_instructions, num_processes, self.cancel_event)
-
-            # Emit done signal
-            self.emit_done()
-
-        except Exception as e:
-            print(f"Error in crop operation: {e}")
-            self.emit_done()
+        # Make sure cancel buttons are enabled right away
+        QApplication.processEvents()
 
     def set_futures_for_crop(self, job: Job, file_count: int, file_paths: FileList) -> None:
         """
