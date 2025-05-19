@@ -3,7 +3,7 @@ import random
 import threading
 from collections.abc import Callable, Iterator
 from contextlib import suppress
-from functools import cache, lru_cache, partial, singledispatch
+from functools import cache, lru_cache, partial, reduce, singledispatch
 from pathlib import Path
 
 import autocrop_rs.image_processing as r_img  # type: ignore
@@ -425,10 +425,7 @@ def run_processing_pipeline(
     """
     Apply a sequence of image processing functions to an image.
     """
-    result = image
-    for func in pipeline:
-        result = func(result)
-    return result
+    return reduce(lambda img, func: func(img), pipeline, image)
 
 
 def crop_to_bounding_box(
