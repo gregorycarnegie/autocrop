@@ -1,10 +1,11 @@
 import os
 import random
-import threading
 from collections.abc import Callable, Iterator
 from contextlib import suppress
 from functools import cache, lru_cache, partial, reduce, singledispatch
+from multiprocessing.managers import ListProxy
 from pathlib import Path
+from typing import TypeVar
 
 import autocrop_rs.image_processing as r_img  # type: ignore
 import cv2
@@ -13,7 +14,6 @@ import numpy as np
 import numpy.typing as npt
 import polars as pl
 import tifffile as tiff
-from PyQt6 import QtWidgets
 from rawpy import ColorSpace  # type: ignore
 from rawpy._rawpy import LibRawError
 
@@ -32,17 +32,17 @@ from .face_tools import (
     YuNetFaceDetector,
 )
 from .job import Job
-from .operation_types import Box, CropFunction
+from .operation_types import Box, CropFunction, Pipeline
 from .protocols import ImageLoader, ImageOpener, ImageWriter, SimpleImageOpener, TableLoader
 
-# Add to core/processing.py
+T = TypeVar('T', bound=cvt.MatLike)
 
 def generate_crop_instructions(
         image_paths: list[Path],
         job: Job,
         face_detection_tools: FaceToolPair,
-        output_paths: list[Path] | None = None,
-        rejected_list=None
+        output_paths: list[Path] | None,
+        rejected_list: ListProxy
 ) -> list[CropInstruction]:
     """
     Phase 1: Detect faces and generate crop instructions without performing crops
@@ -111,7 +111,7 @@ def process_single_image(
         job: Job,
         face_detection_tools: FaceToolPair,
         job_params: dict,
-        rejected_list=None  # Add parameter
+        rejected_list: ListProxy
 ) -> list[CropInstruction]:
     """Process a single image and return crop instructions."""
     # Load the image and detect faces
@@ -132,10 +132,10 @@ def process_single_image(
 
 
 
-def handle_rejected_image(img_path: Path, job: Job, rejected_list=None) -> None:
+def handle_rejected_image(img_path: Path, job: Job, rejected_list: ListProxy) -> None:
     """Handle rejected images by adding to rejected list if available, or moving them to the reject folder."""
     if job.safe_destination:
-        reject(path=img_path, destination=job.safe_destination, rejected_list=rejected_list)
+        reject(img_path, rejected_list)
 
 
 def process_multi_face_image(
@@ -145,7 +145,7 @@ def process_multi_face_image(
         job: Job,
         face_detection_tools: FaceToolPair,
         job_params: dict,
-        rejected_list=None  # Add parameter
+        rejected_list: ListProxy
 ) -> list[CropInstruction]:
     """Process an image in multi-face mode."""
     instructions = []
@@ -197,7 +197,7 @@ def process_single_face_image(
         job: Job,
         face_detection_tools: FaceToolPair,
         job_params: dict,
-        rejected_list=None  # Add parameter
+        rejected_list: ListProxy
 ) -> list[CropInstruction]:
     """Process an image in single-face mode."""
     # Single face mode
@@ -230,8 +230,6 @@ def execute_crop_instruction(instruction: CropInstruction) -> bool:
     """
     try:
         # Load the source image
-        # img_path = Path(instruction.file_path)
-        # image = cv2.imread(img_path.as_posix())
         image = simple_opener(instruction.file_path)
         if image is None:
             return False
@@ -343,7 +341,7 @@ def build_crop_instruction_pipeline(
         bounding_box: Box,
         display: bool = False,
         video: bool = False
-) -> list[Callable[[cvt.MatLike], cvt.MatLike]]:
+) -> Pipeline:
     """
     Creates a processing pipeline for executing a crop instruction.
 
@@ -359,7 +357,7 @@ def build_crop_instruction_pipeline(
     Returns:
         List of image processing functions to be applied in sequence
     """
-    pipeline: list[Callable[[cvt.MatLike], cvt.MatLike]] = [
+    pipeline: Pipeline = [
         partial(crop_to_bounding_box, bounding_box=bounding_box)
     ]
 
@@ -388,11 +386,11 @@ def build_processing_pipeline(
         bounding_box: Box | None=None,
         display=False,
         video=False
-) -> list[Callable[[cvt.MatLike], cvt.MatLike]]:
+) -> Pipeline:
     """
     Creates a pipeline of image processing functions based on job parameters.
     """
-    pipeline: list[Callable[[cvt.MatLike], cvt.MatLike]] = []
+    pipeline: Pipeline = []
     # Add alignment if requested
     if job.auto_tilt_job:
         pipeline.append(partial(align_face, face_detection_tools=face_detection_tools, job=job))
@@ -419,9 +417,9 @@ def build_processing_pipeline(
 
 
 def run_processing_pipeline(
-        image: cvt.MatLike,
-        pipeline: list[Callable[[cvt.MatLike], cvt.MatLike]]
-) -> cvt.MatLike:
+        image: T,
+        pipeline: list[Callable[[T], T]]
+) -> T:
     """
     Apply a sequence of image processing functions to an image.
     """
@@ -939,10 +937,7 @@ def set_filename(radio_options: tuple[str, ...],
     return join_path_suffix(final_name, destination)
 
 
-def reject(*,
-           path: Path,
-           destination: Path | None,
-           rejected_list=None) -> None:
+def reject(path: Path, rejected_list: ListProxy) -> None:
     """
     Records rejected file paths in a shared list proxy if provided,
     otherwise moves (copies) the file to 'rejects' folder under the given destination.
@@ -952,11 +947,8 @@ def reject(*,
         destination: The destination folder
         rejected_list: Optional shared list proxy to record rejects
     """
-    if rejected_list is not None:
-        # Add to shared list instead of copying
-        rejected_list.append(path.as_posix())
-    else:
-        return None
+    rejected_list.append(path.as_posix())
+
 
 def write_rejected_files_to_csv(rejected_list, destination: Path | None) -> Path | None:
     """
@@ -1075,11 +1067,10 @@ def _(image: Path,
     """
 
     if (destination_path := job.get_destination()) is None:
-        return
+        return None
 
     if (cropped_images := crop_function(image, job, face_detection_tools)) is None:
-        reject(path=image, destination=destination_path)
-        return
+        return None
 
     file_path, is_tiff = set_filename(
         job.radio_tuple(),
@@ -1205,187 +1196,6 @@ def _(image: Path,
       face_detection_tools: FaceToolPair) -> Iterator[cvt.MatLike] | None:
     img = load_and_prepare_image(image, face_detection_tools, job)
     return None if img is None else crop_all_faces(img, job, face_detection_tools, video=False)
-
-
-def batch_process_with_pipeline(images: list[Path],
-                                job: Job,
-                                face_detection_tools: FaceToolPair,
-                                cancel_event: threading.Event,
-                                video: bool,
-                                chunk_size: int = 10) -> list[Path]:
-    """
-    Process a batch of images with the same pipeline for efficiency with cancellation support.
-    """
-    pipeline = []
-    all_output_paths = []
-    total_images = len(images)
-
-    # Check for cancellation before starting
-    if cancel_event.is_set():
-        return all_output_paths
-
-    # Process images in smaller chunks
-    for i in range(0, total_images, chunk_size):
-        # Check for cancellation
-        if cancel_event.is_set():
-            return all_output_paths
-
-        # Get current chunk
-        chunk = images[i:min(i + chunk_size, total_images)]
-
-        # Process each image in the chunk
-        for img_path in chunk:
-            # Check for cancellation BEFORE processing each image
-            if cancel_event.is_set():
-                return all_output_paths
-
-            # Open the image
-            image_array = load_and_prepare_image(img_path, face_detection_tools, job)
-
-            # Create a function to get output paths for standard batch processing
-            def get_output_path_fn(image_path: Path, face_index: int | None) -> Path:
-                return get_output_path(image_path, job.safe_destination, face_index, job.radio_choice())
-
-            # Process the image
-            output_paths, pipeline = process_batch_item(
-                image_array, job, face_detection_tools, pipeline,
-                img_path, get_output_path_fn, video
-            )
-
-            all_output_paths.extend(output_paths)
-
-            # Check for cancellation AFTER processing each image
-            if cancel_event.is_set():
-                return all_output_paths
-
-        # Allow UI updates between chunks
-        QtWidgets.QApplication.processEvents()
-
-    return all_output_paths
-
-
-def batch_process_with_mapping(images: list[Path],
-                               output_paths: list[Path],
-                               job: Job,
-                               face_detection_tools: FaceToolPair,
-                               cancel_event: threading.Event,
-                               video: bool,
-                               chunk_size: int = 10) -> list[Path]:
-    """
-    Process a batch of images with custom output paths using the same pipeline with cancellation support.
-    """
-    if len(images) != len(output_paths):
-        raise ValueError("Input and output path lists must have same length")
-
-    pipeline = []
-    all_output_paths = []
-    total_images = len(images)
-
-    # Process images in chunks
-    for i in range(0, total_images, chunk_size):
-        # Check for cancellation BEFORE processing chunk
-        if cancel_event.is_set():
-            return all_output_paths
-
-        # Get current chunk
-        chunk_end = min(i + chunk_size, total_images)
-        img_chunk = images[i:chunk_end]
-        out_chunk = output_paths[i:chunk_end]
-
-        # Process each image in the chunk with cancellation checks
-        for img_path, out_path in zip(img_chunk, out_chunk):
-            # Check for cancellation BEFORE processing each image
-            if cancel_event.is_set():
-                return all_output_paths
-
-            # Open the image
-            image_array = load_and_prepare_image(img_path, face_detection_tools, job)
-
-            # Create a function to get output paths for mapping
-            def get_output_path_fn(_image_path: Path, face_index: int | None) -> Path:
-                if face_index is not None:
-                    # Multi-face output path
-                    return out_path.with_stem(f"{out_path.stem}_{face_index}")
-                else:
-                    # Single face output path
-                    return out_path
-
-            # Process the image
-            output_paths_result, pipeline = process_batch_item(
-                image_array, job, face_detection_tools, pipeline,
-                img_path, get_output_path_fn, video
-            )
-
-            all_output_paths.extend(output_paths_result)
-
-            # Check for cancellation AFTER processing each image
-            if cancel_event.is_set():
-                return all_output_paths
-
-        # Allow UI to update between chunks
-        QtWidgets.QApplication.processEvents()
-
-        # Final cancellation check after UI updates
-        if cancel_event.is_set():
-            return all_output_paths
-
-    return all_output_paths
-
-
-def process_batch_item(image_array: cvt.MatLike | None,
-                       job: Job,
-                       face_detection_tools: FaceToolPair,
-                       pipeline: list,
-                       img_path: Path,
-                       get_output_path_fn: Callable,
-                       video: bool) -> tuple[list[Path], list]:
-    """
-    Process a single image from a batch with the given pipeline.
-    Returns a tuple of (output_paths, pipeline)
-    """
-    if image_array is None:
-        # If image loading fails, reject the file
-        reject(path=img_path, destination=job.safe_destination)
-        return [], pipeline
-    output_paths = []
-
-    def batch_helper(_bounding_box: Box,  face_index: int | None=None) -> None:
-        # Create an output path using the provided function
-        output_path = get_output_path_fn(img_path, face_index)
-        # Create a pipeline specific to this face with its bounding box
-        face_pipeline = build_processing_pipeline(job, face_detection_tools, _bounding_box, video=video)
-        # Apply the pipeline to the original image
-        processed = run_processing_pipeline(image_array, face_pipeline)
-        # Save the processed image
-        save_cropped_face(processed, output_path, job.gamma)
-        output_paths.append(output_path)
-
-    # Process based on multi-face setting
-    if job.multi_face_job:
-        # Multi-face processing
-        results = get_face_boxes(image_array, job, face_detection_tools)
-
-        if not results:
-            reject(path=img_path, destination=job.safe_destination)
-            return output_paths, pipeline
-
-        valid_positions = [pos for confidence, pos in results if confidence > job.threshold]
-
-        if not valid_positions:
-            return output_paths, pipeline
-
-        # Process each face
-        for i, bounding_box in enumerate(valid_positions):
-            batch_helper(bounding_box, i)
-    else:
-        # Single face processing
-        if (bounding_box := detect_face_box(image_array, job, face_detection_tools)) is None:
-            reject(path=img_path, destination=job.safe_destination)
-            return output_paths, pipeline
-
-        batch_helper(bounding_box)
-
-    return output_paths, pipeline
 
 
 def get_output_path(input_path: Path,

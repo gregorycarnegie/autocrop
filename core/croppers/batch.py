@@ -40,7 +40,7 @@ class BatchCropper(Cropper):
 
         # Add shared list proxy for rejected files
         mgr = Manager()
-        self.rejected_files = mgr.list()  # proxy to a list
+        self.rejected_files = mgr.list()
 
         # Register an exit handler to ensure proper clean-up
         atexit.register(self._cleanup_executor)

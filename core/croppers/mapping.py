@@ -4,6 +4,7 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from itertools import batched
+from pathlib import Path
 from typing import Any
 
 import autocrop_rs.file_types as r_types  # type: ignore
@@ -34,13 +35,13 @@ class MappingCropper(BatchCropper):
         Performs cropping for a mapping job using two-phase approach.
         """
         # Convert mapping arrays to lists of image paths and their targets
-        image_paths = []
-        output_paths = []
+        image_paths: list[Path] = []
+        output_paths: list[Path] = []
 
         for old_name, new_name in zip(old, new):
-            old_path = job.safe_folder_path / old_name
+            old_path: Path = job.safe_folder_path / old_name
             if old_path.is_file():
-                new_path = job.safe_destination / (new_name + old_path.suffix if job.radio_choice() == 'No'
+                new_path: Path = job.safe_destination / (new_name + old_path.suffix if job.radio_choice() == 'No'
                                         else new_name + job.radio_choice())
                 image_paths.append(old_path)
                 output_paths.append(new_path)
