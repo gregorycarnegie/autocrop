@@ -316,7 +316,9 @@ def execute_crop_instruction(instruction: CropInstruction) -> bool:
         )
 
         # Create the pipeline using just the bounding box (no face detection needed)
-        pipeline = build_crop_instruction_pipeline(job, instruction.bounding_box, rotation_matrix=instruction.rotation_matrix)
+        pipeline = build_crop_instruction_pipeline(
+            job, instruction.bounding_box, rotation_matrix=instruction.rotation_matrix
+        )
 
         # Process the image
         processed_image = run_processing_pipeline(image, pipeline)
