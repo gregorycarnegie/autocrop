@@ -432,6 +432,10 @@ def crop_to_bounding_box(
 ) -> cvt.MatLike:
     x0, y0, x1, y1 = bounding_box
     h, w = image.shape[:2]
+
+    if x0 >= 0 and y0 >= 0 and x1 <= w and y1 <= h:
+        return image[y0:y1, x0:x1]
+
     # Crop the valid region first
     cropped_valid = image[max(0, y0):min(h, y1), max(0, x0):min(w, x1)]
     # Calculate padding needed

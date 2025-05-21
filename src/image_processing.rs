@@ -1,10 +1,11 @@
-use ndarray::{Array1, Array2, Array3, ArrayView2, ArrayView3, Axis, Dim, Ix3, par_azip, s};
-use numpy::{IntoPyArray, PyArray, PyArray2, PyArray3, PyReadonlyArray2, PyReadonlyArray3};
+use ndarray::{Array1, Array2, Array3, ArrayView2, ArrayView3, Axis, Ix3, par_azip, s};
+use numpy::{IntoPyArray, PyArray1, PyArray2, PyArray3, PyReadonlyArray2, PyReadonlyArray3};
 use pyo3::{prelude::*, types::PyBytes};
 use pyo3::exceptions::{PyValueError, PyRuntimeError};
 use std::convert::Into;
 use rayon::prelude::*;
 use rayon::current_num_threads;
+use parking_lot::Mutex;
 
 use crate::ImportablePyModuleBuilder;
 
@@ -25,6 +26,11 @@ type Rectangle = (f64, f64, f64, f64);
 type Padding = (u32, u32, u32, u32);
 /// Alias for the four integer coordinates of a bounding box.
 type BoxCoordinates = (i32, i32, i32, i32);
+
+// OPTIMIZATION: Reusable buffers for grayscale image processing
+thread_local! {
+    static GRAY_BUFFER: Mutex<Option<Array2<u8>>> = Mutex::new(None);
+}
 
 /// Compute the cumulative sum of a slice of f64 values. (Corrected, simple version)
 fn cumsum(vec: &[f64]) -> Vec<f64> {
@@ -95,7 +101,24 @@ fn reshape_buffer_to_image<'py>(
         )));
     }
 
-    // Allocate a single buffer once
+    // OPTIMIZATION: Use from_slice for zero-copy when possible
+    if bytes_slice.as_ptr().align_offset(std::mem::align_of::<u8>()) == 0 {
+        // Create shape tuple
+        let shape = Ix3(height, width, channels);
+        
+        // Create Array3 properly - using view first, then to_owned()
+        let array = unsafe {
+            // Create a view first
+            let view = ArrayView3::from_shape_ptr(shape, bytes_slice.as_ptr());
+            // Then convert to owned array
+            view.to_owned()
+        };
+        
+        // Convert to Python array
+        return Ok(array.into_pyarray(py));
+    }
+
+    // If zero-copy not possible, allocate a single buffer once
     let mut output = vec![0u8; expected_len];
     
     // Copy data in parallel chunks
@@ -140,7 +163,28 @@ unsafe fn bgr_to_gray_avx2_impl(
     let shape = image_view.shape();
     let height = shape[0];
     let width = shape[1];
-    let mut gray = Array2::<u8>::zeros((height, width));
+    
+    // OPTIMIZATION: Reuse buffer if available or create a new one
+    let mut gray = GRAY_BUFFER.with(|cell| {
+        let mut guard = cell.lock();
+        if let Some(ref mut buf) = *guard {
+            if buf.shape()[0] == height && buf.shape()[1] == width {
+                // Reuse existing buffer
+                buf.fill(0);
+                buf.clone()
+            } else {
+                // Wrong size, create new
+                let new_buf = Array2::<u8>::zeros((height, width));
+                *guard = Some(new_buf.clone());
+                new_buf
+            }
+        } else {
+            // No buffer yet, create new
+            let new_buf = Array2::<u8>::zeros((height, width));
+            *guard = Some(new_buf.clone());
+            new_buf
+        }
+    });
 
     // Select coefficients
     let (r_coeff, g_coeff, b_coeff) = get_rgb_coefficients(use_rec709);
@@ -238,7 +282,28 @@ fn bgr_to_gray_standard_impl(
     let shape = image_view.shape();
     let height = shape[0];
     let width = shape[1];
-    let mut gray = Array2::<u8>::zeros((height, width)); // Output array (H x W)
+    
+    // OPTIMIZATION: Reuse buffer if available or create a new one
+    let mut gray = GRAY_BUFFER.with(|cell| {
+        let mut guard = cell.lock();
+        if let Some(ref mut buf) = *guard {
+            if buf.shape()[0] == height && buf.shape()[1] == width {
+                // Reuse existing buffer
+                buf.fill(0);
+                buf.clone()
+            } else {
+                // Wrong size, create new
+                let new_buf = Array2::<u8>::zeros((height, width));
+                *guard = Some(new_buf.clone());
+                new_buf
+            }
+        } else {
+            // No buffer yet, create new
+            let new_buf = Array2::<u8>::zeros((height, width));
+            *guard = Some(new_buf.clone());
+            new_buf
+        }
+    });
 
     // Select coefficients
     let (r_coeff, g_coeff, b_coeff) = get_rgb_coefficients(use_rec709);
@@ -250,20 +315,18 @@ fn bgr_to_gray_standard_impl(
     let r_channel = image_view.slice(s![.., .., 2]); // Shape (H x W)
     // ---------------------------------------
 
-    // Now zip the 2D output array with the 2D channel views
-    par_azip!((
-        gray_pixel in &mut gray,
-        &b in &b_channel,
-        &g in &g_channel,
-        &r in &r_channel
-    ) {
-        // These are now individual u8 values from the corresponding HxW positions
-        let b = b as f32;
-        let g = g as f32;
-        let r = r as f32;
-        let gray_val = round_clamp_to_u8(r_coeff * r + g_coeff * g + b_coeff * b);
-        *gray_pixel = gray_val;
-    });
+    // OPTIMIZATION: Use ndarray::Zip to minimize temporaries
+    ndarray::Zip::from(&mut gray)
+        .and(&b_channel)
+        .and(&g_channel)
+        .and(&r_channel)
+        .par_for_each(|g, &b, &g_val, &r| {
+            // These are now individual u8 values from the corresponding HxW positions
+            let b = b as f32;
+            let g_val = g_val as f32;
+            let r = r as f32;
+            *g = round_clamp_to_u8(r_coeff * r + g_coeff * g_val + b_coeff * b);
+        });
 
     gray
 }
@@ -524,12 +587,37 @@ fn correct_exposure<'py>(
 
 /// Python-facing gamma correction function
 #[pyfunction]
-fn gamma<'py>(gamma_value: f64, py: Python<'py>) -> PyResult<Bound<'py, PyArray<u8, Dim<[usize; 1]>>>> {
-    let lookup = dispatch_simd(
-        gamma_value,
-        |g| unsafe {gamma_avx2_impl(g)},
-        |g| gamma_standard_impl(g)
-    );
+fn gamma<'py>(gamma_value: f64, py: Python<'py>) -> PyResult<Bound<'py, PyArray1<u8>>> {
+    // OPTIMIZATION: Cache gamma lookup tables
+    thread_local! {
+        static GAMMA_CACHE: Mutex<Vec<(f64, Vec<u8>)>> = Mutex::new(Vec::new());
+    }
+
+    // Try to find a cached table first
+    let lookup = GAMMA_CACHE.with(|cache| {
+        let mut cache_guard = cache.lock();
+        
+        // Look for an existing table with this gamma value
+        for (cached_gamma, table) in cache_guard.iter() {
+            if (cached_gamma - gamma_value).abs() < 1e-6 {
+                return table.clone();
+            }
+        }
+        
+        // Not found, generate a new table
+        let new_table = dispatch_simd(
+            gamma_value,
+            |g| unsafe {gamma_avx2_impl(g)},
+            |g| gamma_standard_impl(g)
+        );
+        
+        // Cache the result (up to a reasonable limit)
+        if cache_guard.len() < 10 {  // Limit cache size
+            cache_guard.push((gamma_value, new_table.clone()));
+        }
+        
+        new_table
+    });
     
     let array = Array1::from_vec(lookup);
     Ok(array.into_pyarray(py))

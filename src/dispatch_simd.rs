@@ -4,7 +4,7 @@ use std::sync::OnceLock;
 use std::arch::x86_64::{
     _mm256_loadu_si256, _mm256_movemask_epi8, __m256i,
     _mm256_cmpeq_epi8, _mm_loadu_si128, _mm_cmpeq_epi8,
-    _mm_movemask_epi8, __m128i
+    _mm_movemask_epi8, __m128i, __cpuid
 };
 
 /// Helper function to check if AVX2 is supported with result caching
@@ -13,15 +13,32 @@ fn is_avx2_supported() -> bool {
     static AVX2_SUPPORTED: OnceLock<bool> = OnceLock::new();
     
     *AVX2_SUPPORTED.get_or_init(|| {
-        #[cfg(target_arch = "x86")]
-        use std::arch::x86::__cpuid;
-        #[cfg(target_arch = "x86_64")]
-        use std::arch::x86_64::__cpuid;
-
         unsafe {
             let info = __cpuid(7);
             ((info.ebx >> 5) & 1) != 0
         }
+    })
+}
+
+#[inline]
+fn is_sse2_supported() -> bool {
+    static SSE2_SUPPORTED: OnceLock<bool> = OnceLock::new();
+    
+    *SSE2_SUPPORTED.get_or_init(|| {
+        #[cfg(target_arch = "x86_64")]
+        {
+            // SSE2 is guaranteed on x86_64
+            return true;
+        }
+
+        #[cfg(target_arch = "x86")]
+        unsafe {
+            let info = __cpuid(1);
+            ((info.edx >> 26) & 1) != 0
+        }
+
+        #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
+        false
     })
 }
 
@@ -120,6 +137,10 @@ pub unsafe fn check_medium_signature_sse2(buffer: &[u8], offset: usize, signatur
     true
 }
 
+type CmpFn = fn(&[u8], &[u8], usize) -> bool;
+
+static COMPARE_FN: OnceLock<CmpFn> = OnceLock::new();
+
 // Now add the compare_buffers helper
 #[inline]
 pub fn compare_buffers(buffer: &[u8], signature: &[u8], offset: usize) -> bool {
@@ -127,19 +148,39 @@ pub fn compare_buffers(buffer: &[u8], signature: &[u8], offset: usize) -> bool {
         return false;
     }
     
-    dispatch_simd(
-        (buffer, signature, offset),
-        |(buf, sig, off)| unsafe {
-            // Choose SIMD strategy based on signature length
-            if sig.len() >= 32 {
-                check_long_signature_avx2(buf, off, sig)
-            } else if sig.len() >= 16 {
-                check_medium_signature_sse2(buf, off, sig)
-            } else {
-                // For short signatures, scalar comparison is often faster
-                &buf[off..off + sig.len()] == sig
+    let compare_fn = COMPARE_FN.get_or_init(|| {
+        #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+        {
+            if is_avx2_supported() {
+                return |buf: &[u8], sig: &[u8], off: usize| {
+                    // Choose SIMD strategy based on signature length
+                    unsafe {
+                        if sig.len() >= 32 {
+                            check_long_signature_avx2(buf, off, sig)
+                        } else if sig.len() >= 16 && is_sse2_supported() {
+                            check_medium_signature_sse2(buf, off, sig)
+                        } else {
+                            // For short signatures, scalar comparison is often faster
+                            &buf[off..off + sig.len()] == sig
+                        }
+                    }
+                };
+            } else if is_sse2_supported() {
+                return |buf: &[u8], sig: &[u8], off: usize| {
+                    unsafe {
+                        if sig.len() >= 16 {
+                            check_medium_signature_sse2(buf, off, sig)
+                        } else {
+                            &buf[off..off + sig.len()] == sig
+                        }
+                    }
+                };
             }
-        },
-        |(buf, sig, off)| &buf[off..off + sig.len()] == sig
-    )
+        }
+        
+        // Fallback scalar comparison
+        |buf: &[u8], sig: &[u8], off: usize| &buf[off..off + sig.len()] == sig
+    });
+    
+    compare_fn(buffer, signature, offset)
 }

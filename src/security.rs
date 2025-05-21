@@ -4,7 +4,9 @@ use pyo3::{prelude::*, exceptions::PyException};
 use std::path::{Path, PathBuf, Component};
 use std::fs;
 use std::collections::HashSet;
-use regex;
+use std::sync::OnceLock;
+use regex::Regex;
+use once_cell::sync::Lazy;
 
 use crate::ImportablePyModuleBuilder;
 
@@ -30,6 +32,20 @@ impl PathSecurityError {
         self.message.clone()
     }
 }
+
+static PATH_REGEX: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r#"([A-Z]:)?[/\\][^'"\s<>|?*\n]+"#).unwrap()
+});
+
+static ALLOWED_BASE_DIRS: OnceLock<Vec<PathBuf>> = OnceLock::new();
+
+static DANGEROUS_NAMES: Lazy<Vec<&'static str>> = Lazy::new(|| {
+    vec![
+        "CON", "PRN", "AUX", "NUL",
+        "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+        "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+    ]
+});
 
 /// Sanitize a path string to prevent security vulnerabilities
 #[pyfunction]
@@ -187,10 +203,12 @@ fn resolve_path_no_symlinks(path: &Path) -> PyResult<PathBuf> {
 
 /// Check if path is within allowed directories
 fn is_within_allowed_directories(path: &Path, follow_symlinks: bool) -> PyResult<bool> {
-    let allowed_dirs = get_allowed_base_directories()?;
+    let allowed_dirs = ALLOWED_BASE_DIRS.get_or_init(|| {
+        get_allowed_base_directories().unwrap_or_default()
+    });
     
     for allowed_dir in allowed_dirs {
-        if is_safe_subpath(path, &allowed_dir, follow_symlinks) {
+        if is_safe_subpath(path, allowed_dir, follow_symlinks) {
             return Ok(true);
         }
     }
@@ -293,12 +311,6 @@ fn is_safe_subpath(path: &Path, base_path: &Path, follow_symlinks: bool) -> bool
 
 /// Check for dangerous Windows path components
 fn has_dangerous_windows_components(path: &Path) -> bool {
-    const DANGEROUS_NAMES: &[&str] = &[
-        "CON", "PRN", "AUX", "NUL",
-        "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
-        "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
-    ];
-    
     for component in path.components() {
         if let Component::Normal(name) = component {
             if let Some(name_str) = name.to_str() {
@@ -306,7 +318,7 @@ fn has_dangerous_windows_components(path: &Path) -> bool {
                 let base_name = name_str.split('.').next().unwrap_or(name_str);
                 
                 // Check against dangerous names (case-insensitive)
-                for &dangerous in DANGEROUS_NAMES {
+                for &dangerous in DANGEROUS_NAMES.iter() {
                     if base_name.eq_ignore_ascii_case(dangerous) {
                         return true;
                     }
@@ -438,10 +450,10 @@ fn validate_path_components(path: &Path) -> PyResult<bool> {
 /// Helper function to get safe error messages without exposing paths
 #[pyfunction]
 pub fn get_safe_error_message(error_msg: &str) -> String {
-    // Use regex to remove absolute paths from error messages
-    let re = regex::Regex::new(r#"([A-Z]:)?[/\\][^'"\s<>|?*\n]+"#).unwrap();
-    re.replace_all(error_msg, "<path>").to_string()
+    // Use cached regex to remove absolute paths from error messages
+    PATH_REGEX.replace_all(error_msg, "<path>").to_string()
 }
+
 
 /// Module initialization
 pub fn register_module(m: &Bound<'_, PyModule>) -> PyResult<()> {

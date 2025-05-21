@@ -6,6 +6,7 @@ use rayon::prelude::*;
 use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::io::{Read, BufRead, BufReader};
+use memmap2::MmapOptions;
 
 use crate::ImportablePyModuleBuilder;
 use crate::dispatch_simd::compare_buffers;
@@ -97,34 +98,15 @@ fn check_file_signatures(path: &Path, signatures: &[Signature]) -> bool {
         .max()
         .unwrap_or(0);
     
-    // Small buffer for stack allocation
-    const STACK_BUFFER_SIZE: usize = 64;
-    
-    // Open file with buffered IO
-    if let Ok(mut file) = File::open(path) {
-        // Use stack allocation for small reads, heap for larger
-        if max_offset_plus_len <= STACK_BUFFER_SIZE {
-            let mut buffer = [0u8; STACK_BUFFER_SIZE];
-            
-            if let Ok(bytes_read) = file.read(&mut buffer[..max_offset_plus_len]) {
-                if bytes_read >= max_offset_plus_len {
-                    // Check each signature
-                    return signatures.iter().any(|(sig, offset)| {
-                        compare_buffers(&buffer, sig, *offset)
-                    });
-                }
-            }
-        } else {
-            // Use heap allocation for larger reads
-            let mut buffer = vec![0u8; max_offset_plus_len];
-            
-            if let Ok(bytes_read) = file.read(&mut buffer) {
-                if bytes_read >= max_offset_plus_len {
-                    // Check each signature
-                    return signatures.iter().any(|(sig, offset)| {
-                        compare_buffers(&buffer, sig, *offset)
-                    });
-                }
+    // OPTIMIZATION: Use memory-mapped I/O instead of reading the whole file
+    if let Ok(file) = File::open(path) {
+        if let Ok(mmap) = unsafe { MmapOptions::new().map(&file) } {
+            // Check if the file is large enough
+            if mmap.len() >= max_offset_plus_len {
+                // Check each signature
+                return signatures.iter().any(|(sig, offset)| {
+                    compare_buffers(&mmap, sig, *offset)
+                });
             }
         }
     }
@@ -204,13 +186,12 @@ pub fn validate_files<'py>(
             "file_paths and categories must have the same length"
         ));
     }
-    
-    let file_count = file_paths.len();
-    
-    // Create input tuples for processing
-    let inputs: Vec<(usize, PathBuf, FileCategory)> = file_paths.into_iter()
-        .zip(categories.into_iter().enumerate())
-        .map(|(path, (idx, category))| {
+
+    // Compute results in parallel and collect into a new vector
+    let par_results: Vec<_> = file_paths
+        .into_par_iter()
+        .zip(categories.into_par_iter())
+        .map(|(path, category)| {
             let file_category = match category {
                 0 => FileCategory::Photo,
                 1 => FileCategory::Raw,
@@ -220,29 +201,12 @@ pub fn validate_files<'py>(
                 _ => FileCategory::Unknown,
             };
             
-            (idx, PathBuf::from(path), file_category)
+            validate_file(&PathBuf::from(&path), file_category)
         })
         .collect();
-    
-    // Process in parallel using the optimized validator and collect results directly
-    let results_with_indices: Vec<(usize, bool)> = inputs.into_par_iter()
-        .map(|(idx, path, category)| {
-            (idx, validate_file(&path, category))
-        })
-        .collect();
-    
-    // Initialize all results as false
-    let mut results = vec![false; file_count];
-    
-    // Fill in the actual results based on the indices
-    for (idx, valid) in results_with_indices {
-        if idx < file_count {
-            results[idx] = valid;
-        }
-    }
     
     // Convert to numpy array
-    let array = Array1::from_vec(results);
+    let array = Array1::from_vec(par_results);
     Ok(array.into_pyarray(py))
 }
 
@@ -256,7 +220,8 @@ pub fn validate_files<'py>(
 ///     Boolean indicating if the file is valid for the specified category
 #[pyfunction]
 pub fn verify_file_type(file_path: String, category: u8) -> PyResult<bool> {
-    let path = PathBuf::from(file_path);
+    // OPTIMIZATION: Use &Path instead of PathBuf where possible to avoid allocation
+    let path = Path::new(&file_path);
     let file_category = match category {
         0 => FileCategory::Photo,
         1 => FileCategory::Raw,
@@ -275,18 +240,19 @@ pub fn verify_file_type(file_path: String, category: u8) -> PyResult<bool> {
             
         // Enhanced validation for table files
         match extension.as_str() {
-            "csv" => return Ok(validate_csv(&path)),
+            "csv" => return Ok(validate_csv(path)),
             "xlsx" | "xlsm" | "xltx" | "xltm" => {
                 // Excel files are ZIP files with specific contents
                 // Just check if it's a valid ZIP file
-                return Ok(is_zip_file(&path));
+                return Ok(is_zip_file(path));
             },
             "parquet" => {
                 // Basic check for parquet files - they usually start with PAR1
-                if let Ok(mut file) = File::open(&path) {
-                    let mut signature = [0u8; 4];
-                    if file.read_exact(&mut signature).is_ok() {
-                        return Ok(signature == [b'P', b'A', b'R', b'1']);
+                if let Ok(file) = File::open(path) {
+                    if let Ok(mmap) = unsafe { MmapOptions::new().map(&file) } {
+                        if mmap.len() >= 4 {
+                            return Ok(&mmap[0..4] == [b'P', b'A', b'R', b'1']);
+                        }
                     }
                 }
                 return Ok(false);
@@ -296,16 +262,17 @@ pub fn verify_file_type(file_path: String, category: u8) -> PyResult<bool> {
     }
     
     // Standard validation for other file types
-    Ok(validate_file(&path, file_category))
+    Ok(validate_file(path, file_category))
 }
 
 // Helper function to check if a file is a valid ZIP file (for Excel)
 fn is_zip_file(path: &Path) -> bool {
-    if let Ok(mut file) = File::open(path) {
-        let mut signature = [0u8; 4];
-        if file.read_exact(&mut signature).is_ok() {
-            // Check for ZIP file signature "PK\x03\x04"
-            return signature == [0x50, 0x4B, 0x03, 0x04];
+    if let Ok(file) = File::open(path) {
+        if let Ok(mmap) = unsafe { MmapOptions::new().map(&file) } {
+            if mmap.len() >= 4 {
+                // Check for ZIP file signature "PK\x03\x04"
+                return &mmap[0..4] == [0x50, 0x4B, 0x03, 0x04];
+            }
         }
     }
     false
