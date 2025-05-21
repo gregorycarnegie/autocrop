@@ -189,6 +189,65 @@ def generate_face_output_path(img_path: Path, output_path: str, job: Job, face_i
         # Mapping operation or path already in destination
         return output_path_obj.with_stem(f"{output_path_obj.stem}_{face_idx}").as_posix()
 
+def get_rotation_matrix(image: cvt.MatLike,
+               face_detection_tools: FaceToolPair,
+               job: Job) -> npt.NDArray[np.float64] | None:
+    """
+    Performs face alignment using OpenCV's Facemark model.
+
+    Args:
+        job: Job parameters
+        image: Input image
+        face_detection_tools: Tuple of (detector, facemark)
+
+    Returns:
+        Aligned image or original if no face detected
+    """
+    if not job.auto_tilt_job:
+        return None
+
+    detector, facemark = face_detection_tools
+
+    # Optimize for smaller images for faster processing
+    height, width = image.shape[:2]
+    scale_factor = determine_scale_factor(width, height)
+
+    if scale_factor > 1:
+        # Resize image for faster processing
+        small_img = cv2.resize(image, (width // scale_factor, height // scale_factor))
+        faces = detector(small_img, job.threshold)
+    else:
+        small_img = image
+        faces = detector(image, job.threshold)
+
+    if not faces:
+        return None
+
+    # Find face with the highest confidence
+    face = max(faces, key=lambda f: f.confidence)
+
+    # Convert the detected face to OpenCV rect format required by Facemark
+    faces_rect = np.array([[
+        face.left,
+        face.top,
+        face.width,
+        face.height
+    ]])
+
+    # Detect landmarks
+    success, landmarks = facemark.fit(small_img, faces_rect)
+
+    if not success or len(landmarks) == 0:
+        return None  # Return the original image if landmark detection fails
+
+    # Extract eye landmarks
+    landmarks = landmarks[0][0]  # First face, first set of landmarks
+
+    # Get left and right eye landmarks (indices 36-41 for left eye, 42-47 for right eye in the 68-point model)
+    l_eye = np.ascontiguousarray(landmarks[L_EYE_START:L_EYE_END], dtype=np.float64)
+    r_eye = np.ascontiguousarray(landmarks[R_EYE_START:R_EYE_END], dtype=np.float64)
+
+    return r_img.get_rotation_matrix(l_eye, r_eye, scale_factor)
 
 def process_single_face_image(
         img_path: Path,
@@ -201,6 +260,8 @@ def process_single_face_image(
 ) -> list[CropInstruction]:
     """Process an image in single-face mode."""
     # Single face mode
+    rotation_matrix = get_rotation_matrix(image_array, face_detection_tools, job)
+
     bounding_box = detect_face_box(image_array, job, face_detection_tools)
     if bounding_box is None:
         # Reject if no face detected
@@ -213,7 +274,8 @@ def process_single_face_image(
         bounding_box=bounding_box,
         job_params=job_params,
         multi_face=False,
-        face_index=None
+        face_index=None,
+        rotation_matrix=rotation_matrix
     )
 
     return [instruction]
@@ -254,7 +316,7 @@ def execute_crop_instruction(instruction: CropInstruction) -> bool:
         )
 
         # Create the pipeline using just the bounding box (no face detection needed)
-        pipeline = build_crop_instruction_pipeline(job, instruction.bounding_box)
+        pipeline = build_crop_instruction_pipeline(job, instruction.bounding_box, rotation_matrix=instruction.rotation_matrix)
 
         # Process the image
         processed_image = run_processing_pipeline(image, pipeline)
@@ -336,11 +398,26 @@ def simple_opener(
 
     return None
 
+def rotation_helper(
+    image: cvt.MatLike,
+    rotation_matrix: np.ndarray
+) -> cvt.MatLike:
+    height, width = image.shape[:2]
+    return cv2.warpAffine(
+        image,
+        rotation_matrix,
+        (width, height),
+        flags=cv2.INTER_CUBIC,
+        borderMode=Config.border_type
+    )
+
+
 def build_crop_instruction_pipeline(
         job: Job,
         bounding_box: Box,
         display: bool = False,
-        video: bool = False
+        video: bool = False,
+        rotation_matrix: np.ndarray | None = None
 ) -> Pipeline:
     """
     Creates a processing pipeline for executing a crop instruction.
@@ -357,9 +434,14 @@ def build_crop_instruction_pipeline(
     Returns:
         List of image processing functions to be applied in sequence
     """
-    pipeline: Pipeline = [
+    pipeline: Pipeline = []
+
+    if rotation_matrix is not None:
+        pipeline.append(partial(rotation_helper, rotation_matrix=rotation_matrix))
+
+    pipeline.append(
         partial(crop_to_bounding_box, bounding_box=bounding_box)
-    ]
+    )
 
     # Add exposure correction if requested
     if job.fix_exposure_job:
@@ -1017,7 +1099,7 @@ def _save_tiff(image: cvt.MatLike,
 
         if image.dtype != np.uint8:
             image  = normalize_image(image)
-        tiff.imwrite(file_path, image)
+        tiff.imwrite(file_path, cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
 
 
 _WRITER_STRATEGIES: dict[FileCategory, ImageWriter] = {

@@ -2,6 +2,9 @@
 from dataclasses import dataclass
 from typing import Any
 
+import numpy as np
+import numpy.typing as npt
+
 
 @dataclass
 class CropInstruction:
@@ -12,3 +15,4 @@ class CropInstruction:
     job_params: dict[str, Any]  # Serialized job parameters
     multi_face: bool
     face_index: int | None
+    rotation_matrix: npt.NDArray[np.float64] | None = None
