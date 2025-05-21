@@ -402,7 +402,7 @@ def simple_opener(
 
 def rotation_helper(
     image: cvt.MatLike,
-    rotation_matrix: np.ndarray
+    rotation_matrix: npt.NDArray[np.float64]
 ) -> cvt.MatLike:
     height, width = image.shape[:2]
     return cv2.warpAffine(
@@ -419,7 +419,7 @@ def build_crop_instruction_pipeline(
         bounding_box: Box,
         display: bool = False,
         video: bool = False,
-        rotation_matrix: np.ndarray | None = None
+        rotation_matrix: npt.NDArray[np.float64] | None = None
 ) -> Pipeline:
     """
     Creates a processing pipeline for executing a crop instruction.
