@@ -76,10 +76,15 @@
 
 3. Install build tools and dependencies:
    ```bash
-   uv pip install -e ".[dev]" # Install with development dependencies
+   pip install maturin
    ```
+   or (if uv is installed)
+   ```bash
+   uv pip install maturin
+   ```
+   
 
-4. Build the Rust extension and install in editable mode:
+5. Build the Rust extension and install dependancies:
    ```bash
    maturin develop
    ```
