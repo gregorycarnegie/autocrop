@@ -1,4 +1,5 @@
 # Contributing
+
 All contributions, bug reports, bug fixes, documentation improvements, enhancements, and ideas are welcome.
 
 Please follow these steps:
@@ -14,27 +15,28 @@ Please follow these steps:
   [autocrop](https://github.com/leblancfg/autocrop) repository
 
 ## Development Setup
+
 This project works with [virtualenv](https://virtualenv.pypa.io/en/latest/).
 
 To start things off, run:
 
-```
-$ python3 -m venv env
-$ source env/bin/activate
+```bash
+python3 -m venv env
+source env/bin/activate
 ```
 
 Then, run:
 
-```
-$ pip install -U setuptools
-$ pip install -r requirements-test.txt
-$ pip install -e .
+```bash
+pip install -U setuptools
+pip install -r requirements-test.txt
+pip install -e .
 ```
 
 You can then run `autocrop` like so:
 
-```
-$ autocrop
+```bash
+autocrop
 ```
 
 As long as the virtual environment has been activated, this will command will
@@ -43,8 +45,8 @@ the code and test your changes.
 
 To set up your virtual environment again in future, just run:
 
-```
-$ source env/bin/activate
+```bash
+source env/bin/activate
 ```
 
 ## Tests
@@ -59,10 +61,9 @@ Specifically, we:
 
 You can run the tests locally, like so:
 
+```bash
+make check
 ```
-$ make check
-```
-
 
 ## Contact
 
