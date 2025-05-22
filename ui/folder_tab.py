@@ -182,6 +182,10 @@ class UiFolderTabWidget(UiBatchCropWidget):
         self._hover_timer.stop()
         self.image_preview.hide_preview()
 
+    def _clear_hover_preview_cache(self):
+        """Clear the hover preview cache."""
+        self.image_preview.clear_cache()
+
     def _is_image_file(self, file_path: str) -> bool:
         """Check if a file is an image"""
         path = Path(file_path)
@@ -206,6 +210,10 @@ class UiFolderTabWidget(UiBatchCropWidget):
         """Connect widget signals to handlers"""
         # Button connections
         self.cropButton.clicked.connect(self.folder_process)
+
+        # Clear hover preview cache when width or height changes
+        self.controlWidget.widthLineEdit.textChanged.connect(self._clear_hover_preview_cache)
+        self.controlWidget.heightLineEdit.textChanged.connect(self._clear_hover_preview_cache)
 
         # Register button dependencies with the TabStateManager
         ut.register_button_dependencies(
