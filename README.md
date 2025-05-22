@@ -3,6 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/) [![PyQt6](https://img.shields.io/badge/PyQt6-6.9+-green.svg)](https://pypi.org/project/PyQt6/) [![Rust](https://img.shields.io/badge/rust-1.70+-orange.svg)](https://rustup.rs/)
 
 ![obama_crop](https://cloud.githubusercontent.com/assets/15659410/10975709/3e38de48-83b6-11e5-8885-d95da758ca17.png)
+
 `autocrop` is a user-friendly GUI application built with PyQt6 designed to automatically crop images and videos based on detected faces. It intelligently centers the output on the largest face found (or optionally detects multiple faces), making it ideal for processing profile pictures, creating ID card photos, or batch-processing large sets of images. Core calculations are accelerated using Rust with AVX2 optimizations for improved performance.
 
 > **Note**: This project is inspired by and builds upon [François Leblanc's original autocrop library](https://github.com/leblancfg/autocrop), extending it with a modern GUI interface, video processing capabilities, and performance optimizations.
