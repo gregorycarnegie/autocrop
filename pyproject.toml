@@ -1,12 +1,12 @@
 [build-system]
-requires    = ["maturin>=1.6.0"]
+requires      = ["maturin>=1.6.0"]
 build-backend = "maturin"
 
 [project]
-name           = "autocrop_rs"
-version        = "0.6.0"
+name            = "autocrop_rs"
+version         = "0.6.0"
 requires-python = ">=3.10"
-dependencies   = [
+dependencies    = [
   "cachetools>=5.5.2",
   "fastexcel>=0.14.0",
   "ffmpeg-python>=0.2.0",

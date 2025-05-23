@@ -1,5 +1,6 @@
-from dataclasses import dataclass
+# from dataclasses import dataclass
 
+import autocrop_rs.face_detection as r_face  # type: ignore
 import cv2
 import psutil
 
@@ -18,33 +19,6 @@ L_EYE_START, L_EYE_END = 36, 42
 R_EYE_START, R_EYE_END = 42, 48
 
 
-@dataclass(slots=True, frozen=True)
-class Rectangle:
-    left: int
-    top: int
-    right: int
-    bottom: int
-    confidence: float = 1.0
-
-    @property
-    def width(self) -> int:
-        return self.right - self.left
-
-    @property
-    def height(self) -> int:
-        return self.bottom - self.top
-
-    @property
-    def area(self) -> int:
-        return self.width * self.height
-
-    def __post_init__(self) -> None:
-        if self.left >= self.right or self.top >= self.bottom:
-            raise ValueError("Invalid rectangle coordinates")
-        if not (0.0 <= self.confidence <= 1.0):
-            raise ValueError("confidence must be in [0, 1]")
-
-
 class YuNetFaceDetector:
     """Face detector using YuNet with OpenCV's DNN module."""
 
@@ -59,7 +33,7 @@ class YuNetFaceDetector:
             5000         # Top K
         )
 
-    def __call__(self, image, sensitivity: int) -> list[Rectangle]:
+    def __call__(self, image, sensitivity: int) -> list[r_face.Rectangle]:
         """
         Detect faces in the image.
 
@@ -83,10 +57,10 @@ class YuNetFaceDetector:
         # Detect faces
         _, faces = self._detector.detect(image)
 
-        def create_rectangle(face) -> Rectangle:
+        def create_rectangle(face) -> r_face.Rectangle:
             x, y, w, h = map(int, face[:4])
             # Create the rectangle with the top-left (x, y) and bottom-right (x+w, y+h)
-            return Rectangle(x, y, x + w, y + h, face[14])
+            return r_face.Rectangle(x, y, x + w, y + h, face[14])
 
         return list(map(create_rectangle, faces)) if faces is not None else []
 
@@ -110,17 +84,3 @@ def create_tool_pair() -> FaceToolPair:
 
     # Return the detector and facemark model as a pair
     return detector, facemark
-
-
-def generate_face_detection_tools() -> list[FaceToolPair]:
-    """
-    Generate a list of face detection and shape prediction tools.
-
-    This method creates a list of tuples, where each tuple contains an instance of
-    our ModernFaceDetector and dlib's shape_predictor for facial landmark detection.
-    The number of tuples is determined by THREAD_NUMBER.
-
-    Returns:
-        Iterator of tool pairs for multi-threading.
-    """
-    return [create_tool_pair() for _ in range(THREAD_NUMBER)]

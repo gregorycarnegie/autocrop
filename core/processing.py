@@ -2,11 +2,12 @@ import os
 import random
 from collections.abc import Callable, Iterator
 from contextlib import suppress
-from functools import cache, lru_cache, partial, reduce, singledispatch
+from functools import cache, partial, reduce, singledispatch
 from multiprocessing.managers import ListProxy
 from pathlib import Path
 from typing import TypeVar
 
+import autocrop_rs.face_detection as r_face  # type: ignore
 import autocrop_rs.image_processing as r_img  # type: ignore
 import cv2
 import cv2.typing as cvt
@@ -28,7 +29,6 @@ from .face_tools import (
     R_EYE_END,
     R_EYE_START,
     FaceToolPair,
-    Rectangle,
     YuNetFaceDetector,
 )
 from .job import Job
@@ -210,7 +210,7 @@ def get_rotation_matrix(image: cvt.MatLike,
 
     # Optimize for smaller images for faster processing
     height, width = image.shape[:2]
-    scale_factor = determine_scale_factor(width, height)
+    scale_factor = r_face.determine_scale_factor(width, height, Config.face_scale_divisor)
 
     if scale_factor > 1:
         # Resize image for faster processing
@@ -554,9 +554,9 @@ def colour_and_align_face(
     return align_face(ensure_rgb(image), face_detection_tools, job)
 
 
-def align_face(image: cvt.MatLike,
+def align_face(image: T,
                face_detection_tools: FaceToolPair,
-               job: Job) -> cvt.MatLike:
+               job: Job) -> T:
     """
     Performs face alignment using OpenCV's Facemark model.
 
@@ -575,7 +575,7 @@ def align_face(image: cvt.MatLike,
 
     # Optimize for smaller images for faster processing
     height, width = image.shape[:2]
-    scale_factor = determine_scale_factor(width, height)
+    scale_factor = r_face.determine_scale_factor(width, height, Config.face_scale_divisor)
 
     if scale_factor > 1:
         # Resize image for faster processing
@@ -865,26 +865,10 @@ def get_face_boxes(image: cvt.MatLike,
     return zip(confidences, boxes)
 
 
-@lru_cache(maxsize=32)
-def determine_scale_factor(width: int, height: int) -> int:
-    """
-    Determine the scale factor for face detection based on image dimensions.
-
-    Args:
-        width: Image width
-        height: Image height
-
-    Returns:
-        Scale factor (1 for small images, larger for big images)
-    """
-    return max(1, min(width, height) // Config.face_scale_divisor)
-
-
-
 def detect_faces(image: cvt.MatLike,
                  threshold: int,
                  detector: YuNetFaceDetector,
-                 scale_factor: int) -> list[Rectangle]:
+                 scale_factor: int) -> list[r_face.Rectangle]:
     """
     Detect faces in an image, with optional resizing for performance.
 
@@ -907,29 +891,6 @@ def detect_faces(image: cvt.MatLike,
     return detector(small_img, threshold)
 
 
-
-def scale_face_coordinates(face: Rectangle, scale_factor: int) -> tuple[int, int, int, int]:
-    """
-    Scale face coordinates based on the scale factor.
-
-    Args:
-        face: Detected face object
-        scale_factor: Scale factor that was used for detection
-
-    Returns:
-        Tuple of (x, y, width, height) with adjusted coordinates
-    """
-    if scale_factor > 1:
-        return (
-            face.left * scale_factor,
-            face.top * scale_factor,
-            face.width * scale_factor,
-            face.height * scale_factor
-        )
-    return face.left, face.top, face.width, face.height
-
-
-
 def detect_face_box(image: cvt.MatLike,
                     job: Job,
                     face_detection_tools: FaceToolPair) -> Box | None:
@@ -949,11 +910,12 @@ def detect_face_box(image: cvt.MatLike,
         detector, _ = face_detection_tools
 
         # Determine optimal scale factor for performance
-        scale_factor = determine_scale_factor(width, height)
+        scale_factor = r_face.determine_scale_factor(width, height, Config.face_scale_divisor)
 
         # Detect faces with appropriate scaling
         faces = detect_faces(image, job.threshold, detector, scale_factor)
 
+        face = r_face.find_best_face(faces)
         # Exit early if no faces detected
         if not faces:
             return None
@@ -962,7 +924,7 @@ def detect_face_box(image: cvt.MatLike,
         face = max(faces, key=lambda f: f.confidence)
 
         # Scale coordinates if needed
-        x0, y0, face_width, face_height = scale_face_coordinates(face, scale_factor)
+        x0, y0, face_width, face_height = r_face.scale_face_coordinates(face, scale_factor)
 
         # Calculate crop_from_path box using Rust module
         return r_img.crop_positions(
