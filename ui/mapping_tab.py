@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import polars as pl
-from PyQt6 import QtCore, QtWidgets
+from PyQt6 import QtCore, QtGui, QtWidgets
 
 from core import DataFrameModel
 from core import processing as prc
@@ -14,13 +14,13 @@ from .batch_tab import UiBatchCropWidget
 
 
 class UiMappingTabWidget(UiBatchCropWidget):
-    """Mapping tab widget with enhanced inheritance from batch crop_from_path widget"""
+    """Mapping tab widget - preview works with just input path"""
 
     def __init__(self, crop_worker: MappingCropper, object_name: str, parent: QtWidgets.QWidget) -> None:
         """Initialize the mapping tab widget"""
         super().__init__(crop_worker, object_name, parent)
 
-        self.table_path = ""         # Table file path
+        self.table_path = ""
 
         # Data model
         self.model: DataFrameModel | None = None
@@ -52,8 +52,8 @@ class UiMappingTabWidget(UiBatchCropWidget):
         QtCore.QMetaObject.connectSlotsByName(self)
 
     def setup_layouts(self) -> None:
-        """Set up the main layout structure with pulsing indicator"""
-        # ---- Page 1: Crop View ---- (same as before)
+        """Set up the main layout structure with working preview"""
+        # ---- Page 1: Crop View ----
         frame, vertical_layout = self.setup_main_crop_frame(self.page_1)
 
         # Combo boxes, crop and cancel buttons
@@ -78,7 +78,7 @@ class UiMappingTabWidget(UiBatchCropWidget):
         self.verticalLayout_200.addWidget(frame)
         self.toolBox.addItem(self.page_1, "Crop View")
 
-        # ---- Page 2: Table View ---- (same as before)
+        # ---- Page 2: Table View ----
         self.tableView.setObjectName("tableView")
         self.tableView.setParent(self.page_2)
         self.verticalLayout_300.addWidget(self.tableView)
@@ -91,25 +91,16 @@ class UiMappingTabWidget(UiBatchCropWidget):
 
         self.toolBox.addItem(self.page_2, "Table View")
 
-        # ---- NEW Page 3: Folder View ----
+        # ---- Page 3: Folder View ----
         self.treeView.setParent(self.page_3)
         self.verticalLayout_400 = ut.setup_vbox("verticalLayout_400", self.page_3)
 
         # Tree view for folder browsing
         self.treeView.setObjectName("treeView")
         self.treeView.setModel(self.file_model)
-        self.treeView.setMouseTracking(True)
 
-        # Make sure the viewport also has mouse tracking enabled
-        viewport = self.treeView.viewport()
-        if viewport is not None:
-            viewport.setMouseTracking(True)
-
-        # Connect tree view hover events (like FolderCropper)
-        self.treeView.entered.connect(self._on_item_entered)
-
-        if viewport is not None:
-            viewport.installEventFilter(self)
+        # Setup working preview system
+        self._setup_tree_view_events()
 
         self.verticalLayout_400.addWidget(self.treeView)
         self.toolBox.addItem(self.page_3, "Folder View")
@@ -117,8 +108,159 @@ class UiMappingTabWidget(UiBatchCropWidget):
         # Add toolbox to the main layout
         self.verticalLayout_100.addWidget(self.toolBox)
 
+    def _setup_tree_view_events(self):
+        """Set up tree view event handling for mapping tab"""
+        print("Setting up tree view events for mapping tab")
+
+        # Enable mouse tracking
+        self.treeView.setMouseTracking(True)
+        self.treeView.setAttribute(QtCore.Qt.WidgetAttribute.WA_Hover, True)
+
+        # Setup viewport
+        viewport = self.treeView.viewport()
+        if viewport:
+            viewport.setMouseTracking(True)
+            viewport.setAttribute(QtCore.Qt.WidgetAttribute.WA_Hover, True)
+            viewport.installEventFilter(self)
+            print("Mapping tab: Event filter installed on tree view viewport")
+
+        # Connect signals
+        self.treeView.entered.connect(self._on_item_entered)
+
+    def _handle_image_hover(self, file_path: str, global_pos: QtCore.QPoint):
+        """Handle hovering over an image file in mapping tab - ONLY INPUT PATH REQUIRED"""
+        print(f"Mapping DEBUG: input_path='{self.input_path}', destination_path='{self.destination_path}'")
+
+        # Only require input path for preview
+        if not self.input_path:
+            print("Mapping tab: Cannot show preview - input path not set")
+            return
+
+        if not (clean_path := ut.sanitize_path(file_path)):
+            return
+
+        print(f"Mapping: Starting preview timer for: {clean_path}")
+        self._last_mouse_pos = global_pos
+        self._pending_preview_path = clean_path
+        self._hover_timer.start(300)
+
+    def _hide_preview(self):
+        """Hide the preview for mapping tab"""
+        self._hover_timer.stop()
+        self.image_preview.hide_preview()
+
+    def eventFilter(self, obj, event):
+        """Event filter for mapping tab tree view"""
+        if obj == self.treeView.viewport():
+            event_type = event.type()
+
+            if event_type == QtCore.QEvent.Type.MouseMove:
+                pos = event.position().toPoint()
+                index = self.treeView.indexAt(pos)
+
+                if index.isValid():
+                    file_path = self.file_model.filePath(index)
+                    if file_path and self._is_image_file(file_path):
+                        global_pos = obj.mapToGlobal(pos)
+                        self._handle_image_hover(file_path, global_pos)
+                    else:
+                        self._hide_preview()
+                else:
+                    self._hide_preview()
+
+            elif event_type == QtCore.QEvent.Type.Leave:
+                print("Mouse left mapping viewport")
+                self._hide_preview()
+
+        return super().eventFilter(obj, event)
+
+    def _on_item_entered(self, index):
+        """Handle when mouse enters a tree view item in mapping tab"""
+        print(f"Mapping item entered: {index.row()}")
+
+        if not self.input_path:
+            print("Mapping: Input path not set, skipping preview")
+            return
+
+        file_path = self.file_model.filePath(index)
+        if not file_path or len(file_path) <= 3:
+            return
+
+        if sanitized_path := ut.sanitize_path(file_path):
+            if self._is_image_file(sanitized_path):
+                self._last_mouse_pos = QtGui.QCursor.pos()
+                self._pending_preview_path = sanitized_path
+                print(f"Mapping: Starting preview timer for: {sanitized_path}")
+                self._hover_timer.start(300)
+
+    def _show_preview(self):
+        """Show preview for mapping tab - ONLY INPUT PATH REQUIRED"""
+        print(f"Mapping _show_preview called for: {self._pending_preview_path}")
+
+        if not self._pending_preview_path or not self._last_mouse_pos:
+            return
+
+        if not self.input_path:
+            print("Mapping: Cannot show preview - input path not set")
+            return
+
+        try:
+            folder_path = Path(self.input_path)
+
+            if not folder_path.exists():
+                print("Mapping: Input path doesn't exist")
+                return
+
+            # Create minimal preview job
+            preview_job = self.create_preview_job(folder_path)
+
+            print(f"Showing mapping preview for: {self._pending_preview_path}")
+            print(f"At position: {self._last_mouse_pos}")
+
+            self.image_preview.preview_file(
+                self._pending_preview_path,
+                self._last_mouse_pos,
+                self.crop_worker.face_detection_tools[0],
+                preview_job
+            )
+
+        except Exception as e:
+            print(f"Error showing mapping preview: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def _get_function_type(self):
+        """Get the function type for mapping tab"""
+        return FunctionType.MAPPING
+
+    def load_data(self) -> None:
+        """Load data for mapping tab"""
+        print(f"Loading mapping data: {self.input_path}")
+
+        try:
+            if not self.input_path:
+                self.file_model.setRootPath("")
+                self.treeView.setRootIndex(self.file_model.index(""))
+                return
+
+            path = Path(self.input_path)
+            if not path.exists() or not path.is_dir():
+                self.file_model.setRootPath("")
+                self.treeView.setRootIndex(self.file_model.index(""))
+                return
+
+            self.file_model.setRootPath(self.input_path)
+            root_index = self.file_model.index(self.input_path)
+            self.treeView.setRootIndex(root_index)
+
+            # Re-setup events after loading
+            QtCore.QTimer.singleShot(200, self._setup_tree_view_events)
+
+        except Exception as e:
+            print(f"Error loading mapping data: {e}")
+
     def connect_signals(self) -> None:
-        """Connect widget signals to handlers"""
+        """Connect signals for mapping tab"""
         # Button connections
         self.tableButton.clicked.connect(self.open_table)
         self.cropButton.clicked.connect(self.mapping_process)
@@ -133,7 +275,7 @@ class UiMappingTabWidget(UiBatchCropWidget):
         self.comboBox_3.currentTextChanged.connect(lambda text: self.comboBox_1.setCurrentText(text))
         self.comboBox_4.currentTextChanged.connect(lambda text: self.comboBox_2.setCurrentText(text))
 
-        # Register button dependencies with the TabStateManager
+        # Register button dependencies
         ut.register_button_dependencies(
             self.tab_state_manager,
             self.cropButton,
@@ -145,7 +287,7 @@ class UiMappingTabWidget(UiBatchCropWidget):
             }
         )
 
-        # Connect all input widgets for validation tracking
+        # Connect widgets for validation
         self.tab_state_manager.connect_widgets(
             self.controlWidget.widthLineEdit,
             self.controlWidget.heightLineEdit,
@@ -164,7 +306,7 @@ class UiMappingTabWidget(UiBatchCropWidget):
         )
 
     def retranslateUi(self) -> None:
-        """Update UI text elements"""
+        """Update UI text elements for mapping tab"""
         super().retranslateUi()
         self.comboBox_1.setPlaceholderText(QtCore.QCoreApplication.translate("self", "Filename column", None))
         self.comboBox_2.setPlaceholderText(QtCore.QCoreApplication.translate("self", "Mapping column", None))
@@ -172,15 +314,12 @@ class UiMappingTabWidget(UiBatchCropWidget):
         self.comboBox_4.setPlaceholderText(QtCore.QCoreApplication.translate("self", "Mapping column", None))
         self.cropButton.setText("")
         self.cancelButton.setText("")
-        self.toolBox.setItemText(self.toolBox.indexOf(self.page_1),
-                                 QtCore.QCoreApplication.translate("self", "Crop View", None))
-        self.toolBox.setItemText(self.toolBox.indexOf(self.page_2),
-                                 QtCore.QCoreApplication.translate("self", "Table View", None))
-        self.toolBox.setItemText(self.toolBox.indexOf(self.page_3),
-                                 QtCore.QCoreApplication.translate("self", "Folder View", None))
+        self.toolBox.setItemText(self.toolBox.indexOf(self.page_1), "Crop View")
+        self.toolBox.setItemText(self.toolBox.indexOf(self.page_2), "Table View")
+        self.toolBox.setItemText(self.toolBox.indexOf(self.page_3), "Folder View")
 
     def open_table(self) -> None:
-        """Open a table file dialog with the string-based approach"""
+        """Open table file dialog"""
         f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
             self, 'Open File',
             file_manager.get_default_directory(FileCategory.PHOTO).as_posix(),
@@ -213,7 +352,7 @@ class UiMappingTabWidget(UiBatchCropWidget):
             print(f"Error processing data: {e}")
 
     def connect_crop_worker(self) -> None:
-        """Connect the signals from the crop worker to UI handlers"""
+        """Connect crop worker signals"""
         widget_list = (self.controlWidget.widthLineEdit, self.controlWidget.heightLineEdit,
                     self.controlWidget.sensitivityDial, self.controlWidget.fpctDial, self.controlWidget.gammaDial,
                     self.controlWidget.topDial, self.controlWidget.bottomDial, self.controlWidget.leftDial,
@@ -221,8 +360,8 @@ class UiMappingTabWidget(UiBatchCropWidget):
                     self.controlWidget.radioButton_none,
                     self.controlWidget.radioButton_bmp, self.controlWidget.radioButton_jpg,
                     self.controlWidget.radioButton_png, self.controlWidget.radioButton_tiff,
-                    self.controlWidget.radioButton_webp, self.cropButton, self.exposureCheckBox,
-                    self.mfaceCheckBox, self.tiltCheckBox)
+                    self.controlWidget.radioButton_webp, self.cropButton, self.exposureCheckBox, self.mfaceCheckBox,
+                    self.tiltCheckBox)
 
         self.connect_crop_worker_signals(*widget_list)
 
