@@ -79,6 +79,10 @@ class DisplayCropper(Cropper):
 
         # Validate path
         if not img_path_str:
+            # Clear any previous no-face messages
+            if hasattr(self, '_no_face_messages') and function_type in self._no_face_messages:
+                del self._no_face_messages[function_type]
+            self.events.image_updated.emit(function_type, None)
             return None
 
         # For folder and mapping tabs, we need to check if the folder has changed
@@ -103,6 +107,8 @@ class DisplayCropper(Cropper):
             if raw_image is None or file_category is None:
                 # Clear the cache for this function type if loading fails
                 self.clear_cache(function_type)
+                # Emit error message
+                self._emit_no_face_detected(function_type, "Unable to load image")
                 return None
 
             self.preview_data[function_type] = Preview(
@@ -118,6 +124,7 @@ class DisplayCropper(Cropper):
 
             if image := self._process_cached_image(function_type, job):
                 self.events.image_updated.emit(function_type, image)
+            # If image is None, _process_cached_image already emitted the no-face signal
 
         return None
 
@@ -220,10 +227,9 @@ class DisplayCropper(Cropper):
 
         return Job(**job_params)
 
-    def _process_cached_image(
-            self,
-            function_type: FunctionType,
-            job: Job
+    def _process_cached_image(self,
+                            function_type: FunctionType,
+                            job: Job
     ) -> QImage | None:
         """Process the cached raw image with the job parameters"""
         # Get the cached image for this function type
@@ -244,11 +250,15 @@ class DisplayCropper(Cropper):
             # For multi-face mode, show annotations
             processed_image = prc.annotate_faces(image_copy, job, self.face_detection_tools)
             if processed_image is None:
+                # No faces detected in multi-face mode
+                self._emit_no_face_detected(function_type, "No faces detected")
                 return None
         else:
             # For single-face mode, crop and process
             bounding_box = prc.detect_face_box(image_copy, job, self.face_detection_tools)
             if not bounding_box:
+                # No face detected in single-face mode
+                self._emit_no_face_detected(function_type, "No face detected")
                 return None
 
             # Get rotation matrix if auto-tilt is enabled
@@ -261,6 +271,22 @@ class DisplayCropper(Cropper):
             processed_image = prc.run_processing_pipeline(image_copy, pipeline)
 
         return self._convert_to_qimage(processed_image, cached_image.color_space)
+
+    def _emit_no_face_detected(self, function_type: FunctionType, message: str):
+        """Emit a signal indicating no face was detected"""
+        # Create a special signal for no face detected
+        # We'll use the existing image_updated signal but with None as the image
+        # The receiving widget can check for None and display appropriate feedback
+        self.events.image_updated.emit(function_type, None)
+
+        # Store the error message for the widget to access
+        self._no_face_messages = getattr(self, '_no_face_messages', {})
+        self._no_face_messages[function_type] = message
+
+    def get_no_face_message(self, function_type: FunctionType) -> str:
+        """Get the no face message for a specific function type"""
+        messages = getattr(self, '_no_face_messages', {})
+        return messages.get(function_type, "No face detected")
 
     @staticmethod
     def _convert_to_qimage(cv_image: cvt.MatLike, color_space: QImage.Format) -> QImage:

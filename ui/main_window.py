@@ -405,11 +405,25 @@ class UiMainWindow(QtWidgets.QMainWindow):
             # Connect the image updated event to the widget's setImage method
             self.display_worker.events.image_updated.connect(
                 lambda _ft, img, w=widget, ft_expected=func_type:
-                    w.imageWidget.setImage(img) if _ft == ft_expected else None
+                    self._handle_image_update(_ft, img, w, ft_expected)
             )
 
         self.verticalLayout_5.addWidget(self.video_tab_widget)
         self.function_tabWidget.addTab(self.video_tab, icon4, "")
+
+    def _handle_image_update(self, function_type: FunctionType, image: QtGui.QImage | None,
+                             widget, expected_type: FunctionType) -> None:
+        """Handle image updates from the display worker, including no-face scenarios"""
+        if function_type != expected_type:
+            return
+
+        if image is not None:
+            # Normal case - display the image
+            widget.imageWidget.setImage(image)
+        else:
+            # No face detected or error case
+            message = self.display_worker.get_no_face_message(function_type)
+            widget.imageWidget.showNoFaceDetected(message)
 
     def decorate_action(self,action: QtGui.QAction, width: float, height: float, color: str):
         """Set the aspect ratio icons for the address bar and destination input"""
@@ -684,6 +698,8 @@ class UiMainWindow(QtWidgets.QMainWindow):
                         self.display_worker.crop(FunctionType.FOLDER)
                 case FunctionType.MAPPING:
                     if self.mapping_tab_widget.input_path:
+                        # Load folder data for mapping tab too
+                        self.mapping_tab_widget.load_data()
                         self.display_worker.crop(FunctionType.MAPPING)
                 case FunctionType.VIDEO:
                     if self.video_tab_widget.input_path:
@@ -816,6 +832,12 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 tab_widget.table_path = file_path
                 data = prc.load_table(Path(file_path))
                 self.mapping_tab_widget.process_data(data)
+            elif path_type == PathType.FOLDER:
+                # New: Handle folder paths for mapping tab
+                tab_widget.input_path = file_path
+                if current_index == FunctionType.MAPPING:
+                    # Load the folder data into the mapping tab's tree view
+                    self.mapping_tab_widget.load_data()
 
     def _get_current_tab_widget(self) -> TabWidget | None:
         """Get the currently active tab widget"""
@@ -855,11 +877,16 @@ class UiMainWindow(QtWidgets.QMainWindow):
                     return
 
                 # Update the input with a safe path
-                target.setText(str(path_obj))
+                target.setText(path_obj.as_posix())
 
                 # If this is a source directory, refresh any view that depends on it
-                if target == self.unified_address_bar and self.function_tabWidget.currentIndex() == FunctionType.FOLDER:
-                    self.folder_tab_widget.load_data()
+                current_index = self.function_tabWidget.currentIndex()
+                if target == self.unified_address_bar:
+                    if current_index == FunctionType.FOLDER:
+                        self.folder_tab_widget.load_data()
+                    elif current_index == FunctionType.MAPPING:
+                        # Also load data for mapping tab
+                        self.mapping_tab_widget.load_data()
 
         except Exception as e:
             # Log error internally without exposing details
@@ -1309,8 +1336,8 @@ class UiMainWindow(QtWidgets.QMainWindow):
             if has_table_files:
                 # Handle as mapping tab
                 self.function_tabWidget.setCurrentIndex(FunctionType.MAPPING)
-                self.mapping_tab_widget.input_path = str(dir_path)
-                self.unified_address_bar.setText(str(dir_path))
+                self.mapping_tab_widget.input_path = dir_path.as_posix()
+                self.unified_address_bar.setText(self.mapping_tab_widget.input_path)
 
                 # Update display
                 self.display_worker.current_paths[FunctionType.MAPPING] = None
@@ -1318,8 +1345,8 @@ class UiMainWindow(QtWidgets.QMainWindow):
             else:
                 # Handle as folder tab
                 self.function_tabWidget.setCurrentIndex(FunctionType.FOLDER)
-                self.folder_tab_widget.input_path = str(dir_path)
-                self.unified_address_bar.setText(str(dir_path))
+                self.folder_tab_widget.input_path = dir_path.as_posix()
+                self.unified_address_bar.setText(self.folder_tab_widget.input_path)
 
                 # Update display
                 self.display_worker.current_paths[FunctionType.FOLDER] = None
@@ -1370,8 +1397,8 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 if SignatureChecker.verify_file_type(file_path, FileCategory.VIDEO):
                     # Handle with the video tab
                     self.function_tabWidget.setCurrentIndex(FunctionType.VIDEO)
-                    self.video_tab_widget.input_path = str(file_path)
-                    self.unified_address_bar.setText(str(file_path))
+                    self.video_tab_widget.input_path = file_path.as_posix()
+                    self.unified_address_bar.setText(self.video_tab_widget.input_path)
                     self.video_tab_widget.open_dropped_video()
                 else:
                     ut.show_error_box("File content doesn't match its extension (expected video)")
@@ -1381,8 +1408,8 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 if SignatureChecker.verify_file_type(file_path, FileCategory.TABLE):
                     # Handle with the mapping tab
                     self.function_tabWidget.setCurrentIndex(FunctionType.MAPPING)
-                    self.mapping_tab_widget.table_path = str(file_path)
-                    self.secondary_input.setText(str(file_path))
+                    self.mapping_tab_widget.table_path = file_path.as_posix()
+                    self.secondary_input.setText(self.mapping_tab_widget.table_path)
 
                     # Process the table data
                     data = prc.load_table(file_path)
@@ -1402,8 +1429,8 @@ class UiMainWindow(QtWidgets.QMainWindow):
     def _handle_image_drop(self, file_path: Path) -> None:
         """Handle dropping an image file (photo, RAW, or TIFF)"""
         self.function_tabWidget.setCurrentIndex(FunctionType.PHOTO)
-        self.photo_tab_widget.input_path = str(file_path)
-        self.unified_address_bar.setText(str(file_path))
+        self.photo_tab_widget.input_path = file_path.as_posix()
+        self.unified_address_bar.setText(self.photo_tab_widget.input_path)
         self.display_worker.crop(FunctionType.PHOTO)
 
     def handle_path_main(self, file_path: Path) -> None:

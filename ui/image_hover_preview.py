@@ -3,7 +3,7 @@ from pathlib import Path
 import cv2
 import cv2.typing as cvt
 from PyQt6 import QtCore, QtWidgets
-from PyQt6.QtGui import QImage, QPixmap
+from PyQt6.QtGui import QColor, QFont, QImage, QPainter, QPen, QPixmap
 
 from core import processing as prc
 from core.face_tools import FaceToolPair
@@ -24,8 +24,8 @@ class ImageHoverPreview(QtWidgets.QLabel):
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_ShowWithoutActivating)
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_TranslucentBackground)
 
-        # Set a larger size for preview to accommodate different aspect ratios
-        self.setFixedSize(250, 250)  # Increased from 150x150
+        # Set a larger size for preview
+        self.setFixedSize(250, 250)
         self.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.setStyleSheet("""
             QLabel {
@@ -36,10 +36,7 @@ class ImageHoverPreview(QtWidgets.QLabel):
             }
         """)
 
-        # Set scaled contents to true
-        self.setScaledContents(False)  # We handle scaling manually for better control
-
-        # Hide initially
+        self.setScaledContents(False)
         self.hide()
 
         # Timer to delay showing the preview
@@ -50,6 +47,7 @@ class ImageHoverPreview(QtWidgets.QLabel):
         # Cache for loaded images
         self.image_cache = {}
         self.current_path = None
+        self.no_face_message = "No face detected"
 
     def preview_file(self, file_path: str, mouse_pos: QtCore.QPoint,
                     face_tools: FaceToolPair, job: Job):
@@ -61,8 +59,11 @@ class ImageHoverPreview(QtWidgets.QLabel):
 
         # Check if image is in cache
         if file_path in self.image_cache:
-            pixmap = self.image_cache[file_path]
-            self.setPixmap(pixmap)
+            cached_item = self.image_cache[file_path]
+            if cached_item == "no_face":
+                self._show_no_face_message()
+            else:
+                self.setPixmap(cached_item)
             self.position_near_mouse(mouse_pos)
             return
 
@@ -94,7 +95,7 @@ class ImageHoverPreview(QtWidgets.QLabel):
                 new_size = (int(width * scale), int(height * scale))
                 image = cv2.resize(image, new_size, interpolation=cv2.INTER_AREA)
 
-            # Create a preview job with square dimensions if width/height not set
+            # Create a preview job
             preview_job = self._create_preview_job(job)
 
             # Get cropped preview
@@ -108,9 +109,77 @@ class ImageHoverPreview(QtWidgets.QLabel):
                 if self.current_path == file_path:
                     self.setPixmap(pixmap)
                     self.position_near_mouse(mouse_pos)
+            else:
+                # No face detected - cache this result and show message
+                self.image_cache[file_path] = "no_face"
+                if self.current_path == file_path:
+                    self._show_no_face_message()
+                    self.position_near_mouse(mouse_pos)
 
         except Exception as e:
             print(f"Error loading preview for {file_path}: {e}")
+            # Cache the error and show message
+            self.image_cache[file_path] = "error"
+            if self.current_path == file_path:
+                self._show_error_message("Error loading image")
+                self.position_near_mouse(mouse_pos)
+
+    def _show_no_face_message(self):
+        """Show a no face detected message"""
+        self._create_message_pixmap(self.no_face_message, is_error=False)
+
+    def _show_error_message(self, message: str):
+        """Show an error message"""
+        self._create_message_pixmap(message, is_error=True)
+
+    def _create_message_pixmap(self, message: str, is_error: bool = False):
+        """Create a pixmap with a centered message"""
+        pixmap = QPixmap(self.size())
+        pixmap.fill(QtCore.Qt.GlobalColor.transparent)
+
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        # Set up the font
+        font = QFont("Arial", 10, QFont.Weight.Bold)
+        painter.setFont(font)
+
+        # Set colors based on message type
+        if is_error:
+            bg_color = QColor(220, 53, 69, 200)  # Error red
+            text_color = QColor(255, 255, 255)
+            border_color = QColor(220, 53, 69)
+        else:
+            bg_color = QColor(255, 193, 7, 200)  # Warning yellow
+            text_color = QColor(0, 0, 0)
+            border_color = QColor(255, 193, 7)
+
+        # Calculate text rectangle
+        text_rect = painter.fontMetrics().boundingRect(
+            pixmap.rect(),
+            QtCore.Qt.AlignmentFlag.AlignCenter | QtCore.Qt.TextFlag.TextWordWrap,
+            message
+        )
+        text_rect.adjust(-15, -10, 15, 10)  # Add padding
+
+        # Center the rectangle
+        x = (pixmap.width() - text_rect.width()) // 2
+        y = (pixmap.height() - text_rect.height()) // 2
+        text_rect.moveTo(x, y)
+
+        # Draw background
+        painter.fillRect(text_rect, bg_color)
+
+        # Draw border
+        painter.setPen(QPen(border_color, 2))
+        painter.drawRoundedRect(text_rect, 6, 6)
+
+        # Draw text
+        painter.setPen(text_color)
+        painter.drawText(text_rect, QtCore.Qt.AlignmentFlag.AlignCenter | QtCore.Qt.TextFlag.TextWordWrap, message)
+
+        painter.end()
+        self.setPixmap(pixmap)
 
     @staticmethod
     def _create_preview_job(job: Job) -> Job:
@@ -118,9 +187,6 @@ class ImageHoverPreview(QtWidgets.QLabel):
         # Use the original job dimensions if they're valid
         width = job.width if job.width > 0 else 200
         height = job.height if job.height > 0 else 200
-
-        # Don't force square dimensions - keep the original aspect ratio
-        # The original dimensions are what the user wants for their final output
 
         return Job(
             width=width,
@@ -150,7 +216,6 @@ class ImageHoverPreview(QtWidgets.QLabel):
         pixmap = QPixmap.fromImage(q_image)
 
         # Scale the pixmap to fit within the preview widget while maintaining aspect ratio
-        # The preview widget is 150x150
         return pixmap.scaled(
             self.width() - 10,  # Account for padding
             self.height() - 10,
