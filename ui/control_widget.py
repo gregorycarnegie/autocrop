@@ -287,10 +287,12 @@ class UiCropControlWidget(QtWidgets.QWidget):
             false_icon=false_path,
         )
 
-    def create_radio_button(self,
-                            name: str,
-                            icon_resource: tuple[str, str],
-                            layout: QtWidgets.QHBoxLayout | QtWidgets.QVBoxLayout) -> SvgRadioButton:
+    def create_radio_button(
+            self,
+            name: str,
+            icon_resource: tuple[str, str],
+            layout: QtWidgets.QHBoxLayout | QtWidgets.QVBoxLayout
+    ) -> SvgRadioButton:
         # Create the custom radio button
         radio_button = SvgRadioButton(
             parent=self,
@@ -313,10 +315,12 @@ class UiCropControlWidget(QtWidgets.QWidget):
 
         return radio_button
 
-    def create_dial(self, name: str,
-                    value: int = 0,
-                    max_value: int = 100,
-                    min_value: int | None = None) -> QtWidgets.QDial:
+    def create_dial(
+            self, name: str,
+            value: int = 0,
+            max_value: int = 100,
+            min_value: int | None = None
+    ) -> QtWidgets.QDial:
         dial = QtWidgets.QDial(self)
         dial.setObjectName(name)
         if min_value:

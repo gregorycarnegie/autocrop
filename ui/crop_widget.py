@@ -251,7 +251,11 @@ class UiCropWidget(QtWidgets.QWidget):
         return {p.stem for p in directory.iterdir() if p.is_file()}
 
     @staticmethod
-    def _check_matching_files(destination: Path, filenames: set[str], extensions: tuple[str, ...]) -> bool:
+    def _check_matching_files(
+        destination: Path,
+        filenames: set[str],
+        extensions: tuple[str, ...]
+    ) -> bool:
         """Recursively check if the destination has any files with the given extensions that match the filenames."""
         return any(p.is_file()
                    and p.suffix.lower() in extensions
@@ -278,7 +282,12 @@ class UiCropWidget(QtWidgets.QWidget):
         new_path.mkdir(parents=True, exist_ok=True)
         return new_path
 
-    def _handle_folder_path(self, destination: Path, folder_path: Path, extensions: tuple[str, ...]) -> Path:
+    def _handle_folder_path(
+            self,
+            destination: Path,
+            folder_path: Path,
+            extensions: tuple[str, ...]
+    ) -> Path:
         """Handle folder path destination to avoid conflicts"""
         if destination.exists() and destination.name:
             folder_filenames = self._get_file_names_without_extension(folder_path)

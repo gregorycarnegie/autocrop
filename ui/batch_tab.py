@@ -5,11 +5,15 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtWidgets import QApplication, QFrame, QMessageBox, QPushButton, QToolBox, QVBoxLayout, QWidget
 
 from core import Job
 from core.croppers import BatchCropper
+from file_types import FileCategory, file_manager
 from ui import utils as ut
+from ui.image_hover_preview import ImageHoverPreview
 from ui.pulsing_indicator import PulsingProgressIndicator
 
 from .crop_widget import UiCropWidget
@@ -28,6 +32,9 @@ class UiBatchCropWidget(UiCropWidget):
         """Initialize the batch crop widget with pulsing progress indicator"""
         super().__init__(parent, object_name)
         self.crop_worker = crop_worker
+        self._pending_preview_path = ''
+        self.input_path = ""
+        self.destination_path = ""
 
         # Create pulsing progress indicator
         self.pulsing_indicator = PulsingProgressIndicator(self)
@@ -37,11 +44,34 @@ class UiBatchCropWidget(UiCropWidget):
         self.toolBox = QToolBox(self)
         self.toolBox.setObjectName("toolBox")
 
+        # Create a file model for the tree view (like FolderCropper)
+        self.file_model = QtGui.QFileSystemModel(self)
+        self.file_model.setFilter(QtCore.QDir.Filter.NoDotAndDotDot | QtCore.QDir.Filter.Files)
+        p_types = (
+            file_manager.get_extensions(FileCategory.PHOTO) |
+            file_manager.get_extensions(FileCategory.TIFF) |
+            file_manager.get_extensions(FileCategory.RAW)
+        )
+        file_filter = np.array([f'*{file}' for file in p_types])
+        self.file_model.setNameFilters(file_filter)
+
+        # Create image preview widget (like FolderCropper)
+        self.image_preview = ImageHoverPreview(parent=None)
+        self.image_preview.hide()
+
+        # Track mouse position for preview
+        self._last_mouse_pos = None
+        self._hover_timer = QtCore.QTimer()
+        self._hover_timer.setSingleShot(True)
+        self._hover_timer.timeout.connect(self._show_preview)
+
         # Create pages for the toolbox
         self.page_1 = QWidget()
         self.page_1.setObjectName("page_1")
         self.page_2 = QWidget()
         self.page_2.setObjectName("page_2")
+
+        self.treeView = QtWidgets.QTreeView()
 
         # Set up page layouts
         self.verticalLayout_200 = ut.setup_vbox("verticalLayout_200", self.page_1)
@@ -173,8 +203,12 @@ class UiBatchCropWidget(UiCropWidget):
         thread.start()
 
     @staticmethod
-    def check_source_destination_same(source_path: str, dest_path: str,
-                                      function_type, process_func: Callable) -> None:
+    def check_source_destination_same(
+        source_path: str,
+        dest_path: str,
+        function_type,
+        process_func: Callable
+    ) -> None:
         """Check if source and destination are the same and warn if needed"""
         if Path(source_path) == Path(dest_path):
             match ut.show_warning(function_type):
@@ -184,3 +218,96 @@ class UiBatchCropWidget(UiCropWidget):
                     return
         else:
             process_func()
+
+    def _on_item_entered(self, index):
+        """Handle when mouse enters a tree view item"""
+        file_path = self.file_model.filePath(index)
+        file_path = ut.sanitize_path(file_path)
+
+        if file_path and self._is_image_file(file_path):
+            self._last_mouse_pos = QtGui.QCursor.pos()
+            # Store the file path that should be previewed when timer fires
+            self._pending_preview_path = file_path
+            self._hover_timer.start(200)
+
+    def eventFilter(self, obj, event):
+        """Filter events to handle mouse movement and leaving the tree view"""
+        if obj == self.treeView.viewport():
+            if event.type() == QtCore.QEvent.Type.MouseMove:
+                self._on_mouse_move(event)
+            elif event.type() == QtCore.QEvent.Type.Leave:
+                self._on_mouse_leave()
+        return super().eventFilter(obj, event)
+
+    def _on_mouse_move(self, event: QtGui.QMouseEvent) -> None:
+        """Handle mouse movement in tree view"""
+        index = self.treeView.indexAt(event.position().toPoint())
+
+        if index.isValid():
+            file_path = self.file_model.filePath(index)
+            file_path = ut.sanitize_path(file_path)
+
+            if file_path and self._is_image_file(file_path):
+                global_pos = event.globalPosition().toPoint()
+                self._last_mouse_pos = global_pos
+                # Store the file path that should be previewed when timer fires
+                self._pending_preview_path = file_path
+                if not self._hover_timer.isActive():
+                    self._hover_timer.start(200)
+            else:
+                self._hide_preview()
+        else:
+            self._hide_preview()
+
+    def _on_mouse_leave(self):
+        """Handle mouse leaving the tree view"""
+        self._hide_preview()
+
+    def _show_preview(self):
+        """Show the preview image in the preview widget"""
+        raise NotImplementedError("This method should be implemented in the subclass")
+
+    def _hide_preview(self):
+        """Hide the image preview"""
+        self._hover_timer.stop()
+        self.image_preview.hide_preview()
+
+    def _clear_hover_preview_cache(self):
+        """Clear the hover preview cache."""
+        self.image_preview.clear_cache()
+
+    def _is_image_file(self, file_path: str) -> bool:
+        """Check if a file is an image"""
+        path = Path(file_path)
+        return (file_manager.is_valid_type(path, FileCategory.PHOTO) or
+                file_manager.is_valid_type(path, FileCategory.TIFF) or
+                file_manager.is_valid_type(path, FileCategory.RAW))
+
+    def load_data(self) -> None:
+        """Load data into the tree view from the selected folder"""
+        try:
+            if not self.input_path:
+                return
+
+            path = Path(self.input_path)
+            if not path.exists() or not path.is_dir():
+                return
+
+            self.file_model.setRootPath(self.input_path)
+            self.treeView.setRootIndex(self.file_model.index(self.input_path))
+
+        except (IndexError, FileNotFoundError, ValueError, AttributeError):
+            return
+
+    # Clean up when tab is hidden or destroyed
+    def hideEvent(self, event):
+        """Hide preview when tab is hidden"""
+        self._hide_preview()
+        super().hideEvent(event)
+
+    def closeEvent(self, event):
+        """Clean up when widget is closed"""
+        self._hide_preview()
+        self.image_preview.clear_cache()
+        self.image_preview.close()
+        super().closeEvent(event)

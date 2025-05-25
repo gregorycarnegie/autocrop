@@ -26,8 +26,11 @@ from .enums import GuiIcon
 from .image_widget import ImageWidget
 
 
-def register_button_dependencies(widget, button: QPushButton,
-                                 dependent_widgets: set[QWidget]) -> None:
+def register_button_dependencies(
+        widget,
+        button: QPushButton,
+        dependent_widgets: set[QWidget]
+) -> None:
     """
     Register button dependencies with path validation support
 
@@ -99,10 +102,12 @@ def sanitize_path(path_str: str) -> str:
         return ''
 
 
-def setup_combobox(combobox: QComboBox,
-                   layout: QHBoxLayout | QHBoxLayout,
-                   policy: QSizePolicy,
-                   name: str) -> None:
+def setup_combobox(
+        combobox: QComboBox,
+        layout: QHBoxLayout | QHBoxLayout,
+        policy: QSizePolicy,
+        name: str
+) -> None:
     """Set up the combo boxes"""
     combobox.setObjectName(name)
     policy.setHeightForWidth(combobox.sizePolicy().hasHeightForWidth())
@@ -124,20 +129,24 @@ def setup_vbox(name: str, parent: QWidget | None = None) -> QVBoxLayout:
     return vertical_layout
 
 
-def apply_size_policy(widget: QWidget,
-                      size_policy: QSizePolicy,
-                      min_size: QtCore.QSize = QtCore.QSize(0, 30),
-                      max_size: QtCore.QSize = QtCore.QSize(16_777_215, 30)) -> None:
+def apply_size_policy(
+        widget: QWidget,
+        size_policy: QSizePolicy,
+        min_size: QtCore.QSize = QtCore.QSize(0, 30),
+        max_size: QtCore.QSize = QtCore.QSize(16_777_215, 30)
+) -> None:
     size_policy.setHeightForWidth(widget.sizePolicy().hasHeightForWidth())
     widget.setSizePolicy(size_policy)
     widget.setMinimumSize(min_size)
     widget.setMaximumSize(max_size)
 
 
-def create_main_button(name: str,
-                       size_policy: QSizePolicy,
-                       icon_file: GuiIcon,
-                       parent: QWidget) -> QPushButton:
+def create_main_button(
+        name: str,
+        size_policy: QSizePolicy,
+        icon_file: GuiIcon,
+        parent: QWidget
+) -> QPushButton:
     button = QPushButton(parent)
     button.setObjectName(name)
     size_policy.setHeightForWidth(button.sizePolicy().hasHeightForWidth())
@@ -151,9 +160,11 @@ def create_main_button(name: str,
     return button
 
 
-def create_frame(name: str,
-                 parent: QWidget,
-                 size_policy: QSizePolicy) -> QFrame:
+def create_frame(
+        name: str,
+        parent: QWidget,
+        size_policy: QSizePolicy
+) -> QFrame:
     frame = QFrame(parent)
     frame.setObjectName(name)
     size_policy.setHeightForWidth(frame.sizePolicy().hasHeightForWidth())
@@ -164,10 +175,12 @@ def create_frame(name: str,
     return frame
 
 
-def create_button_icon(icon_resource: GuiIcon,
-                       size: QtCore.QSize = QtCore.QSize(),
-                       mode: QtGui.QIcon.Mode = QtGui.QIcon.Mode.Normal,
-                       state: QtGui.QIcon.State = QtGui.QIcon.State.Off) -> QtGui.QIcon:
+def create_button_icon(
+        icon_resource: GuiIcon,
+        size: QtCore.QSize = QtCore.QSize(),
+        mode: QtGui.QIcon.Mode = QtGui.QIcon.Mode.Normal,
+        state: QtGui.QIcon.State = QtGui.QIcon.State.Off
+) -> QtGui.QIcon:
     icon = QtGui.QIcon()
     icon.addFile(icon_resource, size, mode, state)
     return icon
@@ -243,8 +256,11 @@ def initialise_message_box(window_title: str) -> QMessageBox:
     return msg_box
 
 
-def create_message_box(title: str, icon: QMessageBox.Icon,
-                     buttons: QMessageBox.StandardButton = QMessageBox.StandardButton.Ok) -> QMessageBox:
+def create_message_box(
+        title: str,
+        icon: QMessageBox.Icon,
+        buttons: QMessageBox.StandardButton = QMessageBox.StandardButton.Ok
+) -> QMessageBox:
     """Factory function to create message boxes with standard settings"""
     msg_box = initialise_message_box(title)
     msg_box.setIcon(icon)
