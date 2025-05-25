@@ -208,28 +208,29 @@ fn get_rgb_coefficients(use_rec709: bool) -> (f32, f32, f32) {
 
 /// Internal: Calculate 256-bin histogram from grayscale view.
 fn calc_histogram(gray_view: ArrayView2<u8>) -> [f64; 256] {
-    let mut hist: [f64; 256] = [0.0; 256];
-    
-    // Create thread-local histograms
-    let local_hists = gray_view.axis_chunks_iter(Axis(0), gray_view.shape()[0] / current_num_threads().max(1))
+    let chunk_len = gray_view.shape()[0] / current_num_threads().max(1);
+
+    gray_view
+        .axis_chunks_iter(Axis(0), chunk_len)
         .into_par_iter()
+        // each thread builds its own local [f64;256]
         .map(|chunk| {
-            let mut local_hist = [0.0; 256];
-            for &pixel_value in chunk.iter() {
-                local_hist[pixel_value as usize] += 1.0;
+            let mut local = [0.0; 256];
+            for &pix in chunk.iter() {
+                local[pix as usize] += 1.0;
             }
-            local_hist
+            local
         })
-        .collect::<Vec<[f64; 256]>>();
-    
-    // Combine thread-local histograms
-    for local_hist in local_hists {
-        for i in 0..256 {
-            hist[i] += local_hist[i];
-        }
-    }
-    
-    hist
+        // and then Rayon reduces all those local arrays into one
+        .reduce(
+            || [0.0; 256],              // identity
+            |mut acc, local| {         // reduction step
+                for i in 0..256 {
+                    acc[i] += local[i];
+                }
+                acc
+            },
+        )
 }
 
 /// Internal: Calculate alpha and beta values for histogram equalization.
@@ -376,11 +377,6 @@ fn gamma<'py>(gamma_value: f64, py: Python<'py>) -> PyResult<Bound<'py, PyArray1
 /// AVX2-accelerated gamma correction lookup table generation
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 pub unsafe fn gamma_avx2_impl(gamma_value: f64) -> Vec<u8> {
-    if gamma_value <= 1.0 {
-        // For gamma ≤ 1.0, just return array with values 0-255
-        return (0..=255).collect();
-    }
-    
     let inv_gamma = 1.0 / gamma_value;
     let scale = 255.0;
     let scale_vec = _mm256_set1_pd(scale);
@@ -421,25 +417,21 @@ pub unsafe fn gamma_avx2_impl(gamma_value: f64) -> Vec<u8> {
 
 /// Python-facing gamma correction function that uses AVX2 if available
 pub fn gamma_standard_impl(gamma_value: f64) -> Vec<u8> {
-    let lookup: Vec<u8>;
-    // Standard implementation (fallback)
     if gamma_value <= 1.0 {
         // For gamma ≤ 1.0, just return array with values 0-255
-        lookup = (0..=255).collect();
+        (0..=255).collect()
     } else {
         // For gamma > 1.0, calculate values in parallel
         let inv_gamma = 1.0 / gamma_value;
         let scale = 255.0;
         
-        lookup = (0..256).into_par_iter()
+        (0..256).into_par_iter()
             .map(|i| {
                 let normalized = (i as f64) / scale;
                 round_clamp_to_u8(normalized.powf(inv_gamma) * scale)
             })
-            .collect();
+            .collect()
     }
-    
-    lookup
 }
 
 /// Calculates output dimensions and scaling factor for resizing.

@@ -10,7 +10,11 @@ use memmap2::MmapOptions;
 
 use crate::ImportablePyModuleBuilder;
 use crate::dispatch_simd::compare_buffers;
-use crate::file_signatures::{PNG_SIG, RAW_SIGNATURES_MAP, PHOTO_SIGNATURES_MAP, TIFF_SIGNATURES_MAP, VIDEO_SIGNATURES_MAP, TABLE_SIGNATURES_MAP, Signature};
+use crate::file_signatures::{
+    PNG_SIG, RAW_SIGNATURES_MAP, PHOTO_SIGNATURES_MAP,
+    TIFF_SIGNATURES_MAP, VIDEO_SIGNATURES_MAP, TABLE_SIGNATURES_MAP,
+    Signature
+};
 
 // File category enum matching Python's FileCategory
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
