@@ -85,7 +85,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
 
         # Get viewport and set it up
         viewport = self.treeView.viewport()
-        if viewport:
+        if viewport is not None:
             viewport.setMouseTracking(True)
             viewport.setAttribute(QtCore.Qt.WidgetAttribute.WA_Hover, True)
             viewport.installEventFilter(self)
