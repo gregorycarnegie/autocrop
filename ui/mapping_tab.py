@@ -100,9 +100,15 @@ class UiMappingTabWidget(UiBatchCropWidget):
         self.treeView.setModel(self.file_model)
         self.treeView.setMouseTracking(True)
 
+        # Make sure the viewport also has mouse tracking enabled
+        viewport = self.treeView.viewport()
+        if viewport is not None:
+            viewport.setMouseTracking(True)
+
         # Connect tree view hover events (like FolderCropper)
         self.treeView.entered.connect(self._on_item_entered)
-        if viewport := self.treeView.viewport():
+
+        if viewport is not None:
             viewport.installEventFilter(self)
 
         self.verticalLayout_400.addWidget(self.treeView)
@@ -110,31 +116,6 @@ class UiMappingTabWidget(UiBatchCropWidget):
 
         # Add toolbox to the main layout
         self.verticalLayout_100.addWidget(self.toolBox)
-
-    def _show_preview(self):
-        """Show the image preview"""
-        if self._last_mouse_pos is None or not self._pending_preview_path:
-            return
-
-        # Use the stored file path instead of recalculating from mouse position
-        file_path = self._pending_preview_path
-
-        if file_path and self._is_image_file(file_path):
-            job = self.create_job(
-                FunctionType.MAPPING,
-                folder_path=Path(self.input_path) if self.input_path else None,
-                destination=Path(self.destination_path) if self.destination_path else None,
-                table=self.data_frame,
-                column1=self.comboBox_1,
-                column2=self.comboBox_2
-            )
-
-            self.image_preview.preview_file(
-                file_path,
-                self._last_mouse_pos,
-                self.crop_worker.face_detection_tools[0],
-                job
-            )
 
     def connect_signals(self) -> None:
         """Connect widget signals to handlers"""

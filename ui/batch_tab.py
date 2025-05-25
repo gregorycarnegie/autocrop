@@ -28,7 +28,7 @@ class UiBatchCropWidget(UiCropWidget):
     PROGRESSBAR_STEPS: int = 1_000
 
     def __init__(self, crop_worker: BatchCropper, object_name: str, parent: QWidget) -> None:
-        """Initialize the batch crop widget with pulsing progress indicator"""
+        """Initialize the batch crop widget with debugging"""
         super().__init__(parent, object_name)
         self.crop_worker = crop_worker
         self._pending_preview_path = ''
@@ -43,22 +43,22 @@ class UiBatchCropWidget(UiCropWidget):
         self.toolBox = QToolBox(self)
         self.toolBox.setObjectName("toolBox")
 
-        # Create a file model for the tree view (like FolderCropper)
+        # Create a file model for the tree view
         self.file_model = QtGui.QFileSystemModel(self)
         self.file_model.setFilter(QtCore.QDir.Filter.NoDotAndDotDot | QtCore.QDir.Filter.Files)
 
-        # IMPORTANT: Don't set any root path initially to prevent drive enumeration
-        # The model will remain empty until a valid path is explicitly set
-
+        # DEBUGGING: Print file extensions being used
         p_types = (
             file_manager.get_extensions(FileCategory.PHOTO) |
             file_manager.get_extensions(FileCategory.TIFF) |
             file_manager.get_extensions(FileCategory.RAW)
         )
         file_filter = np.array([f'*{file}' for file in p_types])
-        self.file_model.setNameFilters(file_filter)
 
-        # Create image preview widget (like FolderCropper)
+        self.file_model.setNameFilters(file_filter)
+        self.file_model.setNameFilterDisables(False)  # Hide files that don't match filter
+
+        # Create image preview widget
         self.image_preview = ImageHoverPreview(parent=None)
         self.image_preview.hide()
 
@@ -224,8 +224,8 @@ class UiBatchCropWidget(UiCropWidget):
 
     def _on_item_entered(self, index):
         """Handle when mouse enters a tree view item"""
-        # Early return if no valid paths are set to avoid processing drive letters
-        if not self.input_path or not self.destination_path:
+        # Early return if no valid paths are set
+        if not self.input_path:
             return
 
         file_path = self.file_model.filePath(index)
@@ -237,24 +237,36 @@ class UiBatchCropWidget(UiCropWidget):
         # Only sanitize and process if we have a reasonable file path
         if file_path := ut.sanitize_path(file_path):
             if self._is_image_file(file_path):
+                # Get current mouse position in global coordinates
                 self._last_mouse_pos = QtGui.QCursor.pos()
                 # Store the file path that should be previewed when timer fires
                 self._pending_preview_path = file_path
                 self._hover_timer.start(200)
 
     def eventFilter(self, obj, event):
-        """Filter events to handle mouse movement and leaving the tree view"""
+        """Enhanced event filter with debugging"""
         if obj == self.treeView.viewport():
-            if event.type() == QtCore.QEvent.Type.MouseMove:
-                self._on_mouse_move(event)
-            elif event.type() == QtCore.QEvent.Type.Leave:
-                self._on_mouse_leave()
+            match event.type():
+                case QtCore.QEvent.Type.MouseMove:
+                    self._on_mouse_move(event)
+                case QtCore.QEvent.Type.Enter:
+                    self._on_mouse_move(event)
+                case QtCore.QEvent.Type.Leave:
+                    self._on_mouse_leave()
+                case QtCore.QEvent.Type.HoverMove:
+                    self._on_mouse_move(event)
+                case QtCore.QEvent.Type.HoverEnter:
+                    self._on_mouse_move(event)
+                case QtCore.QEvent.Type.HoverLeave:
+                    self._on_mouse_leave()
+                case _:
+                    self._on_mouse_leave()
         return super().eventFilter(obj, event)
 
     def _on_mouse_move(self, event: QtGui.QMouseEvent) -> None:
         """Handle mouse movement in tree view"""
-        # Early return if no valid paths are set to avoid processing drive letters
-        if not self.input_path or not self.destination_path:
+        # Early return if no valid paths are set
+        if not self.input_path:
             self._hide_preview()
             return
 
@@ -289,9 +301,9 @@ class UiBatchCropWidget(UiCropWidget):
         self._hide_preview()
 
     def _show_preview(self):
-        """Show the preview image in the preview widget"""
+        """Show the preview image in the preview widget WITH DEBUGGING"""
         # Early return if no valid paths are set
-        if not self.input_path or not self.destination_path:
+        if not self.input_path:
             return
 
         if self._last_mouse_pos is None or not self._pending_preview_path:
@@ -300,38 +312,38 @@ class UiBatchCropWidget(UiCropWidget):
         # Use the stored file path instead of recalculating from mouse position
         file_path = self._pending_preview_path
 
-        if file_path and self._is_image_file(file_path):
-            try:
-                # Create job for preview with proper path validation
-                folder_path = Path(self.input_path) if self.input_path and Path(self.input_path).exists() else None
-                destination_path = (
-                    Path(self.destination_path)
-                    if self.destination_path
-                    and Path(self.destination_path).exists()
-                    else None
-                )
+        if not file_path or not self._is_image_file(file_path):
+            return
 
-                # Skip preview if required paths are not valid
-                if not folder_path or not destination_path:
-                    return
+        try:
+            # Create job for preview with proper path validation
+            folder_path = Path(self.input_path) if self.input_path and Path(self.input_path).exists() else None
+            destination_path = (
+                Path(self.destination_path)
+                if self.destination_path
+                and Path(self.destination_path).exists()
+                else None
+            )
 
-                job = self.create_job(
-                    self._get_function_type(),  # This should be implemented by subclasses
-                    folder_path=folder_path,
-                    destination=destination_path
-                )
-
-                # Show preview
-                self.image_preview.preview_file(
-                    file_path,
-                    self._last_mouse_pos,
-                    self.crop_worker.face_detection_tools[0],
-                    job
-                )
-            except Exception as e:
-                # Silently handle preview errors to avoid disrupting user experience
-                print(f"Preview error: {e}")
+            # Skip preview if required paths are not valid
+            if not folder_path or not destination_path:
                 return
+
+            job = self.create_job(
+                self._get_function_type(),
+                folder_path=folder_path,
+                destination=destination_path
+            )
+
+            # Show preview
+            self.image_preview.preview_file(
+                file_path,
+                self._last_mouse_pos,
+                self.crop_worker.face_detection_tools[0],
+                job
+            )
+        except Exception:
+            return
 
     def _get_function_type(self):
         """Get the function type for this widget - to be implemented by subclasses"""
@@ -347,11 +359,12 @@ class UiBatchCropWidget(UiCropWidget):
         self.image_preview.clear_cache()
 
     def _is_image_file(self, file_path: str) -> bool:
-        """Check if a file is an image"""
+        """Check if a file is an image WITH DEBUGGING"""
         path = Path(file_path)
-        return (file_manager.is_valid_type(path, FileCategory.PHOTO) or
-                file_manager.is_valid_type(path, FileCategory.TIFF) or
-                file_manager.is_valid_type(path, FileCategory.RAW))
+        is_photo = file_manager.is_valid_type(path, FileCategory.PHOTO)
+        is_tiff = file_manager.is_valid_type(path, FileCategory.TIFF)
+        is_raw = file_manager.is_valid_type(path, FileCategory.RAW)
+        return is_photo or is_tiff or is_raw
 
     def load_data(self) -> None:
         """Load data into the tree view from the selected folder"""

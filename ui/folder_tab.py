@@ -32,9 +32,8 @@ class UiFolderTabWidget(UiBatchCropWidget):
         QtCore.QMetaObject.connectSlotsByName(self)
 
     def setup_layouts(self) -> None:
-        """Set up the main layout structure with pulsing indicator"""
-        # ---- Page 1: Crop View ---- (unchanged)
-        # Main frame with image and controls
+        """Set up the main layout structure with pulsing indicator and debugging"""
+        # ---- Page 1: Crop View ---- 
         frame, vertical_layout = self.setup_main_crop_frame(self.page_1)
 
         # Crop and cancel buttons
@@ -51,8 +50,6 @@ class UiFolderTabWidget(UiBatchCropWidget):
         vertical_layout.addWidget(self.pulsing_indicator)
 
         self.verticalLayout_200.addWidget(frame)
-
-        # Add page to toolbox
         self.toolBox.addItem(self.page_1, "Crop View")
 
         # ---- Page 2: Folder View ----
@@ -60,45 +57,81 @@ class UiFolderTabWidget(UiBatchCropWidget):
         self.treeView.setObjectName("treeView")
         self.treeView.setModel(self.file_model)
 
-        # Enable mouse tracking for hover detection
+        # Enhanced mouse tracking setup
         self.treeView.setMouseTracking(True)
+        viewport = self.treeView.viewport()
+        if viewport is not None:
+            viewport.setMouseTracking(True)
+
+        # Enable hover attributes
+        self.treeView.setAttribute(QtCore.Qt.WidgetAttribute.WA_Hover, True)
+        if viewport is not None:
+            viewport.setAttribute(QtCore.Qt.WidgetAttribute.WA_Hover, True)
 
         # Connect tree view hover events
         self.treeView.entered.connect(self._on_item_entered)
-        if viewport := self.treeView.viewport():
+
+        # Install event filter
+        if viewport is not None:
             viewport.installEventFilter(self)
 
+        # Add tree view
         self.verticalLayout_300.addWidget(self.treeView)
-
-        # Add page to toolbox
         self.toolBox.addItem(self.page_2, "Folder View")
 
         # Add toolbox to the main layout
         self.verticalLayout_100.addWidget(self.toolBox)
 
-    def _show_preview(self):
-        """Show the image preview"""
-        if self._last_mouse_pos is None or not self._pending_preview_path:
+    def load_data(self) -> None:
+        """Load data into the tree view from the selected folder WITH DEBUGGING"""
+        try:
+            if not self.input_path:
+                self.file_model.setRootPath("")
+                self.treeView.setRootIndex(self.file_model.index(""))
+                return
+
+            path = Path(self.input_path)
+
+            if not path.exists() or not path.is_dir():
+                self.file_model.setRootPath("")
+                self.treeView.setRootIndex(self.file_model.index(""))
+                return
+
+            self.file_model.setRootPath(self.input_path)
+
+            root_index = self.file_model.index(self.input_path)
+
+            self.treeView.setRootIndex(root_index)
+
+            # Wait a bit for the model to load, then check contents
+            QtCore.QTimer.singleShot(500, self._check_model_contents)
+
+        except Exception:
             return
 
-        # Use the stored file path instead of recalculating from mouse position
-        file_path = self._pending_preview_path
+    def _check_model_contents(self):
+        """Check what's actually in the model after loading"""
+        root_index = self.treeView.rootIndex()
 
-        if file_path and self._is_image_file(file_path):
-            # Create job for preview
-            job = self.create_job(
-                FunctionType.FOLDER,
-                folder_path=Path(self.input_path) if self.input_path else None,
-                destination=Path(self.destination_path) if self.destination_path else None
-            )
+        if root_index.isValid():
+            row_count = self.file_model.rowCount(root_index)
 
-            # Show preview
-            self.image_preview.preview_file(
-                file_path,
-                self._last_mouse_pos,
-                self.crop_worker.face_detection_tools[0],
-                job
-            )
+            for i in range(min(5, row_count)):
+                child_index = self.file_model.index(i, 0, root_index)
+                if child_index.isValid():
+                    file_path = self.file_model.filePath(child_index)
+                    file_info = self.file_model.fileInfo(child_index)
+                    is_image = self._is_image_file(file_path)
+                    print(f"  Item {i}: {file_path}")
+                    print(f"    Is file: {file_info.isFile()}")
+                    print(f"    Is image: {is_image}")
+                    print(f"    Size: {file_info.size()}")
+        else:
+            print("Root index is not valid!")
+
+    def _get_function_type(self):
+        """Get the function type for this widget"""
+        return FunctionType.FOLDER
 
     def connect_signals(self) -> None:
         """Connect widget signals to handlers"""
