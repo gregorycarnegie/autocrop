@@ -7,7 +7,7 @@ name            = "autocrop_rs"
 version         = "0.6.0"
 requires-python = ">=3.10"
 dependencies    = [
-  "cachetools>=5.5.2",
+  "cachetools>=6.0.0",
   "fastexcel>=0.14.0",
   "ffmpeg-python>=0.2.0",
   "numpy>=2.2.6",

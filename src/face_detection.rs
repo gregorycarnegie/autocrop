@@ -1,6 +1,5 @@
 // src/face_detection.rs
 use pyo3::prelude::*;
-use std::cmp::Ordering;
 
 use crate::ImportablePyModuleBuilder;
 
@@ -74,7 +73,7 @@ fn scale_face_coordinates(face: &Rectangle, scale_factor: i32) -> (i32, i32, i32
 #[pyfunction]
 fn find_best_face(faces: Vec<Rectangle>) -> Option<Rectangle> {
     faces.into_iter()
-        .max_by(|a, b| a.confidence.partial_cmp(&b.confidence).unwrap_or(Ordering::Equal))
+        .max_by(|a, b| a.confidence.partial_cmp(&b.confidence).unwrap_or(std::cmp::Ordering::Equal))
 }
 
 pub fn register_module(m: &Bound<'_, PyModule>) -> PyResult<()> {

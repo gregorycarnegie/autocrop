@@ -1,4 +1,4 @@
-use ndarray::{Array1, Array2, Array3, ArrayView2, ArrayView3, Axis, Ix3, par_azip, s};
+use ndarray::{Array1, Array2, Array3, ArrayView2, ArrayView3, Axis, Ix3, par_azip, s, Zip};
 use numpy::{IntoPyArray, PyArray1, PyArray2, PyArray3, PyReadonlyArray2, PyReadonlyArray3};
 use pyo3::{prelude::*, types::PyBytes};
 use pyo3::exceptions::{PyValueError, PyRuntimeError};
@@ -8,17 +8,14 @@ use rayon::current_num_threads;
 use parking_lot::Mutex;
 
 use crate::ImportablePyModuleBuilder;
+use crate::dispatch_simd::dispatch_simd;
 
 // For x86/x86_64 specific SIMD intrinsics
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 use std::arch::x86_64::{
-    _mm256_setzero_pd, _mm256_set1_pd, _mm256_set_pd, _mm256_storeu_pd,
-    _mm256_div_pd, _mm256_mul_pd, _mm256_fmadd_pd,
-    _mm256_round_pd, _mm256_max_pd, _mm256_min_pd, _mm_prefetch,
-    _MM_FROUND_TO_NEAREST_INT, _MM_HINT_T0
+    _mm256_set1_pd, _mm256_set_pd, _mm256_storeu_pd,
+    _mm256_div_pd
 };
-
-use crate::dispatch_simd::dispatch_simd;
 
 /// Alias representing a rectangle
 type Rectangle = (f64, f64, f64, f64);
@@ -146,17 +143,9 @@ where
     let float_val: f64 = value.into();
     float_val.round().clamp(0.0, 255.0) as u8
 }
+
 /// Convert BGR image view to grayscale array (Parallelized with Rayon).
-fn bgr_to_gray(image_view: ArrayView3<u8>, use_rec709: bool) -> Array2<u8> {
-    dispatch_simd(
-        (image_view, use_rec709),
-        |(view, rec709)| unsafe {bgr_to_gray_avx2_impl(view, rec709)},
-        |(view, rec709)| bgr_to_gray_standard_impl(view, rec709)
-    )
-}
-
-#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-unsafe fn bgr_to_gray_avx2_impl(
+pub fn bgr_to_gray(
     image_view: ArrayView3<u8>,
     use_rec709: bool,
 ) -> Array2<u8> {
@@ -164,126 +153,6 @@ unsafe fn bgr_to_gray_avx2_impl(
     let height = shape[0];
     let width = shape[1];
     
-    // OPTIMIZATION: Reuse buffer if available or create a new one
-    let mut gray = GRAY_BUFFER.with(|cell| {
-        let mut guard = cell.lock();
-        if let Some(ref mut buf) = *guard {
-            if buf.shape()[0] == height && buf.shape()[1] == width {
-                // Reuse existing buffer
-                buf.fill(0);
-                buf.clone()
-            } else {
-                // Wrong size, create new
-                let new_buf = Array2::<u8>::zeros((height, width));
-                *guard = Some(new_buf.clone());
-                new_buf
-            }
-        } else {
-            // No buffer yet, create new
-            let new_buf = Array2::<u8>::zeros((height, width));
-            *guard = Some(new_buf.clone());
-            new_buf
-        }
-    });
-
-    // Select coefficients
-    let (r_coeff, g_coeff, b_coeff) = get_rgb_coefficients(use_rec709);
-
-    // Create AVX2 vectors for coefficients (4 doubles per vector)
-    let r_vector = _mm256_set1_pd(r_coeff as f64);
-    let g_vector = _mm256_set1_pd(g_coeff as f64);
-    let b_vector = _mm256_set1_pd(b_coeff as f64);
-
-    // Constants for vectorized clamping
-    let zero_vector = _mm256_setzero_pd();
-    let max_vector = _mm256_set1_pd(255.0);
-
-    // Cache line optimization: process in chunks that fit well in cache
-    const CACHE_CHUNK_SIZE: usize = 64 / 4; // 64 bytes cache line / 4 bytes per u32 = 16 pixels
-    
-    // Process rows in parallel
-    par_azip!((mut gray_row in gray.axis_iter_mut(Axis(0)),
-               image_row in image_view.axis_iter(Axis(0))) {
-        
-        // Get raw pointers for faster access
-        let image_ptr = image_row.as_ptr();
-        let gray_ptr = gray_row.as_mut_ptr();
-        
-        // Process in cache-friendly chunks
-        for chunk_start in (0..width).step_by(CACHE_CHUNK_SIZE) {
-            let chunk_end = (chunk_start + CACHE_CHUNK_SIZE).min(width);
-            
-            let mut i = chunk_start;
-            
-            // Process 4 pixels at a time for simplicity and reliability
-            while i + 3 < chunk_end {
-                // Prefetch next chunk of data
-                if i + 16 < width {
-                    _mm_prefetch(image_ptr.add((i + 16) * 3) as *const i8, _MM_HINT_T0);
-                }
-                
-                // Load 4 pixels
-                let mut b_vals = [0.0; 4];
-                let mut g_vals = [0.0; 4];
-                let mut r_vals = [0.0; 4];
-                
-                for j in 0..4 {
-                    b_vals[j] = *image_ptr.add((i + j) * 3 + 0) as f64;
-                    g_vals[j] = *image_ptr.add((i + j) * 3 + 1) as f64;
-                    r_vals[j] = *image_ptr.add((i + j) * 3 + 2) as f64;
-                }
-                
-                // Create AVX vectors
-                let r_pixels = _mm256_set_pd(r_vals[3], r_vals[2], r_vals[1], r_vals[0]);
-                let g_pixels = _mm256_set_pd(g_vals[3], g_vals[2], g_vals[1], g_vals[0]);
-                let b_pixels = _mm256_set_pd(b_vals[3], b_vals[2], b_vals[1], b_vals[0]);
-                
-                // Use FMA for better performance
-                let mut gray_values = _mm256_mul_pd(r_pixels, r_vector);
-                gray_values = _mm256_fmadd_pd(g_pixels, g_vector, gray_values);
-                gray_values = _mm256_fmadd_pd(b_pixels, b_vector, gray_values);
-                
-                // Vectorized rounding and clamping
-                gray_values = _mm256_round_pd(gray_values, _MM_FROUND_TO_NEAREST_INT);
-                gray_values = _mm256_min_pd(_mm256_max_pd(gray_values, zero_vector), max_vector);
-                
-                // Convert to integers and store to a temporary array
-                // We'll use a direct approach here to avoid complex SIMD packing
-                let mut result_array = [0.0; 4];
-                _mm256_storeu_pd(result_array.as_mut_ptr(), gray_values);
-                
-                // Store results with direct conversion
-                for j in 0..4 {
-                    *gray_ptr.add(i + j) = round_clamp_to_u8(result_array[j]);
-                }
-                
-                i += 4;
-            }
-            
-            // Handle remaining pixels with scalar code
-            while i < chunk_end {
-                let b = *image_ptr.add(i * 3 + 0) as f32;
-                let g = *image_ptr.add(i * 3 + 1) as f32;
-                let r = *image_ptr.add(i * 3 + 2) as f32;
-                *gray_ptr.add(i) = round_clamp_to_u8(r_coeff * r + g_coeff * g + b_coeff * b);
-                i += 1;
-            }
-        }
-    });
-
-    gray
-}
-
-/// Internal: Convert BGR image view to grayscale array (Parallelized with Rayon).
-fn bgr_to_gray_standard_impl(
-    image_view: ArrayView3<u8>,
-    use_rec709: bool,
-) -> Array2<u8> {
-    let shape = image_view.shape();
-    let height = shape[0];
-    let width = shape[1];
-    
-    // OPTIMIZATION: Reuse buffer if available or create a new one
     let mut gray = GRAY_BUFFER.with(|cell| {
         let mut guard = cell.lock();
         if let Some(ref mut buf) = *guard {
@@ -313,10 +182,8 @@ fn bgr_to_gray_standard_impl(
     let b_channel = image_view.slice(s![.., .., 0]); // Shape (H x W)
     let g_channel = image_view.slice(s![.., .., 1]); // Shape (H x W)
     let r_channel = image_view.slice(s![.., .., 2]); // Shape (H x W)
-    // ---------------------------------------
 
-    // OPTIMIZATION: Use ndarray::Zip to minimize temporaries
-    ndarray::Zip::from(&mut gray)
+    Zip::from(&mut gray)
         .and(&b_channel)
         .and(&g_channel)
         .and(&r_channel)
@@ -407,132 +274,8 @@ fn calc_alpha_beta(hist: &[f64]) -> Option<(f64, f64)> {
     Some((alpha, beta))
 }
 
-/// Apply scale and shift (convertScaleAbs logic) to an image view
-fn convert_scale_abs(image_view: ArrayView3<u8>, alpha: f64, beta: f64) -> Array3<u8> {
-    dispatch_simd(
-        (image_view, alpha, beta),
-        |(view, a, b)| unsafe {convert_scale_abs_avx2_impl(view, a, b)},
-        |(view, a, b)| convert_scale_abs_standard_impl(view, a, b)
-    )
-}
-
-#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-unsafe fn convert_scale_abs_avx2_impl(
-    image_view: ArrayView3<u8>,
-    alpha: f64, 
-    beta: f64,
-) -> Array3<u8> {
-    let shape = image_view.raw_dim();
-    let mut output_array: Array3<u8> = Array3::zeros(shape.clone());
-    
-    let alpha_vector = _mm256_set1_pd(alpha);
-    let beta_vector = _mm256_set1_pd(beta);
-    let channels = shape[2];
-    
-    // Check if channels is 3 (typical for RGB/BGR images)
-    // This allows us to optimize the common case specifically
-    if channels == 3 {
-        // Process each row in parallel
-        par_azip!((
-            mut output_slice in output_array.axis_iter_mut(Axis(0)),
-            input_slice in image_view.axis_iter(Axis(0))
-        ) {
-            let width = shape[1];
-            
-            // 1. Process chunks of 4 pixels for all 3 channels together
-            let mut j = 0;
-            while j + 3 < width {
-                // Process all 3 channels in one go
-                for c in 0..3 {
-                    // Use pointers for faster access without bounds checking
-                    let input_ptr = input_slice.as_ptr();
-                    let output_ptr = output_slice.as_mut_ptr();
-                    
-                    // Load 4 input values directly without intermediate array
-                    let input_vector = _mm256_set_pd(
-                        *input_ptr.add((j + 3) * channels + c) as f64,
-                        *input_ptr.add((j + 2) * channels + c) as f64,
-                        *input_ptr.add((j + 1) * channels + c) as f64,
-                        *input_ptr.add(j * channels + c) as f64
-                    );
-                    
-                    // Apply scale and shift
-                    let result = _mm256_fmadd_pd(input_vector, alpha_vector, beta_vector);
-                    
-                    // Directly convert and store to output
-                    let mut result_array = [0.0; 4];
-                    _mm256_storeu_pd(result_array.as_mut_ptr(), result);
-                    
-                    // Store results with direct pointer manipulation
-                    for k in 0..4 {
-                        *output_ptr.add((j + k) * channels + c) = 
-                            round_clamp_to_u8(result_array[k]);
-                    }
-                }
-                j += 4;
-            }
-            
-            // 2. Handle remaining pixels (all channels together)
-            while j < width {
-                for c in 0..3 {
-                    let input_val = input_slice[[j, c]] as f64;
-                    output_slice[[j, c]] = round_clamp_to_u8(input_val * alpha + beta);
-                }
-                j += 1;
-            }
-        });
-    } else {
-        // Generic case for any number of channels
-        par_azip!((
-            mut output_slice in output_array.axis_iter_mut(Axis(0)),
-            input_slice in image_view.axis_iter(Axis(0))
-        ) {
-            let width = shape[1];
-            
-            // Process all channels for each pixel block
-            // This keeps related channels together for better cache utilization
-            let mut j = 0;
-            while j + 3 < width {
-                for c in 0..channels {
-                    // Process 4 pixels at once for this channel
-                    let input_vector = _mm256_set_pd(
-                        input_slice[[j + 3, c]] as f64,
-                        input_slice[[j + 2, c]] as f64,
-                        input_slice[[j + 1, c]] as f64,
-                        input_slice[[j + 0, c]] as f64
-                    );
-                    
-                    // Apply scale and shift
-                    let result = _mm256_fmadd_pd(input_vector, alpha_vector, beta_vector);
-                    
-                    // Store results
-                    let mut result_array = [0.0; 4];
-                    _mm256_storeu_pd(result_array.as_mut_ptr(), result);
-                    
-                    // Store with unchecked access for speed
-                    for k in 0..4 {
-                        *output_slice.uget_mut((j + k, c)) = round_clamp_to_u8(result_array[k]);
-                    }
-                }
-                j += 4;
-            }
-            
-            // Handle remaining pixels
-            while j < width {
-                for c in 0..channels {
-                    *output_slice.uget_mut((j, c)) = 
-                        round_clamp_to_u8((*input_slice.uget((j, c)) as f64) * alpha + beta);
-                }
-                j += 1;
-            }
-        });
-    }
-    
-    output_array
-}
-
-/// Internal: Apply scale and shift (convertScaleAbs logic) to an image view (Parallelized with Rayon).
-fn convert_scale_abs_standard_impl(
+/// Apply scale and shift (convertScaleAbs logic) to an image view (Parallelized with Rayon).
+pub fn convert_scale_abs(
     image_view: ArrayView3<u8>,
     alpha: f64,
     beta: f64,
@@ -605,11 +348,18 @@ fn gamma<'py>(gamma_value: f64, py: Python<'py>) -> PyResult<Bound<'py, PyArray1
         }
         
         // Not found, generate a new table
-        let new_table = dispatch_simd(
-            gamma_value,
-            |g| unsafe {gamma_avx2_impl(g)},
-            |g| gamma_standard_impl(g)
-        );
+        // standard_impl faster for gamma < 1.0
+        let new_table = {
+            if gamma_value < 1.0 {
+                gamma_standard_impl(gamma_value)
+            } else {
+                dispatch_simd(
+                    gamma_value,
+                    |g| unsafe {gamma_avx2_impl(g)},
+                    |g| gamma_standard_impl(g)
+                )         
+            }            
+        };
         
         // Cache the result (up to a reasonable limit)
         if cache_guard.len() < 10 {  // Limit cache size
@@ -625,7 +375,7 @@ fn gamma<'py>(gamma_value: f64, py: Python<'py>) -> PyResult<Bound<'py, PyArray1
 
 /// AVX2-accelerated gamma correction lookup table generation
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-unsafe fn gamma_avx2_impl(gamma_value: f64) -> Vec<u8> {
+pub unsafe fn gamma_avx2_impl(gamma_value: f64) -> Vec<u8> {
     if gamma_value <= 1.0 {
         // For gamma ≤ 1.0, just return array with values 0-255
         return (0..=255).collect();
@@ -670,7 +420,7 @@ unsafe fn gamma_avx2_impl(gamma_value: f64) -> Vec<u8> {
 }
 
 /// Python-facing gamma correction function that uses AVX2 if available
-fn gamma_standard_impl(gamma_value: f64) -> Vec<u8> {
+pub fn gamma_standard_impl(gamma_value: f64) -> Vec<u8> {
     let lookup: Vec<u8>;
     // Standard implementation (fallback)
     if gamma_value <= 1.0 {
