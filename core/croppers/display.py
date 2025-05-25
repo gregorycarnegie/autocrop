@@ -251,8 +251,13 @@ class DisplayCropper(Cropper):
             if not bounding_box:
                 return None
 
-            # Create and apply the processing pipeline
-            pipeline = prc.build_processing_pipeline(job, self.face_detection_tools, bounding_box, True)
+            # Get rotation matrix if auto-tilt is enabled
+            rotation_matrix = prc.get_rotation_matrix(image_copy, self.face_detection_tools, job)
+
+            # Create and apply the processing pipeline with rotation matrix
+            pipeline = prc.build_crop_instruction_pipeline(
+                job, bounding_box, display=True, rotation_matrix=rotation_matrix
+            )
             processed_image = prc.run_processing_pipeline(image_copy, pipeline)
 
         return self._convert_to_qimage(processed_image, cached_image.color_space)
