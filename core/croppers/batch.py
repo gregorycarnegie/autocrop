@@ -474,10 +474,7 @@ class BatchCropper(Cropper):
 
             # Write rejected files to CSV if there are any
             if self.rejected_files and hasattr(self, 'job') and hasattr(self.job, 'safe_destination'):
-                if csv_path := prc.write_rejected_files_to_csv(
-                    self.rejected_files, self.job.safe_destination
-                ):
-                    print(f"Rejected files list written to {csv_path}")
+                prc.write_rejected_files_to_csv(self.rejected_files, self.job.safe_destination)
 
             # Use QMetaObject.invokeMethod for cross-thread signal emission
             QMetaObject.invokeMethod(
