@@ -1,4 +1,3 @@
-
 import contextlib
 import threading
 from collections.abc import Callable
@@ -47,6 +46,10 @@ class UiBatchCropWidget(UiCropWidget):
         # Create a file model for the tree view (like FolderCropper)
         self.file_model = QtGui.QFileSystemModel(self)
         self.file_model.setFilter(QtCore.QDir.Filter.NoDotAndDotDot | QtCore.QDir.Filter.Files)
+
+        # IMPORTANT: Don't set any root path initially to prevent drive enumeration
+        # The model will remain empty until a valid path is explicitly set
+
         p_types = (
             file_manager.get_extensions(FileCategory.PHOTO) |
             file_manager.get_extensions(FileCategory.TIFF) |
@@ -221,14 +224,23 @@ class UiBatchCropWidget(UiCropWidget):
 
     def _on_item_entered(self, index):
         """Handle when mouse enters a tree view item"""
-        file_path = self.file_model.filePath(index)
-        file_path = ut.sanitize_path(file_path)
+        # Early return if no valid paths are set to avoid processing drive letters
+        if not self.input_path or not self.destination_path:
+            return
 
-        if file_path and self._is_image_file(file_path):
-            self._last_mouse_pos = QtGui.QCursor.pos()
-            # Store the file path that should be previewed when timer fires
-            self._pending_preview_path = file_path
-            self._hover_timer.start(200)
+        file_path = self.file_model.filePath(index)
+
+        # Skip if the file path is empty or appears to be a drive letter
+        if not file_path or len(file_path) <= 3:  # Skip "C:", "C:\", etc.
+            return
+
+        # Only sanitize and process if we have a reasonable file path
+        if file_path := ut.sanitize_path(file_path):
+            if self._is_image_file(file_path):
+                self._last_mouse_pos = QtGui.QCursor.pos()
+                # Store the file path that should be previewed when timer fires
+                self._pending_preview_path = file_path
+                self._hover_timer.start(200)
 
     def eventFilter(self, obj, event):
         """Filter events to handle mouse movement and leaving the tree view"""
@@ -241,19 +253,32 @@ class UiBatchCropWidget(UiCropWidget):
 
     def _on_mouse_move(self, event: QtGui.QMouseEvent) -> None:
         """Handle mouse movement in tree view"""
+        # Early return if no valid paths are set to avoid processing drive letters
+        if not self.input_path or not self.destination_path:
+            self._hide_preview()
+            return
+
         index = self.treeView.indexAt(event.position().toPoint())
 
         if index.isValid():
             file_path = self.file_model.filePath(index)
-            file_path = ut.sanitize_path(file_path)
 
-            if file_path and self._is_image_file(file_path):
-                global_pos = event.globalPosition().toPoint()
-                self._last_mouse_pos = global_pos
-                # Store the file path that should be previewed when timer fires
-                self._pending_preview_path = file_path
-                if not self._hover_timer.isActive():
-                    self._hover_timer.start(200)
+            # Skip if the file path is empty or appears to be a drive letter
+            if not file_path or len(file_path) <= 3:  # Skip "C:", "C:\", etc.
+                self._hide_preview()
+                return
+
+            # Only sanitize and process if we have a reasonable file path
+            if file_path := ut.sanitize_path(file_path):
+                if self._is_image_file(file_path):
+                    global_pos = event.globalPosition().toPoint()
+                    self._last_mouse_pos = global_pos
+                    # Store the file path that should be previewed when timer fires
+                    self._pending_preview_path = file_path
+                    if not self._hover_timer.isActive():
+                        self._hover_timer.start(200)
+                else:
+                    self._hide_preview()
             else:
                 self._hide_preview()
         else:
@@ -265,7 +290,47 @@ class UiBatchCropWidget(UiCropWidget):
 
     def _show_preview(self):
         """Show the preview image in the preview widget"""
-        raise NotImplementedError("This method should be implemented in the subclass")
+        # Early return if no valid paths are set
+        if not self.input_path or not self.destination_path:
+            return
+
+        if self._last_mouse_pos is None or not self._pending_preview_path:
+            return
+
+        # Use the stored file path instead of recalculating from mouse position
+        file_path = self._pending_preview_path
+
+        if file_path and self._is_image_file(file_path):
+            try:
+                # Create job for preview with proper path validation
+                folder_path = Path(self.input_path) if self.input_path and Path(self.input_path).exists() else None
+                destination_path = Path(self.destination_path) if self.destination_path and Path(self.destination_path).exists() else None
+
+                # Skip preview if required paths are not valid
+                if not folder_path or not destination_path:
+                    return
+
+                job = self.create_job(
+                    self._get_function_type(),  # This should be implemented by subclasses
+                    folder_path=folder_path,
+                    destination=destination_path
+                )
+
+                # Show preview
+                self.image_preview.preview_file(
+                    file_path,
+                    self._last_mouse_pos,
+                    self.crop_worker.face_detection_tools[0],
+                    job
+                )
+            except Exception as e:
+                # Silently handle preview errors to avoid disrupting user experience
+                print(f"Preview error: {e}")
+                return
+
+    def _get_function_type(self):
+        """Get the function type for this widget - to be implemented by subclasses"""
+        raise NotImplementedError("Subclasses must implement _get_function_type method")
 
     def _hide_preview(self):
         """Hide the image preview"""
@@ -287,16 +352,26 @@ class UiBatchCropWidget(UiCropWidget):
         """Load data into the tree view from the selected folder"""
         try:
             if not self.input_path:
+                # Clear the tree view when no path is set to prevent showing all drives
+                self.file_model.setRootPath("")
+                self.treeView.setRootIndex(self.file_model.index(""))
                 return
 
             path = Path(self.input_path)
             if not path.exists() or not path.is_dir():
+                # Clear the tree view for invalid paths
+                self.file_model.setRootPath("")
+                self.treeView.setRootIndex(self.file_model.index(""))
                 return
 
             self.file_model.setRootPath(self.input_path)
             self.treeView.setRootIndex(self.file_model.index(self.input_path))
 
         except (IndexError, FileNotFoundError, ValueError, AttributeError):
+            # Clear the tree view on any error
+            with contextlib.suppress(Exception):
+                self.file_model.setRootPath("")
+                self.treeView.setRootIndex(self.file_model.index(""))
             return
 
     # Clean up when tab is hidden or destroyed

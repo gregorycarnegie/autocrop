@@ -490,12 +490,19 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
                 # Get the current path from tab widget if it exists
                 self.unified_address_bar.blockSignals(True)
-                self.unified_address_bar.setText(self.photo_tab_widget.input_path)
+                # Only set text if path is not empty to prevent default drive issues
+                if self.photo_tab_widget.input_path:
+                    self.unified_address_bar.setText(self.photo_tab_widget.input_path)
+                else:
+                    self.unified_address_bar.clear()
                 self.unified_address_bar.blockSignals(False)
 
                 # Get a destination path
                 self.destination_input.blockSignals(True)
-                self.destination_input.setText(self.photo_tab_widget.destination_path)
+                if self.photo_tab_widget.destination_path:
+                    self.destination_input.setText(self.photo_tab_widget.destination_path)
+                else:
+                    self.destination_input.clear()
                 self.destination_input.blockSignals(False)
 
             case FunctionType.FOLDER:
@@ -509,12 +516,18 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
                 # Get the current path from tab widget if it exists
                 self.unified_address_bar.blockSignals(True)
-                self.unified_address_bar.setText(self.folder_tab_widget.input_path)
+                if self.folder_tab_widget.input_path:
+                    self.unified_address_bar.setText(self.folder_tab_widget.input_path)
+                else:
+                    self.unified_address_bar.clear()
                 self.unified_address_bar.blockSignals(False)
 
                 # Get a destination path
                 self.destination_input.blockSignals(True)
-                self.destination_input.setText(self.folder_tab_widget.destination_path)
+                if self.folder_tab_widget.destination_path:
+                    self.destination_input.setText(self.folder_tab_widget.destination_path)
+                else:
+                    self.destination_input.clear()
                 self.destination_input.blockSignals(False)
 
             case FunctionType.MAPPING:
@@ -530,16 +543,25 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
                 # Get current paths from tab widget if they exist
                 self.unified_address_bar.blockSignals(True)
-                self.unified_address_bar.setText(self.mapping_tab_widget.input_path)
+                if self.mapping_tab_widget.input_path:
+                    self.unified_address_bar.setText(self.mapping_tab_widget.input_path)
+                else:
+                    self.unified_address_bar.clear()
                 self.unified_address_bar.blockSignals(False)
 
                 self.secondary_input.blockSignals(True)
-                self.secondary_input.setText(self.mapping_tab_widget.table_path)
+                if self.mapping_tab_widget.table_path:
+                    self.secondary_input.setText(self.mapping_tab_widget.table_path)
+                else:
+                    self.secondary_input.clear()
                 self.secondary_input.blockSignals(False)
 
                 # Get a destination path
                 self.destination_input.blockSignals(True)
-                self.destination_input.setText(self.mapping_tab_widget.destination_path)
+                if self.mapping_tab_widget.destination_path:
+                    self.destination_input.setText(self.mapping_tab_widget.destination_path)
+                else:
+                    self.destination_input.clear()
                 self.destination_input.blockSignals(False)
 
             case FunctionType.VIDEO:
@@ -553,12 +575,18 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
                 # Get the current path from tab widget if it exists
                 self.unified_address_bar.blockSignals(True)
-                self.unified_address_bar.setText(self.video_tab_widget.input_path)
+                if self.video_tab_widget.input_path:
+                    self.unified_address_bar.setText(self.video_tab_widget.input_path)
+                else:
+                    self.unified_address_bar.clear()
                 self.unified_address_bar.blockSignals(False)
 
                 # Get a destination path
                 self.destination_input.blockSignals(True)
-                self.destination_input.setText(self.video_tab_widget.destination_path)
+                if self.video_tab_widget.destination_path:
+                    self.destination_input.setText(self.video_tab_widget.destination_path)
+                else:
+                    self.destination_input.clear()
                 self.destination_input.blockSignals(False)
 
         # Force update of clear button visibility after changing tab
@@ -567,7 +595,6 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.destination_input.update_clear_button(self.destination_input.text())
         if self.secondary_input_container.isVisible():
             self.secondary_input.update_clear_button(self.secondary_input.text())
-
 
     # retranslateUi
     def retranslateUi(self):
@@ -661,13 +688,11 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
     def unified_address_changed(self, text: str):
         """Handle changes to the unified address bar"""
+        # Skip processing if text is empty to prevent default drive issues
+        if not text.strip():
+            return
 
-        # Clean quotation marks if they exist
-        # x, y = text.startswith("'") & text.endswith("'"), text.startswith('"') & text.endswith('"')
-        # cleaned_text = text[1:][:-1] if x ^ y else text
-        # cleaned_text = cleaned_text.replace('\\', '/')
-
-        if cleaned_text:= ut.sanitize_path(text):
+        if cleaned_text := ut.sanitize_path(text):
             # Update the appropriate input field in the current tab
             match self.function_tabWidget.currentIndex():
                 case FunctionType.PHOTO:
@@ -681,6 +706,17 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
             # Trigger preview update for the current tab
             self.trigger_preview_update()
+        else:
+            # If sanitization failed, clear the path
+            match self.function_tabWidget.currentIndex():
+                case FunctionType.PHOTO:
+                    self.photo_tab_widget.input_path = ""
+                case FunctionType.FOLDER:
+                    self.folder_tab_widget.input_path = ""
+                case FunctionType.MAPPING:
+                    self.mapping_tab_widget.input_path = ""
+                case FunctionType.VIDEO:
+                    self.video_tab_widget.input_path = ""
 
     def trigger_preview_update(self):
         """Trigger preview update for the current tab when path is valid"""

@@ -87,6 +87,7 @@ def sanitize_path(path_str: str) -> str:
     Sanitize path input to prevent security vulnerabilities.
     Uses the Rust implementation for better security guarantees.
     """
+    print(f"Sanitizing path: {path_str}")
     if not path_str:
         return ''
 
