@@ -304,7 +304,12 @@ class UiBatchCropWidget(UiCropWidget):
             try:
                 # Create job for preview with proper path validation
                 folder_path = Path(self.input_path) if self.input_path and Path(self.input_path).exists() else None
-                destination_path = Path(self.destination_path) if self.destination_path and Path(self.destination_path).exists() else None
+                destination_path = (
+                    Path(self.destination_path)
+                    if self.destination_path
+                    and Path(self.destination_path).exists()
+                    else None
+                )
 
                 # Skip preview if required paths are not valid
                 if not folder_path or not destination_path:
