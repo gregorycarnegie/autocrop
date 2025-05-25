@@ -1,4 +1,5 @@
 import contextlib
+import logging
 from pathlib import Path
 
 from PyQt6 import QtCore, QtGui, QtWidgets
@@ -9,6 +10,10 @@ from file_types import FileCategory, file_manager
 from ui import utils as ut
 
 from .batch_tab import UiBatchCropWidget
+
+# Initialize module-level logger
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=51)
 
 
 class UiFolderTabWidget(UiBatchCropWidget):
@@ -70,7 +75,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
 
     def _setup_tree_view_events(self):
         """Set up tree view event handling"""
-        print("Setting up tree view events for folder tab")
+        logger.debug("Setting up tree view events for folder tab")
 
         # Enable mouse tracking on tree view
         self.treeView.setMouseTracking(True)
@@ -82,25 +87,25 @@ class UiFolderTabWidget(UiBatchCropWidget):
             viewport.setMouseTracking(True)
             viewport.setAttribute(QtCore.Qt.WidgetAttribute.WA_Hover, True)
             viewport.installEventFilter(self)
-            print("Event filter installed on tree view viewport")
+            logger.debug("Event filter installed on tree view viewport")
 
         # Connect the entered signal
         self.treeView.entered.connect(self._on_item_entered)
 
     def _handle_image_hover(self, file_path: str, global_pos: QtCore.QPoint):
         """Handle hovering over an image file - ONLY INPUT PATH REQUIRED"""
-        print(f"DEBUG: input_path='{self.input_path}', destination_path='{self.destination_path}'")
+        logger.debug(f"DEBUG: input_path='{self.input_path}', destination_path='{self.destination_path}'")
 
         # Only require input path for preview
         if not self.input_path:
-            print("Cannot show preview - input path not set")
+            logger.warning("Cannot show preview - input path not set")
             return
 
         # Sanitize the file path
         if not (clean_path := ut.sanitize_path(file_path)):
             return
 
-        print(f"Starting preview timer for: {clean_path}")
+        logger.debug(f"Starting preview timer for: {clean_path}")
         # Start/update hover timer
         self._last_mouse_pos = global_pos
         self._pending_preview_path = clean_path
@@ -131,42 +136,43 @@ class UiFolderTabWidget(UiBatchCropWidget):
                     self._hide_preview()
 
             elif event_type == QtCore.QEvent.Type.Leave:
-                print("Mouse left viewport")
+                logger.debug("Mouse left viewport")
                 self._hide_preview()
 
         return super().eventFilter(obj, event)
 
     def _on_item_entered(self, index):
         """Handle when mouse enters a tree view item - backup method"""
-        print(f"Item entered signal: {index.row()}")
+        logger.debug(f"Item entered signal: {index.row()}")
 
         if not self.input_path:
-            print("Input path not set, skipping preview")
+            logger.warning("Cannot show preview - input path not set")
             return
 
         file_path = self.file_model.filePath(index)
-        print(f"File path from entered signal: {file_path}")
+        logger.debug(f"File path from entered signal: {file_path}")
 
         if not file_path or len(file_path) <= 3:
+            logger.warning("Invalid file path or length <= 3")
             return
 
         if sanitized_path := ut.sanitize_path(file_path):
             if self._is_image_file(sanitized_path):
                 self._last_mouse_pos = QtGui.QCursor.pos()
                 self._pending_preview_path = sanitized_path
-                print(f"Starting preview timer for: {sanitized_path}")
+                logger.debug(f"Starting preview timer for: {sanitized_path}")
                 self._hover_timer.start(300)
 
     def _show_preview(self):
         """Show the preview image - ONLY INPUT PATH REQUIRED"""
-        print(f"_show_preview called for: {self._pending_preview_path}")
+        logger.debug(f"_show_preview called for: {self._pending_preview_path}")
 
         if not self._pending_preview_path or not self._last_mouse_pos:
-            print("No pending preview or mouse position")
+            logger.debug("No pending preview or mouse position")
             return
 
         if not self.input_path:
-            print("Cannot show preview - input path not set")
+            logger.warning("Cannot show preview - input path not set")
             return
 
         try:
@@ -174,14 +180,14 @@ class UiFolderTabWidget(UiBatchCropWidget):
             folder_path = Path(self.input_path)
 
             if not folder_path.exists():
-                print("Input path doesn't exist")
+                logger.warning("Input path doesn't exist")
                 return
 
             # Create minimal preview job
             preview_job = self.create_preview_job(folder_path)
 
-            print(f"Showing preview for: {self._pending_preview_path}")
-            print(f"At position: {self._last_mouse_pos}")
+            logger.debug(f"Showing preview for: {self._pending_preview_path}")
+            logger.debug(f"At position: {self._last_mouse_pos}")
 
             # Show the preview
             self.image_preview.preview_file(
@@ -192,13 +198,13 @@ class UiFolderTabWidget(UiBatchCropWidget):
             )
 
         except Exception as e:
-            print(f"Error showing preview: {e}")
+            logger.exception(f"Error showing preview: {e}")
             import traceback
             traceback.print_exc()
 
     def load_data(self) -> None:
         """Load data into the tree view from the selected folder"""
-        print(f"Loading folder data: {self.input_path}")
+        logger.debug(f"Loading folder data: {self.input_path}")
 
         try:
             if not self.input_path:
@@ -217,13 +223,13 @@ class UiFolderTabWidget(UiBatchCropWidget):
             root_index = self.file_model.index(self.input_path)
             self.treeView.setRootIndex(root_index)
 
-            print(f"Loaded {self.file_model.rowCount(root_index)} items")
+            logger.debug(f"Loaded {self.file_model.rowCount(root_index)} items")
 
             # Re-setup events after loading data
             QtCore.QTimer.singleShot(200, self._setup_tree_view_events)
 
         except Exception as e:
-            print(f"Error loading data: {e}")
+            logger.exception(f"Error loading data: {e}")
             with contextlib.suppress(Exception):
                 self.file_model.setRootPath("")
                 self.treeView.setRootIndex(self.file_model.index(""))

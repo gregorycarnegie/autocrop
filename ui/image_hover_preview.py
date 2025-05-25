@@ -13,7 +13,8 @@ from file_types import FileCategory, file_manager
 
 # Initialize module-level logger
 logger = logging.getLogger(__name__)
-# logging.basicConfig(level=51)
+logging.basicConfig(level=51)
+
 
 class ImageHoverPreview(QtWidgets.QLabel):
     """A tooltip-style widget that shows a preview image when hovering over files"""

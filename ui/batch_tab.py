@@ -1,4 +1,5 @@
 import contextlib
+import logging
 import threading
 from collections.abc import Callable
 from pathlib import Path
@@ -17,6 +18,10 @@ from ui.pulsing_indicator import PulsingProgressIndicator
 
 from .crop_widget import UiCropWidget
 from .enums import GuiIcon
+
+# Initialize module-level logger
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=51)
 
 
 class UiBatchCropWidget(UiCropWidget):
@@ -85,13 +90,10 @@ class UiBatchCropWidget(UiCropWidget):
         self.cancelButton.clicked.connect(lambda: self.handle_cancel_button_click())
 
         self.connect_crop_worker_signals(self.cropButton)
-
-        print(f"UiBatchCropWidget initialized: {object_name}")
-
+        logger.debug(f"UiBatchCropWidget initialized: {object_name}")
     def _setup_tree_view(self):
         """Set up tree view with proper event handling"""
-        print("Setting up tree view with enhanced mouse tracking")
-
+        logger.debug("Setting up tree view with enhanced mouse tracking")
         # Configure tree view
         self.treeView.setObjectName("treeView")
         self.treeView.setModel(self.file_model)
@@ -103,8 +105,7 @@ class UiBatchCropWidget(UiCropWidget):
             viewport.setMouseTracking(True)
             viewport.setAttribute(QtCore.Qt.WidgetAttribute.WA_Hover, True)
             viewport.installEventFilter(self)
-            print("Viewport configured with mouse tracking and event filter")
-
+            logger.debug("Viewport configured with mouse tracking and event filter")
         # Enable hover for tree view itself
         self.treeView.setAttribute(QtCore.Qt.WidgetAttribute.WA_Hover, True)
 
@@ -116,15 +117,13 @@ class UiBatchCropWidget(UiCropWidget):
 
     def _tree_mouse_move_event(self, event):
         """Custom mouse move event handler for tree view"""
-        print(f"Tree view mouse move at: {event.position()}")
-
+        logger.debug(f"Tree view mouse move at: {event.position()}")
         # Get the index at the mouse position
         index = self.treeView.indexAt(event.position().toPoint())
 
         if index.isValid():
             file_path = self.file_model.filePath(index)
-            print(f"Mouse over file: {file_path}")
-
+            logger.debug(f"Mouse over file: {file_path}")
             if self._is_image_file(file_path):
                 self._handle_hover_start(file_path, event.globalPosition().toPoint())
         else:
@@ -135,11 +134,10 @@ class UiBatchCropWidget(UiCropWidget):
 
     def _handle_hover_start(self, file_path: str, global_pos: QtCore.QPoint):
         """Handle start of hover over an image file"""
-        print(f"Hover start: {file_path}")
-
+        logger.debug(f"Hover start: {file_path}")
         # Skip if paths aren't set up
         if not self.input_path or not self.destination_path:
-            print("Skipping hover - paths not set")
+            logger.debug("Skipping hover - paths not set")
             return
 
         if file_path == self._current_hovered_file:
@@ -154,7 +152,7 @@ class UiBatchCropWidget(UiCropWidget):
 
     def _handle_hover_end(self):
         """Handle end of hover"""
-        print("Hover end")
+        logger.debug("Hover end")
         self._hover_timer.stop()
         self._current_hovered_file = None
         self.image_preview.hide_preview()
@@ -163,18 +161,17 @@ class UiBatchCropWidget(UiCropWidget):
         """Enhanced event filter with comprehensive logging"""
         if obj == self.treeView.viewport():
             event_type = event.type()
-            print(f"Event filter - Type: {event_type}")
-
+            logger.debug(f"Event filter - Type: {event_type}")
             if event_type == QtCore.QEvent.Type.MouseMove:
-                print(f"Mouse move event in viewport: {event.position()}")
+                logger.debug(f"Mouse move event in viewport: {event.position()}")
                 self._handle_viewport_mouse_move(event)
                 return False
             elif event_type == QtCore.QEvent.Type.Leave:
-                print("Mouse leave viewport")
+                logger.debug("Mouse leave viewport")
                 self._handle_hover_end()
                 return False
             elif event_type == QtCore.QEvent.Type.Enter:
-                print("Mouse enter viewport")
+                logger.debug("Mouse enter viewport")
                 return False
 
         return super().eventFilter(obj, event)
@@ -196,15 +193,13 @@ class UiBatchCropWidget(UiCropWidget):
 
     def _on_item_entered(self, index):
         """Handle when mouse enters a tree view item"""
-        print(f"Item entered: {index.row()}")
-
+        logger.debug(f"Item entered: {index.row()}")
         if not self.input_path or not self.destination_path:
-            print("Paths not set, skipping preview")
+            logger.debug("Paths not set, skipping preview")
             return
 
         file_path = self.file_model.filePath(index)
-        print(f"File path from index: {file_path}")
-
+        logger.debug(f"File path from index: {file_path}")
         if not file_path or len(file_path) <= 3:
             return
 
@@ -212,7 +207,7 @@ class UiBatchCropWidget(UiCropWidget):
             if self._is_image_file(sanitized_path):
                 self._last_mouse_pos = QtGui.QCursor.pos()
                 self._pending_preview_path = sanitized_path
-                print(f"Starting preview timer for: {sanitized_path}")
+                logger.debug(f"Starting preview timer for: {sanitized_path}")
                 self._hover_timer.start(300)
 
     def create_preview_job(self, folder_path: Path) -> Job:
@@ -238,29 +233,30 @@ class UiBatchCropWidget(UiCropWidget):
 
     def _show_preview(self):
         """Show the preview image"""
-        print(f"_show_preview called. Pending path: {self._pending_preview_path}")
-
+        logger.debug(f"_show_preview called. Pending path: {self._pending_preview_path}")
         if not self._pending_preview_path or not self._last_mouse_pos:
-            print("No pending preview or mouse position")
+            logger.debug("No pending preview or mouse position")
             return
 
         if not self.input_path or not self.destination_path:
-            print("Required paths not set")
+            logger.debug("Required paths not set")
             return
 
         file_path = self._pending_preview_path
 
         if not self._is_image_file(file_path):
-            print(f"Not an image file: {file_path}")
+            logger.debug(f"Not an image file: {file_path}")
             return
 
         try:
             # Create job for preview
             folder_path = Path(self.input_path) if self.input_path and Path(self.input_path).exists() else None
-            destination_path = Path(self.destination_path) if self.destination_path and Path(self.destination_path).exists() else None
+            destination_path = (
+                Path(self.destination_path) if self.destination_path and Path(self.destination_path).exists() else None
+            )
 
             if not folder_path or not destination_path:
-                print("Invalid folder or destination path")
+                logger.debug("Invalid folder or destination path")
                 return
 
             job = self.create_job(
@@ -268,10 +264,8 @@ class UiBatchCropWidget(UiCropWidget):
                 folder_path=folder_path,
                 destination=destination_path
             )
-
-            print(f"Created job, showing preview for: {file_path}")
-            print(f"Mouse position: {self._last_mouse_pos}")
-
+            logger.debug(f"Created job, showing preview for: {file_path}")
+            logger.debug(f"Mouse position: {self._last_mouse_pos}")
             # Show preview - this should work now
             self.image_preview.preview_file(
                 file_path,
@@ -281,9 +275,8 @@ class UiBatchCropWidget(UiCropWidget):
             )
 
         except Exception as e:
-            print(f"Error in _show_preview: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.debug(f"Error in _show_preview: {e}")
+            logger.exception("Exception occurred", exc_info=True)
 
     def _get_function_type(self):
         """Get the function type for this widget - to be implemented by subclasses"""
@@ -296,35 +289,32 @@ class UiBatchCropWidget(UiCropWidget):
         is_tiff = file_manager.is_valid_type(path, FileCategory.TIFF)
         is_raw = file_manager.is_valid_type(path, FileCategory.RAW)
         result = is_photo or is_tiff or is_raw
-        print(f"Is image file '{file_path}': {result} (photo: {is_photo}, tiff: {is_tiff}, raw: {is_raw})")
+        logger.debug(f"Is image file '{file_path}': {result} (photo: {is_photo}, tiff: {is_tiff}, raw: {is_raw})")
         return result
 
     def load_data(self) -> None:
         """Load data into the tree view from the selected folder"""
-        print(f"Loading data for path: {self.input_path}")
-
+        logger.debug(f"Loading data for path: {self.input_path}")
         try:
             if not self.input_path:
                 self.file_model.setRootPath("")
                 self.treeView.setRootIndex(self.file_model.index(""))
-                print("No input path, cleared tree view")
+                logger.debug("No input path, cleared tree view")
                 return
 
             path = Path(self.input_path)
             if not path.exists() or not path.is_dir():
                 self.file_model.setRootPath("")
                 self.treeView.setRootIndex(self.file_model.index(""))
-                print(f"Invalid path: {self.input_path}")
+                logger.debug(f"Invalid path: {self.input_path}")
                 return
 
             self.file_model.setRootPath(self.input_path)
             root_index = self.file_model.index(self.input_path)
             self.treeView.setRootIndex(root_index)
-
-            print(f"Tree view loaded with {self.file_model.rowCount(root_index)} items")
-
+            logger.debug(f"Tree view loaded with {self.file_model.rowCount(root_index)} items")
         except Exception as e:
-            print(f"Error loading data: {e}")
+            logger.debug(f"Error loading data: {e}")
             with contextlib.suppress(Exception):
                 self.file_model.setRootPath("")
                 self.treeView.setRootIndex(self.file_model.index(""))
@@ -341,12 +331,11 @@ class UiBatchCropWidget(UiCropWidget):
         try:
             self.crop_worker.terminate()
         except Exception as e:
-            print(f"Error terminating worker: {e}")
-
-        self.cancelButton.setEnabled(False)
-        self.cropButton.setEnabled(True)
-        self.pulsing_indicator.reset()
-        QApplication.processEvents()
+            logger.debug(f"Error terminating worker: {e}")
+            self.cancelButton.setEnabled(False)
+            self.cropButton.setEnabled(True)
+            self.pulsing_indicator.reset()
+            QApplication.processEvents()
 
     def enable_cancel_button(self) -> None:
         """Enable the cancel button immediately"""

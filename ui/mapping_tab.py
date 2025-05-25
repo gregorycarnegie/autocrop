@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 import polars as pl
@@ -11,6 +12,10 @@ from file_types import FileCategory, file_manager
 from ui import utils as ut
 
 from .batch_tab import UiBatchCropWidget
+
+# Initialize module-level logger
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=51)
 
 
 class UiMappingTabWidget(UiBatchCropWidget):
@@ -110,7 +115,7 @@ class UiMappingTabWidget(UiBatchCropWidget):
 
     def _setup_tree_view_events(self):
         """Set up tree view event handling for mapping tab"""
-        print("Setting up tree view events for mapping tab")
+        logger.debug("Setting up tree view events for mapping tab")
 
         # Enable mouse tracking
         self.treeView.setMouseTracking(True)
@@ -122,24 +127,24 @@ class UiMappingTabWidget(UiBatchCropWidget):
             viewport.setMouseTracking(True)
             viewport.setAttribute(QtCore.Qt.WidgetAttribute.WA_Hover, True)
             viewport.installEventFilter(self)
-            print("Mapping tab: Event filter installed on tree view viewport")
+            logger.debug("Mapping tab: Event filter installed on tree view viewport")
 
         # Connect signals
         self.treeView.entered.connect(self._on_item_entered)
 
     def _handle_image_hover(self, file_path: str, global_pos: QtCore.QPoint):
         """Handle hovering over an image file in mapping tab - ONLY INPUT PATH REQUIRED"""
-        print(f"Mapping DEBUG: input_path='{self.input_path}', destination_path='{self.destination_path}'")
+        logger.debug(f"Mapping DEBUG: input_path='{self.input_path}', destination_path='{self.destination_path}'")
 
         # Only require input path for preview
         if not self.input_path:
-            print("Mapping tab: Cannot show preview - input path not set")
+            logger.warning("Mapping tab: Cannot show preview - input path not set")
             return
 
         if not (clean_path := ut.sanitize_path(file_path)):
             return
 
-        print(f"Mapping: Starting preview timer for: {clean_path}")
+        logger.debug(f"Mapping: Starting preview timer for: {clean_path}")
         self._last_mouse_pos = global_pos
         self._pending_preview_path = clean_path
         self._hover_timer.start(300)
@@ -169,17 +174,17 @@ class UiMappingTabWidget(UiBatchCropWidget):
                     self._hide_preview()
 
             elif event_type == QtCore.QEvent.Type.Leave:
-                print("Mouse left mapping viewport")
+                logger.debug("Mouse left mapping viewport")
                 self._hide_preview()
 
         return super().eventFilter(obj, event)
 
     def _on_item_entered(self, index):
         """Handle when mouse enters a tree view item in mapping tab"""
-        print(f"Mapping item entered: {index.row()}")
+        logger.debug(f"Mapping item entered: {index.row()}")
 
         if not self.input_path:
-            print("Mapping: Input path not set, skipping preview")
+            logger.warning("Mapping: Input path not set, skipping preview")
             return
 
         file_path = self.file_model.filePath(index)
@@ -190,32 +195,32 @@ class UiMappingTabWidget(UiBatchCropWidget):
             if self._is_image_file(sanitized_path):
                 self._last_mouse_pos = QtGui.QCursor.pos()
                 self._pending_preview_path = sanitized_path
-                print(f"Mapping: Starting preview timer for: {sanitized_path}")
+                logger.debug(f"Mapping: Starting preview timer for: {sanitized_path}")
                 self._hover_timer.start(300)
 
     def _show_preview(self):
         """Show preview for mapping tab - ONLY INPUT PATH REQUIRED"""
-        print(f"Mapping _show_preview called for: {self._pending_preview_path}")
+        logger.debug(f"Mapping _show_preview called for: {self._pending_preview_path}")
 
         if not self._pending_preview_path or not self._last_mouse_pos:
             return
 
         if not self.input_path:
-            print("Mapping: Cannot show preview - input path not set")
+            logger.warning("Mapping: Cannot show preview - input path not set")
             return
 
         try:
             folder_path = Path(self.input_path)
 
             if not folder_path.exists():
-                print("Mapping: Input path doesn't exist")
+                logger.warning("Mapping: Input path doesn't exist")
                 return
 
             # Create minimal preview job
             preview_job = self.create_preview_job(folder_path)
 
-            print(f"Showing mapping preview for: {self._pending_preview_path}")
-            print(f"At position: {self._last_mouse_pos}")
+            logger.debug(f"Showing mapping preview for: {self._pending_preview_path}")
+            logger.debug(f"At position: {self._last_mouse_pos}")
 
             self.image_preview.preview_file(
                 self._pending_preview_path,
@@ -225,7 +230,7 @@ class UiMappingTabWidget(UiBatchCropWidget):
             )
 
         except Exception as e:
-            print(f"Error showing mapping preview: {e}")
+            logger.exception(f"Error showing mapping preview: {e}")
             import traceback
             traceback.print_exc()
 
@@ -235,7 +240,7 @@ class UiMappingTabWidget(UiBatchCropWidget):
 
     def load_data(self) -> None:
         """Load data for mapping tab"""
-        print(f"Loading mapping data: {self.input_path}")
+        logger.debug(f"Loading mapping data: {self.input_path}")
 
         try:
             if not self.input_path:
@@ -257,7 +262,7 @@ class UiMappingTabWidget(UiBatchCropWidget):
             QtCore.QTimer.singleShot(200, self._setup_tree_view_events)
 
         except Exception as e:
-            print(f"Error loading mapping data: {e}")
+            logger.exception(f"Error loading mapping data: {e}")
 
     def connect_signals(self) -> None:
         """Connect signals for mapping tab"""
@@ -349,7 +354,7 @@ class UiMappingTabWidget(UiBatchCropWidget):
                 combo.addItems(columns)
 
         except Exception as e:
-            print(f"Error processing data: {e}")
+            logger.exception(f"Error processing data: {e}")
 
     def connect_crop_worker(self) -> None:
         """Connect crop worker signals"""
