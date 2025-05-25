@@ -1,3 +1,4 @@
+import logging
 from fractions import Fraction
 from functools import cache
 from pathlib import Path
@@ -9,10 +10,16 @@ import numpy.typing as npt
 from PyQt6.QtWidgets import QApplication, QLabel, QProgressBar, QSlider
 
 from core import processing as prc
+from core.config import Config
 from core.face_tools import FaceToolPair
 from core.job import Job
 
 from .base import Cropper
+
+# Initialize module-level logger
+logger = logging.getLogger(__name__)
+if not Config.disable_logging:
+    logger.setLevel(logging.CRITICAL + 1)
 
 
 @cache
@@ -37,7 +44,7 @@ def ffmpeg_input(
         .output('pipe:', format='rawvideo', pix_fmt='rgb24', vframes=1, s=f'{width}x{height}')
         .run(capture_stdout=True, quiet=True)
     )
-    print('out',type(out))
+    logger.debug(f'out {type(out)}')
     # Now the output will match our specified dimensions
     return r_img.reshape_buffer_to_image(out, height, width)
 

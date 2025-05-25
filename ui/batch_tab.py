@@ -10,6 +10,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtWidgets import QApplication, QFrame, QMessageBox, QPushButton, QToolBox, QVBoxLayout, QWidget
 
 from core import Job
+from core.config import Config
 from core.croppers import BatchCropper
 from file_types import FileCategory, file_manager
 from ui import utils as ut
@@ -21,7 +22,8 @@ from .enums import GuiIcon
 
 # Initialize module-level logger
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=51)
+if not Config.disable_logging:
+    logger.setLevel(logging.CRITICAL + 1)
 
 
 class UiBatchCropWidget(UiCropWidget):

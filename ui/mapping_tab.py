@@ -6,6 +6,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 
 from core import DataFrameModel
 from core import processing as prc
+from core.config import Config
 from core.croppers import MappingCropper
 from core.enums import FunctionType
 from file_types import FileCategory, file_manager
@@ -15,7 +16,8 @@ from .batch_tab import UiBatchCropWidget
 
 # Initialize module-level logger
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=51)
+if not Config.disable_logging:
+    logger.setLevel(logging.CRITICAL + 1)
 
 
 class UiMappingTabWidget(UiBatchCropWidget):

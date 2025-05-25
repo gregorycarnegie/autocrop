@@ -1,3 +1,4 @@
+import logging
 import os
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -9,6 +10,7 @@ from PyQt6.QtSvg import QSvgRenderer
 
 from core import face_tools as ft
 from core import processing as prc
+from core.config import Config
 from core.croppers import (
     DisplayCropper,
     FolderCropper,
@@ -29,6 +31,11 @@ from .mapping_tab import UiMappingTabWidget
 from .photo_tab import UiPhotoTabWidget
 from .splash_screen import UiClickableSplashScreen
 from .video_tab import UiVideoTabWidget
+
+# Initialize module-level logger
+logger = logging.getLogger(__name__)
+if not Config.disable_logging:
+    logger.setLevel(logging.CRITICAL + 1)
 
 type TabWidget = UiPhotoTabWidget | UiFolderTabWidget | UiMappingTabWidget | UiVideoTabWidget
 
@@ -1346,7 +1353,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
         except Exception as e:
             # Log error internally without exposing details
-            print(f"Error processing dropped file: {e}")
+            logger.exception(f"Error processing dropped file: {e}")
             ut.show_error_box("An error occurred processing the dropped item")
             a0.ignore()
 
@@ -1392,7 +1399,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
             self.blockSignals(False)
         except OSError as e:
             # Log error internally without exposing details
-            print(f"Error handling dropped directory: {e}")
+            logger.exception(f"Error handling dropped directory: {e}")
             ut.show_error_box("An error occurred processing the directory")
 
     def _handle_dropped_file(self, file_path: Path) -> None:
@@ -1459,7 +1466,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
             self.blockSignals(False)
         except (OSError, ValueError, TypeError) as e:
             # Log error internally without exposing details
-            print(f"Error handling dropped file: {e}")
+            logger.exception(f"Error handling dropped file: {e}")
             ut.show_error_box("An error occurred processing the file")
 
     def _handle_image_drop(self, file_path: Path) -> None:

@@ -1,3 +1,4 @@
+import logging
 import os
 import random
 from collections.abc import Callable, Iterator
@@ -34,6 +35,11 @@ from .face_tools import (
 from .job import Job
 from .operation_types import Box, CropFunction, Pipeline
 from .protocols import ImageLoader, ImageOpener, ImageWriter, SimpleImageOpener, TableLoader
+
+# Initialize module-level logger
+logger = logging.getLogger(__name__)
+if not Config.disable_logging:
+    logger.setLevel(logging.CRITICAL + 1)
 
 T = TypeVar('T', bound=cvt.MatLike)
 
@@ -330,7 +336,7 @@ def execute_crop_instruction(instruction: CropInstruction) -> bool:
 
         return True
     except Exception as e:
-        print(f"Error executing crop instruction: {e}")
+        logger.exception(f"Error executing crop instruction: {e}")
         return False
 
 def _open_standard_simple(
@@ -1025,7 +1031,7 @@ def write_rejected_files_to_csv(rejected_list, destination: Path | None) -> Path
 
         return csv_path
     except Exception as e:
-        print(f"Error writing rejected files to CSV: {e}")
+        logger.exception(f"Error writing rejected files to CSV: {e}")
         return None
 
 def make_frame_filepath(destination: Path,

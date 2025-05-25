@@ -1,3 +1,4 @@
+import logging
 from threading import Lock
 from typing import ClassVar, Literal
 
@@ -5,10 +6,17 @@ import ffmpeg
 import psutil
 from PyQt6.QtCore import QMetaObject, QObject, Qt, pyqtSignal
 
+from core.config import Config
 from ui import utils as ut
+
+# Initialize module-level logger
+logger = logging.getLogger(__name__)
+if not Config.disable_logging:
+    logger.setLevel(logging.CRITICAL + 1)
 
 TOTAL_MEMORY, MEM_THRESHOLD = psutil.virtual_memory().total, 2_147_483_648
 MEM_FACTOR = TOTAL_MEMORY // MEM_THRESHOLD
+
 
 class Cropper(QObject):
     """
@@ -45,19 +53,22 @@ class Cropper(QObject):
     def _handle_started():
         """Helper method to handle started signal in the main thread"""
         # This just helps with cross-thread signal delivery
-        print("Processing started.")
+        logger.debug("Processing started.")
 
     @staticmethod
     def _handle_finished():
         """Helper method to handle the finished signal in the main thread"""
         # This just helps with cross-thread signal delivery
-        print("Processing complete.")
+        logger.debug("Processing complete.")
 
     @staticmethod
-    def create_error(error_type: Literal[
-        'access', 'amount', 'capacity', 'ffmpeg', 'file', 'file_type', 'directory', 'memory', 'thread'
-    ],
-                     custom_message: str | None = None) -> tuple[Exception, str]:
+    def create_error(
+        error_type: Literal[
+            'access', 'amount', 'capacity', 'ffmpeg', 'file',
+            'file_type', 'directory', 'memory', 'thread'
+        ],
+        custom_message: str | None = None
+    ) -> tuple[Exception, str]:
         errors = {
             'access': (
                 PermissionError("Permission denied."),
@@ -122,7 +133,7 @@ class Cropper(QObject):
                 "finished",
                 Qt.ConnectionType.QueuedConnection
             )
-            print("Finished signal emitted")
+            logger.debug("Finished signal emitted")
 
     def _update_progress(self, file_amount: int) -> None:
         """

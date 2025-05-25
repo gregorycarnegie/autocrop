@@ -30,3 +30,4 @@ class Config:
     bbox_text_offset: int = 10
 
     infer_schema_length=1_000
+    disable_logging = False

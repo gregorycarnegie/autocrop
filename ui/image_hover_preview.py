@@ -7,13 +7,15 @@ from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtGui import QColor, QFont, QImage, QPainter, QPen, QPixmap
 
 from core import processing as prc
+from core.config import Config
 from core.face_tools import FaceToolPair
 from core.job import Job
 from file_types import FileCategory, file_manager
 
 # Initialize module-level logger
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=51)
+if not Config.disable_logging:
+    logger.setLevel(logging.CRITICAL + 1)
 
 
 class ImageHoverPreview(QtWidgets.QLabel):

@@ -1,4 +1,5 @@
 import atexit
+import logging
 import os
 import threading
 from collections.abc import Callable
@@ -14,11 +15,17 @@ from PyQt6.QtCore import Q_ARG, QMetaObject, Qt
 from PyQt6.QtWidgets import QApplication
 
 from core import processing as prc
+from core.config import Config
 from core.face_tools import FaceToolPair
 from core.job import Job
 from file_types import FileCategory, SignatureChecker, file_manager
 
 from .base import Cropper
+
+# Initialize module-level logger
+logger = logging.getLogger(__name__)
+if not Config.disable_logging:
+    logger.setLevel(logging.CRITICAL + 1)
 
 FileList = list[Path] | npt.NDArray[np.str_]
 
@@ -184,12 +191,12 @@ class BatchCropper(Cropper):
             # Extract the original worker function
             original_worker = kwargs.pop('original_worker', None)
             if not original_worker or not callable(original_worker):
-                # print("Invalid worker function")
+                logger.warning("Invalid worker function")
                 return None
 
             # Re-validate input parameters before execution
             if not self._validate_worker_params(kwargs):
-                # print("Worker parameter validation failed")
+                logger.warning("Worker parameter validation failed")
                 return None
 
             # Perform additional content verification on file lists
@@ -286,13 +293,13 @@ class BatchCropper(Cropper):
                     if file_manager.is_valid_type(resolved, category):
                         # Verify content matches extension
                         if not SignatureChecker.verify_file_type(resolved, category):
-                            print(f"Content verification failed for: {resolved}")
+                            logger.warning(f"Content verification failed for: {resolved}")
                             return False
                         break
 
             return True
         except Exception as e:
-            print(f"Path validation error: {type(e).__name__}")
+            logger.exception(f"Path validation error: {type(e).__name__}")
             return False
 
     def _validate_worker_params(self, params: dict) -> bool:
