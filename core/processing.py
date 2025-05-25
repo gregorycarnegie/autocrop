@@ -579,7 +579,7 @@ def align_face(image: T,
 
     if scale_factor > 1:
         # Resize image for faster processing
-        small_img = cv2.resize(image, (width // scale_factor, height // scale_factor))
+        small_img = cv2.resize(image, (int(width / scale_factor), (height / scale_factor)))
         faces = detector(small_img, job.threshold)
     else:
         small_img = image
@@ -868,7 +868,7 @@ def get_face_boxes(image: cvt.MatLike,
 def detect_faces(image: cvt.MatLike,
                  threshold: int,
                  detector: YuNetFaceDetector,
-                 scale_factor: int) -> list[r_face.Rectangle]:
+                 scale_factor: float) -> list[r_face.Rectangle]:
     """
     Detect faces in an image, with optional resizing for performance.
 
@@ -887,7 +887,7 @@ def detect_faces(image: cvt.MatLike,
 
     # Large image, resize for faster detection
     height, width = image.shape[:2]
-    small_img = cv2.resize(image, (width // scale_factor, height // scale_factor))
+    small_img = cv2.resize(image, (int(width / scale_factor), int(height / scale_factor)))
     return detector(small_img, threshold)
 
 
@@ -905,36 +905,30 @@ def detect_face_box(image: cvt.MatLike,
     Returns:
         Box coordinates if a face is detected, None otherwise
     """
-    with suppress(AttributeError, IndexError):
-        height, width = image.shape[:2]
-        detector, _ = face_detection_tools
+    # with suppress(AttributeError, IndexError):
+    height, width = image.shape[:2]
+    detector, _ = face_detection_tools
 
-        # Determine optimal scale factor for performance
-        scale_factor = r_face.determine_scale_factor(width, height, Config.face_scale_divisor)
+    # Determine optimal scale factor for performance
+    scale_factor = r_face.determine_scale_factor(width, height, Config.face_scale_divisor)
+    # Detect faces with appropriate scaling
+    faces = detect_faces(image, job.threshold, detector, scale_factor)
+    face = r_face.find_best_face(faces)
+    # Exit early if no faces detected
+    if not faces:
+        return None
 
-        # Detect faces with appropriate scaling
-        faces = detect_faces(image, job.threshold, detector, scale_factor)
+    # Find the face with the highest confidence
+    face = max(faces, key=lambda f: f.confidence)
+    # Calculate crop_from_path box using Rust module
+    return r_img.crop_positions(
+        face * scale_factor,
+        job.face_percent,
+        (job.width, job.height),
+        (job.top, job.bottom, job.left, job.right)
+    )
 
-        face = r_face.find_best_face(faces)
-        # Exit early if no faces detected
-        if not faces:
-            return None
-
-        # Find the face with the highest confidence
-        face = max(faces, key=lambda f: f.confidence)
-
-        # Scale coordinates if needed
-        x0, y0, face_width, face_height = r_face.scale_face_coordinates(face, scale_factor)
-
-        # Calculate crop_from_path box using Rust module
-        return r_img.crop_positions(
-            (x0, y0, face_width, face_height),
-            job.face_percent,
-            (job.width, job.height),
-            (job.top, job.bottom, job.left, job.right)
-        )
-
-    return None
+    # return None
 
 
 def mask_extensions(file_list: npt.NDArray[np.str_], extensions: set[str]) -> tuple[npt.NDArray[np.bool_], int]:

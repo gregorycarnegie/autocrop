@@ -57,11 +57,19 @@ class Rectangle:
         """Area of the rectangle (width * height)."""
         ...
 
+    def __mul__(self, scale_factor: float) -> tuple[float, float, float, float]:
+        """Scale the rectangle by a factor."""
+        ...
+
+    def __rmul__(self, scale_factor: float) -> tuple[float, float, float, float]:
+        """Scale the rectangle by a factor."""
+        ...
+
 def determine_scale_factor(
     width: int,
     height: int,
-    face_scale_divisor: int
-) -> int:
+    face_scale_divisor: float
+) -> float:
     """
     Determine the optimal scale factor for face detection based on image dimensions.
 
@@ -82,33 +90,6 @@ def determine_scale_factor(
         2
         >>> determine_scale_factor(640, 480, 500)
         1
-    """
-    ...
-
-def scale_face_coordinates(
-    face: Rectangle,
-    scale_factor: int
-) -> tuple[int, int, int, int]:
-    """
-    Scale face coordinates based on the scale factor used during detection.
-
-    When face detection is performed on a scaled-down image for performance,
-    the resulting coordinates need to be scaled back up to match the original
-    image dimensions.
-
-    Args:
-        face: Rectangle object representing the detected face
-        scale_factor: Scale factor that was used during detection
-
-    Returns:
-        Tuple of (x, y, width, height) with coordinates scaled to original image size
-
-    Example:
-        >>> rect = Rectangle(100, 100, 200, 200, 0.9)
-        >>> scale_face_coordinates(rect, 2)
-        (200, 200, 200, 200)  # All coordinates doubled
-        >>> scale_face_coordinates(rect, 1)
-        (100, 100, 100, 100)  # No scaling applied
     """
     ...
 
