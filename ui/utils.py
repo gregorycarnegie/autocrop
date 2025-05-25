@@ -88,7 +88,6 @@ def sanitize_path(path_str: str) -> str:
         return ''
 
     try:
-        # Use the Rust sanitize_path function
         return r_sec.sanitize_path(path_str)
     except r_sec.PathSecurityError as e:
         # Use get_safe_error_message to sanitize the error message

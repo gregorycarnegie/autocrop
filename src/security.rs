@@ -147,9 +147,9 @@ fn clean_path_string(path_str: &str) -> String {
             break;
         }
     }
-    
     // Always normalize path separators
-    result.replace('\\', "/")
+    let x = result.replace('\\', "/");
+    x
 }
 
 /// Resolve path following symlinks
@@ -165,33 +165,33 @@ fn resolve_path_following_symlinks(path: &Path) -> PyResult<PathBuf> {
 
 /// Resolve path without following symlinks
 fn resolve_path_no_symlinks(path: &Path) -> PyResult<PathBuf> {
-    // First check if it's a symlink
+    // Check if the final path is a symlink
     if path.exists() && fs::symlink_metadata(path)?.file_type().is_symlink() {
-        return Err(PyErr::new::<PathSecurityError, _>("Symbolic links not allowed"));
+       return Err(PyErr::new::<PathSecurityError, _>("Symbolic links not allowed"));
     }
     
-    // Manually resolve the path component by component
+    // For non-existent paths, we can't check for symlinks along the way
+    // So we'll do a simple normalization
     let mut resolved = PathBuf::new();
-    
-    // Handle absolute vs relative paths
-    if path.is_absolute() {
-        resolved.push("/");
-    }
     
     for component in path.components() {
         match component {
-            Component::Prefix(prefix) => resolved.push(prefix.as_os_str()),
-            Component::RootDir => resolved.push("/"),
             Component::CurDir => continue,
-            Component::ParentDir => {
-                resolved.pop();
-            }
-            Component::Normal(name) => {
-                resolved.push(name);
-                // Check if this component is a symlink
-                if resolved.exists() && fs::symlink_metadata(&resolved)?.file_type().is_symlink() {
+            Component::ParentDir => { resolved.pop(); }
+            _ => resolved.push(component),
+        }
+    }
+    
+    // Check each existing component for symlinks
+    let mut check_path = PathBuf::new();
+    for component in resolved.components() {
+        check_path.push(component);
+        
+        if check_path.exists() {
+            if let Ok(metadata) = fs::symlink_metadata(&check_path) {
+                if metadata.file_type().is_symlink() {
                     return Err(PyErr::new::<PathSecurityError, _>(
-                        format!("Symbolic link detected: {:?}", name)
+                        format!("Symbolic link detected: {:?}", component)
                     ));
                 }
             }
