@@ -101,7 +101,7 @@ class UiBatchCropWidget(UiCropWidget):
 
         # Get viewport and configure it
         viewport = self.treeView.viewport()
-        if viewport:
+        if viewport is not None:
             viewport.setMouseTracking(True)
             viewport.setAttribute(QtCore.Qt.WidgetAttribute.WA_Hover, True)
             viewport.installEventFilter(self)
