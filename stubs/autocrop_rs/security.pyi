@@ -5,7 +5,7 @@ class PathSecurityError(Exception):
 
 def sanitize_path(
     path_str: str,
-    allowed_operations: list[str] | None = ['read', 'write'],
+    allowed_operations: tuple[str, ...] = ('read', 'write'),
     max_path_length: int = 4096,
     follow_symlinks: bool = False
 ) -> str: ...

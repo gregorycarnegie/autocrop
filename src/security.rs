@@ -52,13 +52,12 @@ static DANGEROUS_NAMES: Lazy<Vec<&'static str>> = Lazy::new(|| {
 #[pyo3(signature = (path_str, allowed_operations=vec!["read".to_string(), "write".to_string()], max_path_length=4096, follow_symlinks=false))]
 pub fn sanitize_path(
     path_str: &str,
-    allowed_operations: Option<Vec<String>>,
+    allowed_operations: Vec<String>,
     max_path_length: usize,
     follow_symlinks: bool,
 ) -> PyResult<String> {
     // Parse allowed operations
-    let allowed_ops = allowed_operations.unwrap_or_else(|| vec!["read".to_string()]);
-    let allowed_ops_set: HashSet<String> = allowed_ops.into_iter().collect();
+    let allowed_ops_set: HashSet<String> = allowed_operations.into_iter().collect();
     
     // 0. Pre-clean the path string - Remove quotation marks if they exist
     let cleaned_path_str = clean_path_string(path_str);
