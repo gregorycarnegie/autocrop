@@ -16,7 +16,7 @@ dependencies    = [
   "psutil>=7.0.0",
   "PyQt6>=6.9.0",
   "rawpy>=0.25.0",
-  "tifffile>=2025.5.21",
+  "tifffile>=2025.5.24",
 ]
 classifiers   = [
   "Programming Language :: Rust",
