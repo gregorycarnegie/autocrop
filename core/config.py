@@ -34,6 +34,11 @@ class Config:
     disable_logging = False
 
 # Initialize module-level logger
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 logger = logging.getLogger(__name__)
 config = Config()
 logger.disabled = config.disable_logging
