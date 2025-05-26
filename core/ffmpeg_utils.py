@@ -1,16 +1,10 @@
-import logging
 import os
 import sys
 from pathlib import Path
 
 from PyQt6.QtWidgets import QApplication, QMessageBox
 
-from core.config import Config
-
-# Initialize module-level logger
-logger = logging.getLogger(__name__)
-if not Config.disable_logging:
-    logger.setLevel(logging.CRITICAL + 1)
+from core.config import logger
 
 
 def configure_ffmpeg():

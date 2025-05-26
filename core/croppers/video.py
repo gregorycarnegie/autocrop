@@ -1,4 +1,3 @@
-import logging
 from fractions import Fraction
 from functools import cache
 from pathlib import Path
@@ -10,16 +9,11 @@ import numpy.typing as npt
 from PyQt6.QtWidgets import QApplication, QLabel, QProgressBar, QSlider
 
 from core import processing as prc
-from core.config import Config
+from core.config import logger
 from core.face_tools import FaceToolPair
 from core.job import Job
 
 from .base import Cropper
-
-# Initialize module-level logger
-logger = logging.getLogger(__name__)
-if not Config.disable_logging:
-    logger.setLevel(logging.CRITICAL + 1)
 
 
 @cache

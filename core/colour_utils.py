@@ -9,7 +9,7 @@ import cv2
 import cv2.typing as cvt
 import numpy as np
 
-from .config import Config
+from .config import config
 
 
 def ensure_rgb(image: cvt.MatLike) -> cvt.MatLike:
@@ -65,7 +65,7 @@ def adjust_gamma(image: cvt.MatLike, gam: float) -> cvt.MatLike:
     """
     Adjusts image gamma using a precomputed lookup table.
     """
-    return cv2.LUT(image, r_img.gamma(gam * Config.gamma_threshold))
+    return cv2.LUT(image, r_img.gamma(gam * config.gamma_threshold))
 
 
 def normalize_image(image: cvt.MatLike) -> cvt.MatLike:

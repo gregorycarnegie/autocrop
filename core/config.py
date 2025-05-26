@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 
 import cv2
@@ -31,3 +32,8 @@ class Config:
 
     infer_schema_length=1_000
     disable_logging = False
+
+# Initialize module-level logger
+logger = logging.getLogger(__name__)
+config = Config()
+logger.disabled = config.disable_logging

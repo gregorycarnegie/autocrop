@@ -1,5 +1,4 @@
 import atexit
-import logging
 import os
 import threading
 from collections.abc import Callable
@@ -15,17 +14,12 @@ from PyQt6.QtCore import Q_ARG, QMetaObject, Qt
 from PyQt6.QtWidgets import QApplication
 
 from core import processing as prc
-from core.config import Config
+from core.config import logger
 from core.face_tools import FaceToolPair
 from core.job import Job
 from file_types import FileCategory, SignatureChecker, file_manager
 
 from .base import Cropper
-
-# Initialize module-level logger
-logger = logging.getLogger(__name__)
-if not Config.disable_logging:
-    logger.setLevel(logging.CRITICAL + 1)
 
 FileList = list[Path] | npt.NDArray[np.str_]
 

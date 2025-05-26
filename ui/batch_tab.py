@@ -1,5 +1,4 @@
 import contextlib
-import logging
 import threading
 from collections.abc import Callable
 from pathlib import Path
@@ -10,7 +9,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtWidgets import QApplication, QFrame, QMessageBox, QPushButton, QToolBox, QVBoxLayout, QWidget
 
 from core import Job
-from core.config import Config
+from core.config import logger
 from core.croppers import BatchCropper
 from file_types import FileCategory, file_manager
 from ui import utils as ut
@@ -19,11 +18,6 @@ from ui.pulsing_indicator import PulsingProgressIndicator
 
 from .crop_widget import UiCropWidget
 from .enums import GuiIcon
-
-# Initialize module-level logger
-logger = logging.getLogger(__name__)
-if not Config.disable_logging:
-    logger.setLevel(logging.CRITICAL + 1)
 
 
 class UiBatchCropWidget(UiCropWidget):

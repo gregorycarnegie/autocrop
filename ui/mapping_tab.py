@@ -1,4 +1,3 @@
-import logging
 from pathlib import Path
 
 import polars as pl
@@ -6,18 +5,13 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 
 from core import DataFrameModel
 from core import processing as prc
-from core.config import Config
+from core.config import logger
 from core.croppers import MappingCropper
 from core.enums import FunctionType
 from file_types import FileCategory, file_manager
 from ui import utils as ut
 
 from .batch_tab import UiBatchCropWidget
-
-# Initialize module-level logger
-logger = logging.getLogger(__name__)
-if not Config.disable_logging:
-    logger.setLevel(logging.CRITICAL + 1)
 
 
 class UiMappingTabWidget(UiBatchCropWidget):

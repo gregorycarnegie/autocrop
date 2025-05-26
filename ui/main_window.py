@@ -1,4 +1,3 @@
-import logging
 import os
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -10,7 +9,7 @@ from PyQt6.QtSvg import QSvgRenderer
 
 from core import face_tools as ft
 from core import processing as prc
-from core.config import Config
+from core.config import logger
 from core.croppers import (
     DisplayCropper,
     FolderCropper,
@@ -31,11 +30,6 @@ from .mapping_tab import UiMappingTabWidget
 from .photo_tab import UiPhotoTabWidget
 from .splash_screen import UiClickableSplashScreen
 from .video_tab import UiVideoTabWidget
-
-# Initialize module-level logger
-logger = logging.getLogger(__name__)
-if not Config.disable_logging:
-    logger.setLevel(logging.CRITICAL + 1)
 
 type TabWidget = UiPhotoTabWidget | UiFolderTabWidget | UiMappingTabWidget | UiVideoTabWidget
 

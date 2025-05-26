@@ -1,4 +1,3 @@
-import logging
 import os
 import random
 from collections.abc import Callable, Iterator
@@ -23,7 +22,7 @@ from core.colour_utils import adjust_gamma, ensure_rgb, normalize_image, to_gray
 from core.crop_instruction import CropInstruction
 from file_types import FileCategory, SignatureChecker, file_manager
 
-from .config import Config
+from .config import config, logger
 from .face_tools import (
     L_EYE_END,
     L_EYE_START,
@@ -35,11 +34,6 @@ from .face_tools import (
 from .job import Job
 from .operation_types import Box, CropFunction, Pipeline
 from .protocols import ImageLoader, ImageOpener, ImageWriter, SimpleImageOpener, TableLoader
-
-# Initialize module-level logger
-logger = logging.getLogger(__name__)
-if not Config.disable_logging:
-    logger.setLevel(logging.CRITICAL + 1)
 
 T = TypeVar('T', bound=cvt.MatLike)
 
@@ -216,7 +210,7 @@ def get_rotation_matrix(image: cvt.MatLike,
 
     # Optimize for smaller images for faster processing
     height, width = image.shape[:2]
-    scale_factor = r_face.determine_scale_factor(width, height, Config.face_scale_divisor)
+    scale_factor = r_face.determine_scale_factor(width, height, config.face_scale_divisor)
 
     if scale_factor > 1:
         # Resize image for faster processing
@@ -416,7 +410,7 @@ def rotation_helper(
         rotation_matrix,
         (width, height),
         flags=cv2.INTER_CUBIC,
-        borderMode=Config.border_type
+        borderMode=config.border_type
     )
 
 
@@ -459,7 +453,7 @@ def build_crop_instruction_pipeline(
     pipeline.extend(
         (
             partial(adjust_gamma, gam=job.gamma),
-            partial(cv2.resize, dsize=job.size, interpolation=Config.interpolation),
+            partial(cv2.resize, dsize=job.size, interpolation=config.interpolation),
         )
     )
 
@@ -496,7 +490,7 @@ def build_processing_pipeline(
     pipeline.extend(
         (
             partial(adjust_gamma, gam=job.gamma),
-            partial(cv2.resize, dsize=job.size, interpolation=Config.interpolation),
+            partial(cv2.resize, dsize=job.size, interpolation=config.interpolation),
         )
     )
     # Add colour space conversion if needed
@@ -535,8 +529,8 @@ def crop_to_bounding_box(
     return cv2.copyMakeBorder(
         cropped_valid,
         *padding,
-        Config.border_type,
-        value=Config.border_colour,
+        config.border_type,
+        value=config.border_colour,
     )
 
 
@@ -544,10 +538,10 @@ def prepare_visualisation_image(image: cvt.MatLike) -> tuple[cvt.MatLike, float]
     """
     Resizes an image to 256 px height, returns grayscale if >2 channels, plus the scaling factor.
     """
-    output_height = Config.default_preview_height
+    output_height = config.default_preview_height
     height, width = image.shape[:2]
     output_width, scaling_factor = r_img.calculate_dimensions(height, width, output_height)
-    image_array = cv2.resize(image, (output_width, output_height), interpolation=Config.interpolation)
+    image_array = cv2.resize(image, (output_width, output_height), interpolation=config.interpolation)
     return to_grayscale(image_array) if len(image_array.shape) >= 3 else image_array, scaling_factor
 
 
@@ -581,7 +575,7 @@ def align_face(image: T,
 
     # Optimize for smaller images for faster processing
     height, width = image.shape[:2]
-    scale_factor = r_face.determine_scale_factor(width, height, Config.face_scale_divisor)
+    scale_factor = r_face.determine_scale_factor(width, height, config.face_scale_divisor)
 
     if scale_factor > 1:
         # Resize image for faster processing
@@ -624,7 +618,7 @@ def align_face(image: T,
         rotation_matrix,
         (width, height),
         flags=cv2.INTER_CUBIC,
-        borderMode=Config.border_type
+        borderMode=config.border_type
     )
 
 
@@ -717,11 +711,11 @@ def _load_csv(file: Path) -> pl.DataFrame:
                 return pl.DataFrame()
 
         # If headers look valid, load the full file
-        return pl.read_csv(file, infer_schema_length=Config.infer_schema_length)
+        return pl.read_csv(file, infer_schema_length=config.infer_schema_length)
     except (pl.exceptions.PolarsError, UnicodeDecodeError, OSError):
         # Try with different encoding if the initial attempt fails
         try:
-            return pl.read_csv(file, encoding='latin-1', infer_schema_length=Config.infer_schema_length)
+            return pl.read_csv(file, encoding='latin-1', infer_schema_length=config.infer_schema_length)
         except pl.exceptions.PolarsError:
             return pl.DataFrame()
 
@@ -794,13 +788,13 @@ def draw_bounding_box_with_confidence(image: cvt.MatLike,
     """
     colours = (255, 0, 0), (0, 255, 0), (0, 0, 255)
     colour = random.choice(colours)
-    line_width = Config.bbox_line_width
-    text_offset = Config.bbox_text_offset
+    line_width = config.bbox_line_width
+    text_offset = config.bbox_text_offset
 
     text = f"{confidence:.2f}%"
     y_text = y0 - text_offset if y0 > 20 else y0 + text_offset
     cv2.rectangle(image, (x0, y0), (x1, y1), colour, line_width)
-    cv2.putText(image, text, (x0, y_text), cv2.FONT_HERSHEY_SIMPLEX, Config.bbox_font_scale, colour, line_width)
+    cv2.putText(image, text, (x0, y_text), cv2.FONT_HERSHEY_SIMPLEX, config.bbox_font_scale, colour, line_width)
     return image
 
 
@@ -916,7 +910,7 @@ def detect_face_box(image: cvt.MatLike,
     detector, _ = face_detection_tools
 
     # Determine optimal scale factor for performance
-    scale_factor = r_face.determine_scale_factor(width, height, Config.face_scale_divisor)
+    scale_factor = r_face.determine_scale_factor(width, height, config.face_scale_divisor)
     # Detect faces with appropriate scaling
     faces = detect_faces(image, job.threshold, detector, scale_factor)
     face = r_face.find_best_face(faces)
@@ -1050,7 +1044,7 @@ def _save_standard(image: cvt.MatLike,
       file_path: Path,
       _user_gam: float,
       _is_tiff: bool = False) -> None:
-        lut = cv2.LUT(image, r_img.gamma(_user_gam * Config.gamma_threshold))
+        lut = cv2.LUT(image, r_img.gamma(_user_gam * config.gamma_threshold))
         if file_path.suffix.lower() not in file_manager.get_save_formats(FileCategory.PHOTO):
             file_path = file_path.with_suffix('.jpg')
         cv2.imwrite(file_path.as_posix(), lut)

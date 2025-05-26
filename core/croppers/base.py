@@ -1,4 +1,3 @@
-import logging
 from threading import Lock
 from typing import ClassVar, Literal
 
@@ -6,13 +5,8 @@ import ffmpeg
 import psutil
 from PyQt6.QtCore import QMetaObject, QObject, Qt, pyqtSignal
 
-from core.config import Config
+from core.config import logger
 from ui import utils as ut
-
-# Initialize module-level logger
-logger = logging.getLogger(__name__)
-if not Config.disable_logging:
-    logger.setLevel(logging.CRITICAL + 1)
 
 TOTAL_MEMORY, MEM_THRESHOLD = psutil.virtual_memory().total, 2_147_483_648
 MEM_FACTOR = TOTAL_MEMORY // MEM_THRESHOLD
