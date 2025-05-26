@@ -231,7 +231,6 @@ def load_about_form() -> None:
     about_ui.exec()
 
 
-@cache
 def initialise_message_box(window_title: str) -> QMessageBox:
     """
     Initializes a message box with the specified window title.
