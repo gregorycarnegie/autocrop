@@ -13,29 +13,27 @@ class ImageWidget(QWidget):
     def setImage(self, image: QImage) -> None:
         """Set the image to display"""
         self.image = QPixmap.fromImage(image)
-        self.show_no_face_message = False
-        self.error_message = ""
-        self.update()
+        self._face_update_event(False, "")
 
     def showNoFaceDetected(self, message: str = "No face detected") -> None:
         """Show a message when no face is detected"""
         self.image = None
-        self.show_no_face_message = True
-        self.error_message = message
-        self.update()
+        self._face_update_event(True, message)
 
     def showError(self, message: str) -> None:
         """Show an error message"""
         self.image = None
-        self.show_no_face_message = True
-        self.error_message = message
-        self.update()
+        self._face_update_event(True, message)
 
     def clear(self) -> None:
         """Clear the widget"""
         self.image = None
-        self.show_no_face_message = False
-        self.error_message = ""
+        self._face_update_event(False, "")
+
+    # TODO Rename this here and in `setImage`, `showNoFaceDetected`, `showError` and `clear`
+    def _face_update_event(self, arg0: bool, arg1: str) -> None:
+        self.show_no_face_message = arg0
+        self.error_message = arg1
         self.update()
 
     def paintEvent(self, a0: QPaintEvent | None) -> None:
