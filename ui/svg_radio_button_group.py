@@ -1,9 +1,9 @@
-from PyQt6 import QtCore
+from PyQt6.QtCore import QObject
 
 from .svg_radio_button import SvgRadioButton
 
 
-class SvgRadioButtonGroup(QtCore.QObject):
+class SvgRadioButtonGroup(QObject):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._buttons = []

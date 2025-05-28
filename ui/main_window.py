@@ -4,8 +4,34 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
 from pathlib import Path
 
-from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6.QtCore import QByteArray, QCoreApplication, QMetaObject, QRect, QSize, Qt
+from PyQt6.QtGui import (
+    QAction,
+    QCloseEvent,
+    QDragEnterEvent,
+    QDragMoveEvent,
+    QDropEvent,
+    QIcon,
+    QImage,
+    QPainter,
+    QPixmap,
+)
 from PyQt6.QtSvg import QSvgRenderer
+from PyQt6.QtWidgets import (
+    QApplication,
+    QComboBox,
+    QFileDialog,
+    QHBoxLayout,
+    QLabel,
+    QMainWindow,
+    QMenu,
+    QMenuBar,
+    QPushButton,
+    QStatusBar,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
 from core import face_tools as ft
 from core import processing as prc
@@ -34,7 +60,7 @@ from .video_tab import UiVideoTabWidget
 type TabWidget = UiPhotoTabWidget | UiFolderTabWidget | UiMappingTabWidget | UiVideoTabWidget
 
 
-class UiMainWindow(QtWidgets.QMainWindow):
+class UiMainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setAcceptDrops(True)
@@ -42,7 +68,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         # Start with a splash screen
         splash = UiClickableSplashScreen()
         splash.show_message("Loading face detection models...")
-        QtWidgets.QApplication.processEvents()
+        QApplication.processEvents()
 
         face_detection_tools = self.get_face_detection_tools(splash)
 
@@ -56,61 +82,61 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.mapping_worker = MappingCropper(face_detection_tools)
 
         # Create the central widget
-        self.centralwidget = QtWidgets.QWidget(self)
+        self.centralwidget = QWidget(self)
         self.centralwidget.setObjectName("centralwidget")
-        self.main_layout = QtWidgets.QVBoxLayout(self.centralwidget)
+        self.main_layout = QVBoxLayout(self.centralwidget)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
 
-        self.actionAbout_Face_Cropper = QtGui.QAction(self)
-        self.actionUse_Mapping = QtGui.QAction(self)
-        self.actionCrop_File = QtGui.QAction(self)
-        self.actionCrop_Folder = QtGui.QAction(self)
-        self.actionSquare = QtGui.QAction(self)
-        self.actionGolden_Ratio = QtGui.QAction(self)
-        self.action2_3_Ratio = QtGui.QAction(self)
-        self.action3_4_Ratio = QtGui.QAction(self)
-        self.action4_5_Ratio = QtGui.QAction(self)
-        self.actionCrop_Video = QtGui.QAction(self)
+        self.actionAbout_Face_Cropper = QAction(self)
+        self.actionUse_Mapping = QAction(self)
+        self.actionCrop_File = QAction(self)
+        self.actionCrop_Folder = QAction(self)
+        self.actionSquare = QAction(self)
+        self.actionGolden_Ratio = QAction(self)
+        self.action2_3_Ratio = QAction(self)
+        self.action3_4_Ratio = QAction(self)
+        self.action4_5_Ratio = QAction(self)
+        self.actionCrop_Video = QAction(self)
 
-        self.menubar = QtWidgets.QMenuBar(self)
-        self.menuFile = QtWidgets.QMenu(self.menubar)
-        self.menuTools = QtWidgets.QMenu(self.menubar)
-        self.menuInfo = QtWidgets.QMenu(self.menubar)
+        self.menubar = QMenuBar(self)
+        self.menuFile = QMenu(self.menubar)
+        self.menuTools = QMenu(self.menubar)
+        self.menuInfo = QMenu(self.menubar)
 
-        self.address_bar_widget = QtWidgets.QWidget()
-        self.back_button = QtWidgets.QPushButton()
-        self.forward_button = QtWidgets.QPushButton()
-        self.refresh_button = QtWidgets.QPushButton()
+        self.address_bar_widget = QWidget()
+        self.back_button = QPushButton()
+        self.forward_button = QPushButton()
+        self.refresh_button = QPushButton()
         self.unified_address_bar = PathLineEdit(path_type=PathType.IMAGE)  # Default to image
-        self.context_button = QtWidgets.QPushButton()
-        self.secondary_input_container = QtWidgets.QWidget()
+        self.context_button = QPushButton()
+        self.secondary_input_container = QWidget()
         self.secondary_input = PathLineEdit(path_type=PathType.TABLE)
-        self.secondary_button = QtWidgets.QPushButton()
-        self.destination_container = QtWidgets.QWidget()
-        self.destination_label = QtWidgets.QLabel("Save to:")
+        self.secondary_button = QPushButton()
+        self.destination_container = QWidget()
+        self.destination_label = QLabel("Save to:")
         self.destination_input = PathLineEdit(path_type=PathType.FOLDER)
-        self.destination_button = QtWidgets.QPushButton()
-        self.info_button = QtWidgets.QPushButton()
+        self.destination_button = QPushButton()
+        self.info_button = QPushButton()
 
-        self.function_tabWidget = QtWidgets.QTabWidget(self.centralwidget)
-        self.photo_tab = QtWidgets.QWidget()
+        self.function_tabWidget = QTabWidget(self.centralwidget)
+        self.photo_tab = QWidget()
         self.verticalLayout_2 = ut.setup_vbox("verticalLayout_2", self.photo_tab)
         self.photo_tab_widget = UiPhotoTabWidget(self.photo_worker, "photo_tab_widget", self.photo_tab)
-        self.folder_tab = QtWidgets.QWidget()
+        self.folder_tab = QWidget()
         self.verticalLayout_3 = ut.setup_vbox("verticalLayout_3", self.folder_tab)
         self.folder_tab_widget = UiFolderTabWidget(self.folder_worker, "folder_tab_widget", self.folder_tab)
-        self.mapping_tab = QtWidgets.QWidget()
+        self.mapping_tab = QWidget()
         self.verticalLayout_4 = ut.setup_vbox("verticalLayout_4", self.mapping_tab)
         self.mapping_tab_widget = UiMappingTabWidget(self.mapping_worker, "mapping_tab_widget", self.mapping_tab)
-        self.video_tab = QtWidgets.QWidget()
+        self.video_tab = QWidget()
         self.verticalLayout_5 = ut.setup_vbox("verticalLayout_5", self.video_tab)
         self.video_tab_widget = UiVideoTabWidget(self.video_worker, "video_tab_widget", self.video_tab)
 
         self.setObjectName("MainWindow")
         self.resize(1256, 652)
-        icon = QtGui.QIcon()
-        icon.addFile(GuiIcon.LOGO, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon = QIcon()
+        icon.addFile(GuiIcon.LOGO, QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.setWindowIcon(icon)
 
         # Create the main menu
@@ -125,7 +151,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.video_worker.progressBars = [self.video_tab_widget.progressBar, self.video_tab_widget.progressBar_2]
 
         # Create a status bar
-        self.statusbar = QtWidgets.QStatusBar(self)
+        self.statusbar = QStatusBar(self)
         self.statusbar.setObjectName("statusbar")
         self.setStatusBar(self.statusbar)
 
@@ -140,28 +166,28 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
         self.initialize_clear_button_states()
 
-        QtCore.QMetaObject.connectSlotsByName(self)
+        QMetaObject.connectSlotsByName(self)
 
     def create_main_menu(self):
         """Create the main menu for the application"""
         # Create actions
         self.actionAbout_Face_Cropper.setObjectName("actionAbout_Face_Cropper")
-        icon0 = QtGui.QIcon.fromTheme("help-browser")
+        icon0 = QIcon.fromTheme("help-browser")
         self.actionAbout_Face_Cropper.setIcon(icon0)
 
         self.actionUse_Mapping.setObjectName("actionUse_Mapping")
-        icon1 = QtGui.QIcon()
-        icon1.addFile(GuiIcon.EXCEL, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon1 = QIcon()
+        icon1.addFile(GuiIcon.EXCEL, QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.actionUse_Mapping.setIcon(icon1)
 
         self.actionCrop_File.setObjectName("actionCrop_File")
-        icon2 = QtGui.QIcon()
-        icon2.addFile(GuiIcon.PICTURE, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon2 = QIcon()
+        icon2.addFile(GuiIcon.PICTURE, QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.actionCrop_File.setIcon(icon2)
 
         self.actionCrop_Folder.setObjectName("actionCrop_Folder")
-        icon3 = QtGui.QIcon()
-        icon3.addFile(GuiIcon.FOLDER, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon3 = QIcon()
+        icon3.addFile(GuiIcon.FOLDER, QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.actionCrop_Folder.setIcon(icon3)
 
         self.actionSquare.setObjectName("actionSquare")
@@ -177,14 +203,14 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.decorate_action(self.action4_5_Ratio, 4, 5, "#9b59b6")
 
         self.actionCrop_Video.setObjectName("actionCrop_Video")
-        icon4 = QtGui.QIcon()
-        icon4.addFile(GuiIcon.CLAPPERBOARD, QtCore.QSize(), QtGui.QIcon.Mode.Normal,
-                      QtGui.QIcon.State.Off)
+        icon4 = QIcon()
+        icon4.addFile(GuiIcon.CLAPPERBOARD, QSize(), QIcon.Mode.Normal,
+                      QIcon.State.Off)
         self.actionCrop_Video.setIcon(icon4)
 
         # Create menu bar
         self.menubar.setObjectName("menubar")
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1256, 22))
+        self.menubar.setGeometry(QRect(0, 0, 1256, 22))
 
         # Create menus
         self.menuFile.setObjectName("menuFile")
@@ -219,22 +245,22 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.address_bar_widget.setMaximumHeight(48)
 
         # Address bar layout
-        address_bar_layout = QtWidgets.QHBoxLayout(self.address_bar_widget)
+        address_bar_layout = QHBoxLayout(self.address_bar_widget)
         address_bar_layout.setContentsMargins(10, 5, 10, 5)
         address_bar_layout.setSpacing(10)
 
         # Navigation buttons
-        self.back_button.setIcon(QtGui.QIcon.fromTheme("go-previous"))
+        self.back_button.setIcon(QIcon.fromTheme("go-previous"))
         self.back_button.setObjectName("backButton")
         self.back_button.setToolTip("Back")
         self.back_button.setFixedSize(36, 36)
 
-        self.forward_button.setIcon(QtGui.QIcon.fromTheme("go-next"))
+        self.forward_button.setIcon(QIcon.fromTheme("go-next"))
         self.forward_button.setObjectName("forwardButton")
         self.forward_button.setToolTip("Forward")
         self.forward_button.setFixedSize(36, 36)
 
-        self.refresh_button.setIcon(QtGui.QIcon.fromTheme("view-refresh"))
+        self.refresh_button.setIcon(QIcon.fromTheme("view-refresh"))
         self.refresh_button.setObjectName("refreshButton")
         self.refresh_button.setToolTip("Refresh")
         self.refresh_button.setFixedSize(36, 36)
@@ -246,14 +272,14 @@ class UiMainWindow(QtWidgets.QMainWindow):
         # Context-aware open button with changing icon
         self.context_button.setObjectName("contextButton")
         self.context_button.setToolTip("Open File")
-        self.context_button.setIcon(QtGui.QIcon(GuiIcon.PICTURE))  # Default icon
+        self.context_button.setIcon(QIcon(GuiIcon.PICTURE))  # Default icon
         self.context_button.setFixedSize(36, 36)
 
         # Secondary input for mapping tab (initially hidden)
         self.secondary_input_container.setObjectName("secondaryInputContainer")
         self.secondary_input_container.setVisible(False)  # Hidden by default
 
-        secondary_layout = QtWidgets.QHBoxLayout(self.secondary_input_container)
+        secondary_layout = QHBoxLayout(self.secondary_input_container)
         secondary_layout.setContentsMargins(0, 0, 0, 0)
         secondary_layout.setSpacing(5)
 
@@ -261,7 +287,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.secondary_input.setPlaceholderText("Select table file...")
 
         self.secondary_button.setObjectName("secondaryButton")
-        self.secondary_button.setIcon(QtGui.QIcon(GuiIcon.EXCEL))
+        self.secondary_button.setIcon(QIcon(GuiIcon.EXCEL))
         self.secondary_button.setFixedSize(36, 36)
         self.secondary_button.setToolTip("Open Table File")
 
@@ -271,7 +297,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         # Destination section (always visible)
         self.destination_container.setObjectName("destinationContainer")
 
-        destination_layout = QtWidgets.QHBoxLayout(self.destination_container)
+        destination_layout = QHBoxLayout(self.destination_container)
         destination_layout.setContentsMargins(0, 0, 0, 0)
         destination_layout.setSpacing(5)
 
@@ -281,7 +307,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.destination_input.setPlaceholderText("Select destination folder...")
 
         self.destination_button.setObjectName("destinationButton")
-        self.destination_button.setIcon(QtGui.QIcon(GuiIcon.FOLDER))
+        self.destination_button.setIcon(QIcon(GuiIcon.FOLDER))
         self.destination_button.setFixedSize(36, 36)
         self.destination_button.setToolTip("Select Destination Folder")
 
@@ -290,7 +316,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         destination_layout.addWidget(self.destination_button)
 
         # Info button (on the right)
-        self.info_button.setIcon(QtGui.QIcon.fromTheme("help-browser"))
+        self.info_button.setIcon(QIcon.fromTheme("help-browser"))
         self.info_button.setObjectName("infoButton")
         self.info_button.setToolTip("Info")
         self.info_button.setFixedSize(36, 36)
@@ -330,8 +356,8 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
     def create_photo_tab(self):
         """Create photo tab without redundant input fields"""
-        icon2 = QtGui.QIcon()
-        icon2.addFile(GuiIcon.PICTURE, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon2 = QIcon()
+        icon2.addFile(GuiIcon.PICTURE, QSize(), QIcon.Mode.Normal, QIcon.State.Off)
 
         self.photo_tab.setObjectName("photo_tab")
 
@@ -344,8 +370,8 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
     def create_folder_tab(self):
         """Create folder tab without redundant input fields"""
-        icon3 = QtGui.QIcon()
-        icon3.addFile(GuiIcon.FOLDER, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon3 = QIcon()
+        icon3.addFile(GuiIcon.FOLDER, QSize(), QIcon.Mode.Normal, QIcon.State.Off)
 
         self.folder_tab.setObjectName("folder_tab")
 
@@ -357,7 +383,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         # Find the input and destination layouts
         for i in range(self.folder_tab_widget.verticalLayout_200.count()):
             item = self.folder_tab_widget.verticalLayout_200.itemAt(i)
-            if isinstance(item, QtWidgets.QHBoxLayout) and hasattr(item, "objectName"):
+            if isinstance(item, QHBoxLayout) and hasattr(item, "objectName"):
                 if item.objectName() == "horizontalLayout_4":  # Input layout
                     input_layout = item
                 elif item.objectName() == "horizontalLayout_3":  # Destination layout
@@ -374,8 +400,8 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
     def create_mapping_tab(self):
         """Create mapping tab without redundant input fields"""
-        icon1 = QtGui.QIcon()
-        icon1.addFile(GuiIcon.EXCEL, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon1 = QIcon()
+        icon1.addFile(GuiIcon.EXCEL, QSize(), QIcon.Mode.Normal, QIcon.State.Off)
 
         self.mapping_tab.setObjectName("mapping_tab")
 
@@ -384,8 +410,8 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
     def create_video_tab(self):
         """Create video tab without redundant input fields"""
-        icon4 = QtGui.QIcon()
-        icon4.addFile(GuiIcon.CLAPPERBOARD, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon4 = QIcon()
+        icon4.addFile(GuiIcon.CLAPPERBOARD, QSize(), QIcon.Mode.Normal, QIcon.State.Off)
 
         self.video_tab.setObjectName("video_tab")
 
@@ -412,7 +438,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.verticalLayout_5.addWidget(self.video_tab_widget)
         self.function_tabWidget.addTab(self.video_tab, icon4, "")
 
-    def _handle_image_update(self, function_type: FunctionType, image: QtGui.QImage | None,
+    def _handle_image_update(self, function_type: FunctionType, image: QImage | None,
                              widget, expected_type: FunctionType) -> None:
         """Handle image updates from the display worker, including no-face scenarios"""
         if function_type != expected_type:
@@ -426,7 +452,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
             message = self.display_worker.get_no_face_message(function_type)
             widget.imageWidget.showNoFaceDetected(message)
 
-    def decorate_action(self,action: QtGui.QAction, width: float, height: float, color: str):
+    def decorate_action(self,action: QAction, width: float, height: float, color: str):
         """Set the aspect ratio icons for the address bar and destination input"""
         max_dim = 64
         # Compute a uniform scale factor that fits the longer side to `max_dim`.
@@ -444,15 +470,15 @@ class UiMainWindow(QtWidgets.QMainWindow):
         </svg>
         """
 
-        svg_bytes = QtCore.QByteArray(svg_data.encode())
+        svg_bytes = QByteArray(svg_data.encode())
         renderer = QSvgRenderer(svg_bytes)
 
         # Create pixmap at multiple sizes for better scaling
-        icon = QtGui.QIcon()
+        icon = QIcon()
         for size in [16, 24, 32, 48, 64]:
-            pixmap = QtGui.QPixmap(size, size)
-            pixmap.fill(QtCore.Qt.GlobalColor.transparent)
-            painter = QtGui.QPainter(pixmap)
+            pixmap = QPixmap(size, size)
+            pixmap.fill(Qt.GlobalColor.transparent)
+            painter = QPainter(pixmap)
             renderer.render(painter)
             painter.end()
             icon.addPixmap(pixmap)
@@ -483,7 +509,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 # Update primary address bar
                 self.unified_address_bar.set_path_type(PathType.IMAGE)
                 self.unified_address_bar.setPlaceholderText("Enter image file path...")
-                self.context_button.setIcon(QtGui.QIcon(GuiIcon.PICTURE))
+                self.context_button.setIcon(QIcon(GuiIcon.PICTURE))
                 self.context_button.setToolTip("Open Image")
 
                 # Hide secondary input (not needed for photo tab)
@@ -509,7 +535,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
             case FunctionType.FOLDER:
                 self.unified_address_bar.set_path_type(PathType.FOLDER)
                 self.unified_address_bar.setPlaceholderText("Enter folder path...")
-                self.context_button.setIcon(QtGui.QIcon(GuiIcon.FOLDER))
+                self.context_button.setIcon(QIcon(GuiIcon.FOLDER))
                 self.context_button.setToolTip("Select Folder")
 
                 # Hide secondary input (not needed for folder tab)
@@ -534,7 +560,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
             case FunctionType.MAPPING:
                 self.unified_address_bar.set_path_type(PathType.FOLDER)
                 self.unified_address_bar.setPlaceholderText("Enter source folder path...")
-                self.context_button.setIcon(QtGui.QIcon(GuiIcon.FOLDER))
+                self.context_button.setIcon(QIcon(GuiIcon.FOLDER))
                 self.context_button.setToolTip("Select Source Folder")
 
                 # Show and configure secondary input for mapping tab
@@ -568,7 +594,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
             case FunctionType.VIDEO:
                 self.unified_address_bar.set_path_type(PathType.VIDEO)
                 self.unified_address_bar.setPlaceholderText("Enter video file path...")
-                self.context_button.setIcon(QtGui.QIcon(GuiIcon.CLAPPERBOARD))
+                self.context_button.setIcon(QIcon(GuiIcon.CLAPPERBOARD))
                 self.context_button.setToolTip("Open Video")
 
                 # Hide secondary input (not needed for video tab)
@@ -599,36 +625,36 @@ class UiMainWindow(QtWidgets.QMainWindow):
 
     # retranslateUi
     def retranslateUi(self):
-        self.setWindowTitle(QtCore.QCoreApplication.translate("self", "Autocrop", None))
-        self.actionAbout_Face_Cropper.setText(QtCore.QCoreApplication.translate("self", "About Autocrop", None))
-        self.actionUse_Mapping.setText(QtCore.QCoreApplication.translate("self", "Use Mapping", None))
-        self.actionCrop_File.setText(QtCore.QCoreApplication.translate("self", "Crop File", None))
-        self.actionCrop_Folder.setText(QtCore.QCoreApplication.translate("self", "Crop Folder", None))
-        self.actionSquare.setText(QtCore.QCoreApplication.translate("self", "Square", None))
-        self.actionGolden_Ratio.setText(QtCore.QCoreApplication.translate("self", "Golden Ratio", None))
-        self.action2_3_Ratio.setText(QtCore.QCoreApplication.translate("self", "2:3 Ratio", None))
-        self.action3_4_Ratio.setText(QtCore.QCoreApplication.translate("self", "3:4 Ratio", None))
-        self.action4_5_Ratio.setText(QtCore.QCoreApplication.translate("self", "4:5 Ratio", None))
-        self.actionCrop_Video.setText(QtCore.QCoreApplication.translate("self", "Crop Video", None))
+        self.setWindowTitle(QCoreApplication.translate("self", "Autocrop", None))
+        self.actionAbout_Face_Cropper.setText(QCoreApplication.translate("self", "About Autocrop", None))
+        self.actionUse_Mapping.setText(QCoreApplication.translate("self", "Use Mapping", None))
+        self.actionCrop_File.setText(QCoreApplication.translate("self", "Crop File", None))
+        self.actionCrop_Folder.setText(QCoreApplication.translate("self", "Crop Folder", None))
+        self.actionSquare.setText(QCoreApplication.translate("self", "Square", None))
+        self.actionGolden_Ratio.setText(QCoreApplication.translate("self", "Golden Ratio", None))
+        self.action2_3_Ratio.setText(QCoreApplication.translate("self", "2:3 Ratio", None))
+        self.action3_4_Ratio.setText(QCoreApplication.translate("self", "3:4 Ratio", None))
+        self.action4_5_Ratio.setText(QCoreApplication.translate("self", "4:5 Ratio", None))
+        self.actionCrop_Video.setText(QCoreApplication.translate("self", "Crop Video", None))
         self.function_tabWidget.setTabText(self.function_tabWidget.indexOf(self.photo_tab),
-                                          QtCore.QCoreApplication.translate("self", "Photo Crop", None))
+                                          QCoreApplication.translate("self", "Photo Crop", None))
         self.function_tabWidget.setTabText(self.function_tabWidget.indexOf(self.folder_tab),
-                                          QtCore.QCoreApplication.translate("self", "Folder Crop", None))
+                                          QCoreApplication.translate("self", "Folder Crop", None))
         self.function_tabWidget.setTabText(self.function_tabWidget.indexOf(self.mapping_tab),
-                                          QtCore.QCoreApplication.translate("self", "Mapping Crop", None))
+                                          QCoreApplication.translate("self", "Mapping Crop", None))
         self.function_tabWidget.setTabText(self.function_tabWidget.indexOf(self.video_tab),
-                                          QtCore.QCoreApplication.translate("self", "Video Crop", None))
-        self.menuFile.setTitle(QtCore.QCoreApplication.translate("self", "Presets", None))
-        self.menuTools.setTitle(QtCore.QCoreApplication.translate("self", "Tools", None))
-        self.menuInfo.setTitle(QtCore.QCoreApplication.translate("self", "Info", None))
+                                          QCoreApplication.translate("self", "Video Crop", None))
+        self.menuFile.setTitle(QCoreApplication.translate("self", "Presets", None))
+        self.menuTools.setTitle(QCoreApplication.translate("self", "Tools", None))
+        self.menuInfo.setTitle(QCoreApplication.translate("self", "Info", None))
 
         # Address bar elements
-        self.unified_address_bar.setPlaceholderText(QtCore.QCoreApplication.translate("self",
+        self.unified_address_bar.setPlaceholderText(QCoreApplication.translate("self",
                                             "Enter file path or drag and drop files here", None))
-        self.back_button.setToolTip(QtCore.QCoreApplication.translate("self", "Back", None))
-        self.forward_button.setToolTip(QtCore.QCoreApplication.translate("self", "Forward", None))
-        self.refresh_button.setToolTip(QtCore.QCoreApplication.translate("self", "Refresh Preview", None))
-        self.info_button.setToolTip(QtCore.QCoreApplication.translate("self", "Settings", None))
+        self.back_button.setToolTip(QCoreApplication.translate("self", "Back", None))
+        self.forward_button.setToolTip(QCoreApplication.translate("self", "Forward", None))
+        self.refresh_button.setToolTip(QCoreApplication.translate("self", "Refresh Preview", None))
+        self.info_button.setToolTip(QCoreApplication.translate("self", "Settings", None))
 
     def connect_widgets(self):
         """Connect widget signals to handlers"""
@@ -792,14 +818,14 @@ class UiMainWindow(QtWidgets.QMainWindow):
         """Securely open a file dialog and validate the selected path"""
         try:
             # Configure file dialog options
-            options = QtWidgets.QFileDialog.Option.ReadOnly
+            options = QFileDialog.Option.ReadOnly
             category = self._get_file_category_for_path_type(path_type)
             default_dir = file_manager.get_default_directory(category).as_posix()
             filter_string = file_manager.get_filter_string(category)
             title = self._get_dialog_title(path_type)
 
             # Open the dialog
-            f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
+            f_name, _ = QFileDialog.getOpenFileName(
                 self, title, default_dir, filter_string, options=options
             )
 
@@ -863,7 +889,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
                     self.unified_address_bar.setText(file_path)
             elif path_type == PathType.VIDEO:
                 tab_widget.input_path = file_path
-                self.video_tab_widget.player.setSource(QtCore.QUrl.fromLocalFile(file_path))
+                self.video_tab_widget.player.setSource(QUrl.fromLocalFile(file_path))
                 self.video_tab_widget.reset_video_widgets()
             elif path_type == PathType.TABLE:
                 tab_widget.table_path = file_path
@@ -893,13 +919,13 @@ class UiMainWindow(QtWidgets.QMainWindow):
         """Securely open a folder dialogue and validate the selected path"""
         try:
             # Use QFileDialog with options that improve security
-            options = QtWidgets.QFileDialog.Option.ShowDirsOnly | QtWidgets.QFileDialog.Option.DontResolveSymlinks
+            options = QFileDialog.Option.ShowDirsOnly | QFileDialog.Option.DontResolveSymlinks
 
             # Get appropriate default directory
             default_dir = file_manager.get_default_directory(FileCategory.PHOTO).as_posix()
 
             # Open the dialogue with the appropriate title
-            f_name = QtWidgets.QFileDialog.getExistingDirectory(
+            f_name = QFileDialog.getExistingDirectory(
                 self, 'Select Directory', default_dir, options=options
             )
 
@@ -1013,7 +1039,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
             case _:
                 pass
 
-    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+    def closeEvent(self, event: QCloseEvent) -> None:
         """
         Handle window close event by performing proper clean-up.
         This is called automatically when the window is closed.
@@ -1046,7 +1072,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
             for completed, future in enumerate(as_completed(future_tools), start=1):
                 face_detection_tools.append(future.result())
                 splash.show_message(f"Loading face detection models... {completed}/{total}")
-                QtWidgets.QApplication.processEvents()
+                QApplication.processEvents()
             splash.finish(self)
             return face_detection_tools
 
@@ -1110,7 +1136,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
         for signal in signals:
             signal.connect(crop_method)
 
-    def adjust_ui(self, app: QtWidgets.QApplication):
+    def adjust_ui(self, app: QApplication):
         if (screen := app.primaryScreen()) is None:
             return
 
@@ -1277,10 +1303,10 @@ class UiMainWindow(QtWidgets.QMainWindow):
                 pass
 
     # Drag and drop event handlers
-    def dragEnterEvent(self, a0: QtGui.QDragEnterEvent | None) -> None:
+    def dragEnterEvent(self, a0: QDragEnterEvent | None) -> None:
         """Handle drag enter events for browser-like drag and drop"""
         try:
-            assert isinstance(a0, QtGui.QDragEnterEvent)
+            assert isinstance(a0, QDragEnterEvent)
         except AssertionError:
             return
         ut.check_mime_data(a0)
@@ -1288,20 +1314,20 @@ class UiMainWindow(QtWidgets.QMainWindow):
         # Show a status message
         self.statusbar.showMessage("Drop files here to open", 2000)
 
-    def dragMoveEvent(self, a0: QtGui.QDragMoveEvent | None) -> None:
+    def dragMoveEvent(self, a0: QDragMoveEvent | None) -> None:
         """Handle drag move events"""
         try:
-            assert isinstance(a0, QtGui.QDragMoveEvent)
+            assert isinstance(a0, QDragMoveEvent)
         except AssertionError:
             return
         ut.check_mime_data(a0)
 
-    def dropEvent(self, a0: QtGui.QDropEvent | None) -> None:
+    def dropEvent(self, a0: QDropEvent | None) -> None:
         """
         Handle drop events with enhanced security.
         """
         try:
-            assert isinstance(a0, QtGui.QDropEvent)
+            assert isinstance(a0, QDropEvent)
         except AssertionError:
             return
 
@@ -1312,7 +1338,7 @@ class UiMainWindow(QtWidgets.QMainWindow):
             a0.ignore()
             return
 
-        a0.setDropAction(QtCore.Qt.DropAction.CopyAction)
+        a0.setDropAction(Qt.DropAction.CopyAction)
 
         # Get the dropped URL and convert to a local file path
         url = mime_data.urls()[0]
@@ -1545,9 +1571,9 @@ class UiMainWindow(QtWidgets.QMainWindow):
             return
         self.unified_address_bar.setText(file_path.as_posix())
         self.video_tab_widget.mediacontrolWidget_1.playButton.setEnabled(True)
-        self.video_tab_widget.mediacontrolWidget_1.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PLAY))
+        self.video_tab_widget.mediacontrolWidget_1.playButton.setIcon(QIcon(GuiIcon.MULTIMEDIA_PLAY))
         self.video_tab_widget.mediacontrolWidget_2.playButton.setEnabled(True)
-        self.video_tab_widget.mediacontrolWidget_2.playButton.setIcon(QtGui.QIcon(GuiIcon.MULTIMEDIA_PLAY))
+        self.video_tab_widget.mediacontrolWidget_2.playButton.setIcon(QIcon(GuiIcon.MULTIMEDIA_PLAY))
         self.video_tab_widget.open_dropped_video()
 
     def handle_table_file(self, file_path: Path) -> None:
@@ -1560,10 +1586,10 @@ class UiMainWindow(QtWidgets.QMainWindow):
         self.mapping_tab_widget.process_data(data)
 
     @staticmethod
-    def all_filled(*line_edits: PathLineEdit | NumberLineEdit | QtWidgets.QComboBox) -> bool:
+    def all_filled(*line_edits: PathLineEdit | NumberLineEdit | QComboBox) -> bool:
         x = all(edit.state == LineEditState.VALID_INPUT
                 for edit in line_edits if isinstance(edit, PathLineEdit | NumberLineEdit))
-        y = all(edit.currentText() for edit in line_edits if isinstance(edit, QtWidgets.QComboBox))
+        y = all(edit.currentText() for edit in line_edits if isinstance(edit, QComboBox))
         return x and y
 
     def disable_buttons(self, tab_widget: TabWidget) -> None:

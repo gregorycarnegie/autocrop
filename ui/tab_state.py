@@ -1,6 +1,6 @@
 from collections.abc import Callable
 
-from PyQt6 import QtWidgets
+from PyQt6.QtWidgets import QCheckBox, QComboBox, QDial, QPushButton, QSlider, QWidget
 
 from line_edits import LineEditState, NumberLineEdit, PathLineEdit
 from ui import utils as ut
@@ -15,7 +15,7 @@ class TabStateManager:
     duplication and ensure consistent behavior across tabs.
     """
 
-    def __init__(self, parent: QtWidgets.QWidget | None = None):
+    def __init__(self, parent: QWidget | None = None):
         """
         Initialize the tab state manager.
 
@@ -23,13 +23,13 @@ class TabStateManager:
             parent: Optional parent widget that owns this state manager
         """
         self.parent = parent
-        self._checkbox_handlers: dict[QtWidgets.QCheckBox, set[QtWidgets.QCheckBox]] = {}
-        self._button_dependencies: dict[QtWidgets.QPushButton, set[QtWidgets.QWidget]] = {}
-        self._validation_handlers: dict[QtWidgets.QWidget, Callable[[], bool]] = {}
+        self._checkbox_handlers: dict[QCheckBox, set[QCheckBox]] = {}
+        self._button_dependencies: dict[QPushButton, set[QWidget]] = {}
+        self._validation_handlers: dict[QWidget, Callable[[], bool]] = {}
         self._state_change_callback: Callable[[], None] | None = None
 
-    def register_checkbox_exclusivity(self, checkbox: QtWidgets.QCheckBox,
-                                     exclude_checkboxes: set[QtWidgets.QCheckBox]) -> None:
+    def register_checkbox_exclusivity(self, checkbox: QCheckBox,
+                                     exclude_checkboxes: set[QCheckBox]) -> None:
         """
         Register checkbox exclusivity relationships.
         When a checkbox is checked, it will uncheck the specified excluded checkboxes.
@@ -41,7 +41,7 @@ class TabStateManager:
         self._checkbox_handlers[checkbox] = exclude_checkboxes
         checkbox.toggled.connect(lambda checked: self._handle_checkbox_state(checkbox, checked))
 
-    def _handle_checkbox_state(self, checkbox: QtWidgets.QCheckBox, checked: bool) -> None:
+    def _handle_checkbox_state(self, checkbox: QCheckBox, checked: bool) -> None:
         """
         Handle checkbox state changes based on registered exclusivity relationships.
 
@@ -55,7 +55,7 @@ class TabStateManager:
                 excluded.setChecked(False)
                 excluded.blockSignals(False)
 
-    def register_validation_handler(self, widget: QtWidgets.QWidget,
+    def register_validation_handler(self, widget: QWidget,
                                    handler: Callable[[], bool]) -> None:
         """
         Register a custom validation handler for a widget.
@@ -66,7 +66,7 @@ class TabStateManager:
         """
         self._validation_handlers[widget] = handler
 
-    def connect_widgets(self, *widgets: QtWidgets.QWidget) -> None:
+    def connect_widgets(self, *widgets: QWidget) -> None:
         """
         Connect widget signals to state update handlers.
 
@@ -76,9 +76,9 @@ class TabStateManager:
         for widget in widgets:
             if isinstance(widget, NumberLineEdit | PathLineEdit):
                 widget.textChanged.connect(self.update_button_states)
-            elif isinstance(widget, QtWidgets.QComboBox):
+            elif isinstance(widget, QComboBox):
                 widget.currentTextChanged.connect(self.update_button_states)
-            elif isinstance(widget, QtWidgets.QSlider | QtWidgets.QDial):
+            elif isinstance(widget, QSlider | QDial):
                 widget.valueChanged.connect(self.update_button_states)
 
     def set_state_change_callback(self, callback: Callable[[], None]) -> None:
@@ -109,7 +109,7 @@ class TabStateManager:
         if self._state_change_callback:
             self._state_change_callback()
 
-    def _is_widget_valid(self, widget: QtWidgets.QWidget) -> bool:
+    def _is_widget_valid(self, widget: QWidget) -> bool:
         """
         Check if a widget is in a valid state.
 
@@ -126,12 +126,12 @@ class TabStateManager:
         # Default validation strategies
         if isinstance(widget, NumberLineEdit | PathLineEdit):
             return widget.state == LineEditState.VALID_INPUT and bool(widget.text())
-        elif isinstance(widget, QtWidgets.QComboBox):
+        elif isinstance(widget, QComboBox):
             return bool(widget.currentText())
-        elif isinstance(widget, QtWidgets.QCheckBox):
+        elif isinstance(widget, QCheckBox):
             # Checkboxes are typically considered valid regardless of state
             return True
-        elif isinstance(widget, QtWidgets.QSlider | QtWidgets.QDial):
+        elif isinstance(widget, QSlider | QDial):
             # Sliders and dials are typically considered valid regardless of value
             return True
 

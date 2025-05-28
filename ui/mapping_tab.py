@@ -1,7 +1,9 @@
 from pathlib import Path
 
 import polars as pl
-from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6.QtCore import QCoreApplication, QEvent, QMetaObject, QPoint, Qt, QTimer
+from PyQt6.QtGui import QCursor
+from PyQt6.QtWidgets import QComboBox, QFileDialog, QTableView, QWidget
 
 from core import DataFrameModel
 from core import processing as prc
@@ -17,7 +19,7 @@ from .batch_tab import UiBatchCropWidget
 class UiMappingTabWidget(UiBatchCropWidget):
     """Mapping tab widget - preview works with just input path"""
 
-    def __init__(self, crop_worker: MappingCropper, object_name: str, parent: QtWidgets.QWidget) -> None:
+    def __init__(self, crop_worker: MappingCropper, object_name: str, parent: QWidget) -> None:
         """Initialize the mapping tab widget"""
         super().__init__(crop_worker, object_name, parent)
 
@@ -29,13 +31,13 @@ class UiMappingTabWidget(UiBatchCropWidget):
 
         # Create mapping-specific widgets
         self.tableButton = self.create_nav_button("tableButton")
-        self.comboBox_1 = QtWidgets.QComboBox()
-        self.comboBox_2 = QtWidgets.QComboBox()
-        self.comboBox_3 = QtWidgets.QComboBox()
-        self.comboBox_4 = QtWidgets.QComboBox()
-        self.tableView = QtWidgets.QTableView()
+        self.comboBox_1 = QComboBox()
+        self.comboBox_2 = QComboBox()
+        self.comboBox_3 = QComboBox()
+        self.comboBox_4 = QComboBox()
+        self.tableView = QTableView()
 
-        self.page_3 = QtWidgets.QWidget()
+        self.page_3 = QWidget()
         self.page_3.setObjectName("page_3")
 
         # Set up the main layout structure
@@ -50,7 +52,7 @@ class UiMappingTabWidget(UiBatchCropWidget):
         # Set initial toolbox page
         self.toolBox.setCurrentIndex(0)
 
-        QtCore.QMetaObject.connectSlotsByName(self)
+        QMetaObject.connectSlotsByName(self)
 
     def setup_layouts(self) -> None:
         """Set up the main layout structure with working preview"""
@@ -115,20 +117,20 @@ class UiMappingTabWidget(UiBatchCropWidget):
 
         # Enable mouse tracking
         self.treeView.setMouseTracking(True)
-        self.treeView.setAttribute(QtCore.Qt.WidgetAttribute.WA_Hover, True)
+        self.treeView.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
 
         # Setup viewport
         viewport = self.treeView.viewport()
         if viewport is not None:
             viewport.setMouseTracking(True)
-            viewport.setAttribute(QtCore.Qt.WidgetAttribute.WA_Hover, True)
+            viewport.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
             viewport.installEventFilter(self)
             logger.debug("Mapping tab: Event filter installed on tree view viewport")
 
         # Connect signals
         self.treeView.entered.connect(self._on_item_entered)
 
-    def _handle_image_hover(self, file_path: str, global_pos: QtCore.QPoint):
+    def _handle_image_hover(self, file_path: str, global_pos: QPoint):
         """Handle hovering over an image file in mapping tab - ONLY INPUT PATH REQUIRED"""
         logger.debug(f"Mapping DEBUG: input_path='{self.input_path}', destination_path='{self.destination_path}'")
 
@@ -155,7 +157,7 @@ class UiMappingTabWidget(UiBatchCropWidget):
         if obj == self.treeView.viewport():
             event_type = event.type()
 
-            if event_type == QtCore.QEvent.Type.MouseMove:
+            if event_type == QEvent.Type.MouseMove:
                 pos = event.position().toPoint()
                 index = self.treeView.indexAt(pos)
 
@@ -169,7 +171,7 @@ class UiMappingTabWidget(UiBatchCropWidget):
                 else:
                     self._hide_preview()
 
-            elif event_type == QtCore.QEvent.Type.Leave:
+            elif event_type == QEvent.Type.Leave:
                 logger.debug("Mouse left mapping viewport")
                 self._hide_preview()
 
@@ -189,7 +191,7 @@ class UiMappingTabWidget(UiBatchCropWidget):
 
         if sanitized_path := ut.sanitize_path(file_path):
             if self._is_image_file(sanitized_path):
-                self._last_mouse_pos = QtGui.QCursor.pos()
+                self._last_mouse_pos = QCursor.pos()
                 self._pending_preview_path = sanitized_path
                 logger.debug(f"Mapping: Starting preview timer for: {sanitized_path}")
                 self._hover_timer.start(300)
@@ -255,7 +257,7 @@ class UiMappingTabWidget(UiBatchCropWidget):
             self.treeView.setRootIndex(root_index)
 
             # Re-setup events after loading
-            QtCore.QTimer.singleShot(200, self._setup_tree_view_events)
+            QTimer.singleShot(200, self._setup_tree_view_events)
 
         except Exception as e:
             logger.exception(f"Error loading mapping data: {e}")
@@ -309,10 +311,10 @@ class UiMappingTabWidget(UiBatchCropWidget):
     def retranslateUi(self) -> None:
         """Update UI text elements for mapping tab"""
         super().retranslateUi()
-        self.comboBox_1.setPlaceholderText(QtCore.QCoreApplication.translate("self", "Filename column", None))
-        self.comboBox_2.setPlaceholderText(QtCore.QCoreApplication.translate("self", "Mapping column", None))
-        self.comboBox_3.setPlaceholderText(QtCore.QCoreApplication.translate("self", "Filename column", None))
-        self.comboBox_4.setPlaceholderText(QtCore.QCoreApplication.translate("self", "Mapping column", None))
+        self.comboBox_1.setPlaceholderText(QCoreApplication.translate("self", "Filename column", None))
+        self.comboBox_2.setPlaceholderText(QCoreApplication.translate("self", "Mapping column", None))
+        self.comboBox_3.setPlaceholderText(QCoreApplication.translate("self", "Filename column", None))
+        self.comboBox_4.setPlaceholderText(QCoreApplication.translate("self", "Mapping column", None))
         self.cropButton.setText("")
         self.cancelButton.setText("")
         self.toolBox.setItemText(self.toolBox.indexOf(self.page_1), "Crop View")
@@ -321,7 +323,7 @@ class UiMappingTabWidget(UiBatchCropWidget):
 
     def open_table(self) -> None:
         """Open table file dialog"""
-        f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
+        f_name, _ = QFileDialog.getOpenFileName(
             self, 'Open File',
             file_manager.get_default_directory(FileCategory.PHOTO).as_posix(),
             file_manager.get_filter_string(FileCategory.TABLE)

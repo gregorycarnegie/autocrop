@@ -2,8 +2,9 @@ from pathlib import Path
 
 import cv2
 import cv2.typing as cvt
-from PyQt6 import QtCore, QtWidgets
+from PyQt6.QtCore import QPoint, Qt, QTimer
 from PyQt6.QtGui import QColor, QFont, QImage, QPainter, QPen, QPixmap
+from PyQt6.QtWidgets import QApplication, QLabel
 
 from core import processing as prc
 from core.config import logger
@@ -12,23 +13,23 @@ from core.job import Job
 from file_types import FileCategory, file_manager
 
 
-class ImageHoverPreview(QtWidgets.QLabel):
+class ImageHoverPreview(QLabel):
     """A tooltip-style widget that shows a preview image when hovering over files"""
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowFlags(
-            QtCore.Qt.WindowType.Tool |
-            QtCore.Qt.WindowType.FramelessWindowHint |
-            QtCore.Qt.WindowType.WindowStaysOnTopHint |
-            QtCore.Qt.WindowType.WindowDoesNotAcceptFocus
+            Qt.WindowType.Tool |
+            Qt.WindowType.FramelessWindowHint |
+            Qt.WindowType.WindowStaysOnTopHint |
+            Qt.WindowType.WindowDoesNotAcceptFocus
         )
-        self.setAttribute(QtCore.Qt.WidgetAttribute.WA_ShowWithoutActivating)
-        self.setAttribute(QtCore.Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.setAttribute(QtCore.Qt.WidgetAttribute.WA_PaintOnScreen, False)
+        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setAttribute(Qt.WidgetAttribute.WA_PaintOnScreen, False)
 
         self.setFixedSize(250, 250)
-        self.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setStyleSheet("""
             QLabel {
                 background-color: rgba(255, 255, 255, 240);
@@ -41,7 +42,7 @@ class ImageHoverPreview(QtWidgets.QLabel):
         self.setScaledContents(False)
         self.hide()
 
-        self.show_timer = QtCore.QTimer()
+        self.show_timer = QTimer()
         self.show_timer.setSingleShot(True)
         self.show_timer.timeout.connect(self._actually_show)
 
@@ -52,7 +53,7 @@ class ImageHoverPreview(QtWidgets.QLabel):
 
         logger.debug("ImageHoverPreview initialized")
 
-    def preview_file(self, file_path: str, mouse_pos: QtCore.QPoint,
+    def preview_file(self, file_path: str, mouse_pos: QPoint,
                     face_tools: FaceToolPair, job: Job):
         logger.debug("preview_file called with: %s", file_path)
 
@@ -77,7 +78,7 @@ class ImageHoverPreview(QtWidgets.QLabel):
 
         logger.debug("Loading new image: %s", file_path)
         self.show_timer.start(200)
-        QtCore.QTimer.singleShot(0, lambda: self._load_image(file_path, mouse_pos, face_tools, job))
+        QTimer.singleShot(0, lambda: self._load_image(file_path, mouse_pos, face_tools, job))
 
     def _actually_show(self):
         if self.pending_mouse_pos and self.pixmap() and not self.pixmap().isNull():
@@ -86,7 +87,7 @@ class ImageHoverPreview(QtWidgets.QLabel):
         else:
             logger.debug("Timer expired but no valid preview to show")
 
-    def _show_at_position(self, mouse_pos: QtCore.QPoint):
+    def _show_at_position(self, mouse_pos: QPoint):
         logger.debug("_show_at_position called at: %s", mouse_pos)
         self.position_near_mouse(mouse_pos)
         self.show()
@@ -94,7 +95,7 @@ class ImageHoverPreview(QtWidgets.QLabel):
         self.activateWindow()
         logger.debug("Preview should be visible now. isVisible: %s", self.isVisible())
 
-    def _load_image(self, file_path: str, mouse_pos: QtCore.QPoint,
+    def _load_image(self, file_path: str, mouse_pos: QPoint,
                     face_tools: FaceToolPair, job: Job):
         logger.debug("_load_image called for: %s", file_path)
 
@@ -160,7 +161,7 @@ class ImageHoverPreview(QtWidgets.QLabel):
 
     def _create_message_pixmap(self, message: str, is_error: bool = False):
         pixmap = QPixmap(self.size())
-        pixmap.fill(QtCore.Qt.GlobalColor.transparent)
+        pixmap.fill(Qt.GlobalColor.transparent)
 
         painter = QPainter(pixmap)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -179,7 +180,7 @@ class ImageHoverPreview(QtWidgets.QLabel):
 
         text_rect = painter.fontMetrics().boundingRect(
             pixmap.rect(),
-            QtCore.Qt.AlignmentFlag.AlignCenter | QtCore.Qt.TextFlag.TextWordWrap,
+            Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap,
             message
         )
         text_rect.adjust(-15, -10, 15, 10)
@@ -192,7 +193,7 @@ class ImageHoverPreview(QtWidgets.QLabel):
         painter.setPen(QPen(border_color, 2))
         painter.drawRoundedRect(text_rect, 6, 6)
         painter.setPen(text_color)
-        painter.drawText(text_rect, QtCore.Qt.AlignmentFlag.AlignCenter | QtCore.Qt.TextFlag.TextWordWrap, message)
+        painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap, message)
         painter.end()
         self.setPixmap(pixmap)
 
@@ -226,17 +227,17 @@ class ImageHoverPreview(QtWidgets.QLabel):
         return pixmap.scaled(
             self.width() - 10,
             self.height() - 10,
-            QtCore.Qt.AspectRatioMode.KeepAspectRatio,
-            QtCore.Qt.TransformationMode.SmoothTransformation
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation
         )
 
-    def position_near_mouse(self, mouse_pos: QtCore.QPoint):
+    def position_near_mouse(self, mouse_pos: QPoint):
         logger.debug("Positioning preview near mouse at: %s", mouse_pos)
         offset_x, offset_y = 20, 20
         x = mouse_pos.x() + offset_x
         y = mouse_pos.y() + offset_y
 
-        if screen := QtWidgets.QApplication.screenAt(mouse_pos):
+        if screen := QApplication.screenAt(mouse_pos):
             screen_rect = screen.geometry()
             logger.debug("Screen geometry: %s", screen_rect)
             if x + self.width() > screen_rect.right():
@@ -244,7 +245,7 @@ class ImageHoverPreview(QtWidgets.QLabel):
             if y + self.height() > screen_rect.bottom():
                 y = mouse_pos.y() - self.height() - offset_y
 
-        final_pos = QtCore.QPoint(x, y)
+        final_pos = QPoint(x, y)
         logger.debug("Final preview position: %s", final_pos)
         self.move(final_pos)
 

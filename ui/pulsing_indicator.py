@@ -1,7 +1,9 @@
-from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6.QtCore import QSize, Qt, QTimer
+from PyQt6.QtGui import QBrush, QColor, QPainter
+from PyQt6.QtWidgets import QWidget
 
 
-class PulsingProgressIndicator(QtWidgets.QWidget):
+class PulsingProgressIndicator(QWidget):
     """
     A pulsing rectangle indicator for showing processing status.
     - Pulsing blue during processing
@@ -18,7 +20,7 @@ class PulsingProgressIndicator(QtWidgets.QWidget):
         self.increasing = False
 
         # Animation timer
-        self.timer = QtCore.QTimer(self)
+        self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_animation)
         self.timer.setInterval(50)  # Update every 50ms for smooth animation
 
@@ -70,24 +72,24 @@ class PulsingProgressIndicator(QtWidgets.QWidget):
 
     def paintEvent(self, event):
         """Paint the indicator rectangle"""
-        painter = QtGui.QPainter(self)
-        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
         if self.is_processing:
             # Pulsing blue
-            color = QtGui.QColor(66, 133, 244)  # Google blue
+            color = QColor(66, 133, 244)  # Google blue
             color.setAlphaF(self.opacity)
             self.__recolor(painter, color)
         elif self.is_complete:
             # Solid green
-            color = QtGui.QColor(52, 168, 83)  # Google green
+            color = QColor(52, 168, 83)  # Google green
             self.__recolor(painter, color)
 
-    def __recolor(self, painter: QtGui.QPainter, color: QtGui.QColor):
-        painter.setBrush(QtGui.QBrush(color))
-        painter.setPen(QtCore.Qt.PenStyle.NoPen)
+    def __recolor(self, painter: QPainter, color: QColor):
+        painter.setBrush(QBrush(color))
+        painter.setPen(Qt.PenStyle.NoPen)
         painter.drawRect(self.rect())
 
     def sizeHint(self):
         """Provide size hint for layout"""
-        return QtCore.QSize(200, 20)
+        return QSize(200, 20)

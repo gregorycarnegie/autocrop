@@ -1,5 +1,6 @@
-
-from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6.QtCore import QCoreApplication, Qt
+from PyQt6.QtGui import QIntValidator
+from PyQt6.QtWidgets import QWidget
 
 from .custom_line_edit import CustomLineEdit
 
@@ -12,20 +13,20 @@ class NumberLineEdit(CustomLineEdit):
 
     Args:
         name (str): The object name of the widget.
-        parent (Optional[QtWidgets.QWidget]): The parent widget. Defaults to None.
+        parent (Optional[QWidget]): The parent widget. Defaults to None.
 
     Methods:
         validate_path(self): Validates the path by performing color logic and updating the style of the NumberLineEdit.
         value(self) -> int: Returns the integer value of the text input.
     """
 
-    def __init__(self, name: str, parent: QtWidgets.QWidget | None = None):
+    def __init__(self, name: str, parent: QWidget | None = None):
         super().__init__(parent)
-        self.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhDigitsOnly)
-        self.setValidator(QtGui.QIntValidator(parent=self))
+        self.setInputMethodHints(Qt.InputMethodHint.ImhDigitsOnly)
+        self.setValidator(QIntValidator(parent=self))
         self.setText('')
         self.setObjectName(name)
-        self.setPlaceholderText(QtCore.QCoreApplication.translate("self", "Type a number", None))
+        self.setPlaceholderText(QCoreApplication.translate("self", "Type a number", None))
 
     def validate_path(self):
         """

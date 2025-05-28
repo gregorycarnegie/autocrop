@@ -1,6 +1,7 @@
 from pathlib import Path
 
-from PyQt6 import QtCore, QtWidgets
+from PyQt6.QtCore import QMetaObject
+from PyQt6.QtWidgets import QFileDialog, QMessageBox, QWidget
 
 from core.croppers import PhotoCropper
 from core.enums import FunctionType
@@ -14,7 +15,7 @@ from .enums import GuiIcon
 class UiPhotoTabWidget(UiCropWidget):
     """Photo tab widget with enhanced inheritance from the base crop_from_path widget"""
 
-    def __init__(self, crop_worker: PhotoCropper, object_name: str, parent: QtWidgets.QWidget) -> None:
+    def __init__(self, crop_worker: PhotoCropper, object_name: str, parent: QWidget) -> None:
         """Initialize the photo tab widget"""
         super().__init__(parent, object_name)
         self.crop_worker = crop_worker
@@ -35,7 +36,7 @@ class UiPhotoTabWidget(UiCropWidget):
         # Set initial UI text
         self.retranslateUi()
 
-        QtCore.QMetaObject.connectSlotsByName(self)
+        QMetaObject.connectSlotsByName(self)
 
     def setup_layouts(self) -> None:
         """Set up the main layout structure"""
@@ -115,7 +116,7 @@ class UiPhotoTabWidget(UiCropWidget):
         Since we removed the line edits, this now takes a string identifier
         """
         if line_edit_type == "input":
-            f_name, _ = QtWidgets.QFileDialog.getOpenFileName(
+            f_name, _ = QFileDialog.getOpenFileName(
                 self, 'Open File',
                 file_manager.get_default_directory(FileCategory.PHOTO).as_posix(),
                 file_manager.get_filter_string(FileCategory.PHOTO)
@@ -129,7 +130,7 @@ class UiPhotoTabWidget(UiCropWidget):
                 main_window.unified_address_bar.setText(f_name)
 
         elif line_edit_type == "destination":
-            f_name = QtWidgets.QFileDialog.getExistingDirectory(
+            f_name = QFileDialog.getExistingDirectory(
                 self,
                 'Select Directory',
                 file_manager.get_default_directory(FileCategory.PHOTO).as_posix()
@@ -156,7 +157,7 @@ class UiPhotoTabWidget(UiCropWidget):
         if self.input_path and self.destination_path:
             if Path(self.input_path).parent == Path(self.destination_path):
                 match ut.show_warning(FunctionType.PHOTO):
-                    case QtWidgets.QMessageBox.StandardButton.Yes:
+                    case QMessageBox.StandardButton.Yes:
                         execute_crop()
                     case _:
                         return

@@ -2,7 +2,8 @@ import contextlib
 from pathlib import Path
 
 import autocrop_rs.security as r_sec  # type: ignore
-from PyQt6 import QtCore, QtWidgets
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QMainWindow, QWidget
 
 from file_types import FileCategory, file_manager
 
@@ -19,7 +20,7 @@ class PathLineEdit(CustomLineEdit):
 
     Args:
         path_type (PathType): The type of path to be validated. Default to PathType.FOLDER.
-        parent (Optional[QtWidgets.QWidget]): The parent widget. Defaults to None.
+        parent (Optional[QWidget]): The parent widget. Defaults to None.
 
     Methods:
         insert_clipboard_path(self, text: str) -> None: Inserts the clipboard path into the text input.
@@ -32,9 +33,9 @@ class PathLineEdit(CustomLineEdit):
         None
     """
 
-    def __init__(self, path_type: PathType = PathType.FOLDER, parent: QtWidgets.QWidget | None = None):
+    def __init__(self, path_type: PathType = PathType.FOLDER, parent: QWidget | None = None):
         super().__init__(parent)
-        self.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
+        self.setInputMethodHints(Qt.InputMethodHint.ImhUrlCharactersOnly)
         self.setValidator(FilePathValidator(parent=self))
         self.path_type = path_type
         self.textChanged.connect(self.insert_clipboard_path)
@@ -71,7 +72,7 @@ class PathLineEdit(CustomLineEdit):
 
         # Find the main window to trigger button state updates
         parent = self.parent()
-        while parent and not isinstance(parent, QtWidgets.QMainWindow):
+        while parent and not isinstance(parent, QMainWindow):
             parent = parent.parent()
 
         if parent:

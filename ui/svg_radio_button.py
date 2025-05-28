@@ -1,8 +1,11 @@
-from PyQt6 import QtCore, QtGui, QtSvg, QtWidgets
+from PyQt6.QtCore import QRectF, QSize, Qt, pyqtSignal
+from PyQt6.QtGui import QPainter
+from PyQt6.QtSvg import QSvgRenderer
+from PyQt6.QtWidgets import QWidget
 
 
-class SvgRadioButton(QtWidgets.QWidget):
-    toggled = QtCore.pyqtSignal(bool)
+class SvgRadioButton(QWidget):
+    toggled = pyqtSignal(bool)
 
     def __init__(self, parent=None, checked_icon=None, unchecked_icon=None):
         super().__init__(parent)
@@ -15,7 +18,7 @@ class SvgRadioButton(QtWidgets.QWidget):
         self._unchecked_icon = unchecked_icon
 
         # Create SVG renderer for displaying the icon
-        self._svg_renderer = QtSvg.QSvgRenderer(self)
+        self._svg_renderer = QSvgRenderer(self)
         self._svg_renderer.load(self._unchecked_icon)
 
         # Set minimum size
@@ -25,7 +28,7 @@ class SvgRadioButton(QtWidgets.QWidget):
         self.setMouseTracking(True)
 
         # Set focus policy
-        self.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
     # Add setText method for compatibility
     def setText(self, text: str):
@@ -53,7 +56,7 @@ class SvgRadioButton(QtWidgets.QWidget):
             self._svg_renderer.load(self._unchecked_icon)
 
     def mousePressEvent(self, event):
-        if event.button() == QtCore.Qt.MouseButton.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             self.setChecked(True)
             event.accept()
         else:
@@ -72,8 +75,8 @@ class SvgRadioButton(QtWidgets.QWidget):
         super().leaveEvent(event)
 
     def paintEvent(self, event):
-        painter = QtGui.QPainter(self)
-        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
         # Get the SVG's default size
         default_size = self._svg_renderer.defaultSize()
@@ -98,14 +101,14 @@ class SvgRadioButton(QtWidgets.QWidget):
             y = (self.height() - render_height) / 2
 
             # Draw the SVG
-            self._svg_renderer.render(painter, QtCore.QRectF(x, y, render_width, render_height))
+            self._svg_renderer.render(painter, QRectF(x, y, render_width, render_height))
         else:
             # Fallback if SVG has no default size
-            self._svg_renderer.render(painter, QtCore.QRectF(0, 0, self.width(), self.height()))
+            self._svg_renderer.render(painter, QRectF(0, 0, self.width(), self.height()))
 
         # Draw text if present (not used in this app but added for compatibility)
         if self._text:
-            painter.drawText(self.rect(), QtCore.Qt.AlignmentFlag.AlignCenter, self._text)
+            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, self._text)
 
     def sizeHint(self):
-        return QtCore.QSize(60, 60)
+        return QSize(60, 60)

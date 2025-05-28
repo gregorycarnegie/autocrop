@@ -5,7 +5,8 @@ from pathlib import Path
 
 import autocrop_rs.security as r_sec  # type: ignore
 import cv2.typing as cvt
-from PyQt6 import QtCore, QtGui
+from PyQt6.QtCore import QSize, QTime
+from PyQt6.QtGui import QDragEnterEvent, QDragMoveEvent, QIcon, QImage, QPixmap
 from PyQt6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -112,8 +113,8 @@ def setup_combobox(
     combobox.setObjectName(name)
     policy.setHeightForWidth(combobox.sizePolicy().hasHeightForWidth())
     combobox.setSizePolicy(policy)
-    combobox.setMinimumSize(QtCore.QSize(0, 40))
-    combobox.setMaximumSize(QtCore.QSize(16_777_215, 40))
+    combobox.setMinimumSize(QSize(0, 40))
+    combobox.setMaximumSize(QSize(16_777_215, 40))
     layout.addWidget(combobox)
 
 
@@ -132,8 +133,8 @@ def setup_vbox(name: str, parent: QWidget | None = None) -> QVBoxLayout:
 def apply_size_policy(
         widget: QWidget,
         size_policy: QSizePolicy,
-        min_size: QtCore.QSize = QtCore.QSize(0, 30),
-        max_size: QtCore.QSize = QtCore.QSize(16_777_215, 30)
+        min_size: QSize = QSize(0, 30),
+        max_size: QSize = QSize(16_777_215, 30)
 ) -> None:
     size_policy.setHeightForWidth(widget.sizePolicy().hasHeightForWidth())
     widget.setSizePolicy(size_policy)
@@ -151,12 +152,12 @@ def create_main_button(
     button.setObjectName(name)
     size_policy.setHeightForWidth(button.sizePolicy().hasHeightForWidth())
     button.setSizePolicy(size_policy)
-    button.setMinimumSize(QtCore.QSize(0, 40))
-    button.setMaximumSize(QtCore.QSize(16_777_215, 40))
-    icon = QtGui.QIcon()
-    icon.addFile(icon_file, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+    button.setMinimumSize(QSize(0, 40))
+    button.setMaximumSize(QSize(16_777_215, 40))
+    icon = QIcon()
+    icon.addFile(icon_file, QSize(), QIcon.Mode.Normal, QIcon.State.Off)
     button.setIcon(icon)
-    button.setIconSize(QtCore.QSize(18, 18))
+    button.setIconSize(QSize(18, 18))
     return button
 
 
@@ -177,11 +178,11 @@ def create_frame(
 
 def create_button_icon(
         icon_resource: GuiIcon,
-        size: QtCore.QSize = QtCore.QSize(),
-        mode: QtGui.QIcon.Mode = QtGui.QIcon.Mode.Normal,
-        state: QtGui.QIcon.State = QtGui.QIcon.State.Off
-) -> QtGui.QIcon:
-    icon = QtGui.QIcon()
+        size: QSize = QSize(),
+        mode: QIcon.Mode = QIcon.Mode.Normal,
+        state: QIcon.State = QIcon.State.Off
+) -> QIcon:
+    icon = QIcon()
     icon.addFile(icon_resource, size, mode, state)
     return icon
 
@@ -209,7 +210,7 @@ def display_image_on_widget(image: cvt.MatLike, image_widget: ImageWidget) -> No
 
     height, width, channel = image.shape
     bytes_per_line = channel * width
-    q_image = QtGui.QImage(image.data.tobytes(), width, height, bytes_per_line, QtGui.QImage.Format.Format_BGR888)
+    q_image = QImage(image.data.tobytes(), width, height, bytes_per_line, QImage.Format.Format_BGR888)
     image_widget.setImage(q_image)
 
 
@@ -250,7 +251,7 @@ def initialise_message_box(window_title: str) -> QMessageBox:
         ```
     """
     msg_box = QMessageBox()
-    msg_box.setWindowIcon(QtGui.QIcon(GuiIcon.ICON))
+    msg_box.setWindowIcon(QIcon(GuiIcon.ICON))
     msg_box.setWindowTitle(window_title)
     return msg_box
 
@@ -428,19 +429,19 @@ def change_widget_state(boolean: bool, *args: QWidget) -> None:
     QApplication.processEvents()
 
 
-def check_mime_data(event: QtGui.QDragEnterEvent | QtGui.QDragMoveEvent) -> None:
+def check_mime_data(event: QDragEnterEvent | QDragMoveEvent) -> None:
     """
     Checks the mime data of a drag enter or drag move event and accepts/ignores the event based on the presence of URLs.
 
     Args:
-        event (Union[QtGui.QDragEnterEvent, QtGui.QDragMoveEvent]): The drag enter or drag move event.
+        event (Union[QDragEnterEvent, QDragMoveEvent]): The drag enter or drag move event.
 
     Returns:
         None
 
     Example:
         ```python
-        drag_event = QtGui.QDragEnterEvent()
+        drag_event = QDragEnterEvent()
         check_mime_data(drag_event)
         ```
     """
@@ -489,14 +490,14 @@ def create_media_button(parent: QWidget, size_policy: QSizePolicy,
     button.setObjectName(name)
     size_policy.setHeightForWidth(button.sizePolicy().hasHeightForWidth())
     button.setSizePolicy(size_policy)
-    size = QtCore.QSize(40, 40)
+    size = QSize(40, 40)
     button.setMinimumSize(size)
     button.setMaximumSize(size)
     button.setBaseSize(size)
-    icon = QtGui.QIcon()
-    icon.addFile(icon_resource, QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+    icon = QIcon()
+    icon.addFile(icon_resource, QSize(), QIcon.Mode.Normal, QIcon.State.Off)
     button.setIcon(icon)
-    button.setIconSize(QtCore.QSize(24, 24))
+    button.setIconSize(QSize(24, 24))
     return button
 
 
@@ -507,11 +508,11 @@ def create_label(parent: QWidget, size_policy: QSizePolicy,
     label.setObjectName(name)
     size_policy.setHeightForWidth(label.sizePolicy().hasHeightForWidth())
     label.setSizePolicy(size_policy)
-    size = QtCore.QSize(20, 20)
+    size = QSize(20, 20)
     label.setMinimumSize(size)
     label.setMaximumSize(size)
     label.setBaseSize(size)
-    label.setPixmap(QtGui.QPixmap(icon_resource.value))
+    label.setPixmap(QPixmap(icon_resource.value))
     label.setScaledContents(True)
     return label
 
@@ -522,20 +523,20 @@ def create_marker_button(parent: QWidget, size_policy: QSizePolicy,
     button.setObjectName(name)
     size_policy.setHeightForWidth(button.sizePolicy().hasHeightForWidth())
     button.setSizePolicy(size_policy)
-    marker_button_size = QtCore.QSize(150, 20)
+    marker_button_size = QSize(150, 20)
     button.setMinimumSize(marker_button_size)
     button.setMaximumSize(marker_button_size)
     return button
 
 
 @cache
-def get_qtime(position: int) -> QtCore.QTime:
+def get_qtime(position: int) -> QTime:
     """
     Converts a given number of seconds into a QTime object.
     """
     minutes, seconds = divmod(round(position * .001), 60)
     hours, minutes = divmod(minutes, 60)
-    return QtCore.QTime(hours, minutes, seconds)
+    return QTime(hours, minutes, seconds)
 
 
 def set_marker_time(button: QPushButton, position: int | float) -> None:

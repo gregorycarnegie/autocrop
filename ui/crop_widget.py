@@ -2,7 +2,18 @@ from pathlib import Path
 from typing import ClassVar
 
 import polars as pl
-from PyQt6 import QtCore, QtWidgets
+from PyQt6.QtCore import QCoreApplication, QSize, Qt
+from PyQt6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QFileDialog,
+    QFrame,
+    QHBoxLayout,
+    QPushButton,
+    QSizePolicy,
+    QSpacerItem,
+    QWidget,
+)
 
 from core import Job
 from core.enums import FunctionType
@@ -16,7 +27,7 @@ from .image_widget import ImageWidget
 from .tab_state import TabStateManager
 
 
-class UiCropWidget(QtWidgets.QWidget):
+class UiCropWidget(QWidget):
     """
     Enhanced base widget class for cropping functionality.
     Provides common UI setup, event handling, and state management.
@@ -25,12 +36,12 @@ class UiCropWidget(QtWidgets.QWidget):
     NOT_SELECTED: ClassVar[FunctionTabSelectionState] = FunctionTabSelectionState.NOT_SELECTED
 
     # Common size policies
-    size_policy_fixed: ClassVar[QtWidgets.QSizePolicy] = QtWidgets.QSizePolicy(
-        QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed)
-    size_policy_expand_fixed: ClassVar[QtWidgets.QSizePolicy] = QtWidgets.QSizePolicy(
-        QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
-    size_policy_expand_expand: ClassVar[QtWidgets.QSizePolicy] = QtWidgets.QSizePolicy(
-        QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Expanding)
+    size_policy_fixed: ClassVar[QSizePolicy] = QSizePolicy(
+        QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+    size_policy_expand_fixed: ClassVar[QSizePolicy] = QSizePolicy(
+        QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+    size_policy_expand_expand: ClassVar[QSizePolicy] = QSizePolicy(
+        QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
     # Common stylesheet
     CHECKBOX_STYLESHEET: ClassVar[str] = """QCheckBox:unchecked{color: red}
@@ -52,7 +63,7 @@ class UiCropWidget(QtWidgets.QWidget):
         image: url(resources/icons/checkbox_unchecked_hover.svg);
     }"""
 
-    def __init__(self, parent: QtWidgets.QWidget, name: str) -> None:
+    def __init__(self, parent: QWidget, name: str) -> None:
         """
         Initialize the base crop_from_path widget with common components.
 
@@ -93,9 +104,9 @@ class UiCropWidget(QtWidgets.QWidget):
 
     def _setup_checkbox_relationships(
             self,
-            ckbx0: QtWidgets.QCheckBox,
-            ckbx1: QtWidgets.QCheckBox,
-            ckbx2: QtWidgets.QCheckBox
+            ckbx0: QCheckBox,
+            ckbx1: QCheckBox,
+            ckbx2: QCheckBox
     ) -> None:
         self.tab_state_manager.register_checkbox_exclusivity(ckbx0, {ckbx2, ckbx1})
         self.tab_state_manager.register_checkbox_exclusivity(ckbx2, {ckbx0})  # Exposure is exclusive with multi-face
@@ -108,8 +119,8 @@ class UiCropWidget(QtWidgets.QWidget):
         ut.apply_size_policy(
             image_widget,
             self.size_policy_expand_expand,
-            min_size=QtCore.QSize(0, 0),
-            max_size=QtCore.QSize(16_777_215, 16_777_215)
+            min_size=QSize(0, 0),
+            max_size=QSize(16_777_215, 16_777_215)
         )
         image_widget.setStyleSheet("")
         return image_widget
@@ -122,9 +133,9 @@ class UiCropWidget(QtWidgets.QWidget):
         horizontal_layout.addWidget(control_widget)
         return control_widget
 
-    def create_checkbox(self, name: str) -> QtWidgets.QCheckBox:
+    def create_checkbox(self, name: str) -> QCheckBox:
         """Create a styled checkbox with consistent appearance"""
-        check_box = QtWidgets.QCheckBox()
+        check_box = QCheckBox()
         check_box.setObjectName(name)
         ut.apply_size_policy(check_box, self.size_policy_expand_fixed)
         check_box.setStyleSheet(self.CHECKBOX_STYLESHEET)
@@ -135,21 +146,21 @@ class UiCropWidget(QtWidgets.QWidget):
         line_edit = PathLineEdit(path_type=path_type)
         line_edit.setObjectName(name)
         ut.apply_size_policy(line_edit, self.size_policy_expand_fixed)
-        line_edit.setInputMethodHints(QtCore.Qt.InputMethodHint.ImhUrlCharactersOnly)
+        line_edit.setInputMethodHints(Qt.InputMethodHint.ImhUrlCharactersOnly)
         return line_edit
 
-    def create_nav_button(self, name: str) -> QtWidgets.QPushButton:
+    def create_nav_button(self, name: str) -> QPushButton:
         """Create a navigation button with consistent styling"""
-        button = QtWidgets.QPushButton()
+        button = QPushButton()
         button.setObjectName(name)
-        ut.apply_size_policy(button, self.size_policy_expand_fixed, min_size=QtCore.QSize(186, 30))
+        ut.apply_size_policy(button, self.size_policy_expand_fixed, min_size=QSize(186, 30))
         return button
 
-    def create_main_frame(self, name: str) -> QtWidgets.QFrame:
+    def create_main_frame(self, name: str) -> QFrame:
         """Create a main content frame with consistent styling"""
         return ut.create_frame(name, self, self.size_policy_expand_expand)
 
-    def create_main_button(self, name: str, icon: GuiIcon) -> QtWidgets.QPushButton:
+    def create_main_button(self, name: str, icon: GuiIcon) -> QPushButton:
         """Create a main action button with consistent styling"""
         return ut.create_main_button(name, self.size_policy_expand_fixed, icon, self)
 
@@ -158,7 +169,7 @@ class UiCropWidget(QtWidgets.QWidget):
 
     def open_path(self, line_edit: PathLineEdit) -> None:
         """Open a file/folder dialog for selecting paths"""
-        f_name = QtWidgets.QFileDialog.getExistingDirectory(
+        f_name = QFileDialog.getExistingDirectory(
             self,
             'Select Directory',
             file_manager.get_default_directory(FileCategory.PHOTO).as_posix()
@@ -180,8 +191,8 @@ class UiCropWidget(QtWidgets.QWidget):
                   destination: Path | None = None,
                   folder_path: Path | None = None,
                   table: pl.DataFrame | None = None,
-                  column1: QtWidgets.QComboBox | None = None,
-                  column2: QtWidgets.QComboBox | None = None,
+                  column1: QComboBox | None = None,
+                  column2: QComboBox | None = None,
                   video_path: Path | None = None,
                   start_position: float | None = None,
                   stop_position: float | None = None) -> Job:
@@ -305,15 +316,15 @@ class UiCropWidget(QtWidgets.QWidget):
             destination = self._create_unique_folder(destination, extensions)
         return destination
 
-    def setup_checkboxes_frame(self, layout: QtWidgets.QHBoxLayout) -> None:
+    def setup_checkboxes_frame(self, layout: QHBoxLayout) -> None:
         """Set up a standard checkbox layout frame"""
         layout.addWidget(self.toggleCheckBox)
 
         # Add spacer
-        h_spacer = QtWidgets.QSpacerItem(
+        h_spacer = QSpacerItem(
             40, 20,
-            QtWidgets.QSizePolicy.Policy.Expanding,
-            QtWidgets.QSizePolicy.Policy.Minimum
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Minimum
         )
         layout.addItem(h_spacer)
 
@@ -327,8 +338,8 @@ class UiCropWidget(QtWidgets.QWidget):
 
     def retranslateUi(self) -> None:
         """Update UI text elements (to be overridden by subclasses)"""
-        self.setWindowTitle(QtCore.QCoreApplication.translate("self", "Form", None))
-        self.toggleCheckBox.setText(QtCore.QCoreApplication.translate("self", "Toggle Settings", None))
-        self.mfaceCheckBox.setText(QtCore.QCoreApplication.translate("self", "Multi-Face", None))
-        self.tiltCheckBox.setText(QtCore.QCoreApplication.translate("self", "Autotilt", None))
-        self.exposureCheckBox.setText(QtCore.QCoreApplication.translate("self", "Autocorrect", None))
+        self.setWindowTitle(QCoreApplication.translate("self", "Form", None))
+        self.toggleCheckBox.setText(QCoreApplication.translate("self", "Toggle Settings", None))
+        self.mfaceCheckBox.setText(QCoreApplication.translate("self", "Multi-Face", None))
+        self.tiltCheckBox.setText(QCoreApplication.translate("self", "Autotilt", None))
+        self.exposureCheckBox.setText(QCoreApplication.translate("self", "Autocorrect", None))

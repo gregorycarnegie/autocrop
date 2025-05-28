@@ -5,8 +5,9 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from PyQt6 import QtCore, QtGui, QtWidgets
-from PyQt6.QtWidgets import QApplication, QFrame, QMessageBox, QPushButton, QToolBox, QVBoxLayout, QWidget
+from PyQt6.QtCore import QDir, QEvent, QPoint, Qt, QTimer
+from PyQt6.QtGui import QCursor, QFileSystemModel
+from PyQt6.QtWidgets import QApplication, QFrame, QMessageBox, QPushButton, QToolBox, QTreeView, QVBoxLayout, QWidget
 
 from core import Job
 from core.config import logger
@@ -44,8 +45,8 @@ class UiBatchCropWidget(UiCropWidget):
         self.toolBox.setObjectName("toolBox")
 
         # Create a file model for the tree view
-        self.file_model = QtGui.QFileSystemModel(self)
-        self.file_model.setFilter(QtCore.QDir.Filter.NoDotAndDotDot | QtCore.QDir.Filter.Files)
+        self.file_model = QFileSystemModel(self)
+        self.file_model.setFilter(QDir.Filter.NoDotAndDotDot | QDir.Filter.Files)
 
         # Set up file filters
         p_types = (
@@ -63,7 +64,7 @@ class UiBatchCropWidget(UiCropWidget):
 
         # Enhanced hover tracking
         self._last_mouse_pos = None
-        self._hover_timer = QtCore.QTimer()
+        self._hover_timer = QTimer()
         self._hover_timer.setSingleShot(True)
         self._hover_timer.timeout.connect(self._show_preview)
         self._current_hovered_file = None
@@ -74,7 +75,7 @@ class UiBatchCropWidget(UiCropWidget):
         self.page_2 = QWidget()
         self.page_2.setObjectName("page_2")
 
-        self.treeView = QtWidgets.QTreeView()
+        self.treeView = QTreeView()
         self._setup_tree_view()
 
         # Set up page layouts
@@ -99,11 +100,11 @@ class UiBatchCropWidget(UiCropWidget):
         viewport = self.treeView.viewport()
         if viewport is not None:
             viewport.setMouseTracking(True)
-            viewport.setAttribute(QtCore.Qt.WidgetAttribute.WA_Hover, True)
+            viewport.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
             viewport.installEventFilter(self)
             logger.debug("Viewport configured with mouse tracking and event filter")
         # Enable hover for tree view itself
-        self.treeView.setAttribute(QtCore.Qt.WidgetAttribute.WA_Hover, True)
+        self.treeView.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
 
         # Connect signals - use lambda to ensure proper connection
         self.treeView.entered.connect(lambda index: self._on_item_entered(index))
@@ -126,9 +127,9 @@ class UiBatchCropWidget(UiCropWidget):
             self._handle_hover_end()
 
         # Call the original mouse move event
-        QtWidgets.QTreeView.mouseMoveEvent(self.treeView, event)
+        QTreeView.mouseMoveEvent(self.treeView, event)
 
-    def _handle_hover_start(self, file_path: str, global_pos: QtCore.QPoint):
+    def _handle_hover_start(self, file_path: str, global_pos: QPoint):
         """Handle start of hover over an image file"""
         logger.debug(f"Hover start: {file_path}")
         # Skip if paths aren't set up
@@ -158,15 +159,15 @@ class UiBatchCropWidget(UiCropWidget):
         if obj == self.treeView.viewport():
             event_type = event.type()
             logger.debug(f"Event filter - Type: {event_type}")
-            if event_type == QtCore.QEvent.Type.MouseMove:
+            if event_type == QEvent.Type.MouseMove:
                 logger.debug(f"Mouse move event in viewport: {event.position()}")
                 self._handle_viewport_mouse_move(event)
                 return False
-            elif event_type == QtCore.QEvent.Type.Leave:
+            elif event_type == QEvent.Type.Leave:
                 logger.debug("Mouse leave viewport")
                 self._handle_hover_end()
                 return False
-            elif event_type == QtCore.QEvent.Type.Enter:
+            elif event_type == QEvent.Type.Enter:
                 logger.debug("Mouse enter viewport")
                 return False
 
@@ -201,7 +202,7 @@ class UiBatchCropWidget(UiCropWidget):
 
         if sanitized_path := ut.sanitize_path(file_path):
             if self._is_image_file(sanitized_path):
-                self._last_mouse_pos = QtGui.QCursor.pos()
+                self._last_mouse_pos = QCursor.pos()
                 self._pending_preview_path = sanitized_path
                 logger.debug(f"Starting preview timer for: {sanitized_path}")
                 self._hover_timer.start(300)
@@ -230,7 +231,7 @@ class UiBatchCropWidget(UiCropWidget):
     def _show_preview(self):
         """Show the preview image"""
         logger.debug(f"_show_preview called. Pending path: {self._pending_preview_path}")
-        if not self._pending_preview_path or not self._last_mouse_pos:
+        if not self._pending_preview_path or not bool(self._last_mouse_pos):
             logger.debug("No pending preview or mouse position")
             return
 

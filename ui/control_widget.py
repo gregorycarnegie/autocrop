@@ -1,7 +1,18 @@
 from functools import cache
 from typing import ClassVar
 
-from PyQt6 import QtCore, QtWidgets
+from PyQt6.QtCore import QCoreApplication, QMetaObject, Qt
+from PyQt6.QtWidgets import (
+    QDial,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QLCDNumber,
+    QSizePolicy,
+    QSpacerItem,
+    QVBoxLayout,
+    QWidget,
+)
 
 from core import ResourcePath
 from line_edits import NumberLineEdit
@@ -36,12 +47,12 @@ RADIO_WEBP = get_icon_path_tuple('webp')
 RadioButtonTuple = tuple[bool, bool, bool, bool, bool, bool]
 
 
-class UiCropControlWidget(QtWidgets.QWidget):
+class UiCropControlWidget(QWidget):
     GAMMA_VAL: ClassVar[int] = 1000
     SENSITIVITY_VAL: ClassVar[int] = 50
     FPCT_VAL: ClassVar[int] = 62
 
-    def __init__(self, parent: QtWidgets.QWidget):
+    def __init__(self, parent: QWidget):
         super().__init__(parent)
         self.setObjectName("CropControlWidget")
         self.horizontalLayout = ut.setup_hbox("horizontalLayout", self)
@@ -57,19 +68,19 @@ class UiCropControlWidget(QtWidgets.QWidget):
         self.radioButton_tiff = self.create_radio_button("radioButton_tiff", RADIO_TIFF, self.verticalLayout_1)
         self.radioButton_webp = self.create_radio_button("radioButton_webp", RADIO_WEBP, self.verticalLayout_1)
 
-        self.verticalSpacer_1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Policy.Minimum,
-                                                      QtWidgets.QSizePolicy.Policy.Expanding)
+        self.verticalSpacer_1 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum,
+                                                      QSizePolicy.Policy.Expanding)
         self.verticalLayout_1.addItem(self.verticalSpacer_1)
 
         self.horizontalLayout.addLayout(self.verticalLayout_1)
 
-        self.horizontalSpacer_1 = QtWidgets.QSpacerItem(292, 20, QtWidgets.QSizePolicy.Policy.Expanding,
-                                                        QtWidgets.QSizePolicy.Policy.Minimum)
+        self.horizontalSpacer_1 = QSpacerItem(292, 20, QSizePolicy.Policy.Expanding,
+                                                        QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout.addItem(self.horizontalSpacer_1)
 
         self.verticalLayout_2 = ut.setup_vbox("verticalLayout_2")
-        self.gridLayout_1 = QtWidgets.QGridLayout()
+        self.gridLayout_1 = QGridLayout()
         self.gridLayout_1.setObjectName("gridLayout_1")
 
         self.topDial = self.create_dial("topDial")
@@ -85,7 +96,7 @@ class UiCropControlWidget(QtWidgets.QWidget):
         self.gridLayout_1.addWidget(self.bottomDial, 0, 1, 1, 1)
 
         self.horizontalLayout_1 = ut.setup_hbox("horizontalLayout_1")
-        self.topLabel = QtWidgets.QLabel(self)
+        self.topLabel = QLabel(self)
         self.topLabel.setObjectName("topLabel")
 
         self.horizontalLayout_1.addWidget(self.topLabel)
@@ -96,7 +107,7 @@ class UiCropControlWidget(QtWidgets.QWidget):
         self.gridLayout_1.addLayout(self.horizontalLayout_1, 1, 0, 1, 1)
 
         self.horizontalLayout_2 = ut.setup_hbox("horizontalLayout_2")
-        self.bottomLabel = QtWidgets.QLabel(self)
+        self.bottomLabel = QLabel(self)
         self.bottomLabel.setObjectName("bottomLabel")
 
         self.horizontalLayout_2.addWidget(self.bottomLabel)
@@ -107,7 +118,7 @@ class UiCropControlWidget(QtWidgets.QWidget):
         self.gridLayout_1.addLayout(self.horizontalLayout_2, 1, 1, 1, 1)
 
         self.horizontalLayout_3 = ut.setup_hbox("horizontalLayout_3")
-        self.leftLabel = QtWidgets.QLabel(self)
+        self.leftLabel = QLabel(self)
         self.leftLabel.setObjectName("leftLabel")
 
         self.horizontalLayout_3.addWidget(self.leftLabel)
@@ -118,7 +129,7 @@ class UiCropControlWidget(QtWidgets.QWidget):
         self.gridLayout_1.addLayout(self.horizontalLayout_3, 1, 2, 1, 1)
 
         self.horizontalLayout_4 = ut.setup_hbox("horizontalLayout_4")
-        self.rightLabel = QtWidgets.QLabel(self)
+        self.rightLabel = QLabel(self)
         self.rightLabel.setObjectName("rightLabel")
 
         self.horizontalLayout_4.addWidget(self.rightLabel)
@@ -130,29 +141,29 @@ class UiCropControlWidget(QtWidgets.QWidget):
 
         self.verticalLayout_2.addLayout(self.gridLayout_1)
 
-        self.verticalSpacer_2 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Policy.Minimum,
-                                                      QtWidgets.QSizePolicy.Policy.Expanding)
+        self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum,
+                                                      QSizePolicy.Policy.Expanding)
         self.verticalLayout_2.addItem(self.verticalSpacer_2)
 
         self.horizontalLayout_5 = ut.setup_hbox("horizontalLayout_5")
 
-        self.horizontalSpacer_3 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding,
-                                                        QtWidgets.QSizePolicy.Policy.Minimum)
+        self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding,
+                                                        QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_5.addItem(self.horizontalSpacer_3)
 
-        self.gridLayout_2 = QtWidgets.QGridLayout()
+        self.gridLayout_2 = QGridLayout()
         self.gridLayout_2.setObjectName("gridLayout_2")
 
-        self.heightLabel = QtWidgets.QLabel(self)
+        self.heightLabel = QLabel(self)
         self.heightLabel.setObjectName("heightLabel")
-        self.heightLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.heightLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.gridLayout_2.addWidget(self.heightLabel, 0, 1, 1, 1)
 
-        self.widthLabel = QtWidgets.QLabel(self)
+        self.widthLabel = QLabel(self)
         self.widthLabel.setObjectName("widthLabel")
-        self.widthLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.widthLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.gridLayout_2.addWidget(self.widthLabel, 0, 0, 1, 1)
 
@@ -166,8 +177,8 @@ class UiCropControlWidget(QtWidgets.QWidget):
 
         self.horizontalLayout_5.addLayout(self.gridLayout_2)
 
-        self.horizontalSpacer_4 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding,
-                                                        QtWidgets.QSizePolicy.Policy.Minimum)
+        self.horizontalSpacer_4 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding,
+                                                        QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_5.addItem(self.horizontalSpacer_4)
 
@@ -176,21 +187,21 @@ class UiCropControlWidget(QtWidgets.QWidget):
 
         self.horizontalLayout.addLayout(self.verticalLayout_2)
 
-        self.horizontalSpacer_2 = QtWidgets.QSpacerItem(292, 20, QtWidgets.QSizePolicy.Policy.Expanding,
-                                                        QtWidgets.QSizePolicy.Policy.Minimum)
+        self.horizontalSpacer_2 = QSpacerItem(292, 20, QSizePolicy.Policy.Expanding,
+                                                        QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout.addItem(self.horizontalSpacer_2)
 
         self.verticalLayout_3 = ut.setup_vbox("verticalLayout_3")
         self.verticalLayout_3.setContentsMargins(-1, 6, -1, 6)
-        self.verticalLayout_4 = QtWidgets.QVBoxLayout()
+        self.verticalLayout_4 = QVBoxLayout()
         self.verticalLayout_4.setObjectName("verticalLayout_4")
         self.gammaDial = self.create_dial("gammaDial", self.GAMMA_VAL, 2000)
 
         self.verticalLayout_4.addWidget(self.gammaDial)
 
         self.horizontalLayout_6 = ut.setup_hbox("horizontalLayout_6")
-        self.gammaLabel = QtWidgets.QLabel(self)
+        self.gammaLabel = QLabel(self)
         self.gammaLabel.setObjectName("gammaLabel")
 
         self.horizontalLayout_6.addWidget(self.gammaLabel)
@@ -208,7 +219,7 @@ class UiCropControlWidget(QtWidgets.QWidget):
         self.verticalLayout_5.addWidget(self.sensitivityDial)
 
         self.horizontalLayout_7 = ut.setup_hbox("horizontalLayout_7")
-        self.sensitivityLabel = QtWidgets.QLabel(self)
+        self.sensitivityLabel = QLabel(self)
         self.sensitivityLabel.setObjectName("sensitivityLabel")
 
         self.horizontalLayout_7.addWidget(self.sensitivityLabel)
@@ -226,7 +237,7 @@ class UiCropControlWidget(QtWidgets.QWidget):
         self.verticalLayout_6.addWidget(self.fpctDial)
 
         self.horizontalLayout_8 = ut.setup_hbox("horizontalLayout_8")
-        self.fpctLabel = QtWidgets.QLabel(self)
+        self.fpctLabel = QLabel(self)
         self.fpctLabel.setObjectName("fpctLabel")
 
         self.horizontalLayout_8.addWidget(self.fpctLabel)
@@ -237,8 +248,8 @@ class UiCropControlWidget(QtWidgets.QWidget):
         self.verticalLayout_6.addLayout(self.horizontalLayout_8)
 
         self.verticalLayout_3.addLayout(self.verticalLayout_6)
-        self.verticalSpacer_3 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Policy.Minimum,
-                                                      QtWidgets.QSizePolicy.Policy.Expanding)
+        self.verticalSpacer_3 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum,
+                                                      QSizePolicy.Policy.Expanding)
         self.verticalLayout_3.addItem(self.verticalSpacer_3)
 
         self.horizontalLayout.addLayout(self.verticalLayout_3)
@@ -254,25 +265,25 @@ class UiCropControlWidget(QtWidgets.QWidget):
         self.sensitivityDial.valueChanged.connect(self.sensitivityLCDNumber.display)
         self.fpctDial.valueChanged.connect(self.fpctLCDNumber.display)
 
-        QtCore.QMetaObject.connectSlotsByName(self)
+        QMetaObject.connectSlotsByName(self)
 
     def retranslateUi(self):
-        self.setWindowTitle(QtCore.QCoreApplication.translate("self", "Form", None))
+        self.setWindowTitle(QCoreApplication.translate("self", "Form", None))
         self.radioButton_none.setText("")
         self.radioButton_bmp.setText("")
         self.radioButton_jpg.setText("")
         self.radioButton_png.setText("")
         self.radioButton_tiff.setText("")
         self.radioButton_webp.setText("")
-        self.topLabel.setText(QtCore.QCoreApplication.translate("self", "Top:", None))
-        self.bottomLabel.setText(QtCore.QCoreApplication.translate("self", "Bottom:", None))
-        self.leftLabel.setText(QtCore.QCoreApplication.translate("self", "Left:", None))
-        self.rightLabel.setText(QtCore.QCoreApplication.translate("self", "Right:", None))
-        self.heightLabel.setText(QtCore.QCoreApplication.translate("self", "Height (px)", None))
-        self.widthLabel.setText(QtCore.QCoreApplication.translate("self", "Width (px)", None))
-        self.gammaLabel.setText(QtCore.QCoreApplication.translate("self", "Gamma:", None))
-        self.sensitivityLabel.setText(QtCore.QCoreApplication.translate("self", "Sensitivity:", None))
-        self.fpctLabel.setText(QtCore.QCoreApplication.translate("self", "Face%:", None))
+        self.topLabel.setText(QCoreApplication.translate("self", "Top:", None))
+        self.bottomLabel.setText(QCoreApplication.translate("self", "Bottom:", None))
+        self.leftLabel.setText(QCoreApplication.translate("self", "Left:", None))
+        self.rightLabel.setText(QCoreApplication.translate("self", "Right:", None))
+        self.heightLabel.setText(QCoreApplication.translate("self", "Height (px)", None))
+        self.widthLabel.setText(QCoreApplication.translate("self", "Width (px)", None))
+        self.gammaLabel.setText(QCoreApplication.translate("self", "Gamma:", None))
+        self.sensitivityLabel.setText(QCoreApplication.translate("self", "Sensitivity:", None))
+        self.fpctLabel.setText(QCoreApplication.translate("self", "Face%:", None))
 
     @property
     def radio_tuple(self) -> RadioButtonTuple:
@@ -291,7 +302,7 @@ class UiCropControlWidget(QtWidgets.QWidget):
             self,
             name: str,
             icon_resource: tuple[str, str],
-            layout: QtWidgets.QHBoxLayout | QtWidgets.QVBoxLayout
+            layout: QHBoxLayout | QVBoxLayout
     ) -> SvgRadioButton:
         # Create the custom radio button
         radio_button = SvgRadioButton(
@@ -303,8 +314,8 @@ class UiCropControlWidget(QtWidgets.QWidget):
 
         # Set expanding size policy
         radio_button.setSizePolicy(
-            QtWidgets.QSizePolicy.Policy.Expanding,
-            QtWidgets.QSizePolicy.Policy.Expanding
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Expanding
         )
 
         # Add to a button group
@@ -320,8 +331,8 @@ class UiCropControlWidget(QtWidgets.QWidget):
             value: int = 0,
             max_value: int = 100,
             min_value: int | None = None
-    ) -> QtWidgets.QDial:
-        dial = QtWidgets.QDial(self)
+    ) -> QDial:
+        dial = QDial(self)
         dial.setObjectName(name)
         if min_value:
             dial.setMinimum(min_value)
@@ -330,8 +341,8 @@ class UiCropControlWidget(QtWidgets.QWidget):
         dial.setNotchesVisible(True)
         return dial
 
-    def create_lcd_number(self, name: str, value: int = 0) -> QtWidgets.QLCDNumber:
-        lcd_number = QtWidgets.QLCDNumber(self)
+    def create_lcd_number(self, name: str, value: int = 0) -> QLCDNumber:
+        lcd_number = QLCDNumber(self)
         lcd_number.setObjectName(name)
         lcd_number.setStyleSheet("background : lightgreen; color : gray;")
         lcd_number.setProperty("intValue", value)

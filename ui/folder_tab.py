@@ -1,7 +1,9 @@
 import contextlib
 from pathlib import Path
 
-from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6.QtCore import QCoreApplication, QEvent, QMetaObject, QPoint, Qt, QTimer
+from PyQt6.QtGui import QCursor
+from PyQt6.QtWidgets import QFileDialog, QWidget
 
 from core.config import logger
 from core.croppers import FolderCropper
@@ -15,7 +17,7 @@ from .batch_tab import UiBatchCropWidget
 class UiFolderTabWidget(UiBatchCropWidget):
     """Folder tab widget - preview works with just input path"""
 
-    def __init__(self, crop_worker: FolderCropper, object_name: str, parent: QtWidgets.QWidget) -> None:
+    def __init__(self, crop_worker: FolderCropper, object_name: str, parent: QWidget) -> None:
         """Initialize the folder tab widget"""
         super().__init__(crop_worker, object_name, parent)
 
@@ -31,7 +33,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
         # Set initial toolbox page
         self.toolBox.setCurrentIndex(0)
 
-        QtCore.QMetaObject.connectSlotsByName(self)
+        QMetaObject.connectSlotsByName(self)
 
     def setup_layouts(self) -> None:
         """Set up the main layout structure with working preview system"""
@@ -75,20 +77,20 @@ class UiFolderTabWidget(UiBatchCropWidget):
 
         # Enable mouse tracking on tree view
         self.treeView.setMouseTracking(True)
-        self.treeView.setAttribute(QtCore.Qt.WidgetAttribute.WA_Hover, True)
+        self.treeView.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
 
         # Get viewport and set it up
         viewport = self.treeView.viewport()
         if viewport is not None:
             viewport.setMouseTracking(True)
-            viewport.setAttribute(QtCore.Qt.WidgetAttribute.WA_Hover, True)
+            viewport.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
             viewport.installEventFilter(self)
             logger.debug("Event filter installed on tree view viewport")
 
         # Connect the entered signal
         self.treeView.entered.connect(self._on_item_entered)
 
-    def _handle_image_hover(self, file_path: str, global_pos: QtCore.QPoint):
+    def _handle_image_hover(self, file_path: str, global_pos: QPoint):
         """Handle hovering over an image file - ONLY INPUT PATH REQUIRED"""
         logger.debug(f"DEBUG: input_path='{self.input_path}', destination_path='{self.destination_path}'")
 
@@ -117,7 +119,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
         if obj == self.treeView.viewport():
             event_type = event.type()
 
-            if event_type == QtCore.QEvent.Type.MouseMove:
+            if event_type == QEvent.Type.MouseMove:
                 pos = event.position().toPoint()
                 index = self.treeView.indexAt(pos)
 
@@ -131,7 +133,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
                 else:
                     self._hide_preview()
 
-            elif event_type == QtCore.QEvent.Type.Leave:
+            elif event_type == QEvent.Type.Leave:
                 logger.debug("Mouse left viewport")
                 self._hide_preview()
 
@@ -154,7 +156,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
 
         if sanitized_path := ut.sanitize_path(file_path):
             if self._is_image_file(sanitized_path):
-                self._last_mouse_pos = QtGui.QCursor.pos()
+                self._last_mouse_pos = QCursor.pos()
                 self._pending_preview_path = sanitized_path
                 logger.debug(f"Starting preview timer for: {sanitized_path}")
                 self._hover_timer.start(300)
@@ -163,7 +165,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
         """Show the preview image - ONLY INPUT PATH REQUIRED"""
         logger.debug(f"_show_preview called for: {self._pending_preview_path}")
 
-        if not self._pending_preview_path or not self._last_mouse_pos:
+        if not self._pending_preview_path or not bool(self._last_mouse_pos):
             logger.debug("No pending preview or mouse position")
             return
 
@@ -222,7 +224,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
             logger.debug(f"Loaded {self.file_model.rowCount(root_index)} items")
 
             # Re-setup events after loading data
-            QtCore.QTimer.singleShot(200, self._setup_tree_view_events)
+            QTimer.singleShot(200, self._setup_tree_view_events)
 
         except Exception as e:
             logger.exception(f"Error loading data: {e}")
@@ -275,14 +277,14 @@ class UiFolderTabWidget(UiBatchCropWidget):
         self.cropButton.setText("")
         self.cancelButton.setText("")
         self.toolBox.setItemText(self.toolBox.indexOf(self.page_1),
-                                 QtCore.QCoreApplication.translate("self", "Crop View", None))
+                                 QCoreApplication.translate("self", "Crop View", None))
         self.toolBox.setItemText(self.toolBox.indexOf(self.page_2),
-                                 QtCore.QCoreApplication.translate("self", "Folder View", None))
+                                 QCoreApplication.translate("self", "Folder View", None))
 
     def open_path(self, line_edit_type: str) -> None:
         """Open the file/folder selection dialog"""
         if line_edit_type == "destination":
-            f_name = QtWidgets.QFileDialog.getExistingDirectory(
+            f_name = QFileDialog.getExistingDirectory(
                 self,
                 'Select Directory',
                 file_manager.get_default_directory(FileCategory.PHOTO).as_posix()
@@ -295,7 +297,7 @@ class UiFolderTabWidget(UiBatchCropWidget):
                 main_window.destination_input.setText(f_name)
 
         elif line_edit_type == "input":
-            f_name = QtWidgets.QFileDialog.getExistingDirectory(
+            f_name = QFileDialog.getExistingDirectory(
                 self,
                 'Select Directory',
                 file_manager.get_default_directory(FileCategory.PHOTO).as_posix()
