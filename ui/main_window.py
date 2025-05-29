@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
 from pathlib import Path
 
-from PyQt6.QtCore import QByteArray, QCoreApplication, QMetaObject, QRect, QSize, Qt
+from PyQt6.QtCore import QByteArray, QCoreApplication, QMetaObject, QRect, QSize, Qt, QUrl
 from PyQt6.QtGui import (
     QAction,
     QCloseEvent,
