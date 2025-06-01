@@ -1,9 +1,12 @@
 import atexit
+import gc
+import multiprocessing
 import os
 import threading
 from collections.abc import Callable
 from concurrent.futures import CancelledError, Future, ThreadPoolExecutor
 from contextlib import suppress
+from itertools import batched
 from multiprocessing import Manager
 from pathlib import Path
 from typing import Any
@@ -15,6 +18,7 @@ from PyQt6.QtWidgets import QApplication
 
 from core import processing as prc
 from core.config import logger
+from core.crop_instruction import CropInstruction
 from core.face_tools import FaceToolPair
 from core.job import Job
 from file_types import FileCategory, SignatureChecker, file_manager
@@ -455,6 +459,40 @@ class BatchCropper(Cropper):
 
         # Make sure cancel buttons are enabled right away
         QApplication.processEvents()
+
+    @staticmethod
+    def execute_parrallel_job(instructions: list[CropInstruction], cancel_event: threading.Event) -> None:
+        if cancel_event.is_set():
+                return
+
+        for batch in batched(instructions, 50):
+            if cancel_event.is_set():
+                return
+
+            with multiprocessing.Pool(processes=min(multiprocessing.cpu_count()//2, 4)) as pool:
+                try:
+                    # Use a multiprocessing pool to execute the crop instructions
+                    _results = list(pool.imap_unordered(
+                        prc.execute_crop_instruction,
+                        batch
+                    ))
+
+                    pool.close()
+                    pool.join()
+                except Exception as e:
+                    logger.exception(f"Error in batch processing: {e}")
+                    pool.terminate()
+                    pool.join()
+
+            gc.collect()  # Force garbage collection to free memory
+
+    def update_completion_status(self, file_amount: int) -> None:
+        """
+        Updates the completion status of the operation.
+        """
+        self._check_completion(file_amount)
+        if self.progress_count == file_amount or self.end_task:
+            self.show_message_box = False
 
     def set_futures_for_crop(self, job: Job, file_count: int, file_paths: FileList) -> None:
         """

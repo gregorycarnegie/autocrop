@@ -1,4 +1,3 @@
-import multiprocessing
 import threading
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
@@ -34,7 +33,30 @@ class MappingCropper(BatchCropper):
         """
         Performs cropping for a mapping job using two-phase approach.
         """
+        if cancel_event.is_set():
+            return
+
         # Convert mapping arrays to lists of image paths and their targets
+        image_paths, output_paths = self.get_mapping(job, old, new)
+
+        if not image_paths or cancel_event.is_set():
+            return
+
+        # Phase 1: Generate crop instructions
+        instructions = prc.generate_crop_instructions(
+            image_paths, job, face_detection_tools, output_paths, self.rejected_files
+        )
+
+        # Phase 2: Execute the cropping instructions in parallel
+        self.execute_parrallel_job(instructions, cancel_event)
+
+        self.update_completion_status(file_amount)
+
+    @staticmethod
+    def get_mapping(job: Job, old: npt.NDArray[np.str_], new: npt.NDArray[np.str_]) -> tuple[list[Path], list[Path]]:
+        """
+        Extracts the file names from the old and new arrays and returns them as separate arrays.
+        """
         image_paths: list[Path] = []
         output_paths: list[Path] = []
 
@@ -46,31 +68,7 @@ class MappingCropper(BatchCropper):
                 image_paths.append(old_path)
                 output_paths.append(new_path)
 
-        if not image_paths or cancel_event.is_set():
-            return
-
-        # Phase 1: Generate crop instructions
-        # Pass the shared rejected_files list to track rejected files
-        instructions = prc.generate_crop_instructions(
-            image_paths, job, face_detection_tools, output_paths, self.rejected_files
-        )
-
-        if cancel_event.is_set():
-            return
-
-        # Phase 2: Execute crop instructions in parallel
-        with multiprocessing.Pool(processes=min(multiprocessing.cpu_count(), 8)) as pool:
-            # Use a multiprocessing pool to execute the crop instructions
-            _results = list(pool.imap_unordered(
-                prc.execute_crop_instruction,
-                instructions
-            ))
-
-        # Update completion status
-        self._check_completion(file_amount)
-
-        if self.progress_count == file_amount or self.end_task:
-            self.show_message_box = False
+        return image_paths, output_paths
 
     def prepare_crop_operation(
             self, job: Job
