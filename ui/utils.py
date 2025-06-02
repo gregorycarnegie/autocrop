@@ -21,6 +21,7 @@ from PyQt6.QtWidgets import (
 )
 
 from core.enums import FunctionType
+from line_edits.custom_line_edit import LineEditState
 
 from .dialog import UiDialog
 from .enums import GuiIcon
@@ -28,7 +29,7 @@ from .image_widget import ImageWidget
 
 
 def register_button_dependencies(
-        widget,
+        tab_state_manager,
         button: QPushButton,
         dependent_widgets: set[QWidget]
 ) -> None:
@@ -36,22 +37,74 @@ def register_button_dependencies(
     Register button dependencies with path validation support
 
     Args:
-        widget: TabStateManager
+        tab_state_manager: TabStateManager instance
         button: The button whose enabled state depends on other widgets
         dependent_widgets: Set of widgets that must be valid for the button to be enabled
     """
-    widget._button_dependencies[button] = dependent_widgets
+    tab_state_manager._button_dependencies[button] = dependent_widgets
 
-    # Get the tab widget (parent of the button)
+    # Get the tab widget and main window
     tab_widget = button.parent()
-    while tab_widget: # and not isinstance(tab_widget, UiCropWidget):
+    while tab_widget and not hasattr(tab_widget, 'input_path'):
         tab_widget = tab_widget.parent()
 
     if tab_widget:
-        # Register a custom path validation handler
-        widget.register_validation_handler(button, lambda: check_paths_valid(tab_widget))
+        # Register a custom validation handler that checks both local widgets and address bars
+        tab_state_manager.register_validation_handler(
+            button,
+            lambda: check_paths_valid_with_address_bars(tab_widget)
+        )
 
-    widget.update_button_states()
+    tab_state_manager.update_button_states()
+
+
+def check_paths_valid_with_address_bars(tab_widget) -> bool:
+    """
+    Check if the paths in both the tab widget and main window address bars are valid
+
+    Args:
+        tab_widget: The tab widget to check
+
+    Returns:
+        bool: True if all required paths are valid
+    """
+    try:
+        # Get the main window
+        main_window = tab_widget
+        while main_window and not hasattr(main_window, 'unified_address_bar'):
+            main_window = main_window.parent()
+
+        if not main_window:
+            return False
+
+        # Check the current tab type
+        current_index = main_window.function_tabWidget.currentIndex()
+
+        # Get the address bar states directly
+        unified_bar_valid = (
+            main_window.unified_address_bar.state == LineEditState.VALID_INPUT and
+            bool(main_window.unified_address_bar.text().strip())
+        )
+
+        destination_bar_valid = (
+            main_window.destination_input.state == LineEditState.VALID_INPUT and
+            bool(main_window.destination_input.text().strip())
+        )
+
+        # For mapping tab, we also need the secondary input (table file)
+        if current_index == FunctionType.MAPPING:
+            secondary_bar_valid = (
+                main_window.secondary_input.state == LineEditState.VALID_INPUT and
+                bool(main_window.secondary_input.text().strip())
+            )
+            return unified_bar_valid and destination_bar_valid and secondary_bar_valid
+
+        # For other tabs, just check input and destination
+        return unified_bar_valid and destination_bar_valid
+
+    except Exception:
+        # If anything goes wrong, default to invalid
+        return False
 
 
 def check_paths_valid(tab_widget) -> bool:

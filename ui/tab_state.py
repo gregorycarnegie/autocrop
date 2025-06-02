@@ -92,19 +92,23 @@ class TabStateManager:
 
     def update_button_states(self) -> None:
         """
-        Update button enabled states based on registered dependencies and path validation.
+        Update button enabled states based on registered dependencies and validation.
         """
         for button, dependencies in self._button_dependencies.items():
             # Check widget-based dependencies
             widgets_valid = all(self._is_widget_valid(widget) for widget in dependencies)
 
-            # Get a custom validation result, if any
+            # Get custom validation result, if any
             custom_valid = True
             if button in self._validation_handlers:
                 custom_valid = self._validation_handlers[button]()
 
-            # The Button is enabled only if all validations pass
-            ut.change_widget_state(widgets_valid and custom_valid, button)
+            # Button is enabled only if all validations pass
+            final_state = widgets_valid and custom_valid
+
+            # Only update if state has actually changed to avoid unnecessary updates
+            if button.isEnabled() != final_state:
+                ut.change_widget_state(final_state, button)
 
         if self._state_change_callback:
             self._state_change_callback()
@@ -128,13 +132,9 @@ class TabStateManager:
             return widget.state == LineEditState.VALID_INPUT and bool(widget.text())
         elif isinstance(widget, QComboBox):
             return bool(widget.currentText())
-        elif isinstance(widget, QCheckBox):
+        elif isinstance(widget, QCheckBox | QSlider | QDial):
             # Checkboxes are typically considered valid regardless of state
             return True
-        elif isinstance(widget, QSlider | QDial):
-            # Sliders and dials are typically considered valid regardless of value
-            return True
-
         # Default to True for unknown widget types
         return True
 

@@ -104,15 +104,7 @@ class CustomLineEdit(QLineEdit):
     def update_clear_button(self, text: str) -> None:
         """
         Updates the visibility of the clear button based on the text input.
-
-        Args:
-            self: The CustomLineEdit instance.
-            text (str): The current text input.
-
-        Returns:
-            None
         """
-
         self.clearButton.setVisible(bool(text))
 
     def showEvent(self, event) -> None:
@@ -181,13 +173,14 @@ class CustomLineEdit(QLineEdit):
     def update_style(self) -> None:
         """
         Updates the style of the CustomLineEdit.
-
-        Args:
-            self: The CustomLineEdit instance.
-
-        Returns:
-            None
         """
-
         self.setStyleSheet(f'background-color: {self.colour}; color: black;')
-        self.update_clear_button(self.text())  # Update clear button visibility after the style change
+        # Update clear button visibility without triggering validation
+        self.clearButton.setVisible(bool(self.text()))
+
+    def clear(self) -> None:
+        """Override clear to ensure proper validation"""
+        super().clear()
+        # Trigger validation after clearing, but not through update_clear_button
+        if hasattr(self, 'validate_path'):
+            self.validate_path()

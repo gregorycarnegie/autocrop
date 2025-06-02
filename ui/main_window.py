@@ -701,27 +701,39 @@ class UiMainWindow(QMainWindow):
 
         # Connect the unified address bar to update the current tab's input field
         self.unified_address_bar.textChanged.connect(self.unified_address_changed)
+        self.unified_address_bar.textChanged.connect(self.update_all_button_states)  # Add this line
 
         # Connect secondary input for mapping tab
         self.secondary_input.textChanged.connect(self.secondary_input_changed)
+        self.secondary_input.textChanged.connect(self.update_all_button_states)  # Add this line
 
         # Connect destination input
         self.destination_input.textChanged.connect(self.destination_input_changed)
+        self.destination_input.textChanged.connect(self.update_all_button_states)  # Add this line
 
         # Connect context-aware buttons
         self.context_button.clicked.connect(self.handle_context_button)
         self.secondary_button.clicked.connect(self.handle_secondary_button)
         self.destination_button.clicked.connect(self.handle_destination_button)
 
+    def update_all_button_states(self):
+        """Update button states for all tab widgets when address bars change"""
+        # Update button states for all tabs
+        for tab_widget in [
+            self.photo_tab_widget,
+            self.folder_tab_widget,
+            self.mapping_tab_widget,
+            self.video_tab_widget
+        ]:
+            tab_widget.tab_state_manager.update_button_states()
+
     def unified_address_changed(self, text: str):
         """Handle changes to the unified address bar"""
-        # Skip processing if text is empty to prevent default drive issues
-        if not text.strip():
-            return
+        current_index = self.function_tabWidget.currentIndex()
 
-        if cleaned_text := ut.sanitize_path(text):
-            # Update the appropriate input field in the current tab
-            match self.function_tabWidget.currentIndex():
+        # Update the appropriate input field in the current tab
+        if cleaned_text := ut.sanitize_path(text) if text.strip() else "":
+            match current_index:
                 case FunctionType.PHOTO:
                     self.photo_tab_widget.input_path = cleaned_text
                 case FunctionType.FOLDER:
@@ -730,12 +742,9 @@ class UiMainWindow(QMainWindow):
                     self.mapping_tab_widget.input_path = cleaned_text
                 case FunctionType.VIDEO:
                     self.video_tab_widget.input_path = cleaned_text
-
-            # Trigger preview update for the current tab
-            self.trigger_preview_update()
         else:
-            # If sanitization failed, clear the path
-            match self.function_tabWidget.currentIndex():
+            # Clear the path if text is empty or invalid
+            match current_index:
                 case FunctionType.PHOTO:
                     self.photo_tab_widget.input_path = ""
                 case FunctionType.FOLDER:
@@ -744,6 +753,10 @@ class UiMainWindow(QMainWindow):
                     self.mapping_tab_widget.input_path = ""
                 case FunctionType.VIDEO:
                     self.video_tab_widget.input_path = ""
+
+        # Trigger preview update for the current tab (only if valid)
+        if text.strip() and self.unified_address_bar.state == LineEditState.VALID_INPUT:
+            self.trigger_preview_update()
 
     def trigger_preview_update(self):
         """Trigger preview update for the current tab when path is valid"""
@@ -770,25 +783,39 @@ class UiMainWindow(QMainWindow):
 
     def secondary_input_changed(self, text: str):
         """Handle changes to the secondary input (only for mapping tab)"""
-        if text := ut.sanitize_path(text):
-            match self.function_tabWidget.currentIndex():
-                case FunctionType.MAPPING:
-                    self.mapping_tab_widget.table_path = text
-                case _:
-                    pass
+        current_index = self.function_tabWidget.currentIndex()
+
+        if current_index == FunctionType.MAPPING:
+            if cleaned_text := ut.sanitize_path(text) if text.strip() else "":
+                self.mapping_tab_widget.table_path = cleaned_text
+            else:
+                self.mapping_tab_widget.table_path = ""
 
     def destination_input_changed(self, text: str):
         """Handle changes to the destination input"""
-        if text := ut.sanitize_path(text):
-            match self.function_tabWidget.currentIndex():
+        current_index = self.function_tabWidget.currentIndex()
+
+        if cleaned_text := ut.sanitize_path(text) if text.strip() else "":
+            match current_index:
                 case FunctionType.PHOTO:
-                    self.photo_tab_widget.destination_path = text
+                    self.photo_tab_widget.destination_path = cleaned_text
                 case FunctionType.FOLDER:
-                    self.folder_tab_widget.destination_path = text
+                    self.folder_tab_widget.destination_path = cleaned_text
                 case FunctionType.MAPPING:
-                    self.mapping_tab_widget.destination_path = text
+                    self.mapping_tab_widget.destination_path = cleaned_text
                 case FunctionType.VIDEO:
-                    self.video_tab_widget.destination_path = text
+                    self.video_tab_widget.destination_path = cleaned_text
+        else:
+            # Clear destination path if text is empty or invalid
+            match current_index:
+                case FunctionType.PHOTO:
+                    self.photo_tab_widget.destination_path = ""
+                case FunctionType.FOLDER:
+                    self.folder_tab_widget.destination_path = ""
+                case FunctionType.MAPPING:
+                    self.mapping_tab_widget.destination_path = ""
+                case FunctionType.VIDEO:
+                    self.video_tab_widget.destination_path = ""
 
     def handle_context_button(self):
         """Handle clicks on the context-aware button"""
