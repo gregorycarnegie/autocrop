@@ -209,9 +209,12 @@ class UiBatchCropWidget(UiCropWidget):
 
     def create_preview_job(self, folder_path: Path) -> Job:
         """Create a minimal job just for preview purposes"""
+        def str_to_int(txt: str) -> int:
+            return int(txt) if txt.isdigit() else 200
+
         return Job(
-            width=int(self.controlWidget.widthLineEdit.text()) if self.controlWidget.widthLineEdit.text().isdigit() else 200,
-            height=int(self.controlWidget.heightLineEdit.text()) if self.controlWidget.heightLineEdit.text().isdigit() else 200,
+            width=str_to_int(self.controlWidget.widthLineEdit.text()),
+            height=str_to_int(self.controlWidget.heightLineEdit.text()),
             fix_exposure_job=self.exposureCheckBox.isChecked(),
             multi_face_job=self.mfaceCheckBox.isChecked(),
             auto_tilt_job=self.tiltCheckBox.isChecked(),
