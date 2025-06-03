@@ -16,7 +16,7 @@ rayon = "1.10.0"
 phf = { version = "0.11.3", features = ["macros"] }
 regex = { version = "1.11.1", features = ["unicode"] }
 memmap2 = "0.9.5"
-parking_lot = "0.12.3"
+parking_lot = "0.12.4"
 once_cell = "1.21.3"
 
 [profile.release]
@@ -25,4 +25,4 @@ codegen-units = 1
 opt-level = 3
 
 [build-dependencies]
-cc = "1.2.24"
+cc = "1.2.25"
