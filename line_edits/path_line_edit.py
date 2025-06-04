@@ -23,7 +23,7 @@ class PathLineEdit(CustomLineEdit):
         parent (Optional[QWidget]): The parent widget. Defaults to None.
 
     Methods:
-        insert_clipboard_path(self, text: str) -> None: Inserts the clipboard path into the text input.
+        insert_clipboard_path(self) -> None: Inserts the clipboard path into the text input.
         validate_path(self) -> None: Validates the path entered in the text input based on the selected path type.
         is_valid_image(path: Path) -> bool: Checks if the given path is a valid image file.
         is_valid_table(path: Path) -> bool: Checks if the given path is a valid table file.
