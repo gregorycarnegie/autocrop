@@ -579,10 +579,7 @@ def align_face(image: T,
 
     if scale_factor > 1:
         # Resize image for faster processing
-        small_img = cv2.resize(
-            image,
-            (int(width / scale_factor), int(height / scale_factor))
-        )
+        small_img = cv2.resize(image, (int(width / scale_factor), int(height / scale_factor)))
         faces = detector(small_img, job.threshold)
     else:
         small_img = image
