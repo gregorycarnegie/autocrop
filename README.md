@@ -81,7 +81,7 @@
    uv pip install maturin
    ```
 
-4. Build the Rust extension and install dependancies:
+4. Build the Rust extension and install dependencies:
 
    ```bash
    maturin develop
