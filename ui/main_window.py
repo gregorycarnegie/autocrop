@@ -1368,9 +1368,14 @@ class UiMainWindow(QMainWindow):
         a0.setDropAction(Qt.DropAction.CopyAction)
 
         # Get the dropped URL and convert to a local file path
-        url = mime_data.urls()[0]
-        if not url.isLocalFile():
-            ut.show_error_box("Only local files can be dropped")
+        try:
+            url = mime_data.urls()[0]
+            if not url.isLocalFile():
+                ut.show_error_box("Only local files can be dropped")
+                a0.ignore()
+                return
+        except IndexError:
+            ut.show_error_box("File may be corrupted or not accessible")
             a0.ignore()
             return
 
