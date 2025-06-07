@@ -158,14 +158,22 @@ class Job:
         bool_array = np.fromiter(self.radio_buttons, np.bool_)
         return str(self.radio_options[bool_array][0])
 
+    @staticmethod
+    def _dimension(a0: int, a1: int, a2: int) -> int:
+        """
+        Computes the dimension with padding applied.
+        """
+        return int(a0 * (100 + a1 + a2) / 100)
+
     @property
     def size(self) -> tuple[int, int]:
         """
         Returns (width, height) with padding applied.
         """
-        width = self.width * (100 + self.left + self.right) / 100
-        height = self.height * (100 + self.top + self.bottom) / 100
-        return int(width), int(height)
+        return (
+            self._dimension(self.width, self.left, self.right),
+            self._dimension(self.height, self.top, self.bottom)
+        )
 
     @property
     def threshold(self) -> int:
