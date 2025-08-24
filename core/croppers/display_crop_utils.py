@@ -11,8 +11,6 @@ from core.face_tools import FaceToolPair
 from core.job import Job
 from file_types import FileCategory, file_manager
 
-# RadioButtonTuple = tuple[bool, bool, bool, bool, bool, bool]
-
 
 @dataclass
 class WidgetState:
