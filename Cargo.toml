@@ -12,10 +12,10 @@ crate-type = ["cdylib", "rlib"]
 pyo3 = { version = "0.25.1", features = ["extension-module"] }
 ndarray = { version = "0.16.1", features = ["rayon"] }
 numpy = "0.25.0"
-rayon = "1.10.0"
-phf = { version = "0.12.1", features = ["macros"] }
-regex = { version = "1.11.1", features = ["unicode"] }
-memmap2 = "0.9.7"
+rayon = "1.11.0"
+phf = { version = "0.13.1", features = ["macros"] }
+regex = { version = "1.11.2", features = ["unicode"] }
+memmap2 = "0.9.8"
 parking_lot = "0.12.4"
 once_cell = "1.21.3"
 
@@ -25,4 +25,4 @@ codegen-units = 1
 opt-level = 3
 
 [build-dependencies]
-cc = "1.2.30"
+cc = "1.2.34"
