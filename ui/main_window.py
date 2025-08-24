@@ -31,6 +31,7 @@ from core.croppers import (
     PhotoCropper,
     VideoCropper,
 )
+from core.croppers.display_crop_utils import WidgetState
 from core.enums import FunctionType, Preset
 from file_types import FileCategory, SignatureChecker, file_manager
 from line_edits import LineEditState, NumberLineEdit, PathLineEdit, PathType
@@ -725,23 +726,23 @@ class UiMainWindow(QMainWindow):
         tab_widget.comboBox_2.currentTextChanged.connect(tab_widget.disable_buttons)
 
     @staticmethod
-    def get_widget_state(w: TabWidget):
+    def get_widget_state(w: TabWidget) -> WidgetState:
         control = w.controlWidget
-        return (
-            w.input_path,
-            control.widthLineEdit.text(),
-            control.heightLineEdit.text(),
-            w.exposureCheckBox.isChecked(),
-            w.mfaceCheckBox.isChecked(),
-            w.tiltCheckBox.isChecked(),
-            control.sensitivityDial.value(),
-            control.fpctDial.value(),
-            control.gammaDial.value(),
-            control.topDial.value(),
-            control.bottomDial.value(),
-            control.leftDial.value(),
-            control.rightDial.value(),
-            control.radio_tuple,
+        return WidgetState(
+            input_path=w.input_path,
+            width=control.widthLineEdit.text(),
+            height=control.heightLineEdit.text(),
+            fix_exposure=w.exposureCheckBox.isChecked(),
+            multi_face=w.mfaceCheckBox.isChecked(),
+            auto_tilt=w.tiltCheckBox.isChecked(),
+            sensitivity=control.sensitivityDial.value(),
+            face_percent=control.fpctDial.value(),
+            gamma=control.gammaDial.value(),
+            top=control.topDial.value(),
+            bottom=control.bottomDial.value(),
+            left=control.leftDial.value(),
+            right=control.rightDial.value(),
+            radio_buttons=control.radio_tuple,
         )
 
     @staticmethod

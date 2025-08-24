@@ -17,6 +17,7 @@ from rawpy._rawpy import (
 
 from core import processing as prc
 from core.croppers.base import Cropper
+from core.croppers.display_crop_utils import WidgetState
 from core.enums import FunctionType
 from core.face_tools import FaceToolPair
 from core.job import Job
@@ -51,7 +52,7 @@ class DisplayCropper(Cropper):
     def register_widget_state(
             self,
             function_type: FunctionType,
-            get_state_callback: Callable[[], tuple],
+            get_state_callback: Callable[[], WidgetState],
             get_path_callback: Callable[[], str]
     ):
         """Register efficient callbacks to get state information directly without dependencies"""
@@ -194,28 +195,25 @@ class DisplayCropper(Cropper):
 
     @staticmethod
     def _create_job_from_widget_state(
-        widget_state,
+        widget_state: WidgetState,
         img_path_str: str,
         function_type: FunctionType
     ) -> Job:
         """Create a Job with all parameters from widget state"""
-        input_path, width_text, height_text, fix_exposure, multi_face, auto_tilt, sensitivity, face_percent, \
-            gamma, top, bottom, left, right, radio_buttons = widget_state
-
         job_params = {
-            'width': int(width_text) if width_text.isdigit() else 0,
-            'height': int(height_text) if height_text.isdigit() else 0,
-            'fix_exposure_job': fix_exposure,
-            'multi_face_job': multi_face,
-            'auto_tilt_job': auto_tilt,
-            'sensitivity': sensitivity,
-            'face_percent': face_percent,
-            'gamma': gamma,
-            'top': top,
-            'bottom': bottom,
-            'left': left,
-            'right': right,
-            'radio_buttons': radio_buttons,
+            'width': int(widget_state.width) if widget_state.width.isdigit() else 0,
+            'height': int(widget_state.height) if widget_state.height.isdigit() else 0,
+            'fix_exposure_job': widget_state.fix_exposure,
+            'multi_face_job': widget_state.multi_face,
+            'auto_tilt_job': widget_state.auto_tilt,
+            'sensitivity': widget_state.sensitivity,
+            'face_percent': widget_state.face_percent,
+            'gamma': widget_state.gamma,
+            'top': widget_state.top,
+            'bottom': widget_state.bottom,
+            'left': widget_state.left,
+            'right': widget_state.right,
+            'radio_buttons': widget_state.radio_buttons,
         }
 
         # Add the appropriate path parameter based on the function type

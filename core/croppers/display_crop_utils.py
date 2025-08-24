@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from pathlib import Path
 
 import cv2.typing as cvt
@@ -10,8 +11,26 @@ from core.face_tools import FaceToolPair
 from core.job import Job
 from file_types import FileCategory, file_manager
 
-RadioButtonTuple = tuple[bool, bool, bool, bool, bool, bool]
-WidgetState = tuple[str, str, str, bool, bool, bool, int, int, int, int, int, int, int, RadioButtonTuple]
+# RadioButtonTuple = tuple[bool, bool, bool, bool, bool, bool]
+
+
+@dataclass
+class WidgetState:
+    """Represents the state of UI widgets for image processing operations"""
+    input_path: str
+    width: str
+    height: str
+    fix_exposure: bool
+    multi_face: bool
+    auto_tilt: bool
+    sensitivity: int
+    face_percent: int
+    gamma: int
+    top: int
+    bottom: int
+    left: int
+    right: int
+    radio_buttons: tuple[bool, bool, bool, bool, bool, bool]
 
 cache = TTLCache(maxsize=128, ttl=60)  # Entries expire after 60 seconds
 
@@ -46,7 +65,7 @@ def perform_crop_helper(function_type: FunctionType,
         return None
 
     # Extract the necessary paths
-    next_img_path = get_image_path(function_type, widget_state[0])
+    next_img_path = get_image_path(function_type, widget_state.input_path)
     if not next_img_path:
         return None
 
@@ -60,8 +79,8 @@ def perform_crop_helper(function_type: FunctionType,
 
 @cached(cache)
 def validate_widget_state(widget_state: WidgetState) -> bool:
-    # input_line_edit_text, width_line_edit_text, height_line_edit_text
-    return all(widget_state[:3])
+    """Validate that essential widget state fields are not empty"""
+    return all([widget_state.input_path, widget_state.width, widget_state.height])
 
 
 def get_image_path(function_type: FunctionType, input_line_edit_text: str) -> Path | None:
@@ -75,19 +94,19 @@ def get_image_path(function_type: FunctionType, input_line_edit_text: str) -> Pa
 
 def create_job(widget_state: WidgetState, img_path_str: str, function_type: FunctionType) -> Job:
     return Job(
-        width=int(widget_state[1]),
-        height=int(widget_state[2]),
-        fix_exposure_job=widget_state[3],
-        multi_face_job=widget_state[4],
-        auto_tilt_job=widget_state[5],
-        sensitivity=widget_state[6],
-        face_percent=widget_state[7],
-        gamma=widget_state[8],
-        top=widget_state[9],
-        bottom=widget_state[10],
-        left=widget_state[11],
-        right=widget_state[12],
-        radio_buttons=widget_state[13],
+        width=int(widget_state.width),
+        height=int(widget_state.height),
+        fix_exposure_job=widget_state.fix_exposure,
+        multi_face_job=widget_state.multi_face,
+        auto_tilt_job=widget_state.auto_tilt,
+        sensitivity=widget_state.sensitivity,
+        face_percent=widget_state.face_percent,
+        gamma=widget_state.gamma,
+        top=widget_state.top,
+        bottom=widget_state.bottom,
+        left=widget_state.left,
+        right=widget_state.right,
+        radio_buttons=widget_state.radio_buttons,
         photo_path=Path(img_path_str) if function_type == FunctionType.PHOTO else None,
         folder_path=Path(img_path_str) if function_type != FunctionType.PHOTO else None,
     )
