@@ -1,8 +1,8 @@
-from enum import IntFlag, unique
+from enum import IntEnum, unique
 
 
 @unique
-class FunctionType(IntFlag):
+class FunctionType(IntEnum):
     """
     Enumeration class for function types.
 

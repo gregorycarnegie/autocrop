@@ -30,7 +30,6 @@ class ImageWidget(QWidget):
         self.image = None
         self._face_update_event(False, "")
 
-    # TODO Rename this here and in `setImage`, `showNoFaceDetected`, `showError` and `clear`
     def _face_update_event(self, arg0: bool, arg1: str) -> None:
         self.show_no_face_message = arg0
         self.error_message = arg1
@@ -111,4 +110,3 @@ class ImageWidget(QWidget):
         painter.setFont(font)
         painter.setPen(QColor(160, 170, 180))  # Light gray text for dark theme
         painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "No image")
-

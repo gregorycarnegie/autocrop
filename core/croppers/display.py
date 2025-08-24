@@ -132,7 +132,7 @@ class DisplayCropper(Cropper):
             self,
             function_type: FunctionType,
             path_str: str
-    ) -> tuple[cvt.MatLike, FileCategory] | tuple[None, None]:
+    ) -> tuple[cvt.MatLike | None, FileCategory] | tuple[None, None]:
         """Load the appropriate image based on the function type"""
         match function_type:
             case FunctionType.PHOTO:
@@ -164,7 +164,7 @@ class DisplayCropper(Cropper):
                 file_manager.is_valid_type(file_path, FileCategory.RAW))
 
     @staticmethod
-    def _load_raw_image(file_path: Path) -> tuple[cvt.MatLike, FileCategory] | tuple[None, None]:
+    def _load_raw_image(file_path: Path) -> tuple[cvt.MatLike | None, FileCategory] | tuple[None, None]:
         """Load the raw image data without any processing"""
         with suppress(cv2.error):
             # Determine the file type
