@@ -1,3 +1,5 @@
+import platform
+
 from PyQt6.QtCore import QFile, QTextStream
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication
@@ -37,7 +39,8 @@ def main():
     app.setWindowIcon(QIcon(GuiIcon.ICON))
 
     # Configure FFmpeg to use bundled version
-    configure_ffmpeg()
+    if platform.system() == "Windows":
+        configure_ffmpeg()
 
     # Setup custom styling
     setup_fonts(app)

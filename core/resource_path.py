@@ -1,3 +1,4 @@
+import platform
 import sys
 from functools import cached_property
 from pathlib import Path
@@ -13,7 +14,12 @@ class ResourcePath(_BasePath):
 
     @cached_property
     def _base_dir(self) -> Path:
-        return Path(getattr(sys, "_MEIPASS2", Path.cwd()))
+        if platform.system() == "Windows":
+            return Path(getattr(sys, "_MEIPASS2", Path.cwd()))
+        return Path.cwd()
 
     def as_resource(self) -> str:     #  ← returns its own concrete subclass
-        return type(self)(self._base_dir / self).as_posix()
+        path = type(self)(self._base_dir / self)
+        if platform.system() != "Windows":
+            return str(path).replace("\\", "/")
+        return path.as_posix()
