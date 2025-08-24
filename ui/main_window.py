@@ -193,23 +193,23 @@ class UiMainWindow(QMainWindow):
         # Get paths from current tab widgets - UNCHANGED logic
         match current_index:
             case FunctionType.PHOTO:
-                primary_path = self.tab_manager.photo_tab_widget.input_path if self.tab_manager.photo_tab_widget.input_path else ""
-                destination_path = self.tab_manager.photo_tab_widget.destination_path if self.tab_manager.photo_tab_widget.destination_path else ""
+                primary_path = self.tab_manager.photo_tab_widget.input_path or ""
+                destination_path = self.tab_manager.photo_tab_widget.destination_path or ""
                 secondary_path = ""
 
             case FunctionType.FOLDER:
-                primary_path = self.tab_manager.folder_tab_widget.input_path if self.tab_manager.folder_tab_widget.input_path else ""
-                destination_path = self.tab_manager.folder_tab_widget.destination_path if self.tab_manager.folder_tab_widget.destination_path else ""
+                primary_path = self.tab_manager.folder_tab_widget.input_path or ""
+                destination_path = self.tab_manager.folder_tab_widget.destination_path or ""
                 secondary_path = ""
 
             case FunctionType.MAPPING:
-                primary_path = self.tab_manager.mapping_tab_widget.input_path if self.tab_manager.mapping_tab_widget.input_path else ""
-                destination_path = self.tab_manager.mapping_tab_widget.destination_path if self.tab_manager.mapping_tab_widget.destination_path else ""
-                secondary_path = self.tab_manager.mapping_tab_widget.table_path if self.tab_manager.mapping_tab_widget.table_path else ""
+                primary_path = self.tab_manager.mapping_tab_widget.input_path or ""
+                destination_path = self.tab_manager.mapping_tab_widget.destination_path or ""
+                secondary_path = self.tab_manager.mapping_tab_widget.table_path or ""
 
             case FunctionType.VIDEO:
-                primary_path = self.tab_manager.video_tab_widget.input_path if self.tab_manager.video_tab_widget.input_path else ""
-                destination_path = self.tab_manager.video_tab_widget.destination_path if self.tab_manager.video_tab_widget.destination_path else ""
+                primary_path = self.tab_manager.video_tab_widget.input_path or ""
+                destination_path = self.tab_manager.video_tab_widget.destination_path or ""
                 secondary_path = ""
 
             case _:
@@ -851,19 +851,23 @@ class UiMainWindow(QMainWindow):
         match self.tab_manager.function_tabWidget.currentIndex():
             case FunctionType.PHOTO:
                 self.handle_function_tab_state(
-                    self.tab_manager.photo_tab_widget, self.tab_manager.folder_tab_widget, self.tab_manager.mapping_tab_widget, self.tab_manager.video_tab_widget
+                    self.tab_manager.photo_tab_widget, self.tab_manager.folder_tab_widget,
+                    self.tab_manager.mapping_tab_widget, self.tab_manager.video_tab_widget
                 )
             case FunctionType.FOLDER:
                 self.handle_function_tab_state(
-                    self.tab_manager.folder_tab_widget, self.tab_manager.mapping_tab_widget, self.tab_manager.video_tab_widget, self.tab_manager.photo_tab_widget
+                    self.tab_manager.folder_tab_widget, self.tab_manager.mapping_tab_widget,
+                    self.tab_manager.video_tab_widget, self.tab_manager.photo_tab_widget
                 )
             case FunctionType.MAPPING:
                 self.handle_function_tab_state(
-                    self.tab_manager.mapping_tab_widget, self.tab_manager.video_tab_widget, self.tab_manager.photo_tab_widget, self.tab_manager.folder_tab_widget
+                    self.tab_manager.mapping_tab_widget, self.tab_manager.video_tab_widget,
+                    self.tab_manager.photo_tab_widget, self.tab_manager.folder_tab_widget
                 )
             case FunctionType.VIDEO:
                 self.handle_function_tab_state(
-                    self.tab_manager.video_tab_widget, self.tab_manager.photo_tab_widget, self.tab_manager.folder_tab_widget, self.tab_manager.mapping_tab_widget
+                    self.tab_manager.video_tab_widget, self.tab_manager.photo_tab_widget,
+                    self.tab_manager.folder_tab_widget, self.tab_manager.mapping_tab_widget
                 )
             case _:
                 pass

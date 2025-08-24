@@ -27,25 +27,9 @@ class AddressBarWidget(QWidget):
 
     def _setup_widgets(self):
         """Initialize all address bar widgets"""
-        # Navigation buttons
-        self.back_button = QPushButton()
-        self.back_button.setIcon(QIcon.fromTheme("go-previous"))
-        self.back_button.setObjectName("backButton")
-        self.back_button.setToolTip("Back")
-        self.back_button.setFixedSize(36, 36)
-
-        self.forward_button = QPushButton()
-        self.forward_button.setIcon(QIcon.fromTheme("go-next"))
-        self.forward_button.setObjectName("forwardButton")
-        self.forward_button.setToolTip("Forward")
-        self.forward_button.setFixedSize(36, 36)
-
-        self.refresh_button = QPushButton()
-        self.refresh_button.setIcon(QIcon.fromTheme("view-refresh"))
-        self.refresh_button.setObjectName("refreshButton")
-        self.refresh_button.setToolTip("Refresh")
-        self.refresh_button.setFixedSize(36, 36)
-
+        self.back_button = self.setup_button("go-previous", "backButton", "Back")
+        self.forward_button = self.setup_button("go-next", "forwardButton", "Forward")
+        self.refresh_button = self.setup_button("view-refresh", "refreshButton", "Refresh")
         # Unified address bar (dynamic path field)
         self.unified_address_bar = PathLineEdit(path_type=PathType.IMAGE)  # Default to image
         self.unified_address_bar.setObjectName("unifiedAddressBar")
@@ -105,12 +89,17 @@ class AddressBarWidget(QWidget):
         destination_layout.addWidget(self.destination_input)
         destination_layout.addWidget(self.destination_button)
 
-        # Info button (on the right)
-        self.info_button = QPushButton()
-        self.info_button.setIcon(QIcon.fromTheme("help-browser"))
-        self.info_button.setObjectName("infoButton")
-        self.info_button.setToolTip("Info")
-        self.info_button.setFixedSize(36, 36)
+        self.info_button = self.setup_button("help-browser", "infoButton", "Info")
+
+    def setup_button(self, arg0: str, arg1: str, arg2: str):
+        # Navigation buttons
+        result = QPushButton()
+        result.setIcon(QIcon.fromTheme(arg0))
+        result.setObjectName(arg1)
+        result.setToolTip(arg2)
+        result.setFixedSize(36, 36)
+
+        return result
 
     def _setup_layout(self):
         """Setup the address bar layout"""
