@@ -80,12 +80,10 @@ def normalize_image(image: cvt.MatLike) -> cvt.MatLike:
     """
     # Get min and max values
     min_val = np.min(image)
-    max_val = np.max(image)
 
     # Avoid division by zero
-    if (delta_val := max_val - min_val) == 0:
+    if (delta_val := np.max(image) - min_val) == 0:
         return image
 
     # Normalize to [0, 255]
-    alpha, beta =float(255/delta_val), float(-min_val*255/delta_val)
-    return cv2.convertScaleAbs(image, alpha=alpha, beta=beta)
+    return cv2.convertScaleAbs(image, alpha=float(255/delta_val), beta=float(-min_val*255/delta_val))

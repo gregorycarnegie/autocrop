@@ -11,8 +11,8 @@ class MenuManager:
 
     def __init__(self, main_window: QMainWindow):
         self.main_window = main_window
-        self.actions = {}
-        self.menus = {}
+        self.actions: dict[str, QAction] = {}
+        self.menus: dict[str, QMenu] = {}
 
     def create_main_menu(self):
         """Create the main menu for the application"""
@@ -147,11 +147,11 @@ class MenuManager:
 
         action.setIcon(icon)
 
-    def get_action(self, action_name: str) -> QAction:
+    def get_action(self, action_name: str) -> QAction | None:
         """Get action by name"""
         return self.actions.get(action_name)
 
-    def get_menu(self, menu_name: str) -> QMenu:
+    def get_menu(self, menu_name: str) -> QMenu | None:
         """Get menu by name"""
         return self.menus.get(menu_name)
 

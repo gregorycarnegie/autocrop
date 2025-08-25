@@ -234,18 +234,28 @@ class UiMainWindow(QMainWindow):
         self.connect_combo_boxes(self.tab_manager.mapping_tab_widget)
 
         # Menu actions - delegate to menu manager
-        self.menu_manager.get_action('about').triggered.connect(ut.load_about_form)
-        self.menu_manager.get_action('golden_ratio').triggered.connect(partial(self.load_preset, Preset.GOLDEN_RATIO))
-        self.menu_manager.get_action('2_3_ratio').triggered.connect(partial(self.load_preset, Preset.TWO_THIRDS))
-        self.menu_manager.get_action('3_4_ratio').triggered.connect(partial(self.load_preset, Preset.THREE_QUARTERS))
-        self.menu_manager.get_action('4_5_ratio').triggered.connect(partial(self.load_preset, Preset.FOUR_FIFTHS))
-        self.menu_manager.get_action('square').triggered.connect(partial(self.load_preset, Preset.SQUARE))
+        if a0 := self.menu_manager.get_action('about'):
+            a0.triggered.connect(ut.load_about_form)
+        if a1 := self.menu_manager.get_action('golden_ratio'):
+            a1.triggered.connect(partial(self.load_preset, Preset.GOLDEN_RATIO))
+        if a2 := self.menu_manager.get_action('2_3_ratio'):
+            a2.triggered.connect(partial(self.load_preset, Preset.TWO_THIRDS))
+        if a3 := self.menu_manager.get_action('3_4_ratio'):
+            a3.triggered.connect(partial(self.load_preset, Preset.THREE_QUARTERS))
+        if a4 := self.menu_manager.get_action('4_5_ratio'):
+            a4.triggered.connect(partial(self.load_preset, Preset.FOUR_FIFTHS))
+        if a5 := self.menu_manager.get_action('square'):
+            a5.triggered.connect(partial(self.load_preset, Preset.SQUARE))
 
         # Connect tab selection actions
-        self.menu_manager.get_action('crop_file').triggered.connect(partial(self.tab_manager.function_tabWidget.setCurrentIndex, FunctionType.PHOTO))
-        self.menu_manager.get_action('crop_folder').triggered.connect(partial(self.tab_manager.function_tabWidget.setCurrentIndex, FunctionType.FOLDER))
-        self.menu_manager.get_action('use_mapping').triggered.connect(partial(self.tab_manager.function_tabWidget.setCurrentIndex, FunctionType.MAPPING))
-        self.menu_manager.get_action('crop_video').triggered.connect(partial(self.tab_manager.function_tabWidget.setCurrentIndex, FunctionType.VIDEO))
+        if a6 := self.menu_manager.get_action('crop_file'):
+            a6.triggered.connect(partial(self.tab_manager.function_tabWidget.setCurrentIndex, FunctionType.PHOTO))
+        if a7 := self.menu_manager.get_action('crop_folder'):
+            a7.triggered.connect(partial(self.tab_manager.function_tabWidget.setCurrentIndex, FunctionType.FOLDER))
+        if a8 := self.menu_manager.get_action('use_mapping'):
+            a8.triggered.connect(partial(self.tab_manager.function_tabWidget.setCurrentIndex, FunctionType.MAPPING))
+        if a9 := self.menu_manager.get_action('crop_video'):
+            a9.triggered.connect(partial(self.tab_manager.function_tabWidget.setCurrentIndex, FunctionType.VIDEO))
 
         # Browser-style navigation buttons - UNCHANGED
         self.address_bar.back_button.clicked.connect(self.navigate_back)
@@ -333,6 +343,9 @@ class UiMainWindow(QMainWindow):
         # Trigger preview update for the current tab (only if valid)
         if text.strip() and self.address_bar.unified_address_bar.state == LineEditState.VALID_INPUT:
             self.trigger_preview_update()
+            
+        # Update button states after path change
+        self.update_tab_button_states()
 
     def trigger_preview_update(self):
         """Trigger preview update for the current tab when path is valid"""
@@ -392,6 +405,23 @@ class UiMainWindow(QMainWindow):
                     self.tab_manager.mapping_tab_widget.destination_path = ""
                 case FunctionType.VIDEO:
                     self.tab_manager.video_tab_widget.destination_path = ""
+                    
+        # Update button states after destination path change
+        self.update_tab_button_states()
+
+    def update_tab_button_states(self):
+        """Update button states for the current tab widget"""
+        current_index = self.tab_manager.function_tabWidget.currentIndex()
+        
+        match current_index:
+            case FunctionType.PHOTO:
+                self.tab_manager.photo_tab_widget.disable_buttons()
+            case FunctionType.FOLDER:
+                self.tab_manager.folder_tab_widget.disable_buttons()
+            case FunctionType.MAPPING:
+                self.tab_manager.mapping_tab_widget.disable_buttons()
+            case FunctionType.VIDEO:
+                self.tab_manager.video_tab_widget.disable_buttons()
 
     def handle_context_button(self):
         """Handle clicks on the context-aware button"""

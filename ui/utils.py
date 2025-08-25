@@ -22,6 +22,7 @@ from PyQt6.QtWidgets import (
 
 from core.enums import FunctionType
 from line_edits.custom_line_edit import LineEditState
+from ui.tab_state import TabStateManager
 
 from .dialog import UiDialog
 from .enums import GuiIcon
@@ -29,7 +30,7 @@ from .image_widget import ImageWidget
 
 
 def register_button_dependencies(
-        tab_state_manager,
+        tab_state_manager: TabStateManager,
         button: QPushButton,
         dependent_widgets: set[QWidget]
 ) -> None:
@@ -71,38 +72,38 @@ def check_paths_valid_with_address_bars(tab_widget) -> bool:
     try:
         # Get the main window
         main_window = tab_widget
-        while main_window and not hasattr(main_window, 'unified_address_bar'):
+        while main_window and not hasattr(main_window, 'address_bar'):
             main_window = main_window.parent()
 
         if not main_window:
             return False
 
         # Check the current tab type
-        current_index = main_window.function_tabWidget.currentIndex()
+        current_index = main_window.tab_manager.function_tabWidget.currentIndex()
 
         # Get the address bar states directly
         unified_bar_valid = (
-            main_window.unified_address_bar.state == LineEditState.VALID_INPUT and
-            bool(main_window.unified_address_bar.text().strip())
+            main_window.address_bar.unified_address_bar.state == LineEditState.VALID_INPUT and
+            bool(main_window.address_bar.unified_address_bar.text().strip())
         )
 
         destination_bar_valid = (
-            main_window.destination_input.state == LineEditState.VALID_INPUT and
-            bool(main_window.destination_input.text().strip())
+            main_window.address_bar.destination_input.state == LineEditState.VALID_INPUT and
+            bool(main_window.address_bar.destination_input.text().strip())
         )
 
         # For mapping tab, we also need the secondary input (table file)
         if current_index == FunctionType.MAPPING:
             secondary_bar_valid = (
-                main_window.secondary_input.state == LineEditState.VALID_INPUT and
-                bool(main_window.secondary_input.text().strip())
+                main_window.address_bar.secondary_input.state == LineEditState.VALID_INPUT and
+                bool(main_window.address_bar.secondary_input.text().strip())
             )
             return unified_bar_valid and destination_bar_valid and secondary_bar_valid
 
         # For other tabs, just check input and destination
         return unified_bar_valid and destination_bar_valid
 
-    except Exception:
+    except Exception as e:
         # If anything goes wrong, default to invalid
         return False
 

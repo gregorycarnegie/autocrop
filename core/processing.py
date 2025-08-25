@@ -554,7 +554,7 @@ def colour_and_align_face(
     return align_face(ensure_rgb(image), face_detection_tools, job)
 
 
-def align_face(image: T,
+def align_face[T: cvt.MatLike](image: T,
                face_detection_tools: FaceToolPair,
                job: Job) -> T:
     """

@@ -84,8 +84,12 @@ class TabManager:
         # Find the input and destination layouts
         for i in range(self.folder_tab_widget.verticalLayout_200.count()):
             item = self.folder_tab_widget.verticalLayout_200.itemAt(i)
+            if item is None:
+                continue
             if hasattr(item, 'layout') and item.layout() is not None:
                 layout = item.layout()
+                if layout is None:
+                    continue
                 if hasattr(layout, "objectName"):
                     if layout.objectName() == "horizontalLayout_4":  # Input layout
                         input_layout = item

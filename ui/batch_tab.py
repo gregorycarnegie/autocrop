@@ -182,7 +182,11 @@ class UiBatchCropWidget(UiCropWidget):
         if index.isValid():
             file_path = self.file_model.filePath(index)
             if file_path and self._is_image_file(file_path):
-                global_pos = self.treeView.viewport().mapToGlobal(pos)
+                viewport = self.treeView.viewport()
+                if viewport is None:
+                    logger.debug("Viewport is None, cannot show preview")
+                    return
+                global_pos = viewport.mapToGlobal(pos)
                 self._handle_hover_start(file_path, global_pos)
                 return
 
