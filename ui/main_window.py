@@ -127,7 +127,7 @@ class UiMainWindow(QMainWindow):
         # Tab manager
         self.tab_manager = TabManager(self.centralwidget, self.workers)
 
-        # Address bar widget - UNCHANGED logic preserved
+        # Address bar widget
         self.address_bar = AddressBarWidget(self)
 
         # Drag drop handler
@@ -138,7 +138,7 @@ class UiMainWindow(QMainWindow):
         # Create the main menu
         self.menu_manager.create_main_menu()
 
-        # Add address bar to the main layout - UNCHANGED
+        # Add address bar to the main layout
         self.main_layout.addWidget(self.address_bar)
 
         # Add tab widget to the main layout
@@ -185,13 +185,13 @@ class UiMainWindow(QMainWindow):
             widget.imageWidget.showNoFaceDetected(message)
 
     def update_address_bar_context(self):
-        """Update address bar context based on current tab - UNCHANGED logic preserved"""
+        """Update address bar context based on current tab"""
         current_index = self.tab_manager.function_tabWidget.currentIndex()
 
         # Update context using the address bar widget
         self.address_bar.update_context(current_index)
 
-        # Get paths from current tab widgets - UNCHANGED logic
+        # Get paths from current tab widgets
         match current_index:
             case FunctionType.PHOTO:
                 primary_path = self.tab_manager.photo_tab_widget.input_path or ""
@@ -216,7 +216,7 @@ class UiMainWindow(QMainWindow):
             case _:
                 primary_path = destination_path = secondary_path = ""
 
-        # Update paths in address bar - UNCHANGED logic
+        # Update paths in address bar
         self.address_bar.update_paths(primary_path, secondary_path, destination_path)
 
     # retranslateUi
@@ -257,13 +257,13 @@ class UiMainWindow(QMainWindow):
         if a9 := self.menu_manager.get_action('crop_video'):
             a9.triggered.connect(partial(self.tab_manager.function_tabWidget.setCurrentIndex, FunctionType.VIDEO))
 
-        # Browser-style navigation buttons - UNCHANGED
+        # Browser-style navigation buttons
         self.address_bar.back_button.clicked.connect(self.navigate_back)
         self.address_bar.forward_button.clicked.connect(self.navigate_forward)
         self.address_bar.refresh_button.clicked.connect(self.refresh_current_view)
         self.address_bar.info_button.clicked.connect(self.show_settings)
 
-        # Connect unified address bar signals - UNCHANGED logic preserved
+        # Connect unified address bar signals
         self.connect_address_bar_signals()
 
         # Tab change event
@@ -281,7 +281,7 @@ class UiMainWindow(QMainWindow):
         self.drag_drop_handler.directory_dropped.connect(self._handle_directory_drop)
 
     def connect_address_bar_signals(self):
-        """Connect signals for the unified address bar - UNCHANGED logic preserved"""
+        """Connect signals for the unified address bar"""
         # Connect tab change to update address bar context
         self.tab_manager.function_tabWidget.currentChanged.connect(self.update_address_bar_context)
 
@@ -289,11 +289,11 @@ class UiMainWindow(QMainWindow):
         self.address_bar.unified_address_bar.textChanged.connect(self.unified_address_changed)
         self.address_bar.unified_address_bar.textChanged.connect(self.update_all_button_states)
 
-        # Connect secondary input for mapping tab - UNCHANGED
+        # Connect secondary input for mapping tab
         self.address_bar.secondary_input.textChanged.connect(self.secondary_input_changed)
         self.address_bar.secondary_input.textChanged.connect(self.update_all_button_states)
 
-        # Connect destination input - UNCHANGED
+        # Connect destination input
         self.address_bar.destination_input.textChanged.connect(self.destination_input_changed)
         self.address_bar.destination_input.textChanged.connect(self.update_all_button_states)
 
@@ -314,7 +314,7 @@ class UiMainWindow(QMainWindow):
             tab_widget.tab_state_manager.update_button_states()
 
     def unified_address_changed(self, text: str):
-        """Handle changes to the unified address bar - UNCHANGED logic"""
+        """Handle changes to the unified address bar"""
         current_index = self.tab_manager.function_tabWidget.currentIndex()
 
         # Update the appropriate input field in the current tab
@@ -343,7 +343,7 @@ class UiMainWindow(QMainWindow):
         # Trigger preview update for the current tab (only if valid)
         if text.strip() and self.address_bar.unified_address_bar.state == LineEditState.VALID_INPUT:
             self.trigger_preview_update()
-            
+
         # Update button states after path change
         self.update_tab_button_states()
 
@@ -371,7 +371,7 @@ class UiMainWindow(QMainWindow):
                         self.display_worker.crop(FunctionType.VIDEO)
 
     def secondary_input_changed(self, text: str):
-        """Handle changes to the secondary input - UNCHANGED logic"""
+        """Handle changes to the secondary input"""
         current_index = self.tab_manager.function_tabWidget.currentIndex()
 
         if current_index == FunctionType.MAPPING:
@@ -381,7 +381,7 @@ class UiMainWindow(QMainWindow):
                 self.tab_manager.mapping_tab_widget.table_path = ""
 
     def destination_input_changed(self, text: str):
-        """Handle changes to the destination input - UNCHANGED logic"""
+        """Handle changes to the destination input"""
         current_index = self.tab_manager.function_tabWidget.currentIndex()
 
         if cleaned_text := ut.sanitize_path(text) if text.strip() else "":
@@ -405,14 +405,14 @@ class UiMainWindow(QMainWindow):
                     self.tab_manager.mapping_tab_widget.destination_path = ""
                 case FunctionType.VIDEO:
                     self.tab_manager.video_tab_widget.destination_path = ""
-                    
+
         # Update button states after destination path change
         self.update_tab_button_states()
 
     def update_tab_button_states(self):
         """Update button states for the current tab widget"""
         current_index = self.tab_manager.function_tabWidget.currentIndex()
-        
+
         match current_index:
             case FunctionType.PHOTO:
                 self.tab_manager.photo_tab_widget.disable_buttons()
@@ -436,7 +436,7 @@ class UiMainWindow(QMainWindow):
                 self.open_file_dialog(PathType.VIDEO, self.address_bar.unified_address_bar)
 
     def handle_secondary_button(self):
-        """Handle clicks on the secondary button - UNCHANGED logic"""
+        """Handle clicks on the secondary button"""
         match self.tab_manager.function_tabWidget.currentIndex():
             case FunctionType.MAPPING:
                 self.open_file_dialog(PathType.TABLE, self.address_bar.secondary_input)
@@ -444,7 +444,7 @@ class UiMainWindow(QMainWindow):
                 pass
 
     def handle_destination_button(self):
-        """Handle clicks on the destination button - UNCHANGED logic"""
+        """Handle clicks on the destination button"""
         self.open_folder_dialog(self.address_bar.destination_input)
 
     def open_file_dialog(self, path_type: PathType, target_input: PathLineEdit) -> None:
@@ -499,7 +499,7 @@ class UiMainWindow(QMainWindow):
 
         # Validate file type
         if not file_manager.is_valid_type(path_obj, category):
-            ut.show_error_box(f"Selected file is not a valid {category.name.lower()}")
+            ut.show_error_box(f"Selected file is not a valid {category.name}")
             return
 
         # Verify file content matches extension
