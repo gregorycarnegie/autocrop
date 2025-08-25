@@ -48,7 +48,7 @@ class MappingCropper(BatchCropper):
         )
 
         # Phase 2: Execute the cropping instructions in parallel
-        self.execute_parrallel_job(instructions, cancel_event)
+        self.execute_parallel_job(instructions, cancel_event)
 
         self.update_completion_status(file_amount)
 

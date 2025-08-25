@@ -461,7 +461,7 @@ class BatchCropper(Cropper):
         QApplication.processEvents()
 
     @staticmethod
-    def execute_parrallel_job(instructions: list[CropInstruction], cancel_event: threading.Event) -> None:
+    def execute_parallel_job(instructions: list[CropInstruction], cancel_event: threading.Event) -> None:
         if cancel_event.is_set():
                 return
 

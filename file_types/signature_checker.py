@@ -1,3 +1,4 @@
+import contextlib
 from pathlib import Path
 
 import autocrop_rs.file_types as r_types  # type: ignore
@@ -36,8 +37,8 @@ class SignatureChecker:
         }.get(expected_category, 5)
 
         # Call Rust implementation
-        try:
+        with contextlib.suppress(Exception):
             return r_types.verify_file_type(str(file_path), category_value)
-        except Exception:
-            # Fallback to always returning False on errors
-            return False
+
+        # Fallback to always returning False on errors
+        return False
