@@ -8,8 +8,9 @@ from PyQt6.QtCore import QMetaObject, QObject, Qt, pyqtSignal
 from core.config import logger
 from ui import utils as ut
 
-TOTAL_MEMORY, MEM_THRESHOLD = psutil.virtual_memory().total, 2_147_483_648
-MEM_FACTOR = TOTAL_MEMORY // MEM_THRESHOLD
+# More conservative memory calculation
+TOTAL_MEMORY, MEM_THRESHOLD = psutil.virtual_memory().total, 4_294_967_296  # 4GB threshold
+MEM_FACTOR = max(1, TOTAL_MEMORY // MEM_THRESHOLD)  # Ensure at least 1
 
 
 class Cropper(QObject):
@@ -17,7 +18,8 @@ class Cropper(QObject):
     A class that manages image-cropping tasks using a thread pool.
     """
 
-    THREAD_NUMBER: ClassVar[int] = min(psutil.cpu_count() or 1, MEM_FACTOR, 8)
+    # More conservative thread calculation based on memory constraints
+    THREAD_NUMBER: ClassVar[int] = min(psutil.cpu_count() or 1, MEM_FACTOR, 4)
     MEM_FACTOR = MEM_FACTOR
     TASK_VALUES: ClassVar[tuple[int, bool, bool]] = 0, False, True
 

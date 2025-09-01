@@ -465,11 +465,15 @@ class BatchCropper(Cropper):
         if cancel_event.is_set():
                 return
 
-        for batch in batched(instructions, 50):
+        # Use smaller batches and fewer processes to reduce memory usage
+        batch_size = min(20, len(instructions) // 4 + 1)  # Adaptive batch size
+        max_processes = min(2, multiprocessing.cpu_count() // 4)  # Fewer processes
+        
+        for batch in batched(instructions, batch_size):
             if cancel_event.is_set():
                 return
 
-            with multiprocessing.Pool(processes=min(multiprocessing.cpu_count()//2, 4)) as pool:
+            with multiprocessing.Pool(processes=max_processes, maxtasksperchild=5) as pool:
                 try:
                     # Use a multiprocessing pool to execute the crop instructions
                     _results = list(pool.imap_unordered(
@@ -484,7 +488,11 @@ class BatchCropper(Cropper):
                     pool.terminate()
                     pool.join()
 
-            gc.collect()  # Force garbage collection to free memory
+            # Force garbage collection and clear caches between batches
+            gc.collect()
+            # Limit OpenCV threading to prevent memory bloat
+            import cv2
+            cv2.setNumThreads(1)
 
     def update_completion_status(self, file_amount: int) -> None:
         """

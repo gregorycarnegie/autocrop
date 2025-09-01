@@ -18,6 +18,8 @@ import tifffile as tiff
 from rawpy import ColorSpace  # type: ignore
 from rawpy._rawpy import LibRawError
 
+from .memory_utils import MemoryManager, memory_efficient_resize, optimize_array_memory
+
 from core.colour_utils import adjust_gamma, ensure_rgb, normalize_image, to_grayscale
 from core.crop_instruction import CropInstruction
 from file_types import FileCategory, SignatureChecker, file_manager
@@ -371,7 +373,7 @@ def simple_opener(
 ) -> cvt.MatLike | None:
     """
     Open an image file using the appropriate strategy based on its FileCategory.
-    Includes content verification for security.
+    Includes content verification for security and memory optimization.
     """
     file = Path(file_str)
     with suppress(IsADirectoryError):
@@ -396,7 +398,11 @@ def simple_opener(
             return None
 
         if opener := _SIMPLE_OPENER_STRATEGIES.get(category):
-            return opener(file)
+            image = opener(file)
+            # Optimize memory layout for better performance
+            if image is not None:
+                image = optimize_array_memory(image)
+            return image
 
     return None
 
@@ -450,10 +456,11 @@ def build_crop_instruction_pipeline(
         pipeline.append(partial(r_img.correct_exposure, exposure=True, video=video))
 
     # Add standard processing steps
+    # Add standard processing steps with memory-efficient resize
     pipeline.extend(
         (
             partial(adjust_gamma, gam=job.gamma),
-            partial(cv2.resize, dsize=job.size, interpolation=config.interpolation),
+            partial(memory_efficient_resize, target_size=job.size),
         )
     )
 
@@ -487,10 +494,11 @@ def build_processing_pipeline(
     if job.fix_exposure_job:
         pipeline.append(partial(r_img.correct_exposure, exposure=True, video=video))
 
+    # Add standard processing steps with memory-efficient resize
     pipeline.extend(
         (
             partial(adjust_gamma, gam=job.gamma),
-            partial(cv2.resize, dsize=job.size, interpolation=config.interpolation),
+            partial(memory_efficient_resize, target_size=job.size),
         )
     )
     # Add colour space conversion if needed
@@ -505,9 +513,16 @@ def run_processing_pipeline(
         pipeline: list[Callable[[T], T]]
 ) -> T:
     """
-    Apply a sequence of image processing functions to an image.
+    Apply a sequence of image processing functions to an image with memory optimization.
     """
-    return reduce(lambda img, func: func(img), pipeline, image)
+    current_image = image
+    for func in pipeline:
+        previous_image = current_image
+        current_image = func(current_image)
+        # Delete previous image if it's different to free memory
+        if previous_image is not image and previous_image is not current_image:
+            del previous_image
+    return current_image
 
 
 def crop_to_bounding_box(
