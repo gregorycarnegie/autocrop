@@ -1,5 +1,5 @@
 [build-system]
-requires      = ["maturin>=1.9.3"]
+requires      = ["maturin>=1.9.4"]
 build-backend = "maturin"
 
 [project]
@@ -7,7 +7,7 @@ name            = "autocrop_rs"
 version         = "0.6.1"
 requires-python = ">=3.10"
 dependencies    = [
-  "cachetools>=6.1.0",
+  "cachetools>=6.2.0",
   "fastexcel>=0.14.0",
   "ffmpeg-python>=0.2.0",
   "numpy>=2.2.6",
@@ -16,7 +16,7 @@ dependencies    = [
   "psutil>=7.0.0",
   "PyQt6>=6.9.1",
   "rawpy>=0.25.1",
-  "tifffile>=2025.6.11",
+  "tifffile>=2025.8.28",
 ]
 classifiers   = [
   "Programming Language :: Rust",
