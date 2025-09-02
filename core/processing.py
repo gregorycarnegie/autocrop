@@ -2,7 +2,7 @@ import os
 import random
 from collections.abc import Callable, Iterator
 from contextlib import suppress
-from functools import cache, partial, reduce, singledispatch
+from functools import cache, partial, singledispatch
 from multiprocessing.managers import ListProxy
 from pathlib import Path
 from typing import TypeVar
@@ -18,8 +18,6 @@ import tifffile as tiff
 from rawpy import ColorSpace  # type: ignore
 from rawpy._rawpy import LibRawError
 
-from .memory_utils import MemoryManager, memory_efficient_resize, optimize_array_memory
-
 from core.colour_utils import adjust_gamma, ensure_rgb, normalize_image, to_grayscale
 from core.crop_instruction import CropInstruction
 from file_types import FileCategory, SignatureChecker, file_manager
@@ -34,6 +32,7 @@ from .face_tools import (
     YuNetFaceDetector,
 )
 from .job import Job
+from .memory_utils import memory_efficient_resize, optimize_array_memory
 from .operation_types import Box, CropFunction, Pipeline
 from .protocols import ImageLoader, ImageOpener, ImageWriter, SimpleImageOpener, TableLoader
 
