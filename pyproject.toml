@@ -14,7 +14,7 @@ dependencies    = [
   "opencv-contrib-python>=4.12.0.88",
   "polars>=1.34.0",
   "psutil>=7.1.2",
-  "PyQt6>=6.9.1",
+  "PyQt6>=6.10.0",
   "rawpy>=0.25.1",
   "tifffile>=2025.10.16",
 ]
