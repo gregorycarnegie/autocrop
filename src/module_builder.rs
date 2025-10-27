@@ -1,6 +1,6 @@
 // https://github.com/biomancy/biobit/blob/c09082b2d0071689d9462d763f932a34f2b0f722/modules/core/py/src/bindings/utils/importable_py_module.rs
 use pyo3::prelude::*;
-use pyo3::types::{PyList, PyNone, PyDict};
+use pyo3::types::{PyDict, PyList, PyNone};
 use pyo3::{ffi, PyClass};
 use std::ffi::CString;
 
@@ -38,14 +38,14 @@ impl<'py> ImportablePyModuleBuilder<'py> {
     pub fn new(py: Python<'py>, name: &str) -> PyResult<Self> {
         // Create a CString that lives through the function call
         let c_name = CString::new(name)?;
-        
+
         // Create the module
         let module = unsafe {
             let ptr = ffi::PyImport_AddModule(c_name.as_ptr());
             if ptr.is_null() {
                 return Err(PyErr::fetch(py));
             }
-            
+
             // Create a bound reference and downcast
             let bound = Bound::from_borrowed_ptr(py, ptr);
             bound.downcast_into::<PyModule>()?
@@ -53,24 +53,27 @@ impl<'py> ImportablePyModuleBuilder<'py> {
 
         // Initialize basic module attributes
         module.setattr("__file__", PyNone::get(py))?;
-        
+
         // Set __package__ attribute (parent package name)
-        let package_name = name.rsplit_once('.').map(|(prefix, _)| prefix).unwrap_or("");
+        let package_name = name
+            .rsplit_once('.')
+            .map(|(prefix, _)| prefix)
+            .unwrap_or("");
         module.setattr("__package__", package_name)?;
-        
+
         // Initialize __path__ as an empty list for package-like behavior
         if !module.hasattr("__path__")? {
             module.setattr("__path__", PyList::empty(py))?;
         }
-        
+
         // Create an empty __dict__ if not present
         if !module.hasattr("__dict__")? {
             module.setattr("__dict__", PyDict::new(py))?;
         }
 
-        Ok(Self { 
+        Ok(Self {
             inner: module,
-            name: name.to_string()
+            name: name.to_string(),
         })
     }
 
@@ -84,21 +87,22 @@ impl<'py> ImportablePyModuleBuilder<'py> {
     pub fn add_submodule(self, module: &Bound<'_, PyModule>) -> PyResult<Self> {
         // Extract the fully qualified name from the module
         let fully_qualified_name: String = module.name()?.extract()?;
-        
+
         // Extract the simple name (last part after dot)
         let name = match fully_qualified_name.rsplit_once('.') {
             Some((_, name)) => name,
             None => &fully_qualified_name,
         };
-        
+
         // Add the module with its simple name
         self.inner.add(name, module)?;
-        
+
         // Ensure __path__ is set for package-like behavior
         if !self.inner.hasattr("__path__")? {
-            self.inner.setattr("__path__", PyList::empty(self.inner.py()))?;
+            self.inner
+                .setattr("__path__", PyList::empty(self.inner.py()))?;
         }
-        
+
         Ok(self)
     }
 
@@ -112,17 +116,17 @@ impl<'py> ImportablePyModuleBuilder<'py> {
     pub fn add_class<T: PyClass>(self) -> PyResult<Self> {
         // Add the class to the module
         self.inner.add_class::<T>()?;
-        
+
         // Update the __module__ attribute to the correct module name
         let py = self.inner.py();
         let type_object = T::lazy_type_object().get_or_init(py);
-        
+
         // Only override the __module__ if it's set to "builtins" (default)
         let current_module = type_object.getattr("__module__")?.extract::<String>()?;
         if current_module == "builtins" {
             type_object.setattr("__module__", &self.name)?;
         }
-        
+
         Ok(self)
     }
 
@@ -134,7 +138,10 @@ impl<'py> ImportablePyModuleBuilder<'py> {
     ///
     /// # Returns
     /// Self for method chaining
-    pub fn add_function(self, wrapped_function: Bound<'_, pyo3::types::PyCFunction>) -> PyResult<Self> {
+    pub fn add_function(
+        self,
+        wrapped_function: Bound<'_, pyo3::types::PyCFunction>,
+    ) -> PyResult<Self> {
         let name = wrapped_function.getattr("__name__")?.extract::<String>()?;
         self.inner.add(&name, wrapped_function)?;
         Ok(self)
@@ -149,7 +156,10 @@ impl<'py> ImportablePyModuleBuilder<'py> {
     /// A new builder that wraps the provided module
     pub fn from(module: Bound<'py, PyModule>) -> PyResult<Self> {
         let name = module.name()?.extract()?;
-        Ok(Self { inner: module, name })
+        Ok(Self {
+            inner: module,
+            name,
+        })
     }
 
     /// Completes the building process and returns the constructed module.
@@ -160,7 +170,7 @@ impl<'py> ImportablePyModuleBuilder<'py> {
     pub fn finish(self) -> Bound<'py, PyModule> {
         self.inner
     }
-    
+
     /// Returns a reference to the module being built.
     /// Use this when you need temporary access but want to continue building.
     ///

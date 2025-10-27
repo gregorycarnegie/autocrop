@@ -1,20 +1,19 @@
 // File validation additions to lib.rs
+use memmap2::MmapOptions;
 use ndarray::Array1;
 use numpy::{IntoPyArray, PyArray1};
 use pyo3::prelude::*;
 use rayon::prelude::*;
-use std::path::{Path, PathBuf};
 use std::fs::File;
-use std::io::{Read, BufRead, BufReader};
-use memmap2::MmapOptions;
+use std::io::{BufRead, BufReader, Read};
+use std::path::{Path, PathBuf};
 
-use crate::ImportablePyModuleBuilder;
 use crate::dispatch_simd::compare_buffers;
 use crate::file_signatures::{
-    PNG_SIG, RAW_SIGNATURES_MAP, PHOTO_SIGNATURES_MAP,
-    TIFF_SIGNATURES_MAP, VIDEO_SIGNATURES_MAP, TABLE_SIGNATURES_MAP,
-    Signature
+    Signature, PHOTO_SIGNATURES_MAP, PNG_SIG, RAW_SIGNATURES_MAP, TABLE_SIGNATURES_MAP,
+    TIFF_SIGNATURES_MAP, VIDEO_SIGNATURES_MAP,
 };
+use crate::ImportablePyModuleBuilder;
 
 // File category enum matching Python's FileCategory
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -32,13 +31,14 @@ fn get_signatures(path: &Path, category: FileCategory) -> Option<&'static [Signa
     if category == FileCategory::Unknown {
         return None;
     }
-    
+
     // Get the extension in lowercase without leading dot
-    let extension = path.extension()
+    let extension = path
+        .extension()
         .and_then(|e| e.to_str())
         .map(|s| s.to_ascii_lowercase())
         .unwrap_or_default();
-    
+
     // Select the appropriate map based on category
     let map = match category {
         FileCategory::Photo => &PHOTO_SIGNATURES_MAP,
@@ -48,7 +48,7 @@ fn get_signatures(path: &Path, category: FileCategory) -> Option<&'static [Signa
         FileCategory::Table => &TABLE_SIGNATURES_MAP,
         FileCategory::Unknown => return None,
     };
-    
+
     // Look up signatures in the selected map
     map.get(extension.as_str()).copied()
 }
@@ -59,28 +59,28 @@ fn validate_csv(path: &Path) -> bool {
         Ok(file) => {
             let mut reader = BufReader::with_capacity(2048, file);
             let mut buffer = String::with_capacity(1024);
-            
+
             // Read a sample to detect dialect
             if reader.read_line(&mut buffer).is_err() || buffer.is_empty() {
                 return false;
             }
-            
+
             // More robust delimiter detection - allow any common delimiter
             let potential_delimiters = [',', '\t', ';', '|', ' '];
-            
+
             // Check if ANY delimiter appears in the line
             for &delimiter in &potential_delimiters {
                 if buffer.contains(delimiter) {
-                    return true;  // Found a delimiter, consider it valid
+                    return true; // Found a delimiter, consider it valid
                 }
             }
-            
+
             // If no common delimiter is found but the line contains alphanumeric characters,
             // it might still be a simple single-column CSV
             if buffer.chars().any(|c| c.is_alphanumeric()) {
                 return true;
             }
-            
+
             false
         }
         Err(_) => false,
@@ -95,26 +95,27 @@ fn check_file_signatures(path: &Path, signatures: &[Signature]) -> bool {
     if signatures.is_empty() {
         return false;
     }
-    
+
     // Calculate minimum read size needed
-    let max_offset_plus_len = signatures.iter()
+    let max_offset_plus_len = signatures
+        .iter()
         .map(|(sig, offset)| offset + sig.len())
         .max()
         .unwrap_or(0);
-    
+
     // OPTIMIZATION: Use memory-mapped I/O instead of reading the whole file
     if let Ok(file) = File::open(path) {
         if let Ok(mmap) = unsafe { MmapOptions::new().map(&file) } {
             // Check if the file is large enough
             if mmap.len() >= max_offset_plus_len {
                 // Check each signature
-                return signatures.iter().any(|(sig, offset)| {
-                    compare_buffers(&mmap, sig, *offset)
-                });
+                return signatures
+                    .iter()
+                    .any(|(sig, offset)| compare_buffers(&mmap, sig, *offset));
             }
         }
     }
-    
+
     false // File couldn't be opened or read
 }
 
@@ -154,26 +155,27 @@ pub fn validate_file(path: &Path, category: FileCategory) -> bool {
     if !path.exists() || !path.is_file() {
         return false;
     }
-    
+
     // Get extension for fast path decisions
-    let extension = path.extension()
+    let extension = path
+        .extension()
         .and_then(|e| e.to_str())
         .map(|s| s.to_ascii_lowercase())
         .unwrap_or_default();
-        
+
     // Fast path for common image formats
     match (&extension[..], category) {
         ("png", FileCategory::Photo) => return is_png_file(path),
         ("jpg" | "jpeg", FileCategory::Photo) => return is_jpeg_file(path),
         ("csv", FileCategory::Table) => return validate_csv(path),
-        _ => {}  // Continue with standard validation
+        _ => {} // Continue with standard validation
     }
-    
+
     // Get signatures for the file category and extension
     if let Some(signatures) = get_signatures(path, category) {
         return check_file_signatures(path, signatures);
     }
-    
+
     false // No matching signatures
 }
 
@@ -187,7 +189,7 @@ pub fn validate_files<'py>(
     // Validate input lengths
     if file_paths.len() != categories.len() {
         return Err(pyo3::exceptions::PyValueError::new_err(
-            "file_paths and categories must have the same length"
+            "file_paths and categories must have the same length",
         ));
     }
 
@@ -204,11 +206,11 @@ pub fn validate_files<'py>(
                 4 => FileCategory::Table,
                 _ => FileCategory::Unknown,
             };
-            
+
             validate_file(&PathBuf::from(&path), file_category)
         })
         .collect();
-    
+
     // Convert to numpy array
     let array = Array1::from_vec(par_results);
     Ok(array.into_pyarray(py))
@@ -234,14 +236,15 @@ pub fn verify_file_type(file_path: String, category: u8) -> PyResult<bool> {
         4 => FileCategory::Table,
         _ => FileCategory::Unknown,
     };
-    
+
     // Special handling for table files
     if file_category == FileCategory::Table {
-        let extension = path.extension()
+        let extension = path
+            .extension()
             .and_then(|e| e.to_str())
             .map(|s| s.to_ascii_lowercase())
             .unwrap_or_default();
-            
+
         // Enhanced validation for table files
         match extension.as_str() {
             "csv" => return Ok(validate_csv(path)),
@@ -249,7 +252,7 @@ pub fn verify_file_type(file_path: String, category: u8) -> PyResult<bool> {
                 // Excel files are ZIP files with specific contents
                 // Just check if it's a valid ZIP file
                 return Ok(is_zip_file(path));
-            },
+            }
             "parquet" => {
                 // Basic check for parquet files - they usually start with PAR1
                 if let Ok(file) = File::open(path) {
@@ -260,11 +263,11 @@ pub fn verify_file_type(file_path: String, category: u8) -> PyResult<bool> {
                     }
                 }
                 return Ok(false);
-            },
-            _ => {}  // Fall through to standard validation
+            }
+            _ => {} // Fall through to standard validation
         }
     }
-    
+
     // Standard validation for other file types
     Ok(validate_file(path, file_category))
 }
@@ -286,11 +289,11 @@ fn is_zip_file(path: &Path) -> bool {
 // #[pymodule]
 pub fn register_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
     let builder = ImportablePyModuleBuilder::from(m.clone())?;
-    
+
     // Add functions to module
     builder
         .add_function(wrap_pyfunction!(validate_files, m)?)?
         .add_function(wrap_pyfunction!(verify_file_type, m)?)?;
-        
+
     Ok(())
 }

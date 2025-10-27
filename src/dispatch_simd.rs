@@ -7,12 +7,10 @@ use std::arch::x86_64::__cpuid;
 #[inline]
 fn is_avx2_supported() -> bool {
     static AVX2_SUPPORTED: OnceLock<bool> = OnceLock::new();
-    
-    *AVX2_SUPPORTED.get_or_init(|| {
-        unsafe {
-            let info = __cpuid(7);
-            ((info.ebx >> 5) & 1) != 0
-        }
+
+    *AVX2_SUPPORTED.get_or_init(|| unsafe {
+        let info = __cpuid(7);
+        ((info.ebx >> 5) & 1) != 0
     })
 }
 
@@ -29,7 +27,7 @@ where
             return avx2_fn(args);
         }
     }
-    
+
     fallback_fn(args)
 }
 

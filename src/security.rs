@@ -1,18 +1,17 @@
 // src/security.rs
 
-use pyo3::{prelude::*, exceptions::PyException};
-use std::path::{Path, PathBuf, Component};
-use std::fs;
-use std::collections::HashSet;
-use std::sync::OnceLock;
-use regex::Regex;
 use once_cell::sync::Lazy;
+use pyo3::{exceptions::PyException, prelude::*};
+use regex::Regex;
+use std::collections::HashSet;
+use std::fs;
+use std::path::{Component, Path, PathBuf};
+use std::sync::OnceLock;
 
 use crate::ImportablePyModuleBuilder;
 
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
-
 
 #[pyclass(extends=PyException)]
 #[derive(Debug)]
@@ -33,17 +32,15 @@ impl PathSecurityError {
     }
 }
 
-static PATH_REGEX: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r#"([A-Z]:)?[/\\][^'"\s<>|?*\n]+"#).unwrap()
-});
+static PATH_REGEX: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r#"([A-Z]:)?[/\\][^'"\s<>|?*\n]+"#).unwrap());
 
 static ALLOWED_BASE_DIRS: OnceLock<Vec<PathBuf>> = OnceLock::new();
 
 static DANGEROUS_NAMES: Lazy<Vec<&'static str>> = Lazy::new(|| {
     vec![
-        "CON", "PRN", "AUX", "NUL",
-        "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
-        "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+        "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8",
+        "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
     ]
 });
 
@@ -58,66 +55,70 @@ pub fn sanitize_path(
 ) -> PyResult<String> {
     // Parse allowed operations
     let allowed_ops_set: HashSet<String> = allowed_operations.into_iter().collect();
-    
+
     // 0. Pre-clean the path string - Remove quotation marks if they exist
     let cleaned_path_str = clean_path_string(path_str);
-    
+
     // 1. Basic validation
     if cleaned_path_str.is_empty() {
         return Ok(String::new());
     }
-    
+
     // 2. Length check
     if cleaned_path_str.len() > max_path_length {
         return Ok(String::new());
     }
-    
+
     // 3. Remove null bytes and non-printable characters
     if cleaned_path_str.contains('\0') {
-        return Err(PyErr::new::<PathSecurityError, _>("Null byte detected in path"));
+        return Err(PyErr::new::<PathSecurityError, _>(
+            "Null byte detected in path",
+        ));
     }
-    
+
     let cleaned_path: String = cleaned_path_str
         .chars()
         .filter(|c| c.is_ascii_graphic() || c.is_whitespace())
         .collect();
-    
+
     // 4. Create path and check for path traversal
     let path = Path::new(&cleaned_path);
-    
+
     // Check for path traversal attempts
     for component in path.components() {
         if let Component::ParentDir = component {
-            return Err(PyErr::new::<PathSecurityError, _>("Path traversal attempted"));
+            return Err(PyErr::new::<PathSecurityError, _>(
+                "Path traversal attempted",
+            ));
         }
     }
-    
+
     // 5. Resolve the path
     let resolved_path = match follow_symlinks {
         true => resolve_path_following_symlinks(path)?,
         false => resolve_path_no_symlinks(path)?,
     };
-    
+
     // 6. Validate against allowed base directories
     if !is_within_allowed_directories(&resolved_path, follow_symlinks)? {
         return Ok(String::new());
     }
-    
+
     // 7. Check for dangerous path components (Windows-specific)
     if cfg!(target_os = "windows") && has_dangerous_windows_components(&resolved_path) {
         return Ok(String::new());
     }
-    
+
     // 8. Check permissions if path exists
     if resolved_path.exists() {
         check_permissions(&resolved_path, &allowed_ops_set)?;
     }
-    
+
     // 9. Additional security checks
     if !validate_path_components(&resolved_path)? {
         return Ok(String::new());
     }
-    
+
     // 10. Convert to string and return
     match resolved_path.to_str() {
         Some(path_str) => Ok(path_str.to_string()),
@@ -125,23 +126,22 @@ pub fn sanitize_path(
     }
 }
 
-
 /// Clean a path string by removing surrounding quotes and normalizing separators
 /// This function is recursive to handle nested quotes
 fn clean_path_string(path_str: &str) -> String {
     let mut result = path_str.to_string();
-    const MAX_ITERATIONS: usize = 10;  // Reasonable upper limit
-    
+    const MAX_ITERATIONS: usize = 10; // Reasonable upper limit
+
     for _ in 0..MAX_ITERATIONS {
         if result.len() < 2 {
             break;
         }
-        
+
         let first = result.chars().next().unwrap();
         let last = result.chars().last().unwrap();
-        
+
         if (first == '\'' && last == '\'') ^ (first == '"' && last == '"') {
-            result = result[1..result.len()-1].to_string();
+            result = result[1..result.len() - 1].to_string();
         } else {
             break;
         }
@@ -166,52 +166,56 @@ fn resolve_path_following_symlinks(path: &Path) -> PyResult<PathBuf> {
 fn resolve_path_no_symlinks(path: &Path) -> PyResult<PathBuf> {
     // Check if the final path is a symlink
     if path.exists() && fs::symlink_metadata(path)?.file_type().is_symlink() {
-       return Err(PyErr::new::<PathSecurityError, _>("Symbolic links not allowed"));
+        return Err(PyErr::new::<PathSecurityError, _>(
+            "Symbolic links not allowed",
+        ));
     }
-    
+
     // For non-existent paths, we can't check for symlinks along the way
     // So we'll do a simple normalization
     let mut resolved = PathBuf::new();
-    
+
     for component in path.components() {
         match component {
             Component::CurDir => continue,
-            Component::ParentDir => { resolved.pop(); }
+            Component::ParentDir => {
+                resolved.pop();
+            }
             _ => resolved.push(component),
         }
     }
-    
+
     // Check each existing component for symlinks
     let mut check_path = PathBuf::new();
     for component in resolved.components() {
         check_path.push(component);
-        
+
         if check_path.exists() {
             if let Ok(metadata) = fs::symlink_metadata(&check_path) {
                 if metadata.file_type().is_symlink() {
-                    return Err(PyErr::new::<PathSecurityError, _>(
-                        format!("Symbolic link detected: {:?}", component)
-                    ));
+                    return Err(PyErr::new::<PathSecurityError, _>(format!(
+                        "Symbolic link detected: {:?}",
+                        component
+                    )));
                 }
             }
         }
     }
-    
+
     Ok(resolved)
 }
 
 /// Check if path is within allowed directories
 fn is_within_allowed_directories(path: &Path, follow_symlinks: bool) -> PyResult<bool> {
-    let allowed_dirs = ALLOWED_BASE_DIRS.get_or_init(|| {
-        get_allowed_base_directories().unwrap_or_default()
-    });
-    
+    let allowed_dirs =
+        ALLOWED_BASE_DIRS.get_or_init(|| get_allowed_base_directories().unwrap_or_default());
+
     for allowed_dir in allowed_dirs {
         if is_safe_subpath(path, allowed_dir, follow_symlinks) {
             return Ok(true);
         }
     }
-    
+
     Ok(false)
 }
 
@@ -221,11 +225,11 @@ fn get_home_dir() -> Option<PathBuf> {
     {
         std::env::var_os("HOME").map(PathBuf::from)
     }
-    
+
     #[cfg(windows)]
     {
         std::env::var_os("USERPROFILE")
-            .map(PathBuf::from)  // Convert OsString to PathBuf here
+            .map(PathBuf::from) // Convert OsString to PathBuf here
             .or_else(|| {
                 // Fallback to HOMEDRIVE + HOMEPATH on Windows
                 match (std::env::var_os("HOMEDRIVE"), std::env::var_os("HOMEPATH")) {
@@ -238,7 +242,7 @@ fn get_home_dir() -> Option<PathBuf> {
                 }
             })
     }
-    
+
     #[cfg(not(any(unix, windows)))]
     {
         None
@@ -248,12 +252,12 @@ fn get_home_dir() -> Option<PathBuf> {
 /// Get allowed base directories for the platform
 fn get_allowed_base_directories() -> PyResult<Vec<PathBuf>> {
     let mut allowed_dirs = Vec::new();
-    
+
     // Add home directory
     if let Some(home_dir) = get_home_dir() {
         allowed_dirs.push(home_dir);
     }
-    
+
     // Platform-specific directories
     if cfg!(target_os = "windows") {
         // Add all drive roots
@@ -273,7 +277,7 @@ fn get_allowed_base_directories() -> PyResult<Vec<PathBuf>> {
             PathBuf::from("/var/tmp"),
         ]);
     }
-    
+
     Ok(allowed_dirs)
 }
 
@@ -294,7 +298,7 @@ fn is_safe_subpath(path: &Path, base_path: &Path, follow_symlinks: bool) -> bool
                 Err(_) => return false,
             }
         };
-        
+
         let abs_base = if base_path.is_absolute() {
             base_path.to_path_buf()
         } else {
@@ -303,7 +307,7 @@ fn is_safe_subpath(path: &Path, base_path: &Path, follow_symlinks: bool) -> bool
                 Err(_) => return false,
             }
         };
-        
+
         abs_path.starts_with(abs_base)
     }
 }
@@ -315,7 +319,7 @@ fn has_dangerous_windows_components(path: &Path) -> bool {
             if let Some(name_str) = name.to_str() {
                 // Get the base name without extension
                 let base_name = name_str.split('.').next().unwrap_or(name_str);
-                
+
                 // Check against dangerous names (case-insensitive)
                 for &dangerous in DANGEROUS_NAMES.iter() {
                     if base_name.eq_ignore_ascii_case(dangerous) {
@@ -325,7 +329,7 @@ fn has_dangerous_windows_components(path: &Path) -> bool {
             }
         }
     }
-    
+
     false
 }
 
@@ -337,27 +341,27 @@ fn check_permissions(path: &Path, allowed_operations: &HashSet<String>) -> PyRes
         let metadata = fs::metadata(path)?;
         let permissions = metadata.permissions();
         let mode = permissions.mode();
-        
+
         // Check for world-writable files (potential security risk)
         if mode & 0o002 != 0 {
             // Log warning but don't fail
             eprintln!("Warning: World-writable path detected: {:?}", path);
         }
     }
-    
+
     // Check specific permissions based on allowed operations
     if allowed_operations.contains("read") && !can_read(path) {
         return Err(PyErr::new::<PathSecurityError, _>("No read permission"));
     }
-    
+
     if allowed_operations.contains("write") && !can_write(path) {
         return Err(PyErr::new::<PathSecurityError, _>("No write permission"));
     }
-    
+
     if allowed_operations.contains("execute") && !can_execute(path) {
         return Err(PyErr::new::<PathSecurityError, _>("No execute permission"));
     }
-    
+
     Ok(())
 }
 
@@ -388,10 +392,7 @@ fn can_write(path: &Path) -> bool {
         result.is_ok()
     } else {
         // Normal files: can we open for write?
-        fs::OpenOptions::new()
-            .write(true)
-            .open(path)
-            .is_ok()
+        fs::OpenOptions::new().write(true).open(path).is_ok()
     }
 }
 
@@ -405,7 +406,7 @@ fn can_execute(path: &Path) -> bool {
             return mode & 0o111 != 0;
         }
     }
-    
+
     // On Windows, check if it's an executable file
     #[cfg(windows)]
     {
@@ -414,7 +415,7 @@ fn can_execute(path: &Path) -> bool {
             return exe_extensions.iter().any(|&e| ext.eq_ignore_ascii_case(e));
         }
     }
-    
+
     false
 }
 
@@ -427,22 +428,25 @@ fn validate_path_components(path: &Path) -> PyResult<bool> {
                 if name_str.len() > 255 {
                     return Ok(false);
                 }
-                
+
                 // Check for suspicious characters
                 let suspicious_chars = if cfg!(target_os = "windows") {
                     "<>:\"|?*"
                 } else {
                     "<>|?*"
                 };
-                
+
                 if name_str.chars().any(|c| suspicious_chars.contains(c)) {
-                    eprintln!("Warning: Suspicious character in path component: {}", name_str);
+                    eprintln!(
+                        "Warning: Suspicious character in path component: {}",
+                        name_str
+                    );
                     // Don't fail, just warn
                 }
             }
         }
     }
-    
+
     Ok(true)
 }
 
@@ -453,16 +457,15 @@ pub fn get_safe_error_message(error_msg: &str) -> String {
     PATH_REGEX.replace_all(error_msg, "<path>").to_string()
 }
 
-
 /// Module initialization
 pub fn register_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
     let builder = ImportablePyModuleBuilder::from(m.clone())?;
-    
+
     // Add everything to the module in a single chain
     builder
         .add_function(wrap_pyfunction!(sanitize_path, m)?)?
         .add_function(wrap_pyfunction!(get_safe_error_message, m)?)?
         .add_class::<PathSecurityError>()?;
-    
+
     Ok(())
 }
