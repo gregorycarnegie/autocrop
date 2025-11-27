@@ -1,4 +1,4 @@
-use ndarray::{par_azip, s, Array1, Array2, Array3, ArrayView2, ArrayView3, Axis, Ix3, Zip};
+use ndarray::{Array1, Array2, Array3, ArrayView2, ArrayView3, Axis, Ix3, Zip, par_azip, s};
 use numpy::{IntoPyArray, PyArray1, PyArray2, PyArray3, PyReadonlyArray2, PyReadonlyArray3};
 use parking_lot::Mutex;
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
@@ -7,12 +7,9 @@ use rayon::current_num_threads;
 use rayon::prelude::*;
 use std::convert::Into;
 
-use crate::dispatch_simd::dispatch_simd;
-use crate::ImportablePyModuleBuilder;
+use wide::f64x4;
 
-// For x86/x86_64 specific SIMD intrinsics
-#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-use std::arch::x86_64::{_mm256_div_pd, _mm256_set1_pd, _mm256_set_pd, _mm256_storeu_pd};
+use crate::ImportablePyModuleBuilder;
 
 /// Alias representing a rectangle
 type Rectangle = (f64, f64, f64, f64);
@@ -23,7 +20,7 @@ type BoxCoordinates = (i32, i32, i32, i32);
 
 // OPTIMIZATION: Reusable buffers for grayscale image processing
 thread_local! {
-    static GRAY_BUFFER: Mutex<Option<Array2<u8>>> = Mutex::new(None);
+    static GRAY_BUFFER: Mutex<Option<Array2<u8>>> = const { Mutex::new(None) };
 }
 
 /// Compute the cumulative sum of a slice of f64 values. (Corrected, simple version)
@@ -199,7 +196,7 @@ pub fn bgr_to_gray(image_view: ArrayView3<u8>, use_rec709: bool) -> Array2<u8> {
             let b = b as f32;
             let g_val = g_val as f32;
             let r = r as f32;
-            *g = round_clamp_to_u8(r_coeff * r + g_coeff * g_val + b_coeff * b);
+            *g = round_clamp_to_u8(r.mul_add(r_coeff, g_val.mul_add(g_coeff, b * b_coeff)));
         });
 
     gray
@@ -301,7 +298,7 @@ pub fn convert_scale_abs(image_view: ArrayView3<u8>, alpha: f64, beta: f64) -> A
     // Use par_azip for parallel element-wise operations
     par_azip!((output_pixel in &mut output_array, &input_pixel in &image_view) {
         // No need for abs() if input is u8 and alpha/beta produce results clamped to positive range
-        *output_pixel = round_clamp_to_u8((input_pixel as f64) * alpha + beta);
+        *output_pixel = round_clamp_to_u8((input_pixel as f64).mul_add(alpha, beta));
     });
 
     output_array
@@ -348,7 +345,7 @@ fn correct_exposure<'py>(
 fn gamma<'py>(gamma_value: f64, py: Python<'py>) -> PyResult<Bound<'py, PyArray1<u8>>> {
     // OPTIMIZATION: Cache gamma lookup tables
     thread_local! {
-        static GAMMA_CACHE: Mutex<Vec<(f64, Vec<u8>)>> = Mutex::new(Vec::new());
+        static GAMMA_CACHE: Mutex<Vec<(f64, Vec<u8>)>> = const { Mutex::new(Vec::new()) };
     }
 
     // Try to find a cached table first
@@ -363,18 +360,7 @@ fn gamma<'py>(gamma_value: f64, py: Python<'py>) -> PyResult<Bound<'py, PyArray1
         }
 
         // Not found, generate a new table
-        // standard_impl faster for gamma < 1.0
-        let new_table = {
-            if gamma_value < 1.0 {
-                gamma_standard_impl(gamma_value)
-            } else {
-                dispatch_simd(
-                    gamma_value,
-                    |g| unsafe { gamma_avx2_impl(g) },
-                    |g| gamma_standard_impl(g),
-                )
-            }
-        };
+        let new_table = gamma_lut_impl(gamma_value);
 
         // Cache the result (up to a reasonable limit)
         if cache_guard.len() < 10 {
@@ -389,65 +375,45 @@ fn gamma<'py>(gamma_value: f64, py: Python<'py>) -> PyResult<Bound<'py, PyArray1
     Ok(array.into_pyarray(py))
 }
 
-/// AVX2-accelerated gamma correction lookup table generation
-#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-pub unsafe fn gamma_avx2_impl(gamma_value: f64) -> Vec<u8> {
+/// Gamma correction lookup table generation using wide crate for SIMD
+fn gamma_lut_impl(gamma_value: f64) -> Vec<u8> {
+    if gamma_value <= 1.0 {
+        return (0..=255).collect();
+    }
+
     let inv_gamma = 1.0 / gamma_value;
     let scale = 255.0;
-    let scale_vec = _mm256_set1_pd(scale);
     let mut lookup = vec![0u8; 256];
 
+    // Process in chunks of 4 using wide
+    // We can safely assume 256 is divisible by 4
     for i in (0..256).step_by(4) {
-        // Create vector of 4 consecutive indices
-        let indices = if i + 3 < 256 {
-            _mm256_set_pd((i + 3) as f64, (i + 2) as f64, (i + 1) as f64, i as f64)
-        } else {
-            // Handle edge case for last iteration
-            let mut vals = [0.0; 4];
-            for j in 0..4 {
-                if i + j < 256 {
-                    vals[j] = (i + j) as f64;
-                }
-            }
-            _mm256_set_pd(vals[3], vals[2], vals[1], vals[0])
-        };
+        let indices = f64x4::from([i as f64, (i + 1) as f64, (i + 2) as f64, (i + 3) as f64]);
 
-        // Normalize by dividing by scale
-        let normalized = _mm256_div_pd(indices, scale_vec);
+        let normalized = indices / scale;
+        let normalized_arr: [f64; 4] = normalized.into();
 
-        // Apply power function (no AVX2 intrinsic for pow, need to store and process)
-        let mut temp_values = [0.0; 4];
-        _mm256_storeu_pd(temp_values.as_mut_ptr(), normalized);
+        // powf is not available in wide::f64x4 directly in all versions or requires extra traits,
+        // and standard powf is scalar. Since we need to unpack for powf anyway (or use a slower simd pow),
+        // we do the powf part scalar.
+        let powered_arr = [
+            normalized_arr[0].powf(inv_gamma),
+            normalized_arr[1].powf(inv_gamma),
+            normalized_arr[2].powf(inv_gamma),
+            normalized_arr[3].powf(inv_gamma),
+        ];
 
-        for j in 0..4 {
-            if i + j < 256 {
-                let powered = temp_values[j].powf(inv_gamma);
-                lookup[i + j] = round_clamp_to_u8(powered * scale);
-            }
-        }
+        let powered = f64x4::from(powered_arr);
+        let result = powered * scale;
+        let result_arr: [f64; 4] = result.into();
+
+        lookup[i] = round_clamp_to_u8(result_arr[0]);
+        lookup[i + 1] = round_clamp_to_u8(result_arr[1]);
+        lookup[i + 2] = round_clamp_to_u8(result_arr[2]);
+        lookup[i + 3] = round_clamp_to_u8(result_arr[3]);
     }
 
     lookup
-}
-
-/// Python-facing gamma correction function that uses AVX2 if available
-pub fn gamma_standard_impl(gamma_value: f64) -> Vec<u8> {
-    if gamma_value <= 1.0 {
-        // For gamma ≤ 1.0, just return array with values 0-255
-        (0..=255).collect()
-    } else {
-        // For gamma > 1.0, calculate values in parallel
-        let inv_gamma = 1.0 / gamma_value;
-        let scale = 255.0;
-
-        (0..256)
-            .into_par_iter()
-            .map(|i| {
-                let normalized = (i as f64) / scale;
-                round_clamp_to_u8(normalized.powf(inv_gamma) * scale)
-            })
-            .collect()
-    }
 }
 
 /// Calculates output dimensions and scaling factor for resizing.
@@ -546,8 +512,8 @@ fn get_rotation_matrix<'py>(
     let beta = angle.sin();
 
     // Calculate the matrix elements
-    let m02 = (1.0 - alpha) * center_x - beta * center_y;
-    let m12 = beta * center_x + (1.0 - alpha) * center_y;
+    let m02 = (1.0 - alpha).mul_add(center_x, -beta * center_y);
+    let m12 = beta.mul_add(center_x, (1.0 - alpha) * center_y);
 
     // Create a 2x3 matrix
     let matrix = Array2::from_shape_vec((2, 3), vec![alpha, beta, m02, -beta, alpha, m12])

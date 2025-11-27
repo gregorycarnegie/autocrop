@@ -1,4 +1,4 @@
-use phf::{phf_map, Map};
+use phf::{Map, phf_map};
 
 // Type aliases for better code readability
 pub type Signature = (&'static [u8], usize);
@@ -23,16 +23,16 @@ static WEBP_SIGNATURES: &[Signature] = &[
 ];
 
 // ASCII signatures can use byte literals
-static PBM_SIGNATURES: &[Signature] = &[(&[b'P', b'4'], 0), (&[b'P', b'1'], 0)];
-static PGM_SIGNATURES: &[Signature] = &[(&[b'P', b'5'], 0), (&[b'P', b'2'], 0)];
-static PPM_SIGNATURES: &[Signature] = &[(&[b'P', b'6'], 0), (&[b'P', b'3'], 0)];
+static PBM_SIGNATURES: &[Signature] = &[(b"P4", 0), (b"P1", 0)];
+static PGM_SIGNATURES: &[Signature] = &[(b"P5", 0), (b"P2", 0)];
+static PPM_SIGNATURES: &[Signature] = &[(b"P6", 0), (b"P3", 0)];
 
-static PNM_SIGNATURES: &[Signature] = &[(&[b'P', b'7'], 0)];
+static PNM_SIGNATURES: &[Signature] = &[(b"P7", 0)];
 
 // Portable FloatMap (32‑bit float HDR)
 static PFM_SIGNATURES: &[Signature] = &[
-    (&[b'P', b'F'], 0), // Colour
-    (&[b'P', b'f'], 0), // Greyscale
+    (b"PF", 0), // Colour
+    (b"Pf", 0), // Greyscale
 ];
 
 // Sun Raster signature
@@ -51,10 +51,10 @@ static CRW_SIGNATURE: &[Signature] = &[(
     0,
 )]; // "II*\0" (little endian)
 static EXR_SIGNATURE: &[Signature] = &[(&[0x76, 0x2F, 0x31, 0x01], 0)]; // "v/1\0"
-static X3F_SIGNATURE: &[Signature] = &[(&[b'F', b'O', b'V', b'b'], 0)]; // "FOVb"
+static X3F_SIGNATURE: &[Signature] = &[(b"FOVb", 0)]; // "FOVb"
 static ORF_SIGNATURES: &[Signature] = &[
-    (&[b'I', b'I', b'R', b'O'], 0), // "IIR\0"
-    (&[b'I', b'I'], 0),             // "II\0"
+    (b"IIR\0", 0), // "IIR\0"
+    (b"II", 0),    // "II\0"
 ];
 static TIFF_SIGNATURES: &[Signature] = &[
     (&[0x49, 0x49, 0x2A, 0x00], 0), // "II*\0" (little endian)
@@ -63,35 +63,27 @@ static TIFF_SIGNATURES: &[Signature] = &[
 static TIFF_LE_SIGNATURE: &[Signature] = &[(&[0x49, 0x49, 0x2A, 0x00], 0)];
 
 // For longer signatures
-static FUJI_RAF_SIGNATURE: &[Signature] = &[(
-    &[
-        b'F', b'U', b'J', b'I', b'F', b'I', b'L', b'M', b'C', b'C', b'D', b'-', b'R', b'A', b'W',
-    ],
-    0,
-)];
+static FUJI_RAF_SIGNATURE: &[Signature] = &[(b"FUJIFILMCCD-RAW", 0)];
 
 static RADIANCE_SIGNATURES: &[Signature] = &[
-    (
-        &[b'#', b'?', b'R', b'A', b'D', b'I', b'A', b'N', b'C', b'E'],
-        0,
-    ), // HDR signature
-    (&[b'#', b'?', b'R', b'G', b'B', b'E'], 0), // PIC signature
+    (b"#?RADIANCE", 0), // HDR signature
+    (b"#?RGBE", 0),     // PIC signature
 ];
 
 // Table format signatures
 static ZIP_SIGNATURE: &[Signature] = &[(&[0x50, 0x4B, 0x03, 0x04], 0)]; // "PK\x03\x04"
 static PARQUET_SIGNATURES: &[Signature] = &[
-    (&[b'P', b'A', b'R', b'1'], 0), // "PAR1"
-    (&[b'P', b'A', b'R', b'E'], 0), // "PARE"
+    (b"PAR1", 0), // "PAR1"
+    (b"PARE", 0), // "PARE"
 ];
 
 // Video format signatures
 static AVI_SIGNATURES: &[Signature] = &[
-    (&[b'R', b'I', b'F', b'F'], 0), // "RIFF"
-    (&[b'A', b'V', b'I', b' '], 8), // "AVI "
+    (b"RIFF", 0), // "RIFF"
+    (b"AVI ", 8), // "AVI "
 ];
 static MKV_SIGNATURE: &[Signature] = &[(&[0x1A, 0x45, 0xDF, 0xA3], 0)]; // Matroska signature
-static MP4_SIGNATURES: &[Signature] = &[(&[b'f', b't', b'y', b'p'], 4)]; // "ftyp"
+static MP4_SIGNATURES: &[Signature] = &[(b"ftyp", 4)]; // "ftyp"
 
 // Define a static PHF map for photo signatures
 pub static PHOTO_SIGNATURES_MAP: FileSignatureMap = phf_map! {

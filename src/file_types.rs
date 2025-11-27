@@ -8,12 +8,11 @@ use std::fs::File;
 use std::io::{BufRead, BufReader, Read};
 use std::path::{Path, PathBuf};
 
-use crate::dispatch_simd::compare_buffers;
+use crate::ImportablePyModuleBuilder;
 use crate::file_signatures::{
-    Signature, PHOTO_SIGNATURES_MAP, PNG_SIG, RAW_SIGNATURES_MAP, TABLE_SIGNATURES_MAP,
+    PHOTO_SIGNATURES_MAP, PNG_SIG, RAW_SIGNATURES_MAP, Signature, TABLE_SIGNATURES_MAP,
     TIFF_SIGNATURES_MAP, VIDEO_SIGNATURES_MAP,
 };
-use crate::ImportablePyModuleBuilder;
 
 // File category enum matching Python's FileCategory
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -87,6 +86,14 @@ fn validate_csv(path: &Path) -> bool {
     }
 }
 
+#[inline]
+fn compare_buffers(buffer: &[u8], signature: &[u8], offset: usize) -> bool {
+    if buffer.len() < offset + signature.len() {
+        return false;
+    }
+    &buffer[offset..offset + signature.len()] == signature
+}
+
 /// SIMD accelerated signature checking using AVX2 or SSE2 instructions
 /// Returns true if any signature matches
 #[inline]
@@ -104,15 +111,15 @@ fn check_file_signatures(path: &Path, signatures: &[Signature]) -> bool {
         .unwrap_or(0);
 
     // OPTIMIZATION: Use memory-mapped I/O instead of reading the whole file
-    if let Ok(file) = File::open(path) {
-        if let Ok(mmap) = unsafe { MmapOptions::new().map(&file) } {
-            // Check if the file is large enough
-            if mmap.len() >= max_offset_plus_len {
-                // Check each signature
-                return signatures
-                    .iter()
-                    .any(|(sig, offset)| compare_buffers(&mmap, sig, *offset));
-            }
+    if let Ok(file) = File::open(path)
+        && let Ok(mmap) = unsafe { MmapOptions::new().map(&file) }
+    {
+        // Check if the file is large enough
+        if mmap.len() >= max_offset_plus_len {
+            // Check each signature
+            return signatures
+                .iter()
+                .any(|(sig, offset)| compare_buffers(&mmap, sig, *offset));
         }
     }
 
@@ -124,10 +131,10 @@ fn check_file_signatures(path: &Path, signatures: &[Signature]) -> bool {
 fn is_png_file(path: &Path) -> bool {
     if let Ok(mut file) = File::open(path) {
         let mut signature = [0u8; 8];
-        if let Ok(bytes_read) = file.read(&mut signature) {
-            if bytes_read == 8 {
-                return compare_buffers(&signature, PNG_SIG, 0);
-            }
+        if let Ok(bytes_read) = file.read(&mut signature)
+            && bytes_read == 8
+        {
+            return compare_buffers(&signature, PNG_SIG, 0);
         }
     }
     false
@@ -138,11 +145,11 @@ fn is_png_file(path: &Path) -> bool {
 fn is_jpeg_file(path: &Path) -> bool {
     if let Ok(mut file) = File::open(path) {
         let mut signature = [0u8; 3];
-        if let Ok(bytes_read) = file.read(&mut signature) {
-            if bytes_read == 3 {
-                // JPEG has a 3-byte signature (using our new helper)
-                return compare_buffers(&signature, &[0xFF, 0xD8, 0xFF], 0);
-            }
+        if let Ok(bytes_read) = file.read(&mut signature)
+            && bytes_read == 3
+        {
+            // JPEG has a 3-byte signature (using our new helper)
+            return compare_buffers(&signature, &[0xFF, 0xD8, 0xFF], 0);
         }
     }
     false
@@ -255,12 +262,11 @@ pub fn verify_file_type(file_path: String, category: u8) -> PyResult<bool> {
             }
             "parquet" => {
                 // Basic check for parquet files - they usually start with PAR1
-                if let Ok(file) = File::open(path) {
-                    if let Ok(mmap) = unsafe { MmapOptions::new().map(&file) } {
-                        if mmap.len() >= 4 {
-                            return Ok(&mmap[0..4] == [b'P', b'A', b'R', b'1']);
-                        }
-                    }
+                if let Ok(file) = File::open(path)
+                    && let Ok(mmap) = unsafe { MmapOptions::new().map(&file) }
+                    && mmap.len() >= 4
+                {
+                    return Ok(mmap[0..4] == [b'P', b'A', b'R', b'1']);
                 }
                 return Ok(false);
             }
@@ -274,13 +280,12 @@ pub fn verify_file_type(file_path: String, category: u8) -> PyResult<bool> {
 
 // Helper function to check if a file is a valid ZIP file (for Excel)
 fn is_zip_file(path: &Path) -> bool {
-    if let Ok(file) = File::open(path) {
-        if let Ok(mmap) = unsafe { MmapOptions::new().map(&file) } {
-            if mmap.len() >= 4 {
-                // Check for ZIP file signature "PK\x03\x04"
-                return &mmap[0..4] == [0x50, 0x4B, 0x03, 0x04];
-            }
-        }
+    if let Ok(file) = File::open(path)
+        && let Ok(mmap) = unsafe { MmapOptions::new().map(&file) }
+        && mmap.len() >= 4
+    {
+        // Check for ZIP file signature "PK\x03\x04"
+        return mmap[0..4] == [0x50, 0x4B, 0x03, 0x04];
     }
     false
 }

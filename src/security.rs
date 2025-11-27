@@ -147,8 +147,7 @@ fn clean_path_string(path_str: &str) -> String {
         }
     }
     // Always normalize path separators
-    let x = result.replace('\\', "/");
-    x
+    result.replace('\\', "/")
 }
 
 /// Resolve path following symlinks
@@ -190,15 +189,14 @@ fn resolve_path_no_symlinks(path: &Path) -> PyResult<PathBuf> {
     for component in resolved.components() {
         check_path.push(component);
 
-        if check_path.exists() {
-            if let Ok(metadata) = fs::symlink_metadata(&check_path) {
-                if metadata.file_type().is_symlink() {
-                    return Err(PyErr::new::<PathSecurityError, _>(format!(
-                        "Symbolic link detected: {:?}",
-                        component
-                    )));
-                }
-            }
+        if check_path.exists()
+            && let Ok(metadata) = fs::symlink_metadata(&check_path)
+            && metadata.file_type().is_symlink()
+        {
+            return Err(PyErr::new::<PathSecurityError, _>(format!(
+                "Symbolic link detected: {:?}",
+                component
+            )));
         }
     }
 
@@ -315,16 +313,16 @@ fn is_safe_subpath(path: &Path, base_path: &Path, follow_symlinks: bool) -> bool
 /// Check for dangerous Windows path components
 fn has_dangerous_windows_components(path: &Path) -> bool {
     for component in path.components() {
-        if let Component::Normal(name) = component {
-            if let Some(name_str) = name.to_str() {
-                // Get the base name without extension
-                let base_name = name_str.split('.').next().unwrap_or(name_str);
+        if let Component::Normal(name) = component
+            && let Some(name_str) = name.to_str()
+        {
+            // Get the base name without extension
+            let base_name = name_str.split('.').next().unwrap_or(name_str);
 
-                // Check against dangerous names (case-insensitive)
-                for &dangerous in DANGEROUS_NAMES.iter() {
-                    if base_name.eq_ignore_ascii_case(dangerous) {
-                        return true;
-                    }
+            // Check against dangerous names (case-insensitive)
+            for &dangerous in DANGEROUS_NAMES.iter() {
+                if base_name.eq_ignore_ascii_case(dangerous) {
+                    return true;
                 }
             }
         }
@@ -422,27 +420,27 @@ fn can_execute(path: &Path) -> bool {
 /// Validate individual path components
 fn validate_path_components(path: &Path) -> PyResult<bool> {
     for component in path.components() {
-        if let Component::Normal(name) = component {
-            if let Some(name_str) = name.to_str() {
-                // Check for excessively long components
-                if name_str.len() > 255 {
-                    return Ok(false);
-                }
+        if let Component::Normal(name) = component
+            && let Some(name_str) = name.to_str()
+        {
+            // Check for excessively long components
+            if name_str.len() > 255 {
+                return Ok(false);
+            }
 
-                // Check for suspicious characters
-                let suspicious_chars = if cfg!(target_os = "windows") {
-                    "<>:\"|?*"
-                } else {
-                    "<>|?*"
-                };
+            // Check for suspicious characters
+            let suspicious_chars = if cfg!(target_os = "windows") {
+                "<>:\"|?*"
+            } else {
+                "<>|?*"
+            };
 
-                if name_str.chars().any(|c| suspicious_chars.contains(c)) {
-                    eprintln!(
-                        "Warning: Suspicious character in path component: {}",
-                        name_str
-                    );
-                    // Don't fail, just warn
-                }
+            if name_str.chars().any(|c| suspicious_chars.contains(c)) {
+                eprintln!(
+                    "Warning: Suspicious character in path component: {}",
+                    name_str
+                );
+                // Don't fail, just warn
             }
         }
     }

@@ -1,7 +1,7 @@
 // https://github.com/biomancy/biobit/blob/c09082b2d0071689d9462d763f932a34f2b0f722/modules/core/py/src/bindings/utils/importable_py_module.rs
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PyNone};
-use pyo3::{ffi, PyClass};
+use pyo3::{PyClass, ffi};
 use std::ffi::CString;
 
 /// A builder pattern implementation for creating Python modules that can be properly
