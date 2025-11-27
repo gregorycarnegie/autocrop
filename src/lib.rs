@@ -13,22 +13,19 @@ use module_builder::ImportablePyModuleBuilder;
 #[pymodule]
 fn autocrop_rs(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Create submodules
-    let file_types_module = ImportablePyModuleBuilder::new(py, "autocrop_rs.file_types")?;
-    file_types::register_module(file_types_module.as_module())?;
-    let file_types = file_types_module.finish();
+    macro_rules! register_submodule {
+        ($module:ident) => {{
+            let builder =
+                ImportablePyModuleBuilder::new(py, concat!("autocrop_rs.", stringify!($module)))?;
+            $module::register_module(builder.as_module())?;
+            builder.finish()
+        }};
+    }
 
-    let security_module = ImportablePyModuleBuilder::new(py, "autocrop_rs.security")?;
-    security::register_module(security_module.as_module())?;
-    let security = security_module.finish();
-
-    let image_processing_module =
-        ImportablePyModuleBuilder::new(py, "autocrop_rs.image_processing")?;
-    image_processing::register_module(image_processing_module.as_module())?;
-    let image_processing = image_processing_module.finish();
-
-    let face_detection_module = ImportablePyModuleBuilder::new(py, "autocrop_rs.face_detection")?;
-    face_detection::register_module(face_detection_module.as_module())?;
-    let face_detection = face_detection_module.finish();
+    let file_types = register_submodule!(file_types);
+    let security = register_submodule!(security);
+    let image_processing = register_submodule!(image_processing);
+    let face_detection = register_submodule!(face_detection);
 
     // Add submodules to main module
     ImportablePyModuleBuilder::from(m.clone())?
